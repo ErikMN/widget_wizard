@@ -1,0 +1,59 @@
+{
+  "name": "widget_wizard",
+  "sitename": "Widget Wizard",
+  "version": "0.0.1",
+  "homepage": "./",
+  "private": true,
+  "author": "-",
+  "dependencies": {
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-react": "^7.24.7",
+    "@typescript-eslint/eslint-plugin": "^8.2.0",
+    "@typescript-eslint/parser": "^8.2.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "license-checker": "^25.0.1",
+    "prettier": "^3.3.3",
+    "stylelint": "^16.8.2",
+    "stylelint-config-standard-scss": "^13.1.0",
+    "vite": "^5.4.2",
+    "vite-plugin-compression2": "^1.2.0",
+    "vite-plugin-svgr": "^4.2.0",
+    "vite-tsconfig-paths": "^4.3.2"
+  },
+  "scripts": {
+    "start": "./start.sh",
+    "preview": "./version.sh && vite preview",
+    "build": "./version.sh && tsc && vite build",
+    "license": "license-checker --json",
+    "lint": "npx eslint . --ext  .js,.jsx,.tsx --cache",
+    "format": "npx prettier --write .",
+    "stylelint": "npx stylelint './src/**/*.css'",
+    "checkupdate": "npx npm-check-updates",
+    "update": "npx npm-check-updates -u",
+    "clean": "rm -rf build",
+    "distclean": "rm -rf yarn.lock node_modules build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

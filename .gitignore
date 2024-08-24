@@ -1,0 +1,22 @@
+# Files to ignore:
+widget_wizard
+release
+.history
+*.exe
+*.o
+*.pyc
+*.eap
+*.old
+*.raw
+*log_messages.txt
+npm-debug.log
+package.conf.orig
+html
+*LICENSE.txt
+tmp*
+slask
+credentials.json
+.eap-install.cfg
+.yarnrc
+.cache
+.bash_history

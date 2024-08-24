@@ -1,0 +1,21 @@
+{
+    "schemaVersion": "1.3",
+    "acapPackageConf": {
+        "setup": {
+            "appName": "widget_wizard",
+            "friendlyName": "Widget Wizard",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "2.0",
+            "architecture": "aarch64",
+            "user": {
+                "username": "sdk",
+                "group": "sdk"
+            },
+            "runMode": "never",
+            "version": "0.0.1"
+        },
+        "configuration": {
+            "settingPage": "index.html"
+        }
+    }
+}

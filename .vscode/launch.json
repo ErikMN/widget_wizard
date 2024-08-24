@@ -1,0 +1,44 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  // Debug remote app by starting gdbserver: /tmp/gdbserver :1234 my_acap
+  // Kill app with: killall my_acap
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "DEBUG REMOTE TARGET",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/widget_wizard",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "MIMode": "gdb",
+      "miDebuggerServerAddress": "${input:device_ip}:1234",
+      "miDebuggerPath": "/usr/bin/gdb-multiarch",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "device_ip",
+      "description": "Select ip of device",
+      "type": "pickString",
+      "options": [
+        "192.168.0.230",
+        "192.168.0.180",
+        "192.168.0.225",
+      ],
+      "default": "192.168.0.230"
+    },
+  ]
+}
