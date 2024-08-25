@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Player } from 'media-stream-player';
+import { Player, Format } from 'media-stream-player';
 
 const OFFSET = 250;
 
@@ -80,7 +80,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ width, height }) => {
     >
       <Player
         hostname={window.location.host}
-        initialFormat="RTP_H264"
+        initialFormat={Format.RTP_H264}
         autoPlay
         autoRetry
         vapixParams={vapixParams}
