@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Player } from 'media-stream-player';
-import PropTypes from 'prop-types';
 
 const OFFSET = 250;
 
@@ -88,10 +87,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ width, height }) => {
       />
     </div>
   );
-};
-
-VideoPlayer.propTypes = {
-  height: PropTypes.number.isRequired
 };
 
 export default VideoPlayer;
