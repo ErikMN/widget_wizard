@@ -14,7 +14,6 @@ PROGS = widget_wizard
 ACAP_NAME = "Widget Wizard"
 LDLIBS = -lm
 
-DOCKER_X32_IMG := widget_wizard_img_armv7hf
 DOCKER_X64_IMG := widget_wizard_img_aarch64
 APPTYPE := $(shell grep "^APPTYPE=" package.conf | cut -d "=" -f 2 | sed 's/"//g')
 DOCKER := $(shell command -v docker 2> /dev/null)
@@ -93,11 +92,10 @@ all: $(PROGS)
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  dockersetup    : Create the Docker images $(DOCKER_X32_IMG) and $(DOCKER_X64_IMG)"
+	@echo "  dockersetup    : Create the Docker image $(DOCKER_X64_IMG)"
 	@echo "  dockerlist     : List all Docker images"
 	@echo "  dockerrun      : Log in to the Docker image for current arch"
-	@echo "  armv7hf        : Build for 32-bit ARM in Docker"
-	@echo "  aarch64        : Build for 64-bit ARM in Docker"
+	@echo "  acap           : Build for 64-bit ARM in Docker"
 	@echo "  build          : Fast build ACAP binary for current arch"
 	@echo "  install        : Install the ACAP to target device"
 	@echo "  deploy         : Deploy the ACAP binary to target device (requires ACAP already installed)"
@@ -115,19 +113,21 @@ help:
 	@echo "  distclean      : Clean everything, web and *.old *.orig"
 
 # Print flags:
-.PHONY: debug
-debug:
-	$(info *** Debug info)
-	$(info Compiler: $(CC))
-	$(info C Source-files: $(SRCS_C))
-	$(info Object-files: $(OBJS))
-	$(info Compiler-flags: $(CFLAGS))
-	$(info Linker-flags: $(LDFLAGS))
-	$(info Linker-libs: $(LDLIBS))
-	$(info User ID: $(shell id -u))
-	$(info Group ID: $(shell id -g))
-	$(info Target IP: $(TARGET_IP))
-	$(info APPTYPE: $(APPTYPE))
+.PHONY: flags
+flags:
+	@echo "*** Debug info"
+	@echo "ACAP_NAME: $(ACAP_NAME)"
+	@echo "PROGS: $(PROGS)"
+	@echo "Compiler: $(CC)"
+	@echo "C Source-files: $(SRCS)"
+	@echo "Object-files: $(OBJS)"
+	@echo "Compiler-flags: $(CFLAGS)"
+	@echo "Linker-flags: $(LDFLAGS)"
+	@echo "Linker-libs: $(LDLIBS)"
+	@echo "User ID: $(shell id -u)"
+	@echo "Group ID: $(shell id -g)"
+	@echo "Target IP: $(TARGET_IP)"
+	@echo "APPTYPE: $(APPTYPE)"
 
 # Build the app (if SDK is sourced):
 ifdef OECORE_SDK_VERSION
@@ -162,25 +162,17 @@ endif
 # Create Docker image(s) to build in:
 .PHONY: dockersetup
 dockersetup: checkdocker
-	@docker build -f docker/Dockerfile.armv7hf ./docker -t $(DOCKER_X32_IMG)
-	@docker build -f docker/Dockerfile.aarch64 ./docker -t $(DOCKER_X64_IMG)
-
-# Build ACAP for ARMv7 using Docker:
-.PHONY: armv7hf
-armv7hf: checkdocker
-	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build_armv7hf.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
+	@docker build -f docker/Dockerfile ./docker -t $(DOCKER_X64_IMG)
 
 # Build ACAP for ARM64 using Docker:
-.PHONY: aarch64
-aarch64: checkdocker
+.PHONY: acap
+acap: checkdocker
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build_aarch64.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
 
 # Fast build (only binary file) using Docker:
 .PHONY: build
 build: checkdocker
-ifeq ($(APPTYPE), armv7hf)
-	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build.sh $(FINAL)
-else ifeq ($(APPTYPE), aarch64)
+ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh $(FINAL)
 else
 	@echo "Error: Unsupported APPTYPE"
@@ -190,9 +182,7 @@ endif
 # Install ACAP using Docker:
 .PHONY: install
 install: checkdocker $(APPTYPE)
-ifeq ($(APPTYPE), armv7hf)
-	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/eap-install.sh
-else ifeq ($(APPTYPE), aarch64)
+ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/eap-install.sh
 else
 	@echo "Error: Unsupported APPTYPE"

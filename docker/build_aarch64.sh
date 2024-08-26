@@ -29,9 +29,6 @@ else
 fi
 echo
 
-# Set Arch to aarch64:
-sed -i 's/armv7hf/aarch64/g' ./package.conf
-sed -i 's/armv7hf/aarch64/g' ./manifest.json
 # Set PACKAGENAME/friendlyName:
 sed -i "s/PACKAGENAME=\"[^\"]*\"/PACKAGENAME=\"${ACAP_NAME}\"/" package.conf
 sed -i "s/\"friendlyName\": \"[^\"]*\"/\"friendlyName\": \"${ACAP_NAME}\"/" manifest.json

@@ -48,10 +48,8 @@ endif
 .PHONY: deploygdb
 deploygdb:
 ifdef TARGET_IP
-ifeq ($(APPTYPE), armv7hf)
-	@sshpass -p $(TARGET_PWD) scp ./gdb/gdbserver_armv7 $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
-else ifeq ($(APPTYPE), aarch64)
-	@sshpass -p $(TARGET_PWD) scp ./gdb/gdbserver_aarch64 $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
+ifeq ($(APPTYPE), aarch64)
+	@sshpass -p $(TARGET_PWD) scp ./gdb/gdbserver $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
 else
 	@echo "Error: Unsupported APPTYPE"
 	@exit 1
@@ -117,10 +115,7 @@ release:
 # Extract ACAP SDK from Docker image (needs to be run as root):
 .PHONY: getsdk
 getsdk: checkdocker
-ifeq ($(APPTYPE), armv7hf)
-	@$(call setup_armv7hf)
-	@./scripts/copylib.sh $(DOCKER_X32_IMG) /opt/axis/acapsdk
-else ifeq ($(APPTYPE), aarch64)
+ifeq ($(APPTYPE), aarch64)
 	@$(call setup_aarch64)
 	@./scripts/copylib.sh $(DOCKER_X64_IMG) /opt/axis/acapsdk
 else
@@ -146,9 +141,7 @@ dockerlist: checkdocker
 # Run current Docker image:
 .PHONY: dockerrun
 dockerrun: checkdocker
-ifeq ($(APPTYPE), armv7hf)
-	@$(DOCKER_CMD) $(DOCKER_X32_IMG)
-else ifeq ($(APPTYPE), aarch64)
+ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG)
 else
 	@echo "Error: Unsupported APPTYPE"

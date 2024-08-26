@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build final ACAP releases for arch: aarch64 and armv7hf
+# Build final ACAP release for aarch64
 #
 set -e
 
@@ -42,7 +42,7 @@ fi
 OUT_DIR="release_$GIT_TAG"
 
 echo
-echo "${FMT_BOLD}*** Building ACAPs for aarch64 and armv7hf${FMT_RESET}"
+echo "${FMT_BOLD}*** Building ACAP for aarch64${FMT_RESET}"
 echo "${FMT_BLUE}*** Output directory: $OUT_DIR${FMT_RESET}"
 echo
 
@@ -59,32 +59,15 @@ mkdir -p "$OUT_DIR" || {
 cleanup || exit 1
 
 ################################################################################
-# aarch64
+# Build ACAP:
 
-FINAL=y make aarch64 || {
+FINAL=y make acap || {
   echo "${FMT_RED}*** Failed to build aarch64 ACAP${FMT_RESET}"
   exit 1
 }
 
 mv ./*_aarch64.eap "$OUT_DIR" || {
   echo "${FMT_RED}*** Failed to move aarch64 ACAP to $OUT_DIR${FMT_RESET}"
-  exit 1
-}
-
-################################################################################
-
-cleanup || exit 1
-
-################################################################################
-# armv7hf
-
-FINAL=y make armv7hf || {
-  echo "${FMT_RED}*** Failed to build armv7hf ACAP"
-  exit 1
-}
-
-mv ./*_armv7hf.eap "$OUT_DIR" || {
-  echo "${FMT_RED}*** Failed to move armv7hf ACAP to $OUT_DIR${FMT_RESET}"
   exit 1
 }
 
