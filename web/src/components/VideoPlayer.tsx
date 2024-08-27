@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Player, Format } from 'media-stream-player';
 
-const OFFSET = 250;
+const OFFSET = 0;
 
 interface VapixConfig {
   compression: string;
