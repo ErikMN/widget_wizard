@@ -10,7 +10,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import '../assets/css/App.css';
 
-const drawerWidth = 400;
+const drawerWidth = 500;
 
 const App: React.FC = () => {
   /* Local state */
@@ -33,27 +33,42 @@ const App: React.FC = () => {
     setDrawerOpen(!drawerOpen);
   };
 
+  const getDrawerStyles = () => {
+    const drawerStyles = {
+      bgcolor: 'purple',
+      boxSizing: 'border-box',
+      width: drawerWidth,
+      overflow: 'auto',
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        backgroundColor: 'transparent'
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'primary.light',
+        borderRadius: '6px'
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: 'secondary.dark'
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'primary.dark'
+      }
+    };
+
+    return { sx: drawerStyles };
+  };
+
   return (
     <Box
       sx={{
-        backgroundColor: 'green',
+        backgroundColor: 'blue',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center'
-        // justifyContent: 'start',
-        // width: '100%',
-        // height: '100vh'
       }}
     >
       {/* Menu Button and Param Display */}
-      <Box
-        sx={{
-          display: 'flex'
-          // alignItems: 'center',
-          // width: '100%',
-          // padding: 2
-        }}
-      >
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <IconButton onClick={toggleDrawer}>
           {drawerOpen ? <CloseIcon /> : <MenuIcon />}
         </IconButton>
@@ -63,13 +78,7 @@ const App: React.FC = () => {
       {/* Video Player and Drawer */}
       <Box sx={{ display: 'flex', width: '100%', flexGrow: 1 }}>
         {/* Video Player */}
-        <Box
-          sx={{
-            // flexGrow: 1,
-            // transition: 'width 0.3s',
-            marginRight: drawerOpen ? `${drawerWidth}px` : 0
-          }}
-        >
+        <Box sx={{ marginRight: drawerOpen ? `${drawerWidth}px` : 0 }}>
           <VideoPlayer
             width={drawerOpen ? screenWidth - drawerWidth : screenWidth}
             height={screenHeight - 64}
@@ -78,20 +87,17 @@ const App: React.FC = () => {
 
         {/* Drawer */}
         <Drawer
-          variant="persistent"
           anchor="right"
+          variant="persistent"
           open={drawerOpen}
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              backgroundColor: 'blue'
-            }
-          }}
+          ModalProps={{ keepMounted: true }}
+          PaperProps={getDrawerStyles()}
         >
-          HELLO DRAWER
+          <div
+            style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+          >
+            HELLO DRAWER
+          </div>
         </Drawer>
       </Box>
     </Box>
