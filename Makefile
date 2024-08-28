@@ -181,7 +181,7 @@ endif
 
 # Install ACAP using Docker:
 .PHONY: install
-install: checkdocker $(APPTYPE)
+install: checkdocker acap
 ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/eap-install.sh
 else
