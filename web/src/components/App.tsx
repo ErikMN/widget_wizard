@@ -1,26 +1,101 @@
 import React, { useEffect, useState } from 'react';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
+import { lightTheme, darkTheme } from '../theme';
 /* MUI */
+import { styled, useTheme } from '@mui/material/styles';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 
-import '../assets/css/App.css';
+// import '../assets/css/App.css';
 
 const drawerWidth = 500;
 
-const App: React.FC = () => {
-  /* Local state */
-  const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
-  const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+/******************************************************************************/
 
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
+  open?: boolean;
+}>(({ theme }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(3),
+  transition: theme.transitions.create('margin', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen
+  }),
+  marginLeft: `-${drawerWidth}px`,
+  variants: [
+    {
+      props: ({ open }) => open,
+      style: {
+        transition: theme.transitions.create('margin', {
+          easing: theme.transitions.easing.easeOut,
+          duration: theme.transitions.duration.enteringScreen
+        }),
+        marginLeft: 0
+      }
+    }
+  ]
+}));
+
+interface AppBarProps extends MuiAppBarProps {
+  open?: boolean;
+}
+
+const AppBar = styled(MuiAppBar, {
+  shouldForwardProp: (prop) => prop !== 'open'
+})<AppBarProps>(({ theme }) => ({
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen
+  }),
+  variants: [
+    {
+      props: ({ open }) => open,
+      style: {
+        width: `calc(100% - ${drawerWidth}px)`,
+        marginLeft: `${drawerWidth}px`,
+        transition: theme.transitions.create(['margin', 'width'], {
+          easing: theme.transitions.easing.easeOut,
+          duration: theme.transitions.duration.enteringScreen
+        })
+      }
+    }
+  ]
+}));
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
+  ...theme.mixins.toolbar,
+  justifyContent: 'flex-end'
+}));
+
+/******************************************************************************/
+
+const App: React.FC = () => {
+  const theme = useTheme();
+
+  /* Local state */
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
+
+  /* Handle screen size */
   useEffect(() => {
     const handleResize = () => {
-      setScreenWidth(window.innerWidth);
       setScreenHeight(window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
@@ -29,78 +104,107 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
+  const handleDrawerOpen = () => {
+    setDrawerOpen(true);
   };
 
-  const getDrawerStyles = () => {
-    const drawerStyles = {
-      bgcolor: 'purple',
-      boxSizing: 'border-box',
-      width: drawerWidth,
-      overflow: 'auto',
-      '&::-webkit-scrollbar': {
-        width: '8px',
-        backgroundColor: 'transparent'
-      },
-      '&::-webkit-scrollbar-thumb': {
-        backgroundColor: 'primary.light',
-        borderRadius: '6px'
-      },
-      '&::-webkit-scrollbar-thumb:hover': {
-        backgroundColor: 'secondary.dark'
-      },
-      '&::-webkit-scrollbar-track': {
-        backgroundColor: 'primary.dark'
-      }
-    };
+  const handleDrawerClose = () => {
+    setDrawerOpen(false);
+  };
 
-    return { sx: drawerStyles };
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: 'blue',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}
-    >
-      {/* Menu Button and Param Display */}
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={toggleDrawer}>
-          {drawerOpen ? <CloseIcon /> : <MenuIcon />}
-        </IconButton>
-        <GetParam param="Brand.ProdFullName" />
-      </Box>
+    <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+      <Box sx={{ display: 'flex' }}>
+        <CssBaseline />
 
-      {/* Video Player and Drawer */}
-      <Box sx={{ display: 'flex', width: '100%', flexGrow: 1 }}>
-        {/* Video Player */}
-        <Box sx={{ marginRight: drawerOpen ? `${drawerWidth}px` : 0 }}>
-          <VideoPlayer
-            width={drawerOpen ? screenWidth - drawerWidth : screenWidth}
-            height={screenHeight - 64}
-          />
-        </Box>
+        {/* Application header bar */}
+        <AppBar position="fixed" open={drawerOpen}>
+          <Toolbar
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}
+          >
+            {/* Menu button (left-aligned) */}
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleDrawerOpen}
+              edge="start"
+              sx={[
+                {
+                  mr: 2
+                },
+                drawerOpen && { display: 'none' }
+              ]}
+            >
+              <MenuIcon />
+            </IconButton>
 
-        {/* Drawer */}
+            {/* Title */}
+            <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
+              <Typography variant="h5" noWrap component="div">
+                {import.meta.env.VITE_WEBSITE_NAME} @{' '}
+                <GetParam param="Brand.ProdFullName" />
+              </Typography>
+            </Box>
+
+            {/* Theme Toggle Button (right-aligned) */}
+            <IconButton
+              color="inherit"
+              aria-label="toggle theme"
+              onClick={toggleTheme}
+              edge="end"
+            >
+              {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {/* Drawer menu */}
         <Drawer
-          anchor="right"
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box'
+            }
+          }}
           variant="persistent"
+          anchor="left"
           open={drawerOpen}
-          ModalProps={{ keepMounted: true }}
-          PaperProps={getDrawerStyles()}
         >
+          <DrawerHeader>
+            <IconButton onClick={handleDrawerClose}>
+              {theme.direction === 'ltr' ? (
+                <ChevronLeftIcon />
+              ) : (
+                <ChevronRightIcon />
+              )}
+            </IconButton>
+          </DrawerHeader>
+          <Divider />
+          {/* Drawer content here */}
           <div
             style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
           >
-            HELLO DRAWER
+            APP CONTENT HERE
           </div>
         </Drawer>
+
+        {/* Main content */}
+        <Main open={drawerOpen}>
+          <DrawerHeader />
+          {/* Video Player */}
+          <VideoPlayer height={screenHeight} />
+        </Main>
       </Box>
-    </Box>
+    </ThemeProvider>
   );
 };
 

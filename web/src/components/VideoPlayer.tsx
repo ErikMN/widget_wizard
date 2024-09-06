@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Player, Format } from 'media-stream-player';
 
-const OFFSET = 0;
+/* Vertical offset */
+const OFFSET = 120;
 
 interface VapixConfig {
   compression: string;
@@ -10,7 +11,6 @@ interface VapixConfig {
 
 interface VideoPlayerProps {
   height: number;
-  width?: number;
 }
 
 /* Force a login by fetching usergroup */
@@ -43,7 +43,7 @@ const Authenticating: React.FC = () => {
   return <h3 style={{ color: 'white' }}>Authenticating...</h3>;
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ width, height }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
   const [authorized, setAuthorized] = useState<boolean>(false);
 
   let vapixParams: Partial<VapixConfig> = {};
@@ -72,7 +72,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ width, height }) => {
     <div
       style={{
         height: `${height - OFFSET}px`,
-        width: `${width}px`,
         flex: 1,
         backgroundColor: 'black',
         padding: '3px'

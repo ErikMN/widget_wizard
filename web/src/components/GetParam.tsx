@@ -7,13 +7,6 @@ interface GetParamProps {
   param: string;
 }
 
-const centerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'center',
-  paddingTop: '5px',
-  color: 'black'
-};
-
 const GetParam: React.FC<GetParamProps> = ({ param }) => {
   const [data, setData] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -35,7 +28,7 @@ const GetParam: React.FC<GetParamProps> = ({ param }) => {
     fetchData();
   }, [param]);
 
-  return <>{!loading && <h4 style={centerStyle}>{data}</h4>}</>;
+  return <>{!loading && <>{data}</>}</>;
 };
 
 export default GetParam;
