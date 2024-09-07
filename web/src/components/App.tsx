@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import { lightTheme, darkTheme } from '../theme';
+import { useLocalStorage } from '../helpers/hooks.jsx';
 /* MUI */
-import { styled, useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -86,12 +87,17 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 /******************************************************************************/
 
 const App: React.FC = () => {
-  const theme = useTheme();
-
   /* Local state */
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
+
+  /* Local storage state */
+  const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', false);
+  const [currentTheme, setCurrentTheme] = useLocalStorage(
+    'selectedTheme',
+    'light'
+  );
+
+  const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
   /* Handle screen size */
   useEffect(() => {
@@ -112,12 +118,13 @@ const App: React.FC = () => {
     setDrawerOpen(false);
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
+  const toggleTheme = useCallback(() => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setCurrentTheme(newTheme);
+  }, [currentTheme, setCurrentTheme]);
 
   return (
-    <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+    <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
 
@@ -160,7 +167,11 @@ const App: React.FC = () => {
               onClick={toggleTheme}
               edge="end"
             >
-              {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+              {currentTheme === 'dark' ? (
+                <Brightness7Icon />
+              ) : (
+                <Brightness4Icon />
+              )}
             </IconButton>
           </Toolbar>
         </AppBar>
