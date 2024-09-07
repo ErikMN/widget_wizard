@@ -94,16 +94,14 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [appLoading, setAppLoading] = useState<boolean>(false);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
-  const [manualDrawerControl, setManualDrawerControl] =
-    useState<boolean>(false);
+  const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
 
   /* Local storage state */
-  const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', false);
+  const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
   const [currentTheme, setCurrentTheme] = useLocalStorage(
     'selectedTheme',
     'light'
@@ -128,7 +126,10 @@ const App: React.FC = () => {
     if (!manualDrawerControl) {
       setDrawerOpen(screenWidth >= drawerWidth);
     }
-  }, [screenWidth, manualDrawerControl, setDrawerOpen]);
+    if (drawerOpen) {
+      setManualDrawerControl(false);
+    }
+  }, [screenWidth, manualDrawerControl, setDrawerOpen, drawerOpen]);
 
   /* App mount calls */
   useEffect(() => {
@@ -299,7 +300,7 @@ const App: React.FC = () => {
 
   const checkSystemState = () => {
     let content;
-    if (systemReady === 'yes') {
+    if (!appLoading && systemReady === 'yes') {
       content = contentMain();
     } else {
       content = loadingSystem();
