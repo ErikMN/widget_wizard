@@ -88,7 +88,10 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
+  const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
+  const [manualDrawerControl, setManualDrawerControl] =
+    useState<boolean>(false);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', false);
@@ -102,6 +105,7 @@ const App: React.FC = () => {
   /* Handle screen size */
   useEffect(() => {
     const handleResize = () => {
+      setScreenWidth(window.innerWidth);
       setScreenHeight(window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
@@ -110,11 +114,20 @@ const App: React.FC = () => {
     };
   }, []);
 
+  /* Automatically open or close drawer depending on screen size */
+  useEffect(() => {
+    if (!manualDrawerControl) {
+      setDrawerOpen(screenWidth >= drawerWidth);
+    }
+  }, [screenWidth, manualDrawerControl, setDrawerOpen]);
+
   const handleDrawerOpen = () => {
+    setManualDrawerControl(false);
     setDrawerOpen(true);
   };
 
   const handleDrawerClose = () => {
+    setManualDrawerControl(true);
     setDrawerOpen(false);
   };
 
