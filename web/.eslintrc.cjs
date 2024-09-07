@@ -15,6 +15,7 @@ module.exports = {
     'react-hooks/exhaustive-deps': 'warn' // Checks effect dependencies
   },
   env: {
-    node: true
+    node: true, // for Vite config
+    browser: true // for React
   }
 };
