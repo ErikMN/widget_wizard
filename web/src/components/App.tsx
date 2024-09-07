@@ -3,6 +3,7 @@ import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
+import { jsonRequest } from '../helpers/cgihelper';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -20,6 +21,9 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
 // import '../assets/css/App.css';
+
+/* CGI endpoints */
+const SR_CGI = '/axis-cgi/systemready.cgi';
 
 const drawerWidth = 500;
 
@@ -88,6 +92,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
+  const [appLoading, setAppLoading] = useState<boolean>(false);
+  const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] =
@@ -121,6 +127,33 @@ const App: React.FC = () => {
     }
   }, [screenWidth, manualDrawerControl, setDrawerOpen]);
 
+  /* App mount calls */
+  useEffect(() => {
+    /* Check system state */
+    const fetchSystemReady = async () => {
+      setAppLoading(true);
+      const payload = {
+        apiVersion: '1.0',
+        method: 'systemready',
+        params: {
+          timeout: 10
+        }
+      };
+      try {
+        const resp = await jsonRequest(SR_CGI, payload);
+        // console.log(resp);
+        const systemReadyState = resp.data.systemready;
+        // console.log(systemReadyState);
+        setSystemReady(systemReadyState);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setAppLoading(false);
+      }
+    };
+    fetchSystemReady();
+  }, []);
+
   const handleDrawerOpen = () => {
     setManualDrawerControl(false);
     setDrawerOpen(true);
@@ -136,11 +169,9 @@ const App: React.FC = () => {
     setCurrentTheme(newTheme);
   }, [currentTheme, setCurrentTheme]);
 
-  return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex' }}>
-        <CssBaseline />
-
+  const contentMain = () => {
+    return (
+      <>
         {/* Application header bar */}
         <AppBar position="fixed" open={drawerOpen}>
           <Toolbar
@@ -159,7 +190,7 @@ const App: React.FC = () => {
                 {
                   mr: 2
                 },
-                drawerOpen && { display: 'none' }
+                (drawerOpen || screenWidth < drawerWidth) && { display: 'none' }
               ]}
             >
               <MenuIcon />
@@ -227,6 +258,25 @@ const App: React.FC = () => {
           {/* Video Player */}
           <VideoPlayer height={screenHeight} />
         </Main>
+      </>
+    );
+  };
+
+  const checkSystemState = () => {
+    let content;
+    if (systemReady === 'yes') {
+      content = contentMain();
+    } else {
+      content = <>SYSTEM NOT READY</>;
+    }
+    return content;
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <Box sx={{ display: 'flex' }}>
+        <CssBaseline />
+        {checkSystemState()}
       </Box>
     </ThemeProvider>
   );
