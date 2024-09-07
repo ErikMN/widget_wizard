@@ -13,6 +13,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
@@ -92,6 +93,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [appLoading, setAppLoading] = useState<boolean>(false);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
@@ -141,10 +143,15 @@ const App: React.FC = () => {
       };
       try {
         const resp = await jsonRequest(SR_CGI, payload);
-        // console.log(resp);
         const systemReadyState = resp.data.systemready;
-        // console.log(systemReadyState);
-        setSystemReady(systemReadyState);
+        /* If the system is not ready, wait a couple of seconds and retry */
+        if (systemReadyState !== 'yes') {
+          setTimeout(() => {
+            fetchSystemReady();
+          }, 2000); /* Wait before retrying */
+        } else {
+          setSystemReady(systemReadyState);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -262,12 +269,32 @@ const App: React.FC = () => {
     );
   };
 
+  const loadingSystem = () => {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          width: '100%'
+        }}
+      >
+        <Typography variant="h6" sx={{ marginBottom: 2 }}>
+          System is getting ready
+        </Typography>
+        <CircularProgress size={50} sx={{ color: '#ffcc33' }} />
+      </Box>
+    );
+  };
+
   const checkSystemState = () => {
     let content;
     if (systemReady === 'yes') {
       content = contentMain();
     } else {
-      content = <>SYSTEM NOT READY</>;
+      content = loadingSystem();
     }
     return content;
   };
