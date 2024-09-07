@@ -16,6 +16,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
+import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
@@ -150,7 +151,10 @@ const App: React.FC = () => {
             fetchSystemReady();
           }, 2000); /* Wait before retrying */
         } else {
-          setSystemReady(systemReadyState);
+          /* Delay setting the system ready state a little bit */
+          setTimeout(() => {
+            setSystemReady(systemReadyState);
+          }, 500);
         }
       } catch (error) {
         console.error(error);
@@ -205,10 +209,12 @@ const App: React.FC = () => {
 
             {/* Title */}
             <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
-              <Typography variant="h5" noWrap component="div">
-                {import.meta.env.VITE_WEBSITE_NAME} @{' '}
-                <GetParam param="Brand.ProdFullName" />
-              </Typography>
+              <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
+                <Typography variant="h5" noWrap component="div">
+                  {import.meta.env.VITE_WEBSITE_NAME} @{' '}
+                  <GetParam param="Brand.ProdFullName" />
+                </Typography>
+              </Fade>
             </Box>
 
             {/* Theme Toggle Button (right-aligned) */}
@@ -281,9 +287,11 @@ const App: React.FC = () => {
           width: '100%'
         }}
       >
-        <Typography variant="h6" sx={{ marginBottom: 2 }}>
-          System is getting ready
-        </Typography>
+        <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
+          <Typography variant="h6" sx={{ marginBottom: 2 }}>
+            {import.meta.env.VITE_WEBSITE_NAME} is getting ready
+          </Typography>
+        </Fade>
         <CircularProgress size={50} sx={{ color: '#ffcc33' }} />
       </Box>
     );
