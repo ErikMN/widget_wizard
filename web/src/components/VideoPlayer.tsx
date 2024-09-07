@@ -25,22 +25,19 @@ const authorize = async (): Promise<void> => {
   }
 };
 
-/* Set default Vapix params if not already set */
+/* OPTIONAL: Set default Vapix params if not already set */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const setDefaultParams = (): void => {
   const existingVapixJSON = localStorage.getItem('vapix');
   if (!existingVapixJSON) {
     const vapixConfig: VapixConfig = {
       compression: '20',
-      resolution: '1280x720'
+      resolution: '1920x1080'
     };
     const vapixJSON = JSON.stringify(vapixConfig);
     localStorage.setItem('vapix', vapixJSON);
     console.log('Setting Vapix params:', vapixJSON);
   }
-};
-
-const Authenticating: React.FC = () => {
-  return <h3 style={{ color: 'white' }}>Authenticating...</h3>;
 };
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
@@ -61,18 +58,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
       .catch((err) => {
         console.error(err);
       });
-    setDefaultParams();
+    // setDefaultParams();
   }, []);
 
   if (!authorized) {
-    return <Authenticating />;
+    return;
   }
 
   return (
     <div
       style={{
         height: `${height - OFFSET}px`,
-        flex: 1,
         backgroundColor: 'black',
         padding: '3px'
       }}
