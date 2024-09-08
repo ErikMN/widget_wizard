@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import AppVersion from './AppVersion';
+import WidgetHandler from './WidgetHandler';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
 /* MUI */
 import { styled } from '@mui/material/styles';
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -260,11 +261,7 @@ const App: React.FC = () => {
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
-          <div
-            style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
-          >
-            APP CONTENT HERE
-          </div>
+          <WidgetHandler />
         </Drawer>
 
         {/* Main content */}
