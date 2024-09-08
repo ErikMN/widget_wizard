@@ -96,7 +96,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
-  const [appLoading, setAppLoading] = useState<boolean>(false);
+  const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
@@ -184,6 +184,7 @@ const App: React.FC = () => {
   }, [currentTheme, setCurrentTheme]);
 
   const contentMain = () => {
+    console.log('MAIN CONTENT');
     return (
       <>
         {/* Application header bar */}

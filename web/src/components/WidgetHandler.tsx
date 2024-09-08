@@ -34,7 +34,7 @@ const WidgetHandler: React.FC = () => {
   /* Component mount calls */
   useEffect(() => {
     /* Lists all available widget types and the parameters they take. */
-    const listCapabilities = async () => {
+    const listWidgetCapabilities = async () => {
       const payload = {
         apiVersion: '2.0',
         method: 'listCapabilities'
@@ -55,9 +55,49 @@ const WidgetHandler: React.FC = () => {
         console.error('Error:', error);
       }
     };
-
-    listCapabilities();
+    /* Lists all currently active widgets and their parameter values. */
+    const listWidgets = async () => {
+      const payload = {
+        apiVersion: '2.0',
+        method: 'listWidgets'
+      };
+      try {
+        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        console.log({ resp });
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    /* Called at component mount: */
+    listWidgetCapabilities();
+    listWidgets();
   }, []);
+
+  /* Adds a new widget and returns the widget ID. */
+  const addWidget = async (widgetType: string) => {
+    const payload = {
+      apiVersion: '2.0',
+      method: 'addWidget',
+      params: {
+        generalParams: {
+          type: widgetType,
+          anchor: 'topLeft',
+          channel: 1,
+          isVisible: true,
+          position: { x: 0, y: 0 },
+          size: 'small',
+          transparency: 0,
+          updateTime: 1
+        }
+      }
+    };
+    try {
+      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      console.log({ resp });
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   /* Handle dropdown change */
   const handleWidgetChange = (event: SelectChangeEvent<string>) => {
@@ -67,6 +107,7 @@ const WidgetHandler: React.FC = () => {
   /* Handle add button click */
   const handleAddClick = () => {
     console.log('Add widget:', selectedWidget);
+    addWidget(selectedWidget);
   };
 
   return (
