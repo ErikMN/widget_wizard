@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
+import AppVersion from './AppVersion';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
@@ -271,6 +272,7 @@ const App: React.FC = () => {
           <DrawerHeader />
           {/* Video Player */}
           <VideoPlayer height={screenHeight} />
+          <AppVersion />
         </Main>
       </>
     );
