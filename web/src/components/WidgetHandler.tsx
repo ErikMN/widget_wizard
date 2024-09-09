@@ -30,6 +30,7 @@ const WidgetHandler: React.FC = () => {
   /* Local state */
   const [widgetNames, setWidgetNames] = useState<string[]>([]);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
+  const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
 
   /* Component mount calls */
   useEffect(() => {
@@ -64,6 +65,9 @@ const WidgetHandler: React.FC = () => {
       try {
         const resp: ApiResponse = await jsonRequest(W_CGI, payload);
         console.log({ resp });
+        if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
+          setActiveWidgets(resp.data.widgets);
+        }
       } catch (error) {
         console.error('Error:', error);
       }
@@ -72,6 +76,11 @@ const WidgetHandler: React.FC = () => {
     listWidgetCapabilities();
     listWidgets();
   }, []);
+
+  /* For debug */
+  // useEffect(() => {
+  //   console.log('Active Widgets:', activeWidgets);
+  // }, [activeWidgets]);
 
   /* Adds a new widget and returns the widget ID. */
   const addWidget = async (widgetType: string) => {
