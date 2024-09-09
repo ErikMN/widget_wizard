@@ -30,6 +30,7 @@ import Typography from '@mui/material/Typography';
 const SR_CGI = '/axis-cgi/systemready.cgi';
 
 const drawerWidth = 500;
+const drawerOffset = 400;
 
 /******************************************************************************/
 
@@ -123,7 +124,7 @@ const App: React.FC = () => {
   /* Automatically open or close drawer depending on screen size */
   useEffect(() => {
     if (!manualDrawerControl) {
-      setDrawerOpen(screenWidth >= drawerWidth);
+      setDrawerOpen(screenWidth >= drawerWidth + drawerOffset);
     }
     if (drawerOpen) {
       setManualDrawerControl(false);
@@ -202,7 +203,9 @@ const App: React.FC = () => {
                 {
                   mr: 2
                 },
-                (drawerOpen || screenWidth < drawerWidth) && { display: 'none' }
+                (drawerOpen || screenWidth < drawerWidth + drawerOffset) && {
+                  display: 'none'
+                }
               ]}
             >
               <MenuIcon />
