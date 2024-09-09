@@ -104,10 +104,7 @@ const App: React.FC = () => {
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
-  const [currentTheme, setCurrentTheme] = useLocalStorage(
-    'selectedTheme',
-    'light'
-  );
+  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
