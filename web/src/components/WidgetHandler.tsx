@@ -4,21 +4,34 @@ import { jsonRequest } from '../helpers/cgihelper';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FormControl from '@mui/material/FormControl';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
+import WidgetsIcon from '@mui/icons-material/Widgets';
 import { SelectChangeEvent } from '@mui/material/Select';
 
 /* CGI endpoints */
 const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
 
 interface Widget {
-  type: string;
-  widgetParams?: object;
+  generalParams: {
+    id: number;
+    type: string;
+    position: {
+      x: number;
+      y: number;
+    };
+    anchor: string;
+  };
+  height: number;
+  width: number;
+  widgetParams: object;
 }
 
 interface ApiResponse {
@@ -33,6 +46,9 @@ const WidgetHandler: React.FC = () => {
   const [widgetNames, setWidgetNames] = useState<string[]>([]);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
+  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
+    null
+  );
 
   /* Lists all currently active widgets and their parameter values.
    * NOTE: This needs to be done after add, remove, update
@@ -92,12 +108,14 @@ const WidgetHandler: React.FC = () => {
     }
     /* After removing all widgets, refresh the active widgets list */
     listWidgets();
+    /* After removing all widgets, reset the dropdown state */
+    setOpenDropdownIndex(null);
   };
 
   /* NOTE: For debug */
-  // useEffect(() => {
-  //   console.log('[DEBUG] Active Widgets:', activeWidgets);
-  // }, [activeWidgets]);
+  useEffect(() => {
+    console.log('[DEBUG] Active Widgets:', activeWidgets);
+  }, [activeWidgets]);
 
   /* Adds a new widget and returns the widget ID. */
   const addWidget = async (widgetType: string) => {
@@ -146,6 +164,11 @@ const WidgetHandler: React.FC = () => {
     addWidget(selectedWidget);
   };
 
+  /* Handle dropdown toggle */
+  const toggleDropdown = (index: number) => {
+    setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+  };
+
   return (
     <Box
       sx={{
@@ -155,7 +178,9 @@ const WidgetHandler: React.FC = () => {
         padding: '10px'
       }}
     >
-      <Typography>Widgets</Typography>
+      <Typography variant="h6" sx={{ textAlign: 'center' }}>
+        Widgets menu | Active widgets: {activeWidgets.length}
+      </Typography>
 
       {/* Container for dropdown and button */}
       <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
@@ -194,10 +219,56 @@ const WidgetHandler: React.FC = () => {
         color="error"
         variant="contained"
         onClick={removeAllWidgets}
+        disabled={activeWidgets.length === 0}
         startIcon={<DeleteIcon />}
       >
         Remove all widgets
       </Button>
+
+      {/* TODO: List of Active Widgets */}
+      <Box sx={{ marginTop: 2 }}>
+        {activeWidgets.map((widget, index) => (
+          <Box key={widget.generalParams.id} sx={{ marginBottom: 2 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={<WidgetsIcon />}
+              endIcon={<ExpandMoreIcon />}
+              onClick={() => toggleDropdown(index)}
+            >
+              Widget:{' '}
+              {widget.generalParams.type.charAt(0).toUpperCase() +
+                widget.generalParams.type.slice(1)}
+            </Button>
+
+            {/* Dropdown for widget details */}
+            <Collapse in={openDropdownIndex === index}>
+              <Box
+                sx={{
+                  padding: 2,
+                  border: '1px solid #ccc',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  marginTop: 1
+                }}
+              >
+                <Typography variant="body2">
+                  Widget type: {widget.generalParams.type}
+                </Typography>
+                <Typography variant="body2">
+                  Widget ID: {widget.generalParams.id}
+                </Typography>
+                <Typography variant="body2">
+                  Widget position: [{widget.generalParams.position.x}
+                  {', '}
+                  {widget.generalParams.position.y}]
+                </Typography>
+                {/* TODO: Additional widget information here: */}
+              </Box>
+            </Collapse>
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 };
