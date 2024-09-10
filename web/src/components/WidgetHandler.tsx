@@ -34,6 +34,56 @@ interface Widget {
   widgetParams: object;
 }
 
+interface WidgetCapabilities {
+  data: {
+    anchor: {
+      type: string;
+      enum: string[];
+    };
+    channel: {
+      type: 'integer';
+    };
+    datasource: {
+      type: string;
+    };
+    depth: {
+      type: string;
+      enum: string[];
+    };
+    isVisible: {
+      type: 'bool';
+    };
+    position: {
+      x: {
+        type: 'float';
+      };
+      y: {
+        type: 'float';
+      };
+    };
+    size: {
+      type: string;
+      enum: string[];
+    };
+    transparency: {
+      type: 'float';
+      minimum: number;
+      maximum: number;
+    };
+    type: {
+      type: string;
+    };
+    updateTime: {
+      type: 'float';
+      minimum: number;
+    };
+    widgets: Array<{
+      type: string;
+      channel: number;
+    }>;
+  };
+}
+
 interface ApiResponse {
   apiVersion: string;
   data: {
@@ -78,12 +128,10 @@ const WidgetHandler: React.FC = () => {
       method: 'listCapabilities'
     };
     try {
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
       console.log('*** WIDGET CAPABILITIES', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
-        const widgetTypes = resp.data.widgets.map(
-          (widget: Widget) => widget.type
-        );
+        const widgetTypes = resp.data.widgets.map((widget) => widget.type);
         setWidgetNames(widgetTypes);
         if (widgetTypes.length > 0) {
           setSelectedWidget(widgetTypes[0]);
