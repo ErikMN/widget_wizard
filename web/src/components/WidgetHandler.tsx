@@ -216,7 +216,7 @@ const WidgetHandler: React.FC = () => {
       console.log({ resp });
       if (resp?.data) {
         /* After adding the widget, refresh the active widgets list */
-        listWidgets();
+        await listWidgets();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -225,8 +225,11 @@ const WidgetHandler: React.FC = () => {
 
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
   useEffect(() => {
-    listWidgetCapabilities();
-    listWidgets();
+    const fetchData = async () => {
+      await listWidgetCapabilities();
+      await listWidgets();
+    };
+    fetchData();
   }, []);
 
   /* Handle dropdown change */
