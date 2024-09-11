@@ -116,12 +116,15 @@ const WidgetHandler: React.FC = () => {
   /* Updates the parameters of a widget. */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateWidget = async (widgetItem: Widget) => {
+    /* Exclude type from generalParams before sending to updateWidget */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { type, ...updatedGeneralParams } = widgetItem.generalParams;
     const payload = {
       apiVersion: '2.0',
       method: 'updateWidget',
       params: {
-        generalParams: widgetItem.generalParams,
-        widgetItem: widgetItem.widgetParams
+        generalParams: updatedGeneralParams,
+        widgetParams: widgetItem.widgetParams
       }
     };
     try {
@@ -263,6 +266,7 @@ const WidgetHandler: React.FC = () => {
             openDropdownIndex={openDropdownIndex}
             toggleDropdown={toggleDropdown}
             removeWidget={removeWidget}
+            updateWidget={updateWidget}
           />
         ))}
       </Box>
