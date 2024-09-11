@@ -160,6 +160,27 @@ const WidgetHandler: React.FC = () => {
     setOpenDropdownIndex(null);
   };
 
+  /* Removes a specified widget. */
+  const removeWidget = async (widgetID: number) => {
+    const payload = {
+      apiVersion: '2.0',
+      method: 'removeWidget',
+      params: {
+        generalParams: {
+          id: widgetID
+        }
+      }
+    };
+    try {
+      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      console.log('*** REMOVE WIDGET', { resp });
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    /* FIXME: After removing a widget, refresh the active widgets list */
+    listWidgets();
+  };
+
   /* NOTE: For debug */
   useEffect(() => {
     console.log('[DEBUG] Active Widgets:', activeWidgets);
@@ -311,6 +332,15 @@ const WidgetHandler: React.FC = () => {
                   {', '}
                   {widget.generalParams.position.y}]
                 </Typography>
+                <Button
+                  style={{ marginTop: '10px' }}
+                  color="error"
+                  variant="contained"
+                  onClick={() => removeWidget(widget.generalParams.id)}
+                  startIcon={<DeleteIcon />}
+                >
+                  Remove
+                </Button>
                 {/* TODO: Additional widget information here: */}
               </Box>
             </Collapse>
