@@ -46,7 +46,7 @@
     "preview": "./version.sh && vite preview",
     "build": "./version.sh && tsc && vite build",
     "license": "license-checker --json",
-    "lint": "npx eslint . --ext  .js,.jsx,.tsx --cache",
+    "lint": "npx eslint . --ext  .js,.jsx,.ts,.tsx --cache",
     "format": "npx prettier --write .",
     "stylelint": "npx stylelint './src/**/*.css'",
     "checkupdate": "npx npm-check-updates",

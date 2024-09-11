@@ -7,6 +7,7 @@ import WidgetHandler from './WidgetHandler';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
+import { log, enableLogging } from '../helpers/logger';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -109,6 +110,8 @@ const App: React.FC = () => {
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
+  enableLogging();
+
   /* Handle screen size */
   useEffect(() => {
     const handleResize = () => {
@@ -182,7 +185,7 @@ const App: React.FC = () => {
   }, [currentTheme, setCurrentTheme]);
 
   const contentMain = () => {
-    console.log('MAIN CONTENT');
+    log('MAIN CONTENT');
     return (
       <>
         {/* Application header bar */}

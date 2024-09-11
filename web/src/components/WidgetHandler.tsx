@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { jsonRequest } from '../helpers/cgihelper';
 import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
+import { log, enableLogging } from '../helpers/logger';
 import WidgetItem from './WidgetItem';
 /* MUI */
 import AddIcon from '@mui/icons-material/Add';
@@ -27,6 +28,8 @@ const WidgetHandler: React.FC = () => {
     null
   );
 
+  enableLogging();
+
   /* Lists all currently active widgets and their parameter values.
    * NOTE: This needs to be done after add, remove, update
    */
@@ -38,7 +41,7 @@ const WidgetHandler: React.FC = () => {
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
 
-      console.log('*** LIST ACTIVE WIDGETS', { resp });
+      log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         setActiveWidgets(resp.data.widgets);
       }
@@ -56,7 +59,7 @@ const WidgetHandler: React.FC = () => {
     };
     try {
       const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
-      console.log('*** WIDGET CAPABILITIES', { resp });
+      log('*** WIDGET CAPABILITIES', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         const widgetTypes = resp.data.widgets.map((widget) => widget.type);
         setWidgetNames(widgetTypes);
@@ -77,7 +80,7 @@ const WidgetHandler: React.FC = () => {
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      console.log('*** REMOVE ALL WIDGETS', { resp });
+      log('*** REMOVE ALL WIDGETS', { resp });
     } catch (error) {
       console.error('Error:', error);
     }
@@ -100,7 +103,7 @@ const WidgetHandler: React.FC = () => {
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      console.log('*** REMOVE WIDGET', { resp });
+      log('*** REMOVE WIDGET', { resp });
       /* Instead of calling listWidgets, remove the widget from activeWidgets */
       setActiveWidgets((prevWidgets) =>
         prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
@@ -112,10 +115,10 @@ const WidgetHandler: React.FC = () => {
 
   /* Effect triggering on activeWidgets */
   useEffect(() => {
-    console.log('[DEBUG] Active Widgets:', activeWidgets);
+    log('[DEBUG] Active Widgets:', activeWidgets);
     /* After removing all widgets, reset the dropdown state */
     if (activeWidgets.length === 0) {
-      console.log('No more widgets: reset dropdown state');
+      log('No more widgets: reset dropdown state');
       setOpenDropdownIndex(null);
     }
   }, [activeWidgets]);
@@ -140,7 +143,7 @@ const WidgetHandler: React.FC = () => {
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      console.log({ resp });
+      log({ resp });
       if (resp?.data) {
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
@@ -166,7 +169,7 @@ const WidgetHandler: React.FC = () => {
 
   /* Handle add button click */
   const handleAddClick = () => {
-    console.log('Add widget:', selectedWidget);
+    log('Add widget:', selectedWidget);
     addWidget(selectedWidget);
   };
 
