@@ -174,16 +174,23 @@ const WidgetHandler: React.FC = () => {
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       console.log('*** REMOVE WIDGET', { resp });
+      /* Instead of calling listWidgets, remove the widget from activeWidgets */
+      setActiveWidgets((prevWidgets) =>
+        prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
+      );
     } catch (error) {
       console.error('Error:', error);
     }
-    /* FIXME: After removing a widget, refresh the active widgets list */
-    listWidgets();
   };
 
-  /* NOTE: For debug */
+  /* Effect triggering on activeWidgets */
   useEffect(() => {
     console.log('[DEBUG] Active Widgets:', activeWidgets);
+    /* After removing all widgets, reset the dropdown state */
+    if (activeWidgets.length === 0) {
+      console.log('No more widgets: reset dropdown state');
+      setOpenDropdownIndex(null);
+    }
   }, [activeWidgets]);
 
   /* Adds a new widget and returns the widget ID. */
