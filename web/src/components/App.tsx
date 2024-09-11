@@ -108,7 +108,7 @@ const App: React.FC = () => {
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
-  enableLogging();
+  enableLogging(true);
 
   /* Handle screen size */
   useEffect(() => {

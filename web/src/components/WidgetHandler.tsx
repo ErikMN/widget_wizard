@@ -28,7 +28,7 @@ const WidgetHandler: React.FC = () => {
     null
   );
 
-  enableLogging();
+  enableLogging(true);
 
   /* Lists all currently active widgets and their parameter values.
    * NOTE: This needs to be done after add, remove, update
