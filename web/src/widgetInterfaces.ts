@@ -1,19 +1,34 @@
+/*
+ * Structure returned from listWidgets
+ * widgetParams and generalParams is used for updateWidget
+ */
 export interface Widget {
+  height: number;
+  width: number;
+  /* Common widget parameters */
   generalParams: {
+    anchor: string;
+    channnel: number;
+    datasource: string;
     id: number;
-    type: string;
+    isVisible: boolean;
     position: {
       x: number;
       y: number;
     };
-    anchor: string;
+    size: string;
+    trancparency: number;
+    type: string;
+    updateTime: number;
   };
-  height: number;
-  width: number;
+  /* Will change depending on widget */
   widgetParams: object;
 }
 
+/* Structure returned from listCapabilities */
 export interface WidgetCapabilities {
+  apiVersion: string;
+  method: string;
   data: {
     anchor: {
       type: string;
@@ -65,6 +80,7 @@ export interface WidgetCapabilities {
 
 export interface ApiResponse {
   apiVersion: string;
+  method: string;
   data: {
     widgets: Widget[];
   };
