@@ -25,8 +25,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
-// import '../assets/css/App.css';
-
 /* CGI endpoints */
 const SR_CGI = '/axis-cgi/systemready.cgi';
 
