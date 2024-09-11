@@ -1,95 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { jsonRequest } from '../helpers/cgihelper';
+import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
+import WidgetItem from './WidgetItem';
 /* MUI */
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Collapse from '@mui/material/Collapse';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FormControl from '@mui/material/FormControl';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
-import WidgetsIcon from '@mui/icons-material/Widgets';
 import { SelectChangeEvent } from '@mui/material/Select';
 
 /* CGI endpoints */
 const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
-
-interface Widget {
-  generalParams: {
-    id: number;
-    type: string;
-    position: {
-      x: number;
-      y: number;
-    };
-    anchor: string;
-  };
-  height: number;
-  width: number;
-  widgetParams: object;
-}
-
-interface WidgetCapabilities {
-  data: {
-    anchor: {
-      type: string;
-      enum: string[];
-    };
-    channel: {
-      type: 'integer';
-    };
-    datasource: {
-      type: string;
-    };
-    depth: {
-      type: string;
-      enum: string[];
-    };
-    isVisible: {
-      type: 'bool';
-    };
-    position: {
-      x: {
-        type: 'float';
-      };
-      y: {
-        type: 'float';
-      };
-    };
-    size: {
-      type: string;
-      enum: string[];
-    };
-    transparency: {
-      type: 'float';
-      minimum: number;
-      maximum: number;
-    };
-    type: {
-      type: string;
-    };
-    updateTime: {
-      type: 'float';
-      minimum: number;
-    };
-    widgets: Array<{
-      type: string;
-      channel: number;
-    }>;
-  };
-}
-
-interface ApiResponse {
-  apiVersion: string;
-  data: {
-    widgets: Widget[];
-  };
-}
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
@@ -307,54 +234,14 @@ const WidgetHandler: React.FC = () => {
       {/* TODO: List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
         {activeWidgets.map((widget, index) => (
-          <Box key={widget.generalParams.id} sx={{ marginBottom: 2 }}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<WidgetsIcon />}
-              endIcon={<ExpandMoreIcon />}
-              onClick={() => toggleDropdown(index)}
-            >
-              Widget:{' '}
-              {widget.generalParams.type.charAt(0).toUpperCase() +
-                widget.generalParams.type.slice(1)}
-            </Button>
-
-            {/* Dropdown for widget details */}
-            <Collapse in={openDropdownIndex === index}>
-              <Box
-                sx={{
-                  padding: 2,
-                  border: '1px solid #ccc',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                  marginTop: 1
-                }}
-              >
-                <Typography variant="body2">
-                  Widget type: {widget.generalParams.type}
-                </Typography>
-                <Typography variant="body2">
-                  Widget ID: {widget.generalParams.id}
-                </Typography>
-                <Typography variant="body2">
-                  Widget position: [{widget.generalParams.position.x}
-                  {', '}
-                  {widget.generalParams.position.y}]
-                </Typography>
-                <Button
-                  style={{ marginTop: '10px' }}
-                  color="error"
-                  variant="contained"
-                  onClick={() => removeWidget(widget.generalParams.id)}
-                  startIcon={<DeleteIcon />}
-                >
-                  Remove
-                </Button>
-                {/* TODO: Additional widget information here: */}
-              </Box>
-            </Collapse>
-          </Box>
+          <WidgetItem
+            key={widget.generalParams.id}
+            widget={widget}
+            index={index}
+            openDropdownIndex={openDropdownIndex}
+            toggleDropdown={toggleDropdown}
+            removeWidget={removeWidget}
+          />
         ))}
       </Box>
     </Box>
