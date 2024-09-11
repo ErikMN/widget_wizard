@@ -3013,6 +3013,11 @@ mdn-data@2.0.30:
   resolved "https://registry.yarnpkg.com/mdn-data/-/mdn-data-2.0.30.tgz#ce4df6f80af6cfbe218ecd5c552ba13c4dfa08cc"
   integrity sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==
 
+media-overlay-library@^13.1.1:
+  version "13.1.1"
+  resolved "https://registry.yarnpkg.com/media-overlay-library/-/media-overlay-library-13.1.1.tgz#01387437c568c0059c1af0c39cd30fb296665ba0"
+  integrity sha512-uuGQT08sLdAJEoch6RlY6rxdv+Xyt7dR88TmKyB4oaBzirdRKoQvOZE5ATJy/8I2kSOTO/hwRivlg+xMxVzrlQ==
+
 media-stream-library@^13.1.1:
   version "13.1.1"
   resolved "https://registry.yarnpkg.com/media-stream-library/-/media-stream-library-13.1.1.tgz#b4683dc6fafdfb5c3124615085651c42ebf48f4e"
