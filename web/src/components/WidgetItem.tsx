@@ -3,12 +3,14 @@ import { Widget } from '../widgetInterfaces';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Switch from '@mui/material/Switch';
 
 interface WidgetItemProps {
   widget: Widget;
@@ -49,12 +51,20 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         variant="outlined"
         fullWidth
         startIcon={<WidgetsIcon />}
-        endIcon={<ExpandMoreIcon />}
+        endIcon={
+          openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
+        }
         onClick={() => toggleDropdown(index)}
       >
-        Widget:{' '}
-        {widget.generalParams.type.charAt(0).toUpperCase() +
-          widget.generalParams.type.slice(1)}
+        <Typography variant="subtitle1">
+          {widget.generalParams.type.charAt(0).toUpperCase() +
+            widget.generalParams.type.slice(1)}
+        </Typography>
+        <Chip
+          label={`ID: ${widget.generalParams.id}`}
+          size="small"
+          sx={{ ml: 1 }}
+        />
       </Button>
 
       {/* Dropdown for widget details */}
@@ -69,10 +79,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           }}
         >
           <Typography variant="body2">
-            Widget type: {widget.generalParams.type}
-          </Typography>
-          <Typography variant="body2">
-            Widget ID: {widget.generalParams.id}
+            Widget type: {widget.generalParams.type} ({widget.width}x
+            {widget.height})
           </Typography>
           <Typography variant="body2">
             Widget position: [{widget.generalParams.position.x},{' '}
