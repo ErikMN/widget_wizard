@@ -130,6 +130,18 @@ const WidgetHandler: React.FC = () => {
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** UPDATE WIDGET', { resp });
+
+      /* Update the activeWidgets state */
+      if (resp && resp.data && resp.data.generalParams) {
+        const updatedWidgetId = resp.data.generalParams.id;
+        setActiveWidgets((prevWidgets) => {
+          return prevWidgets.map((widget) =>
+            widget.generalParams.id === updatedWidgetId
+              ? { ...widget, ...resp.data }
+              : widget
+          );
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
     }

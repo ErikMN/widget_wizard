@@ -4,6 +4,7 @@ import { Widget } from '../widgetInterfaces';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import CodeIcon from '@mui/icons-material/Code';
 import Collapse from '@mui/material/Collapse';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -31,6 +32,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 }) => {
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
+  const [jsonVisible, setJsonVisible] = useState(false);
 
   const handleVisibilityChange = () => {
     const newVisibility = !isVisible;
@@ -43,6 +45,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       }
     };
     updateWidget(updatedWidget);
+  };
+
+  const toggleJsonVisibility = () => {
+    setJsonVisible((prev) => !prev);
   };
 
   return (
@@ -104,6 +110,38 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             Remove
           </Button>
           {/* TODO: Additional widget information here */}
+
+          <Button
+            onClick={toggleJsonVisibility}
+            startIcon={<CodeIcon />}
+            sx={{ marginTop: 1, marginLeft: 1 }}
+          >
+            {jsonVisible ? 'Hide JSON' : 'Show JSON'}
+          </Button>
+
+          {/* JSON expander */}
+          <Collapse in={jsonVisible}>
+            <Box
+              sx={(theme) => ({
+                marginTop: 1,
+                padding: 2,
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                backgroundColor: theme.palette.background.default
+              })}
+            >
+              <Typography
+                variant="body2"
+                component="pre"
+                sx={{
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'Monospace'
+                }}
+              >
+                {JSON.stringify(widget, null, 2)}
+              </Typography>
+            </Box>
+          </Collapse>
         </Box>
       </Collapse>
     </Box>
