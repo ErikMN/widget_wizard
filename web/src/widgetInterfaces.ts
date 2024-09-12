@@ -8,7 +8,7 @@ export interface Widget {
   /* Common widget parameters */
   generalParams: {
     anchor: string;
-    channnel: number;
+    channel: number;
     datasource: string;
     id: number;
     isVisible: boolean;
@@ -17,7 +17,7 @@ export interface Widget {
       y: number;
     };
     size: string;
-    trancparency: number;
+    transparency: number;
     type: string;
     updateTime: number;
   };
@@ -78,10 +78,66 @@ export interface WidgetCapabilities {
   };
 }
 
+/* FIXME: Common response for listWidgets and updateWidget */
 export interface ApiResponse {
   apiVersion: string;
   method: string;
   data: {
-    widgets: Widget[];
+    widgets: Widget[]; // listWidgets
+    generalParams: Widget['generalParams']; // updateWidget
+    widgetParams: Widget['widgetParams']; // updateWidget
+    height: number; // updateWidget
+    width: number; // updateWidget
   };
 }
+
+/* JSON response from listWidgets and updateWidget
+{
+    "apiVersion": "2.0",
+    "method": "listWidgets",
+    "data": {
+        "widgets": [
+            {
+                "generalParams": {...},
+                "width": 490,
+                "height": 294,
+                "widgetParams": {...}
+            },
+            {
+                "generalParams": {...},
+                "width": 490,
+                "height": 294,
+                "widgetParams": {...}
+            },
+            ...
+        ]
+    }
+}
+
+{
+    "apiVersion": "2.0",
+    "method": "updateWidget",
+    "data": {
+        "generalParams": {...},
+        "width": 280,
+        "height": 600,
+        "widgetParams": {...}
+    }
+}
+
+generalParams": {
+    "id": 44,
+    "type": "meter",       // Must be excluded when calling updateWidget?
+    "datasource": "",
+    "position": {
+        "x": -1.0,
+        "y": -1.0
+    },
+    "anchor": "topLeft",
+    "size": "small",
+    "updateTime": 1.0,
+    "transparency": 0.0,
+    "channel": 1,
+    "isVisible": false
+}
+*/

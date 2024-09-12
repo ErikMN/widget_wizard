@@ -132,7 +132,7 @@ const WidgetHandler: React.FC = () => {
       log('*** UPDATE WIDGET', { resp });
 
       /* Update the activeWidgets state */
-      if (resp && resp.data && resp.data.generalParams) {
+      if (resp?.data?.generalParams) {
         const updatedWidgetId = resp.data.generalParams.id;
         setActiveWidgets((prevWidgets) => {
           return prevWidgets.map((widget) =>
