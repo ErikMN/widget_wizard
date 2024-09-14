@@ -46,6 +46,7 @@
     "start": "./start.sh",
     "preview": "./version.sh && vite preview",
     "build": "./version.sh && tsc && vite build",
+    "deploy": "make -C ../ deployweb",
     "license": "license-checker --json",
     "lint": "npx eslint . --ext  .js,.jsx,.ts,.tsx --cache",
     "format": "npx prettier --write .",
