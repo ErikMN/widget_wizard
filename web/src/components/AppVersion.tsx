@@ -12,16 +12,10 @@ function AppVersion(): JSX.Element | null {
     ) {
       return null;
     }
-    return (
-      <footer style={{ color: 'red', textAlign: 'center', marginTop: '5px' }}>
-        {commitHash}
-      </footer>
-    );
+    return <footer style={{ color: 'red' }}>{commitHash}</footer>;
   }
 
-  return (
-    <footer style={{ textAlign: 'center', marginTop: '5px' }}>{version}</footer>
-  );
+  return <footer>{version}</footer>;
 }
 
 export default AppVersion;

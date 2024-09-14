@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
-import AppVersion from './AppVersion';
 import WidgetHandler from './WidgetHandler';
+import AboutModal from './AboutModal';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
@@ -21,6 +21,7 @@ import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
+import InfoIcon from '@mui/icons-material/Info';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -101,6 +102,7 @@ const App: React.FC = () => {
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
+  const [aboutModalOpen, setAboutModalOpen] = useState(false);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -182,6 +184,9 @@ const App: React.FC = () => {
     setCurrentTheme(newTheme);
   }, [currentTheme, setCurrentTheme]);
 
+  const handleOpenAboutModal = () => setAboutModalOpen(true);
+  const handleCloseAboutModal = () => setAboutModalOpen(false);
+
   const contentMain = () => {
     log('MAIN CONTENT');
     return (
@@ -221,6 +226,16 @@ const App: React.FC = () => {
                 </Typography>
               </Fade>
             </Box>
+
+            {/* Info Button (left of theme icon) */}
+            <IconButton
+              color="inherit"
+              aria-label="about info"
+              onClick={handleOpenAboutModal}
+              edge="end"
+            >
+              <InfoIcon />
+            </IconButton>
 
             {/* Theme Toggle Button (right-aligned) */}
             <IconButton
@@ -286,8 +301,10 @@ const App: React.FC = () => {
           <DrawerHeader />
           {/* Video Player */}
           <VideoPlayer height={screenHeight} />
-          <AppVersion />
         </Main>
+
+        {/* About Modal */}
+        <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
       </>
     );
   };
