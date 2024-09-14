@@ -13,6 +13,7 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 
 interface WidgetItemProps {
   widget: Widget;
@@ -104,13 +105,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       {/* Dropdown for widget details */}
       <Collapse in={openDropdownIndex === index}>
         <Box
-          sx={{
+          sx={(theme) => ({
+            backgroundColor: theme.palette.background.default,
             padding: 2,
             border: '1px solid #ccc',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             marginTop: 1
-          }}
+          })}
         >
           <Typography variant="body2">
             Widget type: {widget.generalParams.type} ({widget.width}x
@@ -155,7 +157,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 padding: 2,
                 border: '1px solid #ccc',
                 borderRadius: '8px',
-                backgroundColor: theme.palette.background.default
+                backgroundColor: theme.palette.background.paper
               })}
             >
               {/* Editable JSON field */}
@@ -183,7 +185,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               )}
               <Button
                 onClick={handleUpdateJSON}
-                variant="outlined"
+                variant="contained"
+                startIcon={<DataObjectIcon />}
                 sx={{ marginTop: 1 }}
               >
                 Update {widget.generalParams.type}
