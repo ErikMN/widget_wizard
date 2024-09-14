@@ -2,17 +2,17 @@
  * This file contains the theme configuration for the app.
  */
 import { createTheme } from '@mui/material/styles';
-import { blue, green, grey } from '@mui/material/colors';
+import { grey } from '@mui/material/colors';
 
 const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: blue[500], // Primary color (buttons, app bar, etc.)
+      main: grey[500], // Primary color (buttons, app bar, etc.)
       contrastText: '#525252' // Text color on primary elements
     },
     secondary: {
-      main: green[500] // Secondary color (accents, floating action buttons)
+      main: grey[300] // Secondary color (accents, floating action buttons)
     },
     background: {
       default: grey[50], // Main background color
@@ -89,11 +89,11 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: blue[500], // Primary color (buttons, app bar, etc.)
+      main: grey[500], // Primary color (buttons, app bar, etc.)
       contrastText: '#fff' // Text color on primary elements
     },
     secondary: {
-      main: green[500] // Secondary color
+      main: grey[300] // Secondary color
     },
     background: {
       default: grey[900], // Background color for the whole app
