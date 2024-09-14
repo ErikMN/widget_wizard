@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Widget } from '../widgetInterfaces';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Switch from '@mui/material/Switch';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
@@ -33,6 +34,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
   const [jsonVisible, setJsonVisible] = useState(false);
+  const [jsonInput, setJsonInput] = useState(JSON.stringify(widget, null, 2));
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  /* Update jsonInput whenever widget prop changes */
+  useEffect(() => {
+    setJsonInput(JSON.stringify(widget, null, 2));
+    setJsonError(null);
+  }, [widget]);
 
   const handleVisibilityChange = () => {
     const newVisibility = !isVisible;
@@ -47,8 +56,27 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     updateWidget(updatedWidget);
   };
 
+  /* Toggle JSON viewer */
   const toggleJsonVisibility = () => {
     setJsonVisible((prev) => !prev);
+  };
+
+  /* Handle edited JSON in the viewer */
+  const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonInput(event.target.value);
+  };
+
+  const handleUpdateJSON = () => {
+    try {
+      const parsedWidget = JSON.parse(jsonInput);
+      updateWidget(parsedWidget);
+      /* Update UI controls */
+      setIsVisible(parsedWidget.generalParams.isVisible);
+      setJsonError(null);
+    } catch (err) {
+      console.error(err);
+      setJsonError('Invalid JSON format');
+    }
   };
 
   return (
@@ -130,16 +158,36 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 backgroundColor: theme.palette.background.default
               })}
             >
-              <Typography
-                variant="body2"
-                component="pre"
+              {/* Editable JSON field */}
+              <TextField
+                label="JSON"
+                error={jsonError !== null}
+                multiline
+                minRows={8}
+                value={jsonInput}
+                onChange={handleJsonChange}
+                fullWidth
+                variant="outlined"
                 sx={{
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'Monospace'
+                  '& textarea': {
+                    resize: 'none',
+                    fontFamily: 'Monospace'
+                  }
                 }}
+              />
+              {/* Display error if invalid JSON */}
+              {jsonError && (
+                <Typography color="error" variant="body2" sx={{ marginTop: 1 }}>
+                  {jsonError}
+                </Typography>
+              )}
+              <Button
+                onClick={handleUpdateJSON}
+                variant="outlined"
+                sx={{ marginTop: 1 }}
               >
-                {JSON.stringify(widget, null, 2)}
-              </Typography>
+                Update {widget.generalParams.type}
+              </Button>
             </Box>
           </Collapse>
         </Box>
