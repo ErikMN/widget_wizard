@@ -1,3 +1,4 @@
+const isProduction = import.meta.env.MODE === 'production';
 let isLoggingEnabled = false;
 
 export const enableLogging = (enable: boolean) => {
@@ -5,7 +6,7 @@ export const enableLogging = (enable: boolean) => {
 };
 
 export const log = (...args: (string | object)[]) => {
-  if (isLoggingEnabled) {
+  if (isLoggingEnabled && !isProduction) {
     console.log(...args);
   }
 };
