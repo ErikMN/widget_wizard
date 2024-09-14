@@ -245,7 +245,22 @@ const App: React.FC = () => {
             flexShrink: 0,
             '& .MuiDrawer-paper': {
               width: drawerWidth,
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '10px',
+                backgroundColor: 'transparent'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'primary.light',
+                borderRadius: '8px'
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: 'secondary.dark'
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'primary.dark'
+              }
             }
           }}
           variant="persistent"
