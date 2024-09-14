@@ -21,7 +21,9 @@ const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
-  const [widgetNames, setWidgetNames] = useState<string[]>([]);
+  const [widgetCapabilities, setWidgetCapabilities] = useState<
+    WidgetCapabilities | undefined
+  >(undefined);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
@@ -61,10 +63,11 @@ const WidgetHandler: React.FC = () => {
       const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
       log('*** WIDGET CAPABILITIES', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
-        const widgetTypes = resp.data.widgets.map((widget) => widget.type);
-        setWidgetNames(widgetTypes);
-        if (widgetTypes.length > 0) {
-          setSelectedWidget(widgetTypes[0]);
+        /* Set the entire listCapabilities response object */
+        setWidgetCapabilities(resp);
+        /* Set the first widget type as selected if available */
+        if (resp.data.widgets.length > 0) {
+          setSelectedWidget(resp.data.widgets[0].type);
         }
       }
     } catch (error) {
@@ -237,9 +240,9 @@ const WidgetHandler: React.FC = () => {
             onChange={handleWidgetChange}
             label="Select Widget"
           >
-            {widgetNames.map((widgetName, index) => (
-              <MenuItem key={index} value={widgetName}>
-                {widgetName}
+            {widgetCapabilities?.data.widgets.map((widget, index) => (
+              <MenuItem key={index} value={widget.type}>
+                {widget.type}
               </MenuItem>
             ))}
           </Select>
