@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Widget } from '../widgetInterfaces';
+import { Widget, WidgetCapabilities } from '../widgetInterfaces';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -18,6 +18,7 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 interface WidgetItemProps {
   widget: Widget;
   index: number;
+  widgetCapabilities: WidgetCapabilities | null;
   openDropdownIndex: number | null;
   toggleDropdown: (index: number) => void;
   removeWidget: (widgetID: number) => void;
@@ -27,6 +28,8 @@ interface WidgetItemProps {
 const WidgetItem: React.FC<WidgetItemProps> = ({
   widget,
   index,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  widgetCapabilities,
   openDropdownIndex,
   toggleDropdown,
   removeWidget,

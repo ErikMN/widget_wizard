@@ -21,9 +21,8 @@ const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
-  const [widgetCapabilities, setWidgetCapabilities] = useState<
-    WidgetCapabilities | undefined
-  >(undefined);
+  const [widgetCapabilities, setWidgetCapabilities] =
+    useState<WidgetCapabilities | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
@@ -278,6 +277,7 @@ const WidgetHandler: React.FC = () => {
             key={widget.generalParams.id}
             widget={widget}
             index={index}
+            widgetCapabilities={widgetCapabilities}
             openDropdownIndex={openDropdownIndex}
             toggleDropdown={toggleDropdown}
             removeWidget={removeWidget}
