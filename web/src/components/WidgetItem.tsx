@@ -149,9 +149,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         }
         onClick={() => toggleDropdown(index)}
       >
+        {/* Widget title and info */}
         <Typography variant="subtitle1">
           {widget.generalParams.type.charAt(0).toUpperCase() +
-            widget.generalParams.type.slice(1)}
+            widget.generalParams.type.slice(1)}{' '}
+          ({widget.width}x{widget.height})
         </Typography>
         <Chip
           label={`ID: ${widget.generalParams.id}`}
@@ -172,16 +174,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             marginTop: 1
           })}
         >
-          {/* TODO: REMOVE: */}
-          <Typography variant="body2">
-            Widget type: {widget.generalParams.type} ({widget.width}x
-            {widget.height})
-          </Typography>
-          <Typography variant="body2">
-            Widget position: [{widget.generalParams.position.x},{' '}
-            {widget.generalParams.position.y}]
-          </Typography>
-
           {/* Visible toggle */}
           {widgetCapabilities && widgetCapabilities.data.isVisible && (
             <Typography variant="body2" sx={{ marginTop: 1 }}>
@@ -193,43 +185,42 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               />
             </Typography>
           )}
-
           {/* Anchor Dropdown */}
-          {widgetCapabilities && widgetCapabilities.data.anchor && (
-            <Box sx={{ marginTop: 2 }}>
-              <Typography variant="body2">Anchor</Typography>
-              <Select
-                value={widget.generalParams.anchor}
-                onChange={handleAnchorChange}
-                fullWidth
-              >
-                {widgetCapabilities.data.anchor.enum.map((anchor) => (
-                  <MenuItem key={anchor} value={anchor}>
-                    {anchor}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
-          )}
-
-          {/* Size Dropdown */}
-          {widgetCapabilities && widgetCapabilities.data.size && (
-            <Box sx={{ marginTop: 2 }}>
-              <Typography variant="body2">Size</Typography>
-              <Select
-                value={widget.generalParams.size}
-                onChange={handleSizeChange}
-                fullWidth
-              >
-                {widgetCapabilities.data.size.enum.map((size) => (
-                  <MenuItem key={size} value={size}>
-                    {size}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
-          )}
-
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {widgetCapabilities && widgetCapabilities.data.anchor && (
+              <Box sx={{ flex: 1, marginTop: 2 }}>
+                <Typography variant="body2">Anchor</Typography>
+                <Select
+                  value={widget.generalParams.anchor}
+                  onChange={handleAnchorChange}
+                  fullWidth
+                >
+                  {widgetCapabilities.data.anchor.enum.map((anchor) => (
+                    <MenuItem key={anchor} value={anchor}>
+                      {anchor}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+            )}
+            {/* Size Dropdown */}
+            {widgetCapabilities && widgetCapabilities.data.size && (
+              <Box sx={{ flex: 1, marginTop: 2 }}>
+                <Typography variant="body2">Size</Typography>
+                <Select
+                  value={widget.generalParams.size}
+                  onChange={handleSizeChange}
+                  fullWidth
+                >
+                  {widgetCapabilities.data.size.enum.map((size) => (
+                    <MenuItem key={size} value={size}>
+                      {size}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+            )}
+          </Box>
           {/* Transparency Slider */}
           {widgetCapabilities && widgetCapabilities.data.transparency && (
             <Box sx={{ marginTop: 2 }}>
@@ -246,7 +237,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               />
             </Box>
           )}
-
           {/* Remove widget button */}
           <Button
             style={{ marginTop: '10px' }}
@@ -257,7 +247,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           >
             Remove {widget.generalParams.type}
           </Button>
-
           {/* Toggle JSON viewer */}
           <Button
             onClick={toggleJsonVisibility}
@@ -266,7 +255,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           >
             {jsonVisible ? 'Hide JSON' : 'Show JSON'}
           </Button>
-
           {/* JSON viewer expander */}
           <Collapse in={jsonVisible}>
             <Box
