@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Widget, WidgetCapabilities } from '../widgetInterfaces';
 /* MUI */
+import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CodeIcon from '@mui/icons-material/Code';
 import Collapse from '@mui/material/Collapse';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Slider from '@mui/material/Slider';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import DataObjectIcon from '@mui/icons-material/DataObject';
 
 interface WidgetItemProps {
   widget: Widget;
@@ -28,7 +32,6 @@ interface WidgetItemProps {
 const WidgetItem: React.FC<WidgetItemProps> = ({
   widget,
   index,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   widgetCapabilities,
   openDropdownIndex,
   toggleDropdown,
@@ -40,6 +43,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const [jsonVisible, setJsonVisible] = useState(false);
   const [jsonInput, setJsonInput] = useState(JSON.stringify(widget, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [sliderValue, setSliderValue] = useState(
+    widget.generalParams.transparency
+  );
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
@@ -47,6 +53,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     setJsonError(null);
   }, [widget]);
 
+  /* Handle state changes */
   const handleVisibilityChange = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
@@ -55,6 +62,51 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       generalParams: {
         ...widget.generalParams,
         isVisible: newVisibility
+      }
+    };
+    updateWidget(updatedWidget);
+  };
+
+  /****************************************************************************/
+  /* Handle UI updates */
+
+  const handleAnchorChange = (event: SelectChangeEvent<string>) => {
+    const newAnchor = event.target.value as string;
+    const updatedWidget = {
+      ...widget,
+      generalParams: {
+        ...widget.generalParams,
+        anchor: newAnchor
+      }
+    };
+    updateWidget(updatedWidget);
+  };
+
+  const handleSizeChange = (event: SelectChangeEvent<string>) => {
+    const newSize = event.target.value;
+    const updatedWidget = {
+      ...widget,
+      generalParams: {
+        ...widget.generalParams,
+        size: newSize
+      }
+    };
+    updateWidget(updatedWidget);
+  };
+
+  const handleTransparencyChange = (
+    event: Event,
+    newValue: number | number[]
+  ) => {
+    setSliderValue(Array.isArray(newValue) ? newValue[0] : newValue);
+  };
+
+  const handleTransparencyChangeCommitted = () => {
+    const updatedWidget = {
+      ...widget,
+      generalParams: {
+        ...widget.generalParams,
+        transparency: sliderValue
       }
     };
     updateWidget(updatedWidget);
@@ -74,14 +126,17 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     try {
       const parsedWidget = JSON.parse(jsonInput);
       updateWidget(parsedWidget);
-      /* Update UI controls */
-      setIsVisible(parsedWidget.generalParams.isVisible);
       setJsonError(null);
+      /* Update UI controls for manual JSON updates */
+      setIsVisible(parsedWidget.generalParams.isVisible);
+      setSliderValue(parsedWidget.generalParams.transparency);
     } catch (err) {
       console.error(err);
       setJsonError('Invalid JSON format');
     }
   };
+
+  /****************************************************************************/
 
   return (
     <Box key={widget.generalParams.id} sx={{ marginBottom: 2 }}>
@@ -117,6 +172,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             marginTop: 1
           })}
         >
+          {/* TODO: REMOVE: */}
           <Typography variant="body2">
             Widget type: {widget.generalParams.type} ({widget.width}x
             {widget.height})
@@ -125,14 +181,73 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             Widget position: [{widget.generalParams.position.x},{' '}
             {widget.generalParams.position.y}]
           </Typography>
-          <Typography variant="body2" sx={{ marginTop: 1 }}>
-            Visible:
-            <Switch
-              checked={isVisible}
-              onChange={handleVisibilityChange}
-              color="primary"
-            />
-          </Typography>
+
+          {/* Visible toggle */}
+          {widgetCapabilities && widgetCapabilities.data.isVisible && (
+            <Typography variant="body2" sx={{ marginTop: 1 }}>
+              Visible:
+              <Switch
+                checked={isVisible}
+                onChange={handleVisibilityChange}
+                color="primary"
+              />
+            </Typography>
+          )}
+
+          {/* Anchor Dropdown */}
+          {widgetCapabilities && widgetCapabilities.data.anchor && (
+            <Box sx={{ marginTop: 2 }}>
+              <Typography variant="body2">Anchor</Typography>
+              <Select
+                value={widget.generalParams.anchor}
+                onChange={handleAnchorChange}
+                fullWidth
+              >
+                {widgetCapabilities.data.anchor.enum.map((anchor) => (
+                  <MenuItem key={anchor} value={anchor}>
+                    {anchor}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+          )}
+
+          {/* Size Dropdown */}
+          {widgetCapabilities && widgetCapabilities.data.size && (
+            <Box sx={{ marginTop: 2 }}>
+              <Typography variant="body2">Size</Typography>
+              <Select
+                value={widget.generalParams.size}
+                onChange={handleSizeChange}
+                fullWidth
+              >
+                {widgetCapabilities.data.size.enum.map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+          )}
+
+          {/* Transparency Slider */}
+          {widgetCapabilities && widgetCapabilities.data.transparency && (
+            <Box sx={{ marginTop: 2 }}>
+              <Typography variant="body2">Transparency</Typography>
+              <Slider
+                value={sliderValue}
+                onChange={handleTransparencyChange}
+                onChangeCommitted={handleTransparencyChangeCommitted}
+                aria-labelledby="transparency-slider"
+                min={widgetCapabilities.data.transparency.minimum}
+                max={widgetCapabilities.data.transparency.maximum}
+                step={0.01}
+                valueLabelDisplay="auto"
+              />
+            </Box>
+          )}
+
+          {/* Remove widget button */}
           <Button
             style={{ marginTop: '10px' }}
             color="error"
@@ -140,10 +255,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             onClick={() => removeWidget(widget.generalParams.id)}
             startIcon={<DeleteIcon />}
           >
-            Remove
+            Remove {widget.generalParams.type}
           </Button>
-          {/* TODO: Additional widget information here */}
 
+          {/* Toggle JSON viewer */}
           <Button
             onClick={toggleJsonVisibility}
             startIcon={<CodeIcon />}
@@ -152,7 +267,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             {jsonVisible ? 'Hide JSON' : 'Show JSON'}
           </Button>
 
-          {/* JSON expander */}
+          {/* JSON viewer expander */}
           <Collapse in={jsonVisible}>
             <Box
               sx={(theme) => ({
