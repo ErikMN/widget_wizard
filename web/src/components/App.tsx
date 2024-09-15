@@ -233,6 +233,7 @@ const App: React.FC = () => {
               aria-label="about info"
               onClick={handleOpenAboutModal}
               edge="end"
+              sx={{ marginRight: '0px' }}
             >
               <InfoIcon />
             </IconButton>
