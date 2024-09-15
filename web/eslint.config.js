@@ -1,6 +1,5 @@
-import pkg from 'globals'; // CommonJS import workaround
-const { browser: browserGlobals, node: nodeGlobals } = pkg; // Destructure globals
-
+/* https://eslint.org/docs/latest/use/configure/migration-guide */
+import globals from 'globals';
 import typescriptParser from '@typescript-eslint/parser';
 import typescriptPlugin from '@typescript-eslint/eslint-plugin';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
@@ -11,7 +10,8 @@ export default [
     languageOptions: {
       parser: typescriptParser,
       globals: {
-        ...browserGlobals // Add browser globals like window, document, etc.
+        ...globals.browser,
+        ...globals.node
       }
     },
     plugins: {
@@ -36,13 +36,5 @@ export default [
       'prettier/prettier': 'off'
     },
     ignores: ['node_modules', 'dist', 'build']
-  },
-  {
-    files: ['vite.config.ts'], // Target specific config files
-    languageOptions: {
-      globals: {
-        ...nodeGlobals // Add Node.js globals like process
-      }
-    }
   }
 ];
