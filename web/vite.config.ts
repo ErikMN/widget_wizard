@@ -10,7 +10,21 @@ export default defineConfig({
   build: {
     outDir: 'build',
     assetsDir: 'static',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: (id: string): string | undefined => {
+          if (id.indexOf('node_modules') !== -1) {
+            // MUI in own chunk:
+            if (id.indexOf('@mui') !== -1) {
+              return 'vendor_mui';
+            }
+            // Rest of vendors in node_modules:
+            return 'vendor';
+          }
+        }
+      }
+    },
   },
   server: {
     port: 8080,
