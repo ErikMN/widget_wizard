@@ -149,23 +149,27 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       <Button
         variant="outlined"
         fullWidth
+        onClick={() => toggleDropdown(index)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: 1
+        }}
         startIcon={<WidgetsIcon />}
         endIcon={
           openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
         }
-        onClick={() => toggleDropdown(index)}
       >
-        {/* Widget title and info */}
-        <Typography variant="subtitle1">
-          {widget.generalParams.type.charAt(0).toUpperCase() +
-            widget.generalParams.type.slice(1)}{' '}
-          ({widget.width}x{widget.height})
-        </Typography>
-        <Chip
-          label={`ID: ${widget.generalParams.id}`}
-          size="small"
-          sx={{ ml: 1 }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          {/* Widget title and info */}
+          <Typography variant="subtitle1" style={{ marginRight: '8px' }}>
+            {widget.generalParams.type.charAt(0).toUpperCase() +
+              widget.generalParams.type.slice(1)}{' '}
+            ({widget.width}x{widget.height})
+          </Typography>
+          <Chip label={`ID: ${widget.generalParams.id}`} size="small" />
+        </div>
       </Button>
 
       {/* Dropdown for widget details */}
