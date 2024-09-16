@@ -49,7 +49,13 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
-    setJsonInput(JSON.stringify(widget, null, 2));
+    /* Deep widget copy */
+    const widgetCopy = JSON.parse(JSON.stringify(widget));
+    /* Remove ID in order to not edit other widgets */
+    if (widgetCopy.generalParams && widgetCopy.generalParams.id) {
+      delete widgetCopy.generalParams.id;
+    }
+    setJsonInput(JSON.stringify(widgetCopy, null, 2));
     setJsonError(null);
   }, [widget]);
 
@@ -232,7 +238,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 aria-labelledby="transparency-slider"
                 min={widgetCapabilities.data.transparency.minimum}
                 max={widgetCapabilities.data.transparency.maximum}
-                step={0.01}
+                // step={0.01}
                 valueLabelDisplay="auto"
               />
             </Box>
