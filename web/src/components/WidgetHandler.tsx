@@ -19,7 +19,14 @@ import { SelectChangeEvent } from '@mui/material/Select';
 /* CGI endpoints */
 const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
 
-const WidgetHandler: React.FC = () => {
+interface WidgetHandlerProps {
+  handleOpenAlert: (
+    content: string,
+    severity: 'info' | 'success' | 'error' | 'warning'
+  ) => void;
+}
+
+const WidgetHandler: React.FC<WidgetHandlerProps> = ({ handleOpenAlert }) => {
   /* Local state */
   const [widgetCapabilities, setWidgetCapabilities] =
     useState<WidgetCapabilities | null>(null);
@@ -47,6 +54,7 @@ const WidgetHandler: React.FC = () => {
         setActiveWidgets(resp.data.widgets);
       }
     } catch (error) {
+      handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
   };
@@ -70,6 +78,7 @@ const WidgetHandler: React.FC = () => {
         }
       }
     } catch (error) {
+      handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
   };
@@ -83,7 +92,9 @@ const WidgetHandler: React.FC = () => {
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** REMOVE ALL WIDGETS', { resp });
+      handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
+      handleOpenAlert('Failed to remove all widgets', 'error');
       console.error('Error:', error);
     }
     /* After removing all widgets, refresh the active widgets list */
@@ -110,7 +121,9 @@ const WidgetHandler: React.FC = () => {
       setActiveWidgets((prevWidgets) =>
         prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
       );
+      handleOpenAlert(`Removed widget ${widgetID}`, 'success');
     } catch (error) {
+      handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
       console.error('Error:', error);
     }
   };
@@ -144,7 +157,15 @@ const WidgetHandler: React.FC = () => {
           );
         });
       }
+      handleOpenAlert(
+        `Widget ${widgetItem.generalParams.id} updated`,
+        'success'
+      );
     } catch (error) {
+      handleOpenAlert(
+        `Widget ${widgetItem.generalParams.id} failed to update`,
+        'error'
+      );
       console.error('Error:', error);
     }
   };
@@ -184,7 +205,9 @@ const WidgetHandler: React.FC = () => {
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
       }
+      handleOpenAlert(`Added ${widgetType}`, 'success');
     } catch (error) {
+      handleOpenAlert(`Failed to add ${widgetType}`, 'error');
       console.error('Error:', error);
     }
   };

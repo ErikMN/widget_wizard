@@ -11,6 +11,7 @@ import { log, enableLogging } from '../helpers/logger';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -23,6 +24,7 @@ import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuIcon from '@mui/icons-material/Menu';
+import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
@@ -103,6 +105,11 @@ const App: React.FC = () => {
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const [openAlert, setOpenAlert] = useState(false);
+  const [alertContent, setAlertContent] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState<
+    'info' | 'success' | 'error' | 'warning'
+  >('info');
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -186,6 +193,26 @@ const App: React.FC = () => {
 
   const handleOpenAboutModal = () => setAboutModalOpen(true);
   const handleCloseAboutModal = () => setAboutModalOpen(false);
+
+  /* Alert handler */
+  const handleCloseAlert = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpenAlert(false);
+  };
+
+  const handleOpenAlert = (
+    content: string,
+    severity: 'info' | 'success' | 'error' | 'warning'
+  ) => {
+    setAlertContent(content);
+    setAlertSeverity(severity);
+    setOpenAlert(true);
+  };
 
   const contentMain = () => {
     log('MAIN CONTENT');
@@ -294,7 +321,7 @@ const App: React.FC = () => {
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
-          <WidgetHandler />
+          <WidgetHandler handleOpenAlert={handleOpenAlert} />
         </Drawer>
 
         {/* Main content */}
@@ -303,6 +330,26 @@ const App: React.FC = () => {
           {/* Video Player */}
           <VideoPlayer height={screenHeight} />
         </Main>
+
+        {/* Alert Snackbar */}
+        <Snackbar
+          open={openAlert}
+          autoHideDuration={2000}
+          onClose={handleCloseAlert}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={handleCloseAlert}
+            severity={alertSeverity}
+            sx={{
+              width: '100%',
+              borderRadius: 0,
+              fontSize: '1.1rem'
+            }}
+          >
+            {alertContent}
+          </Alert>
+        </Snackbar>
 
         {/* About Modal */}
         <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
