@@ -5,6 +5,7 @@ import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
+import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
@@ -118,6 +119,7 @@ const OverlaySurface = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
+  const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
@@ -375,7 +377,11 @@ const App: React.FC = () => {
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
-          <WidgetHandler handleOpenAlert={handleOpenAlert} />
+          <WidgetHandler
+            handleOpenAlert={handleOpenAlert}
+            activeWidgets={activeWidgets}
+            setActiveWidgets={setActiveWidgets}
+          />
         </Drawer>
 
         {/* Main content */}

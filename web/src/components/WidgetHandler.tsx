@@ -29,14 +29,19 @@ interface WidgetHandlerProps {
     content: string,
     severity: 'info' | 'success' | 'error' | 'warning'
   ) => void;
+  activeWidgets: Widget[];
+  setActiveWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
 }
 
-const WidgetHandler: React.FC<WidgetHandlerProps> = ({ handleOpenAlert }) => {
+const WidgetHandler: React.FC<WidgetHandlerProps> = ({
+  handleOpenAlert,
+  activeWidgets,
+  setActiveWidgets
+}) => {
   /* Local state */
   const [widgetCapabilities, setWidgetCapabilities] =
     useState<WidgetCapabilities | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
-  const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
