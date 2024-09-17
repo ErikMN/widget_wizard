@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Draggable from 'react-draggable';
 import GetParam from './GetParam';
@@ -111,7 +111,7 @@ const OverlaySurface = styled('div')(({ theme }) => ({
   left: 0,
   right: 0,
   bottom: 0,
-  zIndex: 1
+  zIndex: -1 /* TODO: FIXME: overlays above player */
 }));
 
 /******************************************************************************/
@@ -124,6 +124,7 @@ const App: React.FC = () => {
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
   const [openAlert, setOpenAlert] = useState(false);
   const [alertContent, setAlertContent] = useState('');
   const [alertSeverity, setAlertSeverity] = useState<
@@ -140,23 +141,48 @@ const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
   const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
 
+  /* Refs */
+  const videoBoxRef = useRef<HTMLDivElement>(null);
+
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
   enableLogging(true);
 
-  /* Handle screen size */
+  /* Handle screen and video box size */
   useEffect(() => {
     const handleResize = () => {
       setScreenWidth(window.innerWidth);
       setScreenHeight(window.innerHeight);
     };
+    /* Get the pixel size of the video Box */
+    const updateBoxSize = () => {
+      if (videoBoxRef.current) {
+        const { width, height } = videoBoxRef.current.getBoundingClientRect();
+        setBoxSize({ width, height });
+      }
+    };
+    /* Call updateBoxSize as soon as videoBoxRef becomes available */
+    const observer = new MutationObserver((mutations) => {
+      if (videoBoxRef.current) {
+        updateBoxSize();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    /* Add resize event listeners */
     window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', updateBoxSize);
+
+    /* Clean up */
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', updateBoxSize);
     };
   }, []);
 
   // log(screenWidth, screenHeight);
+  // log(boxSize.width, boxSize.height);
 
   /* Automatically open or close drawer depending on screen size */
   useEffect(() => {
@@ -356,7 +382,7 @@ const App: React.FC = () => {
         <Main open={drawerOpen}>
           <DrawerHeader />
           {/* Video Player */}
-          <Box sx={{ position: 'relative' }}>
+          <Box ref={videoBoxRef} sx={{ position: 'relative' }}>
             <VideoPlayer height={screenHeight} />
 
             {/* FIXME: Draggable Surface */}
