@@ -70,7 +70,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
       style={{
         height: `${height - OFFSET}px`,
         backgroundColor: 'black',
-        padding: '3px'
+        padding: '3px',
+        position: 'relative'
       }}
     >
       <Player

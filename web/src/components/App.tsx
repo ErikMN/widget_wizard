@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import Draggable from 'react-draggable';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
@@ -54,7 +55,8 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
           easing: theme.transitions.easing.easeOut,
           duration: theme.transitions.duration.enteringScreen
         }),
-        marginLeft: 0
+        marginLeft: 0,
+        position: 'relative'
       }
     }
   ]
@@ -95,6 +97,23 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end'
 }));
 
+const DraggableBoundingBox = styled('div')(({ theme }) => ({
+  width: 100,
+  height: 100,
+  border: '2px solid red',
+  position: 'absolute',
+  cursor: 'move'
+}));
+
+const OverlaySurface = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 1
+}));
+
 /******************************************************************************/
 
 const App: React.FC = () => {
@@ -110,6 +129,12 @@ const App: React.FC = () => {
   const [alertSeverity, setAlertSeverity] = useState<
     'info' | 'success' | 'error' | 'warning'
   >('info');
+
+  /* TODO: REMOVE: */
+  const [boundingBoxes, setBoundingBoxes] = useState([
+    { id: 1, x: 50, y: 100 },
+    { id: 2, x: 200, y: 100 }
+  ]);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -130,6 +155,8 @@ const App: React.FC = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // log(screenWidth, screenHeight);
 
   /* Automatically open or close drawer depending on screen size */
   useEffect(() => {
@@ -216,7 +243,7 @@ const App: React.FC = () => {
   };
 
   const contentMain = () => {
-    log('MAIN CONTENT');
+    // log('MAIN CONTENT');
     return (
       <>
         {/* Application header bar */}
@@ -329,7 +356,22 @@ const App: React.FC = () => {
         <Main open={drawerOpen}>
           <DrawerHeader />
           {/* Video Player */}
-          <VideoPlayer height={screenHeight} />
+          <Box sx={{ position: 'relative' }}>
+            <VideoPlayer height={screenHeight} />
+
+            {/* FIXME: Draggable Surface */}
+            <OverlaySurface>
+              {boundingBoxes.map((box) => (
+                <Draggable
+                  key={box.id}
+                  defaultPosition={{ x: box.x, y: box.y }}
+                  bounds="parent"
+                >
+                  <DraggableBoundingBox />
+                </Draggable>
+              ))}
+            </OverlaySurface>
+          </Box>
         </Main>
 
         {/* Alert Snackbar */}

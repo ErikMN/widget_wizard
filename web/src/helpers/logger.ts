@@ -5,7 +5,7 @@ export const enableLogging = (enable: boolean) => {
   isLoggingEnabled = enable;
 };
 
-export const log = (...args: (string | object)[]) => {
+export const log = (...args: (number | string | object)[]) => {
   if (isLoggingEnabled && !isProduction) {
     console.log(...args);
   }
