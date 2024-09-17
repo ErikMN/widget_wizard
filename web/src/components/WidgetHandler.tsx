@@ -4,17 +4,22 @@ import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
 import { log, enableLogging } from '../helpers/logger';
 import WidgetItem from './WidgetItem';
 /* MUI */
+import { SelectChangeEvent } from '@mui/material/Select';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
-import { SelectChangeEvent } from '@mui/material/Select';
 
 /* CGI endpoints */
 const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
@@ -32,6 +37,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({ handleOpenAlert }) => {
     useState<WidgetCapabilities | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
@@ -237,6 +243,19 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({ handleOpenAlert }) => {
     setOpenDropdownIndex(openDropdownIndex === index ? null : index);
   };
 
+  const handleRemoveAllClick = () => {
+    setOpenDialog(true);
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+  };
+
+  const handleConfirmRemoveAll = () => {
+    removeAllWidgets();
+    setOpenDialog(false);
+  };
+
   return (
     <Box
       sx={{
@@ -286,14 +305,40 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({ handleOpenAlert }) => {
         style={{ marginTop: '10px' }}
         color="error"
         variant="contained"
-        onClick={removeAllWidgets}
+        onClick={handleRemoveAllClick}
         disabled={activeWidgets.length === 0}
         startIcon={<DeleteIcon />}
       >
         Remove all widgets
       </Button>
 
-      {/* TODO: List of Active Widgets */}
+      {/* Remove all widgets confirmation dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {'Remove all widgets'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to remove all widgets? This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose} color="primary">
+            No
+          </Button>
+          <Button onClick={handleConfirmRemoveAll} color="error" autoFocus>
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
         {activeWidgets.map((widget, index) => (
           <WidgetItem
