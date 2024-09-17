@@ -169,6 +169,7 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error(error);
+        handleOpenAlert('Failed to check system status', 'error');
       } finally {
         setAppLoading(false);
       }
