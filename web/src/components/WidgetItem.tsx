@@ -40,10 +40,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 }) => {
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
-  const [jsonVisible, setJsonVisible] = useState(false);
-  const [jsonInput, setJsonInput] = useState(JSON.stringify(widget, null, 2));
+  const [jsonVisible, setJsonVisible] = useState<boolean>(false);
+  const [jsonInput, setJsonInput] = useState<string>(
+    JSON.stringify(widget, null, 2)
+  );
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [sliderValue, setSliderValue] = useState(
+  const [sliderValue, setSliderValue] = useState<number>(
     widget.generalParams.transparency
   );
 

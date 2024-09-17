@@ -125,10 +125,10 @@ const App: React.FC = () => {
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
-  const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
-  const [openAlert, setOpenAlert] = useState(false);
-  const [alertContent, setAlertContent] = useState('');
+  const [openAlert, setOpenAlert] = useState<boolean>(false);
+  const [alertContent, setAlertContent] = useState<string>('');
   const [alertSeverity, setAlertSeverity] = useState<
     'info' | 'success' | 'error' | 'warning'
   >('info');
