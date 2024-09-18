@@ -132,6 +132,12 @@ const App: React.FC = () => {
   const [alertSeverity, setAlertSeverity] = useState<
     'info' | 'success' | 'error' | 'warning'
   >('info');
+  const [dimensions, setDimensions] = useState({
+    videoWidth: 0,
+    videoHeight: 0,
+    pixelWidth: 0,
+    pixelHeight: 0
+  });
 
   /* TODO: REMOVE: */
   const [boundingBoxes, setBoundingBoxes] = useState([
@@ -270,6 +276,17 @@ const App: React.FC = () => {
     setOpenAlert(true);
   };
 
+  const handleDimensionsUpdate = (
+    videoWidth: number,
+    videoHeight: number,
+    pixelWidth: number,
+    pixelHeight: number
+  ) => {
+    setDimensions({ videoWidth, videoHeight, pixelWidth, pixelHeight });
+    console.log('Stream Dimensions:', videoWidth, videoHeight);
+    console.log('Pixel Dimensions:', pixelWidth, pixelHeight);
+  };
+
   const contentMain = () => {
     // log('MAIN CONTENT');
     return (
@@ -389,7 +406,10 @@ const App: React.FC = () => {
           <DrawerHeader />
           {/* Video Player */}
           <Box ref={videoBoxRef} sx={{ position: 'relative' }}>
-            <VideoPlayer height={screenHeight} />
+            <VideoPlayer
+              height={screenHeight}
+              onDimensionsUpdate={handleDimensionsUpdate}
+            />
 
             {/* FIXME: Draggable Surface */}
             <OverlaySurface>

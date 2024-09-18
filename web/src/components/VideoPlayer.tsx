@@ -11,6 +11,12 @@ interface VapixConfig {
 
 interface VideoPlayerProps {
   height: number;
+  onDimensionsUpdate: (
+    videoWidth: number,
+    videoHeight: number,
+    pixelWidth: number,
+    pixelHeight: number
+  ) => void;
 }
 
 /* Force a login by fetching usergroup */
@@ -40,12 +46,16 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  height,
+  onDimensionsUpdate
+}) => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
   let vapixParams: Partial<VapixConfig> = {};
   const vapixData = window.localStorage.getItem('vapix');
@@ -57,6 +67,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
       window.localStorage.removeItem('vapix');
     }
   }
+
+  /* Function to log and send video element's dimensions */
+  const logVideoDimensions = () => {
+    if (videoElementRef.current) {
+      const { videoWidth, videoHeight } = videoElementRef.current;
+      // console.log('Video dimensions (stream):', videoWidth, videoHeight);
+
+      /* Video element pixel dimensions */
+      const videoRect = videoElementRef.current.getBoundingClientRect();
+      // console.log(
+      //   'Video element pixel dimensions:',
+      //   videoRect.width,
+      //   videoRect.height
+      // );
+
+      /* Send both stream and pixel dimensions to the parent via callback */
+      onDimensionsUpdate(
+        videoWidth, // Stream width
+        videoHeight, // Stream height
+        videoRect.width, // Pixel width
+        videoRect.height // Pixel height
+      );
+    }
+  };
 
   useEffect(() => {
     authorize()
@@ -74,23 +108,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
       const videoElement = playerContainerRef.current.querySelector(
         'video'
       ) as HTMLVideoElement | null;
+      videoElementRef.current = videoElement;
 
       if (videoElement) {
-        const logVideoDimensions = () => {
-          const { videoWidth, videoHeight } = videoElement;
-          console.log('Video dimensions (stream):', videoWidth, videoHeight);
+        /* Log initial dimensions */
+        logVideoDimensions();
 
-          /* Video player pixel dimensions */
-          const videoRect = videoElement.getBoundingClientRect();
-          console.log(
-            'Video element pixel dimensions:',
-            videoRect.width,
-            videoRect.height
-          );
-        };
+        /* Add event listeners for resize */
+        window.addEventListener('resize', logVideoDimensions);
+
+        /* Log video dimensions once metadata (e.g., width/height) is loaded */
         videoElement.addEventListener('loadedmetadata', logVideoDimensions);
 
         return () => {
+          window.removeEventListener('resize', logVideoDimensions);
           videoElement.removeEventListener(
             'loadedmetadata',
             logVideoDimensions
