@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 
 /* Vertical offset */
@@ -41,7 +41,11 @@ const setDefaultParams = (): void => {
 };
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
+  /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
+
+  /* Refs */
+  const playerContainerRef = useRef<HTMLDivElement | null>(null);
 
   let vapixParams: Partial<VapixConfig> = {};
   try {
@@ -61,12 +65,34 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
     // setDefaultParams();
   }, []);
 
+  useEffect(() => {
+    if (authorized && playerContainerRef.current) {
+      const videoElement = playerContainerRef.current.querySelector('video');
+
+      if (videoElement) {
+        const logVideoDimensions = () => {
+          const { videoWidth, videoHeight } = videoElement;
+          console.log('Video dimensions:', videoWidth, videoHeight);
+        };
+        videoElement.addEventListener('loadedmetadata', logVideoDimensions);
+
+        return () => {
+          videoElement.removeEventListener(
+            'loadedmetadata',
+            logVideoDimensions
+          );
+        };
+      }
+    }
+  }, [authorized]);
+
   if (!authorized) {
     return;
   }
 
   return (
     <div
+      ref={playerContainerRef}
       style={{
         height: `${height - OFFSET}px`,
         backgroundColor: 'black',
