@@ -78,7 +78,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
       if (videoElement) {
         const logVideoDimensions = () => {
           const { videoWidth, videoHeight } = videoElement;
-          console.log('Video dimensions:', videoWidth, videoHeight);
+          console.log('Video dimensions (stream):', videoWidth, videoHeight);
+
+          /* Video player pixel dimensions */
+          const videoRect = videoElement.getBoundingClientRect();
+          console.log(
+            'Video element pixel dimensions:',
+            videoRect.width,
+            videoRect.height
+          );
         };
         videoElement.addEventListener('loadedmetadata', logVideoDimensions);
 
