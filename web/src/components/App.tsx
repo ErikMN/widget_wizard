@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Draggable from 'react-draggable';
 import GetParam from './GetParam';
@@ -149,9 +149,6 @@ const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
   const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
 
-  /* Refs */
-  const videoBoxRef = useRef<HTMLDivElement>(null);
-
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
   enableLogging(true);
@@ -162,35 +159,15 @@ const App: React.FC = () => {
       setScreenWidth(window.innerWidth);
       setScreenHeight(window.innerHeight);
     };
-    /* Get the pixel size of the video Box */
-    const updateBoxSize = () => {
-      if (videoBoxRef.current) {
-        const { width, height } = videoBoxRef.current.getBoundingClientRect();
-        setBoxSize({ width, height });
-      }
-    };
-    /* Call updateBoxSize as soon as videoBoxRef becomes available */
-    const observer = new MutationObserver((mutations) => {
-      if (videoBoxRef.current) {
-        updateBoxSize();
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
 
     /* Add resize event listeners */
     window.addEventListener('resize', handleResize);
-    window.addEventListener('resize', updateBoxSize);
 
     /* Clean up */
     return () => {
-      observer.disconnect();
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', updateBoxSize);
     };
   }, []);
-
-  // log(screenWidth, screenHeight);
-  // log(boxSize.width, boxSize.height);
 
   /* Automatically open or close drawer depending on screen size */
   useEffect(() => {
@@ -405,7 +382,7 @@ const App: React.FC = () => {
         <Main open={drawerOpen}>
           <DrawerHeader />
           {/* Video Player */}
-          <Box ref={videoBoxRef} sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative' }}>
             <VideoPlayer
               height={screenHeight}
               onDimensionsUpdate={handleDimensionsUpdate}
