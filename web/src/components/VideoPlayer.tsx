@@ -48,10 +48,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
 
   let vapixParams: Partial<VapixConfig> = {};
-  try {
-    vapixParams = JSON.parse(window.localStorage.getItem('vapix') || '{}');
-  } catch (err) {
-    console.warn('No stored VAPIX parameters: ', err);
+  const vapixData = window.localStorage.getItem('vapix');
+  if (vapixData) {
+    try {
+      vapixParams = JSON.parse(vapixData);
+    } catch (err) {
+      console.warn('Failed to parse VAPIX parameters:', err);
+      window.localStorage.removeItem('vapix');
+    }
   }
 
   useEffect(() => {
@@ -67,7 +71,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
 
   useEffect(() => {
     if (authorized && playerContainerRef.current) {
-      const videoElement = playerContainerRef.current.querySelector('video');
+      const videoElement = playerContainerRef.current.querySelector(
+        'video'
+      ) as HTMLVideoElement | null;
 
       if (videoElement) {
         const logVideoDimensions = () => {
@@ -87,7 +93,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ height }) => {
   }, [authorized]);
 
   if (!authorized) {
-    return;
+    return null;
   }
 
   return (
