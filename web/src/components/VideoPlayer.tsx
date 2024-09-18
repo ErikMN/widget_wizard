@@ -15,7 +15,9 @@ interface VideoPlayerProps {
     videoWidth: number,
     videoHeight: number,
     pixelWidth: number,
-    pixelHeight: number
+    pixelHeight: number,
+    offsetX: number,
+    offsetY: number
   ) => void;
 }
 
@@ -70,24 +72,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   /* Function to log and send video element's dimensions */
   const logVideoDimensions = () => {
-    if (videoElementRef.current) {
+    if (videoElementRef.current && playerContainerRef.current) {
       const { videoWidth, videoHeight } = videoElementRef.current;
-      // console.log('Video dimensions (stream):', videoWidth, videoHeight);
 
       /* Video element pixel dimensions */
       const videoRect = videoElementRef.current.getBoundingClientRect();
-      // console.log(
-      //   'Video element pixel dimensions:',
-      //   videoRect.width,
-      //   videoRect.height
-      // );
+      const containerRect = playerContainerRef.current.getBoundingClientRect();
 
-      /* Send both stream and pixel dimensions to the parent via callback */
+      const offsetX = videoRect.left - containerRect.left;
+      const offsetY = videoRect.top - containerRect.top;
+
+      /* Send both stream and pixel dimensions, and offsets to the parent via callback */
       onDimensionsUpdate(
         videoWidth, // Stream width
         videoHeight, // Stream height
         videoRect.width, // Pixel width
-        videoRect.height // Pixel height
+        videoRect.height, // Pixel height
+        offsetX, // Offset X (left margin of the video in the container)
+        offsetY // Offset Y (top margin of the video in the container)
       );
     }
   };

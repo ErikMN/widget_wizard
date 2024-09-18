@@ -98,23 +98,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end'
 }));
 
-const DraggableBoundingBox = styled('div')(({ theme }) => ({
-  width: 100,
-  height: 100,
-  border: '2px solid red',
-  position: 'absolute',
-  cursor: 'move'
-}));
-
-const OverlaySurface = styled('div')(({ theme }) => ({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: -1 /* TODO: FIXME: overlays above player */
-}));
-
 /******************************************************************************/
 
 const App: React.FC = () => {
@@ -126,7 +109,6 @@ const App: React.FC = () => {
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
   const [openAlert, setOpenAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
   const [alertSeverity, setAlertSeverity] = useState<
@@ -136,14 +118,18 @@ const App: React.FC = () => {
     videoWidth: 0,
     videoHeight: 0,
     pixelWidth: 0,
-    pixelHeight: 0
+    pixelHeight: 0,
+    offsetX: 0,
+    offsetY: 0
   });
 
   /* TODO: REMOVE: */
   const [boundingBoxes, setBoundingBoxes] = useState([
-    { id: 1, x: 50, y: 100 },
-    { id: 2, x: 200, y: 100 }
+    { id: 1, x: 50, y: 100, width: 100, height: 100, isMoved: false },
+    { id: 2, x: 200, y: 100, width: 100, height: 100, isMoved: false }
   ]);
+
+  const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -257,11 +243,71 @@ const App: React.FC = () => {
     videoWidth: number,
     videoHeight: number,
     pixelWidth: number,
-    pixelHeight: number
+    pixelHeight: number,
+    offsetX: number,
+    offsetY: number
   ) => {
-    setDimensions({ videoWidth, videoHeight, pixelWidth, pixelHeight });
-    console.log('Stream Dimensions:', videoWidth, videoHeight);
-    console.log('Pixel Dimensions:', pixelWidth, pixelHeight);
+    console.log('Video Dimensions (stream):', {
+      videoWidth,
+      videoHeight
+    });
+    console.log('Pixel Dimensions (rendered):', {
+      pixelWidth,
+      pixelHeight
+    });
+    console.log('Offsets:', {
+      offsetX,
+      offsetY
+    });
+
+    setDimensions({
+      videoWidth,
+      videoHeight,
+      pixelWidth,
+      pixelHeight,
+      offsetX,
+      offsetY
+    });
+  };
+
+  const scaleX = dimensions.pixelWidth / dimensions.videoWidth || 1;
+  const scaleY = dimensions.pixelHeight / dimensions.videoHeight || 1;
+
+  /* Adjust bounding box positions and sizes when video size changes */
+  useEffect(() => {
+    if (dimensions.videoWidth && dimensions.pixelWidth) {
+      setBoundingBoxes((prevBoxes) =>
+        prevBoxes.map((box, index) => {
+          if (!box.isMoved) {
+            return {
+              ...box,
+              x: initialBoxes[index].x * scaleX,
+              y: initialBoxes[index].y * scaleY,
+              width: initialBoxes[index].width * scaleX,
+              height: initialBoxes[index].height * scaleY
+            };
+          } else {
+            return box;
+          }
+        })
+      );
+    }
+  }, [
+    dimensions.videoWidth,
+    dimensions.pixelWidth,
+    scaleX,
+    scaleY,
+    initialBoxes
+  ]);
+
+  const handleStop = (boxId: number, newX: number, newY: number) => {
+    setBoundingBoxes((prevBoxes) =>
+      prevBoxes.map((b) =>
+        b.id === boxId
+          ? { ...b, x: newX / scaleX, y: newY / scaleY, isMoved: true }
+          : b
+      )
+    );
   };
 
   const contentMain = () => {
@@ -383,23 +429,47 @@ const App: React.FC = () => {
           <DrawerHeader />
           {/* Video Player */}
           <Box sx={{ position: 'relative' }}>
+            {/* Video Player */}
             <VideoPlayer
-              height={screenHeight}
+              height={window.innerHeight}
               onDimensionsUpdate={handleDimensionsUpdate}
             />
 
-            {/* FIXME: Draggable Surface */}
-            <OverlaySurface>
+            {/* Overlay Surface aligned with the video element */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: `${dimensions.offsetY}px`,
+                left: `${dimensions.offsetX}px`,
+                width: `${dimensions.pixelWidth}px`,
+                height: `${dimensions.pixelHeight}px`,
+                zIndex: 1
+              }}
+            >
               {boundingBoxes.map((box) => (
                 <Draggable
                   key={box.id}
-                  defaultPosition={{ x: box.x, y: box.y }}
-                  bounds="parent"
+                  position={{ x: box.x * scaleX, y: box.y * scaleY }}
+                  bounds={{
+                    left: 0,
+                    top: 0,
+                    right: dimensions.pixelWidth - box.width,
+                    bottom: dimensions.pixelHeight - box.height
+                  }}
+                  onStop={(e, data) => handleStop(box.id, data.x, data.y)}
                 >
-                  <DraggableBoundingBox />
+                  <Box
+                    sx={{
+                      width: `${box.width}px`,
+                      height: `${box.height}px`,
+                      border: '2px solid red',
+                      position: 'absolute',
+                      cursor: 'move'
+                    }}
+                  />
                 </Draggable>
               ))}
-            </OverlaySurface>
+            </Box>
           </Box>
         </Main>
 
