@@ -60,7 +60,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
 
-      log('*** LIST ACTIVE WIDGETS', { resp });
+      // log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         setActiveWidgets(resp.data.widgets);
       }
@@ -79,7 +79,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     };
     try {
       const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
-      log('*** WIDGET CAPABILITIES', { resp });
+      // log('*** WIDGET CAPABILITIES', { resp });
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         /* Set the entire listCapabilities response object */
         setWidgetCapabilities(resp);
@@ -102,7 +102,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      log('*** REMOVE ALL WIDGETS', { resp });
+      // log('*** REMOVE ALL WIDGETS', { resp });
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
       handleOpenAlert('Failed to remove all widgets', 'error');
@@ -127,7 +127,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      log('*** REMOVE WIDGET', { resp });
+      // log('*** REMOVE WIDGET', { resp });
       /* Instead of calling listWidgets, remove the widget from activeWidgets */
       setActiveWidgets((prevWidgets) =>
         prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
@@ -155,7 +155,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      log('*** UPDATE WIDGET', { resp });
+      // log('*** UPDATE WIDGET', { resp });
 
       /* Update the activeWidgets state */
       if (resp?.data?.generalParams) {
@@ -183,7 +183,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
 
   /* Effect triggering on activeWidgets */
   useEffect(() => {
-    log('[DEBUG] Active Widgets:', activeWidgets);
+    // log('[DEBUG] Active Widgets:', activeWidgets);
     /* After removing all widgets, reset the dropdown state */
     if (activeWidgets.length === 0) {
       log('No more widgets: reset dropdown state');
@@ -211,7 +211,7 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      log({ resp });
+      // log('*** ADD WIDGET', { resp });
       if (resp?.data) {
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
