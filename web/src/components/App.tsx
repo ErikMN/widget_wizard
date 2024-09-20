@@ -250,18 +250,18 @@ const App: React.FC = () => {
     offsetX: number,
     offsetY: number
   ) => {
-    console.log('Video Dimensions (stream):', {
-      videoWidth,
-      videoHeight
-    });
-    console.log('Pixel Dimensions (rendered):', {
-      pixelWidth,
-      pixelHeight
-    });
-    console.log('Offsets:', {
-      offsetX,
-      offsetY
-    });
+    // console.log('Video Dimensions (stream):', {
+    //   videoWidth,
+    //   videoHeight
+    // });
+    // console.log('Pixel Dimensions (rendered):', {
+    //   pixelWidth,
+    //   pixelHeight
+    // });
+    // console.log('Offsets:', {
+    //   offsetX,
+    //   offsetY
+    // });
 
     setDimensions({
       videoWidth,
@@ -311,31 +311,44 @@ const App: React.FC = () => {
     widgetWidth: number,
     widgetHeight: number
   ) => {
-    /* Calculate the widget position on screen based on the scaling factors */
-    const widgetX =
-      ((position.x + 1) / 2) * (dimensions.pixelWidth - widgetWidth * scaleX);
-    const widgetY =
-      ((position.y + 1) / 2) * (dimensions.pixelHeight - widgetHeight * scaleY);
+    const widgetWidthPx = widgetWidth * scaleX;
+    const widgetHeightPx = widgetHeight * scaleY;
+    const availableWidth = dimensions.pixelWidth - widgetWidthPx;
+    const availableHeight = dimensions.pixelHeight - widgetHeightPx;
+    const widgetX = ((position.x + 1) / 2) * availableWidth;
+    const widgetY = ((position.y + 1) / 2) * availableHeight;
+
     return { x: widgetX, y: widgetY };
   };
 
-  const handleStop = (widgetId: number, newX: number, newY: number) => {
+  const handleDrag = (widgetId: number, newX: number, newY: number) => {
+    console.log(
+      `handleDrag called for widget ${widgetId} at position (${newX}, ${newY})`
+    );
     setActiveWidgets((prevWidgets) =>
-      prevWidgets.map((w) =>
-        w.generalParams.id === widgetId
-          ? {
-              ...w,
-              generalParams: {
-                ...w.generalParams,
-                position: {
-                  /* Scale the positions relative to the HD resolution (1920x1080) */
-                  x: ((newX / dimensions.pixelWidth) * HD_WIDTH) / 2 - 1,
-                  y: ((newY / dimensions.pixelHeight) * HD_HEIGHT) / 2 - 1
-                }
+      prevWidgets.map((w) => {
+        if (w.generalParams.id === widgetId) {
+          const widgetWidthPx = w.width * scaleX;
+          const widgetHeightPx = w.height * scaleY;
+          const availableWidth = dimensions.pixelWidth - widgetWidthPx;
+          const availableHeight = dimensions.pixelHeight - widgetHeightPx;
+          const posX = (2 * newX) / availableWidth - 1;
+          const posY = (2 * newY) / availableHeight - 1;
+
+          return {
+            ...w,
+            generalParams: {
+              ...w.generalParams,
+              position: {
+                x: posX,
+                y: posY
               }
             }
-          : w
-      )
+          };
+        } else {
+          return w;
+        }
+      })
     );
   };
 
@@ -486,8 +499,8 @@ const App: React.FC = () => {
 
                   return (
                     <Draggable
-                      key={widget.generalParams.id}
-                      position={{ x, y }}
+                      key={`${widget.generalParams.id}-${x}-${y}`}
+                      defaultPosition={{ x, y }}
                       bounds={{
                         left: 0,
                         top: 0,
@@ -495,7 +508,7 @@ const App: React.FC = () => {
                         bottom: dimensions.pixelHeight - widget.height * scaleY
                       }}
                       onStop={(e, data) =>
-                        handleStop(widget.generalParams.id, data.x, data.y)
+                        handleDrag(widget.generalParams.id, data.x, data.y)
                       }
                     >
                       <Box
