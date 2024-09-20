@@ -1,0 +1,25 @@
+* Add global state?
+* Add notifications
+* Add overlay bboxes
+* Add help menu
+* Update all deps
+* Add confirm remove all
+
+
+
+
+http://192.168.0.230/axis-cgi/jpg/image.cgi?audiocodec=aac&audiosamplerate=16000&audiobitrate=32000&camera=1&videoframeskipmode=empty&videozprofile=classic&overview=0&resolution=1920x1080&fps=30&audiodeviceid=0&audioinputid=0&timestamp=3&cachebust=2
+
+
+http://192.168.0.230/axis-cgi/media.cgi?audiocodec=aac&audiosamplerate=16000&audiobitrate=32000&camera=1&videoframeskipmode=empty&videozprofile=classic&overview=0&resolution=1920x1080&fps=30&audiodeviceid=0&audioinputid=0&timestamp=6&videocodec=h264&container=mp4
+
+http://192.168.0.230/axis-cgi/clientnotes/set.cgi?group=ADA&key=video.autoplay&value=true
+
+
+// NICE: A simple component for making elements draggable.
+https://github.com/react-grid-layout/react-draggable
+
+// NICE: A customizable React component for building node-based editors and interactive diagrams
+https://reactflow.dev/
+
+

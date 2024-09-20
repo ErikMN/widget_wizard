@@ -5,10 +5,11 @@ import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
-import { Widget } from '../widgetInterfaces';
+import { ApiResponse, Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
+import { SR_CGI, W_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 /* MUI */
 import { styled } from '@mui/material/styles';
@@ -29,9 +30,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-
-/* CGI endpoints */
-const SR_CGI = '/axis-cgi/systemready.cgi';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
@@ -321,35 +319,72 @@ const App: React.FC = () => {
     return { x: widgetX, y: widgetY };
   };
 
-  const handleDrag = (widgetId: number, newX: number, newY: number) => {
-    console.log(
-      `handleDrag called for widget ${widgetId} at position (${newX}, ${newY})`
-    );
-    setActiveWidgets((prevWidgets) =>
-      prevWidgets.map((w) => {
-        if (w.generalParams.id === widgetId) {
-          const widgetWidthPx = w.width * scaleX;
-          const widgetHeightPx = w.height * scaleY;
-          const availableWidth = dimensions.pixelWidth - widgetWidthPx;
-          const availableHeight = dimensions.pixelHeight - widgetHeightPx;
-          const posX = (2 * newX) / availableWidth - 1;
-          const posY = (2 * newY) / availableHeight - 1;
+  const updateWidget = async (widgetItem: Widget) => {
+    const { type, ...updatedGeneralParams } = widgetItem.generalParams;
+    const payload = {
+      apiVersion: '2.0',
+      method: 'updateWidget',
+      params: {
+        generalParams: updatedGeneralParams,
+        widgetParams: widgetItem.widgetParams
+      }
+    };
+    try {
+      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
 
-          return {
-            ...w,
-            generalParams: {
-              ...w.generalParams,
-              position: {
-                x: posX,
-                y: posY
-              }
-            }
-          };
-        } else {
-          return w;
-        }
-      })
+      /* Update the activeWidgets state */
+      if (resp?.data?.generalParams) {
+        const updatedWidgetId = resp.data.generalParams.id;
+        setActiveWidgets((prevWidgets) => {
+          return prevWidgets.map((widget) =>
+            widget.generalParams.id === updatedWidgetId
+              ? { ...widget, ...resp.data }
+              : widget
+          );
+        });
+      }
+      handleOpenAlert(
+        `Widget ${widgetItem.generalParams.id} updated`,
+        'success'
+      );
+    } catch (error) {
+      handleOpenAlert(
+        `Widget ${widgetItem.generalParams.id} failed to update`,
+        'error'
+      );
+      console.error('Error:', error);
+    }
+  };
+
+  const handleDrag = (widget: Widget, newX: number, newY: number) => {
+    console.log(
+      `handleDrag called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
     );
+    const widgetWidthPx = widget.width * scaleX;
+    const widgetHeightPx = widget.height * scaleY;
+    const availableWidth = dimensions.pixelWidth - widgetWidthPx;
+    const availableHeight = dimensions.pixelHeight - widgetHeightPx;
+    const posX = (2 * newX) / availableWidth - 1;
+    const posY = (2 * newY) / availableHeight - 1;
+
+    const updatedWidget = {
+      ...widget,
+      generalParams: {
+        ...widget.generalParams,
+        position: {
+          x: posX,
+          y: posY
+        }
+      }
+    };
+    /* Update the active widget state */
+    setActiveWidgets((prevWidgets) =>
+      prevWidgets.map((w) =>
+        w.generalParams.id === widget.generalParams.id ? updatedWidget : w
+      )
+    );
+    /* Update the widget */
+    updateWidget(updatedWidget);
   };
 
   const contentMain = () => {
@@ -463,6 +498,7 @@ const App: React.FC = () => {
             handleOpenAlert={handleOpenAlert}
             activeWidgets={activeWidgets}
             setActiveWidgets={setActiveWidgets}
+            updateWidget={updateWidget}
           />
         </Drawer>
 
@@ -507,15 +543,13 @@ const App: React.FC = () => {
                         right: dimensions.pixelWidth - widget.width * scaleX,
                         bottom: dimensions.pixelHeight - widget.height * scaleY
                       }}
-                      onStop={(e, data) =>
-                        handleDrag(widget.generalParams.id, data.x, data.y)
-                      }
+                      onStop={(e, data) => handleDrag(widget, data.x, data.y)}
                     >
                       <Box
                         sx={{
                           width: `${widget.width * scaleX}px`,
                           height: `${widget.height * scaleY}px`,
-                          border: '2px solid blue',
+                          border: '2px solid #ffcc33',
                           position: 'absolute',
                           cursor: 'move'
                         }}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { jsonRequest } from '../helpers/cgihelper';
 import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
+import { W_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import WidgetItem from './WidgetItem';
 /* MUI */
@@ -21,9 +22,6 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
 
-/* CGI endpoints */
-const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
-
 interface WidgetHandlerProps {
   handleOpenAlert: (
     content: string,
@@ -31,12 +29,14 @@ interface WidgetHandlerProps {
   ) => void;
   activeWidgets: Widget[];
   setActiveWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
+  updateWidget: (widgetItem: Widget) => Promise<void>;
 }
 
 const WidgetHandler: React.FC<WidgetHandlerProps> = ({
   handleOpenAlert,
   activeWidgets,
-  setActiveWidgets
+  setActiveWidgets,
+  updateWidget
 }) => {
   /* Local state */
   const [widgetCapabilities, setWidgetCapabilities] =
@@ -135,48 +135,6 @@ const WidgetHandler: React.FC<WidgetHandlerProps> = ({
       handleOpenAlert(`Removed widget ${widgetID}`, 'success');
     } catch (error) {
       handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
-      console.error('Error:', error);
-    }
-  };
-
-  /* Updates the parameters of a widget. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const updateWidget = async (widgetItem: Widget) => {
-    /* Exclude type from generalParams before sending to updateWidget */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { type, ...updatedGeneralParams } = widgetItem.generalParams;
-    const payload = {
-      apiVersion: '2.0',
-      method: 'updateWidget',
-      params: {
-        generalParams: updatedGeneralParams,
-        widgetParams: widgetItem.widgetParams
-      }
-    };
-    try {
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      // log('*** UPDATE WIDGET', { resp });
-
-      /* Update the activeWidgets state */
-      if (resp?.data?.generalParams) {
-        const updatedWidgetId = resp.data.generalParams.id;
-        setActiveWidgets((prevWidgets) => {
-          return prevWidgets.map((widget) =>
-            widget.generalParams.id === updatedWidgetId
-              ? { ...widget, ...resp.data }
-              : widget
-          );
-        });
-      }
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} updated`,
-        'success'
-      );
-    } catch (error) {
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} failed to update`,
-        'error'
-      );
       console.error('Error:', error);
     }
   };
