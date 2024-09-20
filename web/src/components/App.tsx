@@ -476,37 +476,41 @@ const App: React.FC = () => {
               }}
             >
               {activeWidgets.map((widget) => {
-                const { x, y } = getWidgetPixelPosition(
-                  widget.generalParams.position,
-                  widget.width,
-                  widget.height
-                );
+                /* Only render the bounding box if anchor is set to "none" */
+                if (widget.generalParams.anchor === 'none') {
+                  const { x, y } = getWidgetPixelPosition(
+                    widget.generalParams.position,
+                    widget.width,
+                    widget.height
+                  );
 
-                return (
-                  <Draggable
-                    key={widget.generalParams.id}
-                    position={{ x, y }}
-                    bounds={{
-                      left: 0,
-                      top: 0,
-                      right: dimensions.pixelWidth - widget.width * scaleX,
-                      bottom: dimensions.pixelHeight - widget.height * scaleY
-                    }}
-                    onStop={(e, data) =>
-                      handleStop(widget.generalParams.id, data.x, data.y)
-                    }
-                  >
-                    <Box
-                      sx={{
-                        width: `${widget.width * scaleX}px`,
-                        height: `${widget.height * scaleY}px`,
-                        border: '2px solid blue',
-                        position: 'absolute',
-                        cursor: 'move'
+                  return (
+                    <Draggable
+                      key={widget.generalParams.id}
+                      position={{ x, y }}
+                      bounds={{
+                        left: 0,
+                        top: 0,
+                        right: dimensions.pixelWidth - widget.width * scaleX,
+                        bottom: dimensions.pixelHeight - widget.height * scaleY
                       }}
-                    />
-                  </Draggable>
-                );
+                      onStop={(e, data) =>
+                        handleStop(widget.generalParams.id, data.x, data.y)
+                      }
+                    >
+                      <Box
+                        sx={{
+                          width: `${widget.width * scaleX}px`,
+                          height: `${widget.height * scaleY}px`,
+                          border: '2px solid blue',
+                          position: 'absolute',
+                          cursor: 'move'
+                        }}
+                      />
+                    </Draggable>
+                  );
+                }
+                return null;
               })}
             </Box>
           </Box>
