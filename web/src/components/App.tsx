@@ -98,11 +98,22 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end'
 }));
 
+interface BoundingBox {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isMoved: boolean;
+}
+
 /******************************************************************************/
 
 const App: React.FC = () => {
   /* Local state */
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
+  const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
+  const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
@@ -122,14 +133,6 @@ const App: React.FC = () => {
     offsetX: 0,
     offsetY: 0
   });
-
-  /* TODO: REMOVE: */
-  const [boundingBoxes, setBoundingBoxes] = useState([
-    { id: 1, x: 50, y: 100, width: 100, height: 100, isMoved: false },
-    { id: 2, x: 200, y: 100, width: 100, height: 100, isMoved: false }
-  ]);
-
-  const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -300,12 +303,33 @@ const App: React.FC = () => {
     initialBoxes
   ]);
 
-  const handleStop = (boxId: number, newX: number, newY: number) => {
-    setBoundingBoxes((prevBoxes) =>
-      prevBoxes.map((b) =>
-        b.id === boxId
-          ? { ...b, x: newX / scaleX, y: newY / scaleY, isMoved: true }
-          : b
+  const getWidgetPixelPosition = (
+    position: { x: number; y: number },
+    widgetWidth: number,
+    widgetHeight: number
+  ) => {
+    const widgetX =
+      ((position.x + 1) / 2) * (dimensions.pixelWidth - widgetWidth * scaleX);
+    const widgetY =
+      ((position.y + 1) / 2) * (dimensions.pixelHeight - widgetHeight * scaleY);
+    return { x: widgetX, y: widgetY };
+  };
+
+  const handleStop = (widgetId: number, newX: number, newY: number) => {
+    setActiveWidgets((prevWidgets) =>
+      prevWidgets.map((w) =>
+        w.generalParams.id === widgetId
+          ? {
+              ...w,
+              generalParams: {
+                ...w.generalParams,
+                position: {
+                  x: (newX / dimensions.pixelWidth) * 2 - 1,
+                  y: (newY / dimensions.pixelHeight) * 2 - 1
+                }
+              }
+            }
+          : w
       )
     );
   };
@@ -446,29 +470,39 @@ const App: React.FC = () => {
                 zIndex: 1
               }}
             >
-              {boundingBoxes.map((box) => (
-                <Draggable
-                  key={box.id}
-                  position={{ x: box.x * scaleX, y: box.y * scaleY }}
-                  bounds={{
-                    left: 0,
-                    top: 0,
-                    right: dimensions.pixelWidth - box.width,
-                    bottom: dimensions.pixelHeight - box.height
-                  }}
-                  onStop={(e, data) => handleStop(box.id, data.x, data.y)}
-                >
-                  <Box
-                    sx={{
-                      width: `${box.width}px`,
-                      height: `${box.height}px`,
-                      border: '2px solid red',
-                      position: 'absolute',
-                      cursor: 'move'
+              {activeWidgets.map((widget) => {
+                const { x, y } = getWidgetPixelPosition(
+                  widget.generalParams.position,
+                  widget.width,
+                  widget.height
+                );
+
+                return (
+                  <Draggable
+                    key={widget.generalParams.id}
+                    position={{ x, y }}
+                    bounds={{
+                      left: 0,
+                      top: 0,
+                      right: dimensions.pixelWidth - widget.width * scaleX,
+                      bottom: dimensions.pixelHeight - widget.height * scaleY
                     }}
-                  />
-                </Draggable>
-              ))}
+                    onStop={(e, data) =>
+                      handleStop(widget.generalParams.id, data.x, data.y)
+                    }
+                  >
+                    <Box
+                      sx={{
+                        width: `${widget.width * scaleX}px`,
+                        height: `${widget.height * scaleY}px`,
+                        border: '2px solid blue',
+                        position: 'absolute',
+                        cursor: 'move'
+                      }}
+                    />
+                  </Draggable>
+                );
+              })}
             </Box>
           </Box>
         </Main>
