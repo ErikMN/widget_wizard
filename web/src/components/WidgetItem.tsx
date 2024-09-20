@@ -41,6 +41,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
   const [jsonVisible, setJsonVisible] = useState<boolean>(false);
+  const [widgetId, setWidgetId] = useState<number | null>(null);
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(widget, null, 2)
   );
@@ -51,6 +52,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
+    /* Store the widget's id */
+    if (widget.generalParams && widget.generalParams.id) {
+      setWidgetId(widget.generalParams.id);
+    }
     /* Deep widget copy */
     const widgetCopy = JSON.parse(JSON.stringify(widget));
     /* Remove ID in order to not edit other widgets */
@@ -133,6 +138,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const handleUpdateJSON = () => {
     try {
       const parsedWidget = JSON.parse(jsonInput);
+      /* Re-attach the widget ID */
+      if (widgetId !== null) {
+        parsedWidget.generalParams.id = widgetId;
+      }
       updateWidget(parsedWidget);
       setJsonError(null);
       /* Update UI controls for manual JSON updates */
