@@ -273,8 +273,11 @@ const App: React.FC = () => {
     });
   };
 
-  const scaleX = dimensions.pixelWidth / dimensions.videoWidth || 1;
-  const scaleY = dimensions.pixelHeight / dimensions.videoHeight || 1;
+  /* Widget backend uses 1920x1080 HD resolution */
+  const HD_WIDTH = 1920;
+  const HD_HEIGHT = 1080;
+  const scaleX = dimensions.pixelWidth / HD_WIDTH || 1;
+  const scaleY = dimensions.pixelHeight / HD_HEIGHT || 1;
 
   /* Adjust bounding box positions and sizes when video size changes */
   useEffect(() => {
@@ -308,6 +311,7 @@ const App: React.FC = () => {
     widgetWidth: number,
     widgetHeight: number
   ) => {
+    /* Calculate the widget position on screen based on the scaling factors */
     const widgetX =
       ((position.x + 1) / 2) * (dimensions.pixelWidth - widgetWidth * scaleX);
     const widgetY =
@@ -324,8 +328,9 @@ const App: React.FC = () => {
               generalParams: {
                 ...w.generalParams,
                 position: {
-                  x: (newX / dimensions.pixelWidth) * 2 - 1,
-                  y: (newY / dimensions.pixelHeight) * 2 - 1
+                  /* Scale the positions relative to the HD resolution (1920x1080) */
+                  x: ((newX / dimensions.pixelWidth) * HD_WIDTH) / 2 - 1,
+                  y: ((newY / dimensions.pixelHeight) * HD_HEIGHT) / 2 - 1
                 }
               }
             }
