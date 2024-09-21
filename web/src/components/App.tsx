@@ -273,9 +273,7 @@ const App: React.FC = () => {
 
   /* Widget backend uses 1920x1080 HD resolution */
   const HD_WIDTH = 1920;
-  const HD_HEIGHT = 1080;
-  const scaleX = dimensions.pixelWidth / HD_WIDTH || 1;
-  const scaleY = dimensions.pixelHeight / HD_HEIGHT || 1;
+  const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
 
   /* Adjust bounding box positions and sizes when video size changes */
   useEffect(() => {
@@ -285,10 +283,10 @@ const App: React.FC = () => {
           if (!box.isMoved) {
             return {
               ...box,
-              x: initialBoxes[index].x * scaleX,
-              y: initialBoxes[index].y * scaleY,
-              width: initialBoxes[index].width * scaleX,
-              height: initialBoxes[index].height * scaleY
+              x: initialBoxes[index].x * scaleFactor,
+              y: initialBoxes[index].y * scaleFactor,
+              width: initialBoxes[index].width * scaleFactor,
+              height: initialBoxes[index].height * scaleFactor
             };
           } else {
             return box;
@@ -296,21 +294,15 @@ const App: React.FC = () => {
         })
       );
     }
-  }, [
-    dimensions.videoWidth,
-    dimensions.pixelWidth,
-    scaleX,
-    scaleY,
-    initialBoxes
-  ]);
+  }, [dimensions.videoWidth, dimensions.pixelWidth, scaleFactor, initialBoxes]);
 
   const getWidgetPixelPosition = (
     position: { x: number; y: number },
     widgetWidth: number,
     widgetHeight: number
   ) => {
-    const widgetWidthPx = widgetWidth * scaleX;
-    const widgetHeightPx = widgetHeight * scaleY;
+    const widgetWidthPx = widgetWidth * scaleFactor;
+    const widgetHeightPx = widgetHeight * scaleFactor;
     const availableWidth = dimensions.pixelWidth - widgetWidthPx;
     const availableHeight = dimensions.pixelHeight - widgetHeightPx;
     const widgetX = ((position.x + 1) / 2) * availableWidth;
@@ -360,8 +352,8 @@ const App: React.FC = () => {
     console.log(
       `handleDrag called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
     );
-    const widgetWidthPx = widget.width * scaleX;
-    const widgetHeightPx = widget.height * scaleY;
+    const widgetWidthPx = widget.width * scaleFactor;
+    const widgetHeightPx = widget.height * scaleFactor;
     const availableWidth = dimensions.pixelWidth - widgetWidthPx;
     const availableHeight = dimensions.pixelHeight - widgetHeightPx;
     const posX = (2 * newX) / availableWidth - 1;
@@ -538,19 +530,21 @@ const App: React.FC = () => {
                   return (
                     <Draggable
                       key={`${widget.generalParams.id}-${x}-${y}`}
-                      defaultPosition={{ x, y }}
+                      position={{ x, y }}
                       bounds={{
                         left: 0,
                         top: 0,
-                        right: dimensions.pixelWidth - widget.width * scaleX,
-                        bottom: dimensions.pixelHeight - widget.height * scaleY
+                        right:
+                          dimensions.pixelWidth - widget.width * scaleFactor,
+                        bottom:
+                          dimensions.pixelHeight - widget.height * scaleFactor
                       }}
                       onStop={(e, data) => handleDrag(widget, data.x, data.y)}
                     >
                       <Box
                         sx={{
-                          width: `${widget.width * scaleX}px`,
-                          height: `${widget.height * scaleY}px`,
+                          width: `${widget.width * scaleFactor}px`,
+                          height: `${widget.height * scaleFactor}px`,
                           border: '2px solid #ffcc33',
                           position: 'absolute',
                           cursor: 'move'
