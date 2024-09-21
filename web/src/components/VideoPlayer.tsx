@@ -54,6 +54,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 }) => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -81,6 +82,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       const offsetX = videoRect.left - containerRect.left;
       const offsetY = videoRect.top - containerRect.top;
+
+      /* Check if any of the values are 0, and retry after a short delay */
+      if (
+        videoWidth === 0 ||
+        videoHeight === 0 ||
+        videoRect.width === 0 ||
+        videoRect.height === 0
+      ) {
+        console.warn('Video dimensions not ready, retrying...');
+
+        /* Retry after a short delay (e.g., 500ms) */
+        setTimeout(() => {
+          setRetryCount((count) => count + 1);
+          logVideoDimensions();
+        }, 500);
+
+        return;
+      }
 
       /* Send both stream and pixel dimensions, and offsets to the parent via callback */
       onDimensionsUpdate(
@@ -131,7 +150,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         };
       }
     }
-  }, [authorized]);
+  }, [authorized, retryCount]);
 
   if (!authorized) {
     return null;
