@@ -516,11 +516,13 @@ const App: React.FC = () => {
             {/* Overlay Surface aligned with the video element */}
             <Box
               sx={{
+                // backgroundColor: 'blue',
                 position: 'absolute',
                 top: `${dimensions.offsetY}px`,
                 left: `${dimensions.offsetX}px`,
                 width: `${dimensions.pixelWidth}px`,
-                height: `${dimensions.pixelHeight}px`,
+                /* Cut out a stripe for the videoplayer toolbar */
+                height: `${dimensions.pixelHeight - 32}px`,
                 zIndex: 1
               }}
             >
