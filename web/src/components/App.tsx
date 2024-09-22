@@ -104,7 +104,6 @@ interface BoundingBox {
   y: number;
   width: number;
   height: number;
-  isMoved: boolean;
 }
 
 /******************************************************************************/
@@ -280,17 +279,13 @@ const App: React.FC = () => {
     if (dimensions.videoWidth && dimensions.pixelWidth) {
       setBoundingBoxes((prevBoxes) =>
         prevBoxes.map((box, index) => {
-          if (!box.isMoved) {
-            return {
-              ...box,
-              x: initialBoxes[index].x * scaleFactor,
-              y: initialBoxes[index].y * scaleFactor,
-              width: initialBoxes[index].width * scaleFactor,
-              height: initialBoxes[index].height * scaleFactor
-            };
-          } else {
-            return box;
-          }
+          return {
+            ...box,
+            x: initialBoxes[index].x * scaleFactor,
+            y: initialBoxes[index].y * scaleFactor,
+            width: initialBoxes[index].width * scaleFactor,
+            height: initialBoxes[index].height * scaleFactor
+          };
         })
       );
     }
