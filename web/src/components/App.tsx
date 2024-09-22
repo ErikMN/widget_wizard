@@ -1,3 +1,4 @@
+/* Widget Wizard main component */
 import React, { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Draggable from 'react-draggable';
@@ -5,12 +6,13 @@ import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
-import { ApiResponse, Widget } from '../widgetInterfaces';
+import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
-import { SR_CGI, W_CGI } from './constants';
+import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
+import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -109,7 +111,6 @@ interface BoundingBox {
 
 const App: React.FC = () => {
   /* Local state */
-  const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
   const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
   const [appLoading, setAppLoading] = useState<boolean>(true);
@@ -118,11 +119,6 @@ const App: React.FC = () => {
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [openAlert, setOpenAlert] = useState<boolean>(false);
-  const [alertContent, setAlertContent] = useState<string>('');
-  const [alertSeverity, setAlertSeverity] = useState<
-    'info' | 'success' | 'error' | 'warning'
-  >('info');
   const [dimensions, setDimensions] = useState({
     videoWidth: 0,
     videoHeight: 0,
@@ -135,6 +131,18 @@ const App: React.FC = () => {
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
   const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
+
+  /* Global context */
+  const {
+    activeWidgets,
+    setActiveWidgets,
+    updateWidget,
+    handleOpenAlert,
+    openAlert,
+    setOpenAlert,
+    alertContent,
+    alertSeverity
+  } = useWidgetContext();
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
@@ -231,15 +239,6 @@ const App: React.FC = () => {
     setOpenAlert(false);
   };
 
-  const handleOpenAlert = (
-    content: string,
-    severity: 'info' | 'success' | 'error' | 'warning'
-  ) => {
-    setAlertContent(content);
-    setAlertSeverity(severity);
-    setOpenAlert(true);
-  };
-
   const handleDimensionsUpdate = (
     videoWidth: number,
     videoHeight: number,
@@ -311,47 +310,10 @@ const App: React.FC = () => {
     return { x: widgetX, y: widgetY };
   };
 
-  const updateWidget = async (widgetItem: Widget) => {
-    const { type, ...updatedGeneralParams } = widgetItem.generalParams;
-    const payload = {
-      apiVersion: '2.0',
-      method: 'updateWidget',
-      params: {
-        generalParams: updatedGeneralParams,
-        widgetParams: widgetItem.widgetParams
-      }
-    };
-    try {
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-
-      /* Update the activeWidgets state */
-      if (resp?.data?.generalParams) {
-        const updatedWidgetId = resp.data.generalParams.id;
-        setActiveWidgets((prevWidgets) => {
-          return prevWidgets.map((widget) =>
-            widget.generalParams.id === updatedWidgetId
-              ? { ...widget, ...resp.data }
-              : widget
-          );
-        });
-      }
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} updated`,
-        'success'
-      );
-    } catch (error) {
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} failed to update`,
-        'error'
-      );
-      console.error('Error:', error);
-    }
-  };
-
   const handleDrag = (widget: Widget, newX: number, newY: number) => {
-    console.log(
-      `handleDrag called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
-    );
+    // console.log(
+    //   `handleDrag called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
+    // );
     const widgetWidthPx = widget.width * scaleFactor;
     const widgetHeightPx = widget.height * scaleFactor;
     const availableWidth = dimensions.pixelWidth - widgetWidthPx;
@@ -486,12 +448,7 @@ const App: React.FC = () => {
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
-          <WidgetHandler
-            handleOpenAlert={handleOpenAlert}
-            activeWidgets={activeWidgets}
-            setActiveWidgets={setActiveWidgets}
-            updateWidget={updateWidget}
-          />
+          <WidgetHandler />
         </Drawer>
 
         {/* Main content */}

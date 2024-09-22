@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { WidgetProvider } from './components/WidgetContext';
 
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement!);
@@ -12,7 +13,9 @@ if (!isOverlayExample) {
   import('./components/App').then(({ default: App }) => {
     root.render(
       <React.StrictMode>
-        <App />
+        <WidgetProvider>
+          <App />
+        </WidgetProvider>
       </React.StrictMode>
     );
   });

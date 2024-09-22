@@ -1,5 +1,9 @@
+/* Widget Wizard
+ * WidgetItem: Represent one widget.
+ */
 import React, { useState, useEffect } from 'react';
-import { Widget, WidgetCapabilities } from '../widgetInterfaces';
+import { Widget } from '../widgetInterfaces';
+import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
@@ -22,21 +26,13 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 interface WidgetItemProps {
   widget: Widget;
   index: number;
-  widgetCapabilities: WidgetCapabilities | null;
-  openDropdownIndex: number | null;
   toggleDropdown: (index: number) => void;
-  removeWidget: (widgetID: number) => void;
-  updateWidget: (widget: Widget) => void;
 }
 
 const WidgetItem: React.FC<WidgetItemProps> = ({
   widget,
   index,
-  widgetCapabilities,
-  openDropdownIndex,
-  toggleDropdown,
-  removeWidget,
-  updateWidget
+  toggleDropdown
 }) => {
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
@@ -49,6 +45,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const [sliderValue, setSliderValue] = useState<number>(
     widget.generalParams.transparency
   );
+
+  /* Global context */
+  const { removeWidget, updateWidget, widgetCapabilities, openDropdownIndex } =
+    useWidgetContext();
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
