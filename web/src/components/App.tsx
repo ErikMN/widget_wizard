@@ -32,6 +32,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
@@ -110,6 +112,7 @@ interface BoundingBox {
 
 const App: React.FC = () => {
   /* Local state */
+  const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
   const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
   const [appLoading, setAppLoading] = useState<boolean>(true);
@@ -377,6 +380,17 @@ const App: React.FC = () => {
               </Fade>
             </Box>
 
+            {/* Toggle Bounding Boxes Button */}
+            <IconButton
+              color="inherit"
+              aria-label="toggle bounding boxes"
+              onClick={() => setShowBoundingBoxes((prev) => !prev)}
+              edge="end"
+              sx={{ marginRight: '0px' }}
+            >
+              {showBoundingBoxes ? <VisibilityIcon /> : <VisibilityOffIcon />}
+            </IconButton>
+
             {/* Info Button (left of theme icon) */}
             <IconButton
               color="inherit"
@@ -459,56 +473,58 @@ const App: React.FC = () => {
             />
 
             {/* Overlay Surface aligned with the video element */}
-            <Box
-              sx={{
-                // backgroundColor: 'blue',
-                position: 'absolute',
-                top: `${dimensions.offsetY}px`,
-                left: `${dimensions.offsetX}px`,
-                width: `${dimensions.pixelWidth}px`,
-                /* Cut out a stripe for the videoplayer toolbar */
-                height: `${dimensions.pixelHeight - 32}px`,
-                zIndex: 1
-              }}
-            >
-              {activeWidgets.map((widget) => {
-                /* Only render the bounding box if anchor is set to "none" */
-                if (widget.generalParams.anchor === 'none') {
-                  const { x, y } = getWidgetPixelPosition(
-                    widget.generalParams.position,
-                    widget.width,
-                    widget.height
-                  );
+            {showBoundingBoxes && (
+              <Box
+                sx={{
+                  // backgroundColor: 'blue',
+                  position: 'absolute',
+                  top: `${dimensions.offsetY}px`,
+                  left: `${dimensions.offsetX}px`,
+                  width: `${dimensions.pixelWidth}px`,
+                  /* Cut out a stripe for the videoplayer toolbar */
+                  height: `${dimensions.pixelHeight - 32}px`,
+                  zIndex: 1
+                }}
+              >
+                {activeWidgets.map((widget) => {
+                  /* Only render the bounding box if anchor is set to "none" */
+                  if (widget.generalParams.anchor === 'none') {
+                    const { x, y } = getWidgetPixelPosition(
+                      widget.generalParams.position,
+                      widget.width,
+                      widget.height
+                    );
 
-                  return (
-                    <Draggable
-                      key={`${widget.generalParams.id}-${x}-${y}`}
-                      position={{ x, y }}
-                      bounds={{
-                        left: 0,
-                        top: 0,
-                        right:
-                          dimensions.pixelWidth - widget.width * scaleFactor,
-                        bottom:
-                          dimensions.pixelHeight - widget.height * scaleFactor
-                      }}
-                      onStop={(e, data) => handleDrag(widget, data.x, data.y)}
-                    >
-                      <Box
-                        sx={{
-                          width: `${widget.width * scaleFactor}px`,
-                          height: `${widget.height * scaleFactor}px`,
-                          border: '2px solid #ffcc33',
-                          position: 'absolute',
-                          cursor: 'move'
+                    return (
+                      <Draggable
+                        key={`${widget.generalParams.id}-${x}-${y}`}
+                        position={{ x, y }}
+                        bounds={{
+                          left: 0,
+                          top: 0,
+                          right:
+                            dimensions.pixelWidth - widget.width * scaleFactor,
+                          bottom:
+                            dimensions.pixelHeight - widget.height * scaleFactor
                         }}
-                      />
-                    </Draggable>
-                  );
-                }
-                return null;
-              })}
-            </Box>
+                        onStop={(e, data) => handleDrag(widget, data.x, data.y)}
+                      >
+                        <Box
+                          sx={{
+                            width: `${widget.width * scaleFactor}px`,
+                            height: `${widget.height * scaleFactor}px`,
+                            border: '2px solid #ffcc33',
+                            position: 'absolute',
+                            cursor: 'move'
+                          }}
+                        />
+                      </Draggable>
+                    );
+                  }
+                  return null;
+                })}
+              </Box>
+            )}
           </Box>
         </Main>
 
