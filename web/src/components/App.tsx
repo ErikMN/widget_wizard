@@ -130,7 +130,6 @@ const App: React.FC = () => {
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
-  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
 
   /* Global context */
   const {
@@ -141,7 +140,9 @@ const App: React.FC = () => {
     openAlert,
     setOpenAlert,
     alertContent,
-    alertSeverity
+    alertSeverity,
+    currentTheme,
+    setCurrentTheme
   } = useWidgetContext();
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;

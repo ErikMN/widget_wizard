@@ -3,6 +3,7 @@
  * throughout the app.
  */
 import React, { createContext, useContext, useState } from 'react';
+import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
 import { log, enableLogging } from '../helpers/logger';
 import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
@@ -47,6 +48,10 @@ interface WidgetContextProps {
   setAlertSeverity: React.Dispatch<
     React.SetStateAction<'info' | 'success' | 'error' | 'warning'>
   >;
+
+  /* Theme-related state */
+  currentTheme: string;
+  setCurrentTheme: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /* Creating the Widget context */
@@ -70,6 +75,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [alertSeverity, setAlertSeverity] = useState<
     'info' | 'success' | 'error' | 'warning'
   >('info');
+
+  /* Local storage state */
+  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
 
   /* Disabling logging by default, but can be enabled as needed */
   enableLogging(false);
@@ -271,7 +279,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         alertContent,
         setAlertContent,
         alertSeverity,
-        setAlertSeverity
+        setAlertSeverity,
+        currentTheme,
+        setCurrentTheme
       }}
     >
       {children}

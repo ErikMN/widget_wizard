@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
+import { useWidgetContext } from './WidgetContext';
 
 /* Vertical offset */
 const OFFSET = 120;
@@ -55,6 +56,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
+
+  /* Global context */
+  const { currentTheme } = useWidgetContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -161,7 +165,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       ref={playerContainerRef}
       style={{
         height: `${height - OFFSET}px`,
-        backgroundColor: 'black',
+        backgroundColor:
+          currentTheme === 'dark' ? 'rgb(82, 82, 82)' : 'rgb(0, 0, 0)',
         padding: '3px',
         position: 'relative'
       }}
