@@ -21,7 +21,6 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Typography from '@mui/material/Typography';
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
@@ -100,10 +99,6 @@ const WidgetHandler: React.FC = () => {
         padding: '10px'
       }}
     >
-      <Typography variant="h6" sx={{ textAlign: 'center' }}>
-        Widgets menu | Active widgets: {activeWidgets.length}
-      </Typography>
-
       {/* Container for dropdown and button */}
       <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
         {/* Dropdown for widget names */}

@@ -461,7 +461,16 @@ const App: React.FC = () => {
           anchor="left"
           open={drawerOpen}
         >
-          <DrawerHeader>
+          <DrawerHeader
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <Typography variant="h6" sx={{ textAlign: 'center', flexGrow: 1 }}>
+              Widgets menu | Active widgets: {activeWidgets.length}
+            </Typography>
             <IconButton onClick={handleDrawerClose}>
               {theme.direction === 'ltr' ? (
                 <ChevronLeftIcon />
