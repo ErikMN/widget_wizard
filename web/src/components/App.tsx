@@ -510,8 +510,11 @@ const App: React.FC = () => {
                 }}
               >
                 {activeWidgets.map((widget) => {
-                  /* Only render the bounding box if anchor is set to "none" */
-                  if (widget.generalParams.anchor === 'none') {
+                  /* Only render the bounding box if anchor is set to "none" and visible */
+                  if (
+                    widget.generalParams.anchor === 'none' &&
+                    widget.generalParams.isVisible
+                  ) {
                     const { x, y } = getWidgetPixelPosition(
                       widget.generalParams.position,
                       widget.width,
