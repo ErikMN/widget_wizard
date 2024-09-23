@@ -301,10 +301,19 @@ const App: React.FC = () => {
   ) => {
     const widgetWidthPx = widgetWidth * scaleFactor;
     const widgetHeightPx = widgetHeight * scaleFactor;
-    const availableWidth = dimensions.pixelWidth - widgetWidthPx;
-    const availableHeight = dimensions.pixelHeight - widgetHeightPx;
-    const widgetX = ((position.x + 1) / 2) * availableWidth;
-    const widgetY = ((position.y + 1) / 2) * availableHeight;
+    const Xmin = -1.0;
+    const Xmax = 1.0 - 2 * (widgetWidthPx / dimensions.pixelWidth);
+    const Ymin = -1.0;
+    const Ymax = 1.0 - 2 * (widgetHeightPx / dimensions.pixelHeight);
+
+    const widgetX =
+      ((position.x - Xmin) / (Xmax - Xmin)) *
+      (dimensions.pixelWidth - widgetWidthPx);
+    const widgetY =
+      ((position.y - Ymin) / (Ymax - Ymin)) *
+      (dimensions.pixelHeight - widgetHeightPx);
+
+    // console.log('getWidgetPixelPosition:', { x: widgetX, y: widgetY });
 
     return { x: widgetX, y: widgetY };
   };
@@ -315,10 +324,15 @@ const App: React.FC = () => {
     // );
     const widgetWidthPx = widget.width * scaleFactor;
     const widgetHeightPx = widget.height * scaleFactor;
-    const availableWidth = dimensions.pixelWidth - widgetWidthPx;
-    const availableHeight = dimensions.pixelHeight - widgetHeightPx;
-    const posX = (2 * newX) / availableWidth - 1;
-    const posY = (2 * newY) / availableHeight - 1;
+    const Xmin = -1.0;
+    const Xmax = 1.0 - 2 * (widgetWidthPx / dimensions.pixelWidth);
+    const Ymin = -1.0;
+    const Ymax = 1.0 - 2 * (widgetHeightPx / dimensions.pixelHeight);
+
+    const posX =
+      (newX / (dimensions.pixelWidth - widgetWidthPx)) * (Xmax - Xmin) + Xmin;
+    const posY =
+      (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
 
     const updatedWidget = {
       ...widget,
