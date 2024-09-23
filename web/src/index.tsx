@@ -1,38 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import App from './components/App';
 import { WidgetProvider } from './components/WidgetContext';
+
+import './assets/css/index.css';
 
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement!);
 
-const isOverlayExample = localStorage.getItem('ovlexample') === 'true';
-
-if (!isOverlayExample) {
-  /* Widget Wizard */
-  import('./assets/css/index.css');
-  import('./components/App').then(({ default: App }) => {
-    root.render(
-      <React.StrictMode>
-        <WidgetProvider>
-          <App />
-        </WidgetProvider>
-      </React.StrictMode>
-    );
-  });
-} else {
-  /* Overlay example */
-  import('./components/overlay-example/App').then(({ default: App }) => {
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
-  });
-}
-/*
 root.render(
   <React.StrictMode>
-    <App />
+    <WidgetProvider>
+      <App />
+    </WidgetProvider>
   </React.StrictMode>
 );
-*/
