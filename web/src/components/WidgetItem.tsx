@@ -165,21 +165,29 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: 1
+          padding: 1,
+          color: 'text.primary'
         }}
-        startIcon={<WidgetsIcon />}
+        startIcon={<WidgetsIcon color="primary" />}
         endIcon={
           openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
         }
       >
         <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           {/* Widget title and info */}
-          <Typography variant="subtitle1" style={{ marginRight: '8px' }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ marginRight: '12px', fontWeight: 'bold' }}
+          >
             {widget.generalParams.type.charAt(0).toUpperCase() +
               widget.generalParams.type.slice(1)}{' '}
             ({widget.width}x{widget.height})
           </Typography>
-          <Chip label={`ID: ${widget.generalParams.id}`} size="small" />
+          <Chip
+            label={`ID: ${widget.generalParams.id}`}
+            size="small"
+            sx={{ fontWeight: 'bold' }}
+          />
         </div>
       </Button>
 
