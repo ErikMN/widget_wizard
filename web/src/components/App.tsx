@@ -144,7 +144,8 @@ const App: React.FC = () => {
     alertContent,
     alertSeverity,
     currentTheme,
-    setCurrentTheme
+    setCurrentTheme,
+    setActiveDraggableWidget
   } = useWidgetContext();
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
@@ -318,9 +319,9 @@ const App: React.FC = () => {
     return { x: widgetX, y: widgetY };
   };
 
-  const handleDrag = (widget: Widget, newX: number, newY: number) => {
+  const handleDragStop = (widget: Widget, newX: number, newY: number) => {
     // console.log(
-    //   `handleDrag called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
+    //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
     // );
     const widgetWidthPx = widget.width * scaleFactor;
     const widgetHeightPx = widget.height * scaleFactor;
@@ -352,6 +353,21 @@ const App: React.FC = () => {
     );
     /* Update the widget */
     updateWidget(updatedWidget);
+
+    setActiveDraggableWidget({
+      id: widget.generalParams.id,
+      active: false
+    });
+  };
+
+  const handleDragStart = (widget: Widget, x: number, y: number) => {
+    // console.log(
+    //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
+    // );
+    setActiveDraggableWidget({
+      id: widget.generalParams.id,
+      active: true
+    });
   };
 
   const contentMain = () => {
@@ -533,7 +549,12 @@ const App: React.FC = () => {
                           bottom:
                             dimensions.pixelHeight - widget.height * scaleFactor
                         }}
-                        onStop={(e, data) => handleDrag(widget, data.x, data.y)}
+                        onStart={(e, data) =>
+                          handleDragStart(widget, data.x, data.y)
+                        }
+                        onStop={(e, data) =>
+                          handleDragStop(widget, data.x, data.y)
+                        }
                       >
                         <Box
                           sx={{

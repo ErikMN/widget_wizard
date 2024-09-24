@@ -33,6 +33,12 @@ interface WidgetContextProps {
     React.SetStateAction<WidgetCapabilities | null>
   >;
 
+  /* Draggable widget state */
+  activeDraggableWidget: { id: number | null; active: boolean };
+  setActiveDraggableWidget: React.Dispatch<
+    React.SetStateAction<{ id: number | null; active: boolean }>
+  >;
+
   /* UI-related state */
   openDropdownIndex: number | null;
   setOpenDropdownIndex: React.Dispatch<React.SetStateAction<number | null>>;
@@ -81,6 +87,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Disabling logging by default, but can be enabled as needed */
   enableLogging(false);
+
+  /* Draggable widget state */
+  const [activeDraggableWidget, setActiveDraggableWidget] = useState<{
+    id: number | null;
+    active: boolean;
+  }>({ id: null, active: false });
 
   /* Function to open an alert with content and severity */
   const handleOpenAlert = (
@@ -259,6 +271,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <WidgetContext.Provider
       value={{
+        activeDraggableWidget,
+        setActiveDraggableWidget,
         activeWidgets,
         setActiveWidgets,
         widgetCapabilities,

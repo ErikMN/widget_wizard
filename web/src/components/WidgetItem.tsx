@@ -47,8 +47,13 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   );
 
   /* Global context */
-  const { removeWidget, updateWidget, widgetCapabilities, openDropdownIndex } =
-    useWidgetContext();
+  const {
+    removeWidget,
+    updateWidget,
+    widgetCapabilities,
+    openDropdownIndex,
+    activeDraggableWidget
+  } = useWidgetContext();
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
@@ -166,7 +171,18 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: 1,
-          color: 'text.primary'
+          color: 'text.primary',
+          /* Highlight selected widget */
+          backgroundColor:
+            activeDraggableWidget.id === widget.generalParams.id &&
+            activeDraggableWidget.active
+              ? 'primary.light'
+              : 'unset',
+          borderColor:
+            activeDraggableWidget.id === widget.generalParams.id &&
+            activeDraggableWidget.active
+              ? 'primary.main'
+              : 'grey.600'
         }}
         startIcon={<WidgetsIcon color="primary" />}
         endIcon={
