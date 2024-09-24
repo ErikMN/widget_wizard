@@ -580,7 +580,7 @@ const App: React.FC = () => {
           open={openAlert}
           autoHideDuration={2000}
           onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert
             onClose={handleCloseAlert}
