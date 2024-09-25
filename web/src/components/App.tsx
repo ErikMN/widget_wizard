@@ -588,6 +588,7 @@ const App: React.FC = () => {
                             handleDragStop(widget, data.x, data.y)
                           }
                         >
+                          {/* BBox */}
                           <Box
                             sx={{
                               width: `${widget.width * scaleFactor}px`,
@@ -596,7 +597,26 @@ const App: React.FC = () => {
                               position: 'absolute',
                               cursor: 'move'
                             }}
-                          />
+                          >
+                            {/* Widget info note above the bbox */}
+                            <Typography
+                              sx={{
+                                position: 'absolute',
+                                top: '-20px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                color: '#333',
+                                pointerEvents: 'none'
+                              }}
+                            >
+                              {widget.generalParams.type}{' '}
+                              {widget.generalParams.id}
+                            </Typography>
+                          </Box>
                         </Draggable>
                       </div>
                     );
