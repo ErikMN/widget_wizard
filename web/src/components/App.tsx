@@ -145,7 +145,10 @@ const App: React.FC = () => {
     alertSeverity,
     currentTheme,
     setCurrentTheme,
-    setActiveDraggableWidget
+    activeDraggableWidget,
+    setActiveDraggableWidget,
+    openDropdownIndex,
+    setOpenDropdownIndex
   } = useWidgetContext();
 
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
@@ -356,7 +359,8 @@ const App: React.FC = () => {
 
     setActiveDraggableWidget({
       id: widget.generalParams.id,
-      active: false
+      active: false,
+      doubleClick: false
     });
   };
 
@@ -366,8 +370,26 @@ const App: React.FC = () => {
     // );
     setActiveDraggableWidget({
       id: widget.generalParams.id,
-      active: true
+      active: true,
+      doubleClick: false
     });
+  };
+
+  const handleDoubleClick = (widget: Widget) => {
+    // console.log(`Double clicked widget ${widget.generalParams.id}`);
+    const index = activeWidgets.findIndex(
+      (w) => w.generalParams.id === widget.generalParams.id
+    );
+    if (index !== -1) {
+      const isCurrentlyOpen = openDropdownIndex === index;
+      setActiveDraggableWidget({
+        id: widget.generalParams.id,
+        active: false,
+        doubleClick: !isCurrentlyOpen
+      });
+      /* Toggle dropdown: close if open, open if closed */
+      setOpenDropdownIndex(isCurrentlyOpen ? null : index);
+    }
   };
 
   const contentMain = () => {
@@ -538,34 +560,39 @@ const App: React.FC = () => {
                     );
 
                     return (
-                      <Draggable
-                        key={`${widget.generalParams.id}-${x}-${y}`}
-                        position={{ x, y }}
-                        bounds={{
-                          left: 0,
-                          top: 0,
-                          right:
-                            dimensions.pixelWidth - widget.width * scaleFactor,
-                          bottom:
-                            dimensions.pixelHeight - widget.height * scaleFactor
-                        }}
-                        onStart={(e, data) =>
-                          handleDragStart(widget, data.x, data.y)
-                        }
-                        onStop={(e, data) =>
-                          handleDragStop(widget, data.x, data.y)
-                        }
-                      >
-                        <Box
-                          sx={{
-                            width: `${widget.width * scaleFactor}px`,
-                            height: `${widget.height * scaleFactor}px`,
-                            border: '2px solid #ffcc33',
-                            position: 'absolute',
-                            cursor: 'move'
+                      /* Wrap Draggable in div to handle double-click events */
+                      <div onDoubleClick={(e) => handleDoubleClick(widget)}>
+                        <Draggable
+                          key={`${widget.generalParams.id}-${x}-${y}`}
+                          position={{ x, y }}
+                          bounds={{
+                            left: 0,
+                            top: 0,
+                            right:
+                              dimensions.pixelWidth -
+                              widget.width * scaleFactor,
+                            bottom:
+                              dimensions.pixelHeight -
+                              widget.height * scaleFactor
                           }}
-                        />
-                      </Draggable>
+                          onStart={(e, data) =>
+                            handleDragStart(widget, data.x, data.y)
+                          }
+                          onStop={(e, data) =>
+                            handleDragStop(widget, data.x, data.y)
+                          }
+                        >
+                          <Box
+                            sx={{
+                              width: `${widget.width * scaleFactor}px`,
+                              height: `${widget.height * scaleFactor}px`,
+                              border: '2px solid #ffcc33',
+                              position: 'absolute',
+                              cursor: 'move'
+                            }}
+                          />
+                        </Draggable>
+                      </div>
                     );
                   }
                   return null;

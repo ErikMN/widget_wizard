@@ -25,9 +25,11 @@ import Select from '@mui/material/Select';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [isDoubleClick, setIsDoubleClick] = useState<boolean>(false);
 
   /* Global context */
   const {
+    activeDraggableWidget,
     activeWidgets,
     listWidgets,
     listWidgetCapabilities,
@@ -42,16 +44,6 @@ const WidgetHandler: React.FC = () => {
 
   enableLogging(true);
 
-  /* Effect triggering on activeWidgets */
-  useEffect(() => {
-    // log('[DEBUG] Active Widgets:', activeWidgets);
-    /* After removing all widgets, reset the dropdown state */
-    if (activeWidgets.length === 0) {
-      log('No more widgets: reset dropdown state');
-      setOpenDropdownIndex(null);
-    }
-  }, [activeWidgets]);
-
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
   useEffect(() => {
     const fetchData = async () => {
@@ -60,6 +52,27 @@ const WidgetHandler: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // log('[DEBUG] Active Widgets:', activeWidgets);
+    /* After removing all widgets, reset the dropdown state */
+    if (activeWidgets.length === 0) {
+      log('No more widgets: reset dropdown state');
+      setOpenDropdownIndex(null);
+    } else if (activeDraggableWidget?.doubleClick) {
+      const index = activeWidgets.findIndex(
+        (widget) => widget.generalParams.id === activeDraggableWidget.id
+      );
+      if (index !== -1) {
+        /* Indicate that the dropdown was opened by a double-click */
+        setIsDoubleClick(true);
+        /* Open the dropdown for this widget */
+        setOpenDropdownIndex(index);
+        /* Reset double-click flag to be able to open dropdown with click */
+        setIsDoubleClick(false);
+      }
+    }
+  }, [activeDraggableWidget, activeWidgets]);
 
   /* Handle dropdown change */
   const handleWidgetChange = (event: SelectChangeEvent<string>) => {
@@ -74,7 +87,10 @@ const WidgetHandler: React.FC = () => {
 
   /* Handle dropdown toggle */
   const toggleDropdown = (index: number) => {
-    setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+    // console.log(index, openDropdownIndex);
+    if (!isDoubleClick) {
+      setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+    }
   };
 
   const handleRemoveAllClick = () => {

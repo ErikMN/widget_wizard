@@ -34,9 +34,17 @@ interface WidgetContextProps {
   >;
 
   /* Draggable widget state */
-  activeDraggableWidget: { id: number | null; active: boolean };
+  activeDraggableWidget: {
+    id: number | null;
+    active: boolean;
+    doubleClick: boolean;
+  };
   setActiveDraggableWidget: React.Dispatch<
-    React.SetStateAction<{ id: number | null; active: boolean }>
+    React.SetStateAction<{
+      id: number | null;
+      active: boolean;
+      doubleClick: boolean;
+    }>
   >;
 
   /* UI-related state */
@@ -92,7 +100,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activeDraggableWidget, setActiveDraggableWidget] = useState<{
     id: number | null;
     active: boolean;
-  }>({ id: null, active: false });
+    doubleClick: boolean;
+  }>({ id: null, active: false, doubleClick: false });
 
   /* Function to open an alert with content and severity */
   const handleOpenAlert = (
