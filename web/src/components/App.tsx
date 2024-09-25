@@ -338,24 +338,31 @@ const App: React.FC = () => {
     const posY =
       (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
 
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        position: {
-          x: posX,
-          y: posY
+    /* Compare with current position */
+    const currentPosX = widget.generalParams.position.x;
+    const currentPosY = widget.generalParams.position.y;
+
+    /* Only update if the position has changed */
+    if (posX !== currentPosX || posY !== currentPosY) {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          position: {
+            x: posX,
+            y: posY
+          }
         }
-      }
-    };
-    /* Update the active widget state */
-    setActiveWidgets((prevWidgets) =>
-      prevWidgets.map((w) =>
-        w.generalParams.id === widget.generalParams.id ? updatedWidget : w
-      )
-    );
-    /* Update the widget */
-    updateWidget(updatedWidget);
+      };
+      /* Update the active widget state */
+      setActiveWidgets((prevWidgets) =>
+        prevWidgets.map((w) =>
+          w.generalParams.id === widget.generalParams.id ? updatedWidget : w
+        )
+      );
+      /* Update the widget */
+      updateWidget(updatedWidget);
+    }
 
     setActiveDraggableWidget({
       id: widget.generalParams.id,
