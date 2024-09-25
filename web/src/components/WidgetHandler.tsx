@@ -7,6 +7,7 @@ import WidgetItem from './WidgetItem';
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
+import { green } from '@mui/material/colors';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -140,7 +141,14 @@ const WidgetHandler: React.FC = () => {
           color="primary"
           aria-label="add widget"
           onClick={handleAddClick}
-          sx={{ marginLeft: 1 }}
+          sx={{
+            marginLeft: 1,
+            backgroundColor: green[500],
+            color: 'white',
+            '&:hover': {
+              backgroundColor: green[700]
+            }
+          }}
         >
           <AddIcon />
         </IconButton>
