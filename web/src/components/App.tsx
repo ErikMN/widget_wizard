@@ -549,8 +549,7 @@ const App: React.FC = () => {
                   top: `${dimensions.offsetY}px`,
                   left: `${dimensions.offsetX}px`,
                   width: `${dimensions.pixelWidth}px`,
-                  /* Cut out a stripe for the videoplayer toolbar */
-                  height: `${dimensions.pixelHeight - 32}px`,
+                  height: `${dimensions.pixelHeight}px`,
                   zIndex: 1
                 }}
               >
