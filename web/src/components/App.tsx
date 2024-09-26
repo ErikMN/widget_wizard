@@ -613,7 +613,8 @@ const App: React.FC = () => {
                                 pointerEvents: 'none'
                               }}
                             >
-                              {widget.generalParams.type}{' '}
+                              {widget.generalParams.type}
+                              {' ID: '}
                               {widget.generalParams.id}
                             </Typography>
                           </Box>
