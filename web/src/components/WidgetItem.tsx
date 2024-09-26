@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Widget } from '../widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
+import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
@@ -195,9 +196,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             variant="subtitle1"
             sx={{ marginRight: '12px', fontWeight: 'bold' }}
           >
-            {widget.generalParams.type.charAt(0).toUpperCase() +
-              widget.generalParams.type.slice(1)}{' '}
-            ({widget.width}x{widget.height})
+            {capitalizeFirstLetter(widget.generalParams.type)} ({widget.width}x
+            {widget.height})
           </Typography>
           <Chip
             label={`ID: ${widget.generalParams.id}`}

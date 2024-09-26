@@ -13,6 +13,7 @@ import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
+import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -606,14 +607,14 @@ const App: React.FC = () => {
                                 left: '50%',
                                 transform: 'translateX(-50%)',
                                 backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                padding: '2px 5px',
+                                padding: '2px 4px',
                                 borderRadius: '4px',
                                 fontSize: '10px',
                                 color: '#333',
                                 pointerEvents: 'none'
                               }}
                             >
-                              {widget.generalParams.type}
+                              {capitalizeFirstLetter(widget.generalParams.type)}
                               {' ID: '}
                               {widget.generalParams.id}
                             </Typography>

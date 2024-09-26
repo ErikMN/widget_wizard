@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { log, enableLogging } from '../helpers/logger';
 import WidgetItem from './WidgetItem';
 import { useWidgetContext } from './WidgetContext';
+import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
@@ -130,7 +131,7 @@ const WidgetHandler: React.FC = () => {
           >
             {widgetCapabilities?.data.widgets.map((widget, index) => (
               <MenuItem key={index} value={widget.type}>
-                {widget.type}
+                {capitalizeFirstLetter(widget.type)}
               </MenuItem>
             ))}
           </Select>
