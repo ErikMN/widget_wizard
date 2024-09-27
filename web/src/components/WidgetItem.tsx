@@ -219,6 +219,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             marginTop: 1
           })}
         >
+          <Typography variant="h6" sx={{ marginBottom: 1 }}>
+            General parameters
+          </Typography>
           {/* Visible toggle */}
           {widgetCapabilities && widgetCapabilities.data.isVisible && (
             <Typography variant="body2" sx={{ marginTop: 1 }}>
