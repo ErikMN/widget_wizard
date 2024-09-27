@@ -7,9 +7,16 @@
 #
 set -e
 
-CURRENT_TAG=$(git describe --tags --abbrev=0)
+# Check for uncommitted changes:
+if ! git diff-index --quiet HEAD --; then
+  echo "There are uncommitted changes. Please commit them before running this script."
+  exit 1
+fi
 
-# Validate and parse input version argument
+# Get current tag, start with 0.0.1 if no tags are found:
+CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
+
+# Validate and parse input version argument:
 if [[ "$#" -ne 1 ]]; then
   echo "Usage: $0 <version_number>"
   echo "Current version: $CURRENT_TAG"
