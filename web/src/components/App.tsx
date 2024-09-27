@@ -19,22 +19,21 @@ import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CircularProgress from '@mui/material/CircularProgress';
+import ContrastIcon from '@mui/icons-material/Contrast';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
-import InfoIcon from '@mui/icons-material/Info';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
@@ -448,7 +447,11 @@ const App: React.FC = () => {
               edge="end"
               sx={{ marginRight: '0px' }}
             >
-              {showBoundingBoxes ? <VisibilityIcon /> : <VisibilityOffIcon />}
+              {showBoundingBoxes ? (
+                <VisibilityOutlinedIcon />
+              ) : (
+                <VisibilityOffOutlinedIcon />
+              )}
             </IconButton>
 
             {/* Info Button (left of theme icon) */}
@@ -459,7 +462,7 @@ const App: React.FC = () => {
               edge="end"
               sx={{ marginRight: '0px' }}
             >
-              <InfoIcon />
+              <InfoOutlinedIcon />
             </IconButton>
 
             {/* Theme Toggle Button (right-aligned) */}
@@ -469,11 +472,7 @@ const App: React.FC = () => {
               onClick={toggleTheme}
               edge="end"
             >
-              {currentTheme === 'dark' ? (
-                <Brightness7Icon />
-              ) : (
-                <Brightness4Icon />
-              )}
+              <ContrastIcon />
             </IconButton>
           </Toolbar>
         </AppBar>
