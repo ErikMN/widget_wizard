@@ -89,6 +89,10 @@ export interface ApiResponse {
     height: number; // updateWidget
     width: number; // updateWidget
   };
+  error: {
+    code: number;
+    message: string;
+  };
 }
 
 /* JSON response from listWidgets and updateWidget

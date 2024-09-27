@@ -126,7 +126,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       /* If response contains updated generalParams, update the widget state */
       if (resp?.data?.generalParams) {
         const updatedWidgetId = resp.data.generalParams.id;
@@ -206,6 +209,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       params: {
         generalParams: {
           type: widgetType,
+          datasource: '#D0',
           anchor: 'none',
           channel: 1,
           isVisible: true,

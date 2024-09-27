@@ -46,6 +46,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const [sliderValue, setSliderValue] = useState<number>(
     widget.generalParams.transparency
   );
+  const [datasource, setDatasource] = useState<string>(
+    widget.generalParams.datasource
+  );
 
   /* Global context */
   const {
@@ -131,6 +134,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     updateWidget(updatedWidget);
   };
 
+  const handleDatasourceChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newDatasource = event.target.value;
+    setDatasource(newDatasource);
+    const updatedWidget = {
+      ...widget,
+      generalParams: {
+        ...widget.generalParams,
+        datasource: newDatasource
+      }
+    };
+    updateWidget(updatedWidget);
+  };
+
+  /****************************************************************************/
+
   /* Toggle JSON viewer */
   const toggleJsonVisibility = () => {
     setJsonVisible((prev) => !prev);
@@ -150,9 +170,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       }
       updateWidget(parsedWidget);
       setJsonError(null);
-      /* Update UI controls for manual JSON updates */
+      /* NOTE: Update UI controls for manual JSON updates */
       setIsVisible(parsedWidget.generalParams.isVisible);
       setSliderValue(parsedWidget.generalParams.transparency);
+      setDatasource(parsedWidget.generalParams.datasource);
     } catch (err) {
       console.error(err);
       setJsonError('Invalid JSON format');
@@ -222,17 +243,36 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Typography variant="h6" sx={{ marginBottom: 1 }}>
             General parameters
           </Typography>
-          {/* Visible toggle */}
-          {widgetCapabilities && widgetCapabilities.data.isVisible && (
-            <Typography variant="body2" sx={{ marginTop: 1 }}>
-              Visible:
-              <Switch
-                checked={isVisible}
-                onChange={handleVisibilityChange}
-                color="primary"
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Visible toggle */}
+            {widgetCapabilities && widgetCapabilities.data.isVisible && (
+              <Typography variant="body2" sx={{ marginTop: 1 }}>
+                Visible:
+                <Switch
+                  checked={isVisible}
+                  onChange={handleVisibilityChange}
+                  color="primary"
+                />
+              </Typography>
+            )}
+            {/* Datasource TextField */}
+            <Box sx={{ flex: 1 }}>
+              <TextField
+                label="Datasource"
+                value={datasource}
+                onChange={handleDatasourceChange}
+                fullWidth
+                variant="outlined"
+                placeholder="Enter datasource"
+                sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': {
+                    height: '100%'
+                  }
+                }}
               />
-            </Typography>
-          )}
+            </Box>
+          </Box>
           {/* Anchor Dropdown */}
           <Box sx={{ display: 'flex', gap: 1 }}>
             {widgetCapabilities && widgetCapabilities.data.anchor && (
@@ -242,6 +282,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   value={widget.generalParams.anchor}
                   onChange={handleAnchorChange}
                   fullWidth
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
                 >
                   {widgetCapabilities.data.anchor.enum.map((anchor) => (
                     <MenuItem key={anchor} value={anchor}>
@@ -259,6 +305,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   value={widget.generalParams.size}
                   onChange={handleSizeChange}
                   fullWidth
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
                 >
                   {widgetCapabilities.data.size.enum.map((size) => (
                     <MenuItem key={size} value={size}>
