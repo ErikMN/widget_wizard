@@ -206,7 +206,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       params: {
         generalParams: {
           type: widgetType,
-          anchor: 'topLeft',
+          anchor: 'none',
           channel: 1,
           isVisible: true,
           position: { x: 0, y: 0 },
