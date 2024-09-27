@@ -339,11 +339,15 @@ const App: React.FC = () => {
       (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
 
     /* Compare with current position */
+    const EPSILON = 1e-6;
     const currentPosX = widget.generalParams.position.x;
     const currentPosY = widget.generalParams.position.y;
 
     /* Only update if the position has changed */
-    if (posX !== currentPosX || posY !== currentPosY) {
+    if (
+      Math.abs(posX - currentPosX) > EPSILON ||
+      Math.abs(posY - currentPosY) > EPSILON
+    ) {
       const updatedWidget = {
         ...widget,
         generalParams: {
