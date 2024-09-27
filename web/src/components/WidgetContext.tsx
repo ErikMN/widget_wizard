@@ -91,7 +91,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   >('info');
 
   /* Local storage state */
-  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'light');
+  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'dark');
 
   /* Disabling logging by default, but can be enabled as needed */
   enableLogging(false);
