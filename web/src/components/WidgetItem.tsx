@@ -381,7 +381,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             onClick={() => removeWidget(widget.generalParams.id)}
             startIcon={<DeleteIcon />}
           >
-            Remove {widget.generalParams.type}
+            Remove {capitalizeFirstLetter(widget.generalParams.type)}
           </Button>
           {/* Toggle JSON viewer */}
           <Button
