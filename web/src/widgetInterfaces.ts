@@ -29,6 +29,7 @@ export interface Widget {
 export interface WidgetCapabilities {
   apiVersion: string;
   method: string;
+  /* On success */
   data: {
     anchor: {
       type: string;
@@ -76,12 +77,18 @@ export interface WidgetCapabilities {
       channel: number;
     }>;
   };
+  /* On error */
+  error: {
+    code: number;
+    message: string;
+  };
 }
 
 /* FIXME: Common response for listWidgets and updateWidget */
 export interface ApiResponse {
   apiVersion: string;
   method: string;
+  /* On success */
   data: {
     widgets: Widget[]; // listWidgets
     generalParams: Widget['generalParams']; // updateWidget
@@ -89,6 +96,7 @@ export interface ApiResponse {
     height: number; // updateWidget
     width: number; // updateWidget
   };
+  /* On error */
   error: {
     code: number;
     message: string;

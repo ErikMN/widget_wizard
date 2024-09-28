@@ -165,7 +165,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** LIST ACTIVE WIDGETS', { resp });
-
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       /* Check if response contains widgets and set state */
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         setActiveWidgets(resp.data.widgets);
@@ -185,7 +188,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
       log('*** WIDGET CAPABILITIES', { resp });
-
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       /* Set widget capabilities and select first widget if available */
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         /* Set the entire listCapabilities response object */
@@ -223,7 +229,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** ADD WIDGET', { resp });
-
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       if (resp?.data) {
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
@@ -249,7 +258,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** REMOVE WIDGET', { resp });
-
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       /* Update activeWidgets state by filtering out the removed widget */
       setActiveWidgets((prevWidgets) =>
         prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
@@ -270,6 +282,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       log('*** REMOVE ALL WIDGETS', { resp });
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
       handleOpenAlert('Failed to remove all widgets', 'error');
