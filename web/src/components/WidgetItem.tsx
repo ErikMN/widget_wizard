@@ -378,7 +378,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 >
                   {widgetCapabilities.data.anchor.enum.map((anchor) => (
                     <MenuItem key={anchor} value={anchor}>
-                      {anchor}
+                      {capitalizeFirstLetter(anchor)}
                     </MenuItem>
                   ))}
                 </Select>
@@ -401,7 +401,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 >
                   {widgetCapabilities.data.size.enum.map((size) => (
                     <MenuItem key={size} value={size}>
-                      {size}
+                      {capitalizeFirstLetter(size)}
                     </MenuItem>
                   ))}
                 </Select>
