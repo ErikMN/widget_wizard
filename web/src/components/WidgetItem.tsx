@@ -50,6 +50,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     widget.generalParams.datasource
   );
   const [channel, setChannel] = useState<number>(widget.generalParams.channel);
+  const [updateTime, setUpdateTime] = useState<number>(
+    widget.generalParams.updateTime
+  );
 
   /* Global context */
   const {
@@ -76,7 +79,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     setJsonError(null);
   }, [widget]);
 
-  /* Handle state changes */
+  /****************************************************************************/
+  /* Handle UI updates for general parameters */
+
   const handleVisibilityChange = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
@@ -89,9 +94,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     };
     updateWidget(updatedWidget);
   };
-
-  /****************************************************************************/
-  /* Handle UI updates */
 
   const handleAnchorChange = (event: SelectChangeEvent<string>) => {
     const newAnchor = event.target.value as string;
@@ -165,7 +167,26 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     }
   };
 
+  const handleUpdateTimeChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newUpdateTime = parseFloat(event.target.value);
+    if (!isNaN(newUpdateTime)) {
+      // Ensure it's a valid number
+      setUpdateTime(newUpdateTime);
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          updateTime: newUpdateTime
+        }
+      };
+      updateWidget(updatedWidget);
+    }
+  };
+
   /****************************************************************************/
+  /* JSON viewer handlers */
 
   /* Toggle JSON viewer */
   const toggleJsonVisibility = () => {
@@ -191,6 +212,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       setSliderValue(parsedWidget.generalParams.transparency);
       setDatasource(parsedWidget.generalParams.datasource);
       setChannel(parsedWidget.generalParams.channel);
+      setUpdateTime(parsedWidget.generalParams.updateTime);
     } catch (err) {
       console.error(err);
       setJsonError('Invalid JSON format');
@@ -272,41 +294,60 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               </Typography>
             )}
-            {/* Datasource TextField */}
-            <Box sx={{ flex: 1 }}>
-              <TextField
-                label="Datasource"
-                value={datasource}
-                onChange={handleDatasourceChange}
-                fullWidth
-                variant="outlined"
-                placeholder="Enter datasource"
-                sx={{
-                  height: '40px',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%'
-                  }
-                }}
-              />
-            </Box>
-            {/* Channel TextField */}
-            <Box sx={{ flex: 1 }}>
-              <TextField
-                label="Channel"
-                value={channel}
-                onChange={handleChannelChange}
-                fullWidth
-                variant="outlined"
-                placeholder="Channel"
-                type="number"
-                sx={{
-                  marginLeft: 1,
-                  height: '40px',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%'
-                  }
-                }}
-              />
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {/* Channel TextField */}
+              <Box sx={{ flex: 0.4 }}>
+                <TextField
+                  label="Channel"
+                  value={channel}
+                  onChange={handleChannelChange}
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Channel"
+                  type="number"
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                />
+              </Box>
+              {/* Datasource TextField */}
+              <Box sx={{ flex: 0.6 }}>
+                <TextField
+                  label="Datasource"
+                  value={datasource}
+                  onChange={handleDatasourceChange}
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Enter datasource"
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                />
+              </Box>
+              {/* UpdateTime TextField */}
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  label="Update interval"
+                  value={updateTime}
+                  onChange={handleUpdateTimeChange}
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Update interval"
+                  type="number"
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                />
+              </Box>
             </Box>
           </Box>
           {/* Anchor Dropdown */}
