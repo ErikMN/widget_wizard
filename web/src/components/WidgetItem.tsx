@@ -12,6 +12,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CodeIcon from '@mui/icons-material/Code';
 import Collapse from '@mui/material/Collapse';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -58,6 +59,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const {
     removeWidget,
     updateWidget,
+    addCustomWidget,
     widgetCapabilities,
     openDropdownIndex,
     activeDraggableWidget
@@ -426,19 +428,30 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           )}
           {/* Remove widget button */}
           <Button
-            style={{ marginTop: '10px' }}
+            sx={{ marginTop: '10px' }}
             color="error"
             variant="contained"
             onClick={() => removeWidget(widget.generalParams.id)}
             startIcon={<DeleteIcon />}
           >
-            Remove {capitalizeFirstLetter(widget.generalParams.type)}
+            Remove Widget
+          </Button>
+          {/* Duplicate widget button */}
+          <Button
+            sx={{ marginTop: '10px', marginLeft: '10px' }}
+            color="secondary"
+            variant="contained"
+            onClick={() => addCustomWidget({ ...widget })}
+            startIcon={<ContentCopyIcon />}
+          >
+            Duplicate
           </Button>
           {/* Toggle JSON viewer */}
           <Button
+            sx={{ marginTop: 1, marginLeft: 1 }}
+            color="primary"
             onClick={toggleJsonVisibility}
             startIcon={<CodeIcon />}
-            sx={{ marginTop: 1, marginLeft: 1 }}
           >
             {jsonVisible ? 'Hide JSON' : 'Show JSON'}
           </Button>
@@ -482,7 +495,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 startIcon={<DataObjectIcon />}
                 sx={{ marginTop: 1 }}
               >
-                Update {widget.generalParams.type}
+                Update {capitalizeFirstLetter(widget.generalParams.type)}
               </Button>
             </Box>
           </Collapse>

@@ -15,6 +15,7 @@ interface WidgetContextProps {
   listWidgets: () => Promise<void>;
   listWidgetCapabilities: () => Promise<void>;
   addWidget: (widgetType: string) => Promise<void>;
+  addCustomWidget: (params: Widget) => Promise<void>;
   removeWidget: (widgetID: number) => Promise<void>;
   removeAllWidgets: () => Promise<void>;
   updateWidget: (widgetItem: Widget) => Promise<void>;
@@ -244,6 +245,36 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const addCustomWidget = async (params: Widget) => {
+    /* Strip stuff not accepted by addWidget */
+    const { height, width, generalParams, ...restParams } = params;
+    const { id, ...restGeneralParams } = generalParams || {};
+    const payload = {
+      apiVersion: '2.0',
+      method: 'addWidget',
+      params: {
+        ...restParams,
+        generalParams: restGeneralParams
+      }
+    };
+    try {
+      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      log('*** ADD WIDGET', { resp });
+      if (resp.error) {
+        handleOpenAlert(resp.error.message, 'error');
+        return;
+      }
+      if (resp?.data) {
+        /* After adding the widget, refresh the active widgets list */
+        await listWidgets();
+      }
+      handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
+    } catch (error) {
+      handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
+      console.error('Error:', error);
+    }
+  };
+
   /* Removes a specified widget */
   const removeWidget = async (widgetID: number) => {
     const payload = {
@@ -313,6 +344,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         listWidgets,
         listWidgetCapabilities,
         addWidget,
+        addCustomWidget,
         removeWidget,
         removeAllWidgets,
         updateWidget,
