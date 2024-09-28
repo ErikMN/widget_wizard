@@ -6,6 +6,7 @@ import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
+import CapabilitiesModal from './CapabilitiesModal';
 import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
@@ -23,6 +24,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CircularProgress from '@mui/material/CircularProgress';
 import ContrastIcon from '@mui/icons-material/Contrast';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
@@ -121,6 +123,8 @@ const App: React.FC = () => {
   const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
   const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
+  const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
+    useState<boolean>(false);
   const [dimensions, setDimensions] = useState({
     videoWidth: 0,
     videoHeight: 0,
@@ -234,6 +238,9 @@ const App: React.FC = () => {
 
   const handleOpenAboutModal = () => setAboutModalOpen(true);
   const handleCloseAboutModal = () => setAboutModalOpen(false);
+
+  const handleOpenCapabilitiesModal = () => setCapabilitiesModalOpen(true);
+  const handleCloseCapabilitiesModal = () => setCapabilitiesModalOpen(false);
 
   /* Alert handler */
   const handleCloseAlert = (
@@ -442,6 +449,17 @@ const App: React.FC = () => {
                 </Typography>
               </Fade>
             </Box>
+
+            {/* Show Widget Capabilities JSON button */}
+            <IconButton
+              color="inherit"
+              aria-label="Show Widget Capabilities"
+              onClick={handleOpenCapabilitiesModal}
+              edge="end"
+              sx={{ marginRight: '0px' }}
+            >
+              <DataObjectIcon />
+            </IconButton>
 
             {/* Toggle Bounding Boxes Button */}
             <IconButton
@@ -655,6 +673,12 @@ const App: React.FC = () => {
 
         {/* About Modal */}
         <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
+
+        {/* Capabilities Modal */}
+        <CapabilitiesModal
+          open={capabilitiesModalOpen}
+          handleClose={handleCloseCapabilitiesModal}
+        />
       </>
     );
   };
