@@ -155,18 +155,6 @@ const WidgetHandler: React.FC = () => {
         </IconButton>
       </Box>
 
-      {/* Remove all widgets button */}
-      <Button
-        style={{ marginTop: '10px' }}
-        color="error"
-        variant="contained"
-        onClick={handleRemoveAllClick}
-        disabled={activeWidgets.length === 0}
-        startIcon={<DeleteIcon />}
-      >
-        Remove all widgets
-      </Button>
-
       {/* Remove all widgets confirmation dialog */}
       <Dialog
         open={openDialog}
@@ -204,6 +192,17 @@ const WidgetHandler: React.FC = () => {
           />
         ))}
       </Box>
+
+      {/* Remove all widgets button */}
+      <Button
+        color="error"
+        variant="contained"
+        onClick={handleRemoveAllClick}
+        disabled={activeWidgets.length === 0}
+        startIcon={<DeleteIcon />}
+      >
+        Remove all widgets
+      </Button>
     </Box>
   );
 };
