@@ -1,6 +1,7 @@
 /* Widget Wizard main component */
 import React, { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import logo from '../assets/img/widgy2.png';
 import Draggable from 'react-draggable';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
@@ -440,14 +441,26 @@ const App: React.FC = () => {
               <MenuIcon />
             </IconButton>
 
-            {/* Title */}
-            <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
+            {/* Title and Logo */}
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              {/* Title */}
               <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
                 <Typography variant="h5" noWrap component="div">
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   <GetParam param="Brand.ProdFullName" />
                 </Typography>
               </Fade>
+              {/* Logo */}
+              <Box sx={{ marginLeft: 1 }}>
+                <img src={logo} alt="Logo" style={{ height: '40px' }} />
+              </Box>
             </Box>
 
             {/* Show Widget Capabilities JSON button */}
