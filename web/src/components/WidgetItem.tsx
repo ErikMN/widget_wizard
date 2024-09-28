@@ -243,7 +243,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             activeDraggableWidget.id === widget.generalParams.id &&
             activeDraggableWidget.active
               ? 'primary.main'
-              : 'grey.600'
+              : 'grey.600',
+          borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '8px',
+          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '8px'
         }}
         startIcon={<WidgetsIcon color="primary" />}
         endIcon={
@@ -273,10 +275,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           sx={(theme) => ({
             backgroundColor: theme.palette.background.default,
             padding: 2,
-            border: '1px solid #ccc',
-            borderRadius: '8px',
+            border: `1px solid ${theme.palette.grey[600]}`,
+            borderTop: 'none',
+            borderRadius: '0 0 8px 8px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            marginTop: 1
+            marginTop: 0
           })}
         >
           <Typography variant="h6" sx={{ marginBottom: 1 }}>
@@ -285,8 +288,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Visible toggle */}
             {widgetCapabilities && widgetCapabilities.data.isVisible && (
-              <Typography variant="body2" sx={{ marginTop: 1 }}>
-                Visible:
+              <Typography variant="body2" sx={{ marginRight: 1 }}>
+                Visible
                 <Switch
                   checked={isVisible}
                   onChange={handleVisibilityChange}
@@ -294,7 +297,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               </Typography>
             )}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+                alignItems: 'center'
+              }}
+            >
               {/* Channel TextField */}
               <Box sx={{ flex: 0.4 }}>
                 <TextField
