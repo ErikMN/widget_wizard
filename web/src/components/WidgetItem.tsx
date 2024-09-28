@@ -49,6 +49,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const [datasource, setDatasource] = useState<string>(
     widget.generalParams.datasource
   );
+  const [channel, setChannel] = useState<number>(widget.generalParams.channel);
 
   /* Global context */
   const {
@@ -149,6 +150,21 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     updateWidget(updatedWidget);
   };
 
+  const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newChannel = parseInt(event.target.value, 10);
+    if (!isNaN(newChannel)) {
+      setChannel(newChannel);
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          channel: newChannel
+        }
+      };
+      updateWidget(updatedWidget);
+    }
+  };
+
   /****************************************************************************/
 
   /* Toggle JSON viewer */
@@ -174,6 +190,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       setIsVisible(parsedWidget.generalParams.isVisible);
       setSliderValue(parsedWidget.generalParams.transparency);
       setDatasource(parsedWidget.generalParams.datasource);
+      setChannel(parsedWidget.generalParams.channel);
     } catch (err) {
       console.error(err);
       setJsonError('Invalid JSON format');
@@ -265,6 +282,25 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 variant="outlined"
                 placeholder="Enter datasource"
                 sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': {
+                    height: '100%'
+                  }
+                }}
+              />
+            </Box>
+            {/* Channel TextField */}
+            <Box sx={{ flex: 1 }}>
+              <TextField
+                label="Channel"
+                value={channel}
+                onChange={handleChannelChange}
+                fullWidth
+                variant="outlined"
+                placeholder="Channel"
+                type="number"
+                sx={{
+                  marginLeft: 1,
                   height: '40px',
                   '& .MuiOutlinedInput-root': {
                     height: '100%'
