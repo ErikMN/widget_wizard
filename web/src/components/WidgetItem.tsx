@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Widget } from '../widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import ReactJson from 'react-json-view';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
@@ -17,6 +18,7 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ImageIcon from '@mui/icons-material/Image';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
@@ -189,6 +191,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   /****************************************************************************/
   /* JSON viewer handlers */
+  const [useJsonViewer, setUseJsonViewer] = useState(false);
+
+  /* Toggle how to display JSON in JSON viewer */
+  const toggleJsonViewer = () => {
+    setUseJsonViewer((prev) => !prev);
+  };
 
   /* Toggle JSON viewer */
   const toggleJsonVisibility = () => {
@@ -467,22 +475,55 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               })}
             >
               {/* Editable JSON field */}
-              <TextField
-                label="JSON"
-                error={jsonError !== null}
-                multiline
-                minRows={8}
-                value={jsonInput}
-                onChange={handleJsonChange}
-                fullWidth
-                variant="outlined"
-                sx={{
-                  '& textarea': {
-                    resize: 'none',
-                    fontFamily: 'Monospace'
-                  }
-                }}
-              />
+              {!useJsonViewer ? (
+                <TextField
+                  label="JSON"
+                  error={jsonError !== null}
+                  multiline
+                  minRows={8}
+                  value={jsonInput}
+                  onChange={handleJsonChange}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    '& textarea': {
+                      resize: 'none',
+                      fontFamily: 'Monospace'
+                    }
+                  }}
+                />
+              ) : (
+                <ReactJson
+                  src={JSON.parse(jsonInput)}
+                  onEdit={(edit) => {
+                    const updatedJson = JSON.stringify(
+                      edit.updated_src,
+                      null,
+                      2
+                    );
+                    setJsonInput(updatedJson);
+                  }}
+                  onAdd={(add) => {
+                    const updatedJson = JSON.stringify(
+                      add.updated_src,
+                      null,
+                      2
+                    );
+                    setJsonInput(updatedJson);
+                  }}
+                  onDelete={(del) => {
+                    const updatedJson = JSON.stringify(
+                      del.updated_src,
+                      null,
+                      2
+                    );
+                    setJsonInput(updatedJson);
+                  }}
+                  enableClipboard={false}
+                  displayDataTypes={false}
+                  theme="monokai"
+                />
+              )}
               {/* Display error if invalid JSON */}
               {jsonError && (
                 <Typography color="error" variant="body2" sx={{ marginTop: 1 }}>
@@ -493,9 +534,20 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 onClick={handleUpdateJSON}
                 variant="contained"
                 startIcon={<DataObjectIcon />}
-                sx={{ marginTop: 1 }}
+                sx={{ marginTop: 1, marginRight: 1 }}
               >
                 Update {capitalizeFirstLetter(widget.generalParams.type)}
+              </Button>
+
+              <Button
+                onClick={toggleJsonViewer}
+                variant="contained"
+                startIcon={<ImageIcon />}
+                sx={{ marginTop: 1 }}
+              >
+                {useJsonViewer
+                  ? 'Switch to Text Editor'
+                  : 'Switch to JSON Viewer'}
               </Button>
             </Box>
           </Collapse>
