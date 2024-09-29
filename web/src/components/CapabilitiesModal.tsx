@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -6,7 +6,9 @@ import Button from '@mui/material/Button';
 import Fade from '@mui/material/Fade';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
+
+/* JSON View */
+import ReactJson from 'react-json-view';
 
 interface CapabilitiesModal {
   open: boolean;
@@ -19,6 +21,15 @@ const CapabilitiesModal: React.FC<CapabilitiesModal> = ({
 }) => {
   /* Global context */
   const { widgetCapabilities } = useWidgetContext();
+  const jsonData = widgetCapabilities?.data;
+
+  /* Local state for controlling collapse */
+  const [collapsed, setCollapsed] = useState(false);
+
+  /* Toggle collapse state */
+  const handleToggleCollapse = () => {
+    setCollapsed((prev) => !prev);
+  };
 
   return (
     <Modal
@@ -32,7 +43,6 @@ const CapabilitiesModal: React.FC<CapabilitiesModal> = ({
         <Box
           sx={{
             position: 'absolute',
-            textAlign: 'center',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
@@ -52,28 +62,32 @@ const CapabilitiesModal: React.FC<CapabilitiesModal> = ({
             Widget Capabilities
           </Typography>
 
-          <TextField
-            label="Capabilities"
-            multiline
-            minRows={8}
-            value={JSON.stringify(widgetCapabilities?.data, null, 2)}
-            fullWidth
-            variant="filled"
-            slotProps={{
-              input: {
-                readOnly: true
-              }
-            }}
-            sx={(theme) => ({
-              backgroundColor: theme.palette.background.default,
+          {/* Collapsible JSON View */}
+          <Box
+            sx={{
               maxHeight: '600px',
               overflow: 'auto',
-              '& textarea': {
-                resize: 'none',
-                fontFamily: 'Monospace'
-              }
-            })}
-          />
+              marginBottom: 2
+            }}
+          >
+            <ReactJson
+              src={jsonData || {}}
+              collapsed={collapsed}
+              enableClipboard={false}
+              displayDataTypes={false}
+              theme="monokai"
+            />
+          </Box>
+
+          {/* Toggle Collapse Button */}
+          <Button
+            onClick={handleToggleCollapse}
+            variant="contained"
+            sx={{ mt: 2, mr: 1 }}
+          >
+            {collapsed ? 'Uncollapse All' : 'Collapse All'}
+          </Button>
+          {/* Close button */}
           <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
             Close
           </Button>
