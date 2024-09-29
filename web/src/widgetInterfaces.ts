@@ -74,7 +74,8 @@ export interface WidgetCapabilities {
     };
     widgets: Array<{
       type: string;
-      channel: number;
+      /* Will change depending on widget */
+      widgetParams: object;
     }>;
   };
   /* On error */
