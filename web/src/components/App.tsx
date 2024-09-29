@@ -140,6 +140,7 @@ const App: React.FC = () => {
 
   /* Global context */
   const {
+    widgetLoading,
     activeWidgets,
     setActiveWidgets,
     updateWidget,
@@ -450,6 +451,15 @@ const App: React.FC = () => {
                 alignItems: 'center'
               }}
             >
+              {/* Widget loading progress */}
+              <CircularProgress
+                size={30}
+                sx={{
+                  color: '#ffcc33',
+                  marginRight: 2,
+                  visibility: widgetLoading ? 'visible' : 'hidden'
+                }}
+              />
               {/* Title */}
               <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
                 <Typography variant="h5" noWrap component="div">

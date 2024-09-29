@@ -33,6 +33,7 @@ interface WidgetContextProps {
   setWidgetCapabilities: React.Dispatch<
     React.SetStateAction<WidgetCapabilities | null>
   >;
+  widgetLoading: boolean;
 
   /* Draggable widget state */
   activeDraggableWidget: {
@@ -83,6 +84,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
+  const [widgetLoading, setWidgetLoading] = useState<boolean>(false);
 
   /* Alert-related state variables */
   const [openAlert, setOpenAlert] = useState<boolean>(false);
@@ -114,6 +116,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     setOpenAlert(true);
   };
 
+  /****************************************************************************/
+  /* Widget endpoint communication functions */
+
   /* Updates the parameters of a widget */
   const updateWidget = async (widgetItem: Widget) => {
     const { type, ...updatedGeneralParams } = widgetItem.generalParams;
@@ -126,7 +131,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
         return;
@@ -164,7 +171,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       method: 'listWidgets'
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -187,7 +196,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       method: 'listCapabilities'
     };
     try {
+      setWidgetLoading(true);
       const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** WIDGET CAPABILITIES', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -228,7 +239,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -258,7 +271,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -287,7 +302,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** REMOVE WIDGET', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -311,7 +328,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       method: 'removeAllWidgets'
     };
     try {
+      setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      setWidgetLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -328,6 +347,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     setOpenDropdownIndex(null);
   };
 
+  /****************************************************************************/
+
   return (
     <WidgetContext.Provider
       value={{
@@ -337,6 +358,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveWidgets,
         widgetCapabilities,
         setWidgetCapabilities,
+        widgetLoading,
         selectedWidget,
         setSelectedWidget,
         openDropdownIndex,
