@@ -34,6 +34,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -425,22 +426,24 @@ const App: React.FC = () => {
             }}
           >
             {/* Menu button (left-aligned) */}
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              onClick={handleDrawerOpen}
-              edge="start"
-              sx={[
-                {
-                  mr: 2
-                },
-                (drawerOpen || screenWidth < drawerWidth + drawerOffset) && {
-                  display: 'none'
-                }
-              ]}
-            >
-              <MenuIcon />
-            </IconButton>
+            <Tooltip title="Open Drawer" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                onClick={handleDrawerOpen}
+                edge="start"
+                sx={[
+                  {
+                    mr: 2
+                  },
+                  drawerOpen || screenWidth < drawerWidth + drawerOffset
+                    ? { display: 'none' }
+                    : {}
+                ]}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Tooltip>
 
             {/* Title and Logo */}
             <Box
@@ -474,51 +477,66 @@ const App: React.FC = () => {
             </Box>
 
             {/* Show Widget Capabilities JSON button */}
-            <IconButton
-              color="inherit"
-              aria-label="Show Widget Capabilities"
-              onClick={handleOpenCapabilitiesModal}
-              edge="end"
-              sx={{ marginRight: '0px' }}
-            >
-              <DataObjectIcon />
-            </IconButton>
+            <Tooltip title="Show Widget Capabilities JSON" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="Show Widget Capabilities JSON"
+                onClick={handleOpenCapabilitiesModal}
+                edge="end"
+                sx={{ marginRight: '0px' }}
+              >
+                <DataObjectIcon />
+              </IconButton>
+            </Tooltip>
 
             {/* Toggle Bounding Boxes Button */}
-            <IconButton
-              color="inherit"
-              aria-label="toggle bounding boxes"
-              onClick={() => setShowBoundingBoxes((prev) => !prev)}
-              edge="end"
-              sx={{ marginRight: '0px' }}
+            <Tooltip
+              title={
+                showBoundingBoxes
+                  ? 'Hide Bounding Boxes'
+                  : 'Show Bounding Boxes'
+              }
+              arrow
             >
-              {showBoundingBoxes ? (
-                <VisibilityOutlinedIcon />
-              ) : (
-                <VisibilityOffOutlinedIcon />
-              )}
-            </IconButton>
+              <IconButton
+                color="inherit"
+                aria-label="toggle bounding boxes"
+                onClick={() => setShowBoundingBoxes((prev) => !prev)}
+                edge="end"
+                sx={{ marginRight: '0px' }}
+              >
+                {showBoundingBoxes ? (
+                  <VisibilityOutlinedIcon />
+                ) : (
+                  <VisibilityOffOutlinedIcon />
+                )}
+              </IconButton>
+            </Tooltip>
 
             {/* Info Button (left of theme icon) */}
-            <IconButton
-              color="inherit"
-              aria-label="about info"
-              onClick={handleOpenAboutModal}
-              edge="end"
-              sx={{ marginRight: '0px' }}
-            >
-              <InfoOutlinedIcon />
-            </IconButton>
+            <Tooltip title="About Info" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="about info"
+                onClick={handleOpenAboutModal}
+                edge="end"
+                sx={{ marginRight: '0px' }}
+              >
+                <InfoOutlinedIcon />
+              </IconButton>
+            </Tooltip>
 
             {/* Theme Toggle Button (right-aligned) */}
-            <IconButton
-              color="inherit"
-              aria-label="toggle theme"
-              onClick={toggleTheme}
-              edge="end"
-            >
-              <ContrastIcon />
-            </IconButton>
+            <Tooltip title="Toggle Theme" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="toggle theme"
+                onClick={toggleTheme}
+                edge="end"
+              >
+                <ContrastIcon />
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
