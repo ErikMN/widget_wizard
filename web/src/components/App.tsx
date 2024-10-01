@@ -659,6 +659,7 @@ const App: React.FC = () => {
                               width: `${widget.width * scaleFactor}px`,
                               height: `${widget.height * scaleFactor}px`,
                               border: '2px solid #ffcc33',
+                              borderRadius: '8px',
                               position: 'absolute',
                               cursor: 'move'
                             }}
