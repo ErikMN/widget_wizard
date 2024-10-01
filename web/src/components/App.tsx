@@ -1,5 +1,5 @@
 /* Widget Wizard main component */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import logo from '../assets/img/widgy2.png';
 import Draggable from 'react-draggable';
@@ -117,8 +117,6 @@ interface BoundingBox {
 const App: React.FC = () => {
   /* Local state */
   const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
-  const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
-  const [initialBoxes, setInitialBoxes] = useState(boundingBoxes);
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
@@ -158,6 +156,10 @@ const App: React.FC = () => {
     setOpenDropdownIndex
   } = useWidgetContext();
 
+  /* Refs */
+  const logVideoDimensionsRef = useRef<() => void | null>(null);
+
+  /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
   enableLogging(true);
@@ -227,11 +229,27 @@ const App: React.FC = () => {
   const handleDrawerOpen = () => {
     setManualDrawerControl(false);
     setDrawerOpen(true);
+    /* The delay allows the DOM to settle before recalculating dimensions. */
+    if (logVideoDimensionsRef.current) {
+      setTimeout(() => {
+        if (logVideoDimensionsRef.current) {
+          logVideoDimensionsRef.current();
+        }
+      }, 300);
+    }
   };
 
   const handleDrawerClose = () => {
     setManualDrawerControl(true);
     setDrawerOpen(false);
+    /* The delay allows the DOM to settle before recalculating dimensions. */
+    if (logVideoDimensionsRef.current) {
+      setTimeout(() => {
+        if (logVideoDimensionsRef.current) {
+          logVideoDimensionsRef.current();
+        }
+      }, 300);
+    }
   };
 
   const toggleTheme = useCallback(() => {
@@ -256,6 +274,9 @@ const App: React.FC = () => {
     setOpenAlert(false);
   };
 
+  /* Update video dimensions
+   * Passed as callback to VideoPlayer, also runs via ref at drawer toggle
+   */
   const handleDimensionsUpdate = (
     videoWidth: number,
     videoHeight: number,
@@ -264,6 +285,7 @@ const App: React.FC = () => {
     offsetX: number,
     offsetY: number
   ) => {
+    // console.log('---------- handleDimensionsUpdate ---------------');
     // console.log('Video Dimensions (stream):', {
     //   videoWidth,
     //   videoHeight
@@ -276,6 +298,7 @@ const App: React.FC = () => {
     //   offsetX,
     //   offsetY
     // });
+    // console.log('-------------------------------------------------');
 
     setDimensions({
       videoWidth,
@@ -290,23 +313,6 @@ const App: React.FC = () => {
   /* Widget backend uses 1920x1080 HD resolution */
   const HD_WIDTH = 1920;
   const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
-
-  /* Adjust bounding box positions and sizes when video size changes */
-  useEffect(() => {
-    if (dimensions.videoWidth && dimensions.pixelWidth) {
-      setBoundingBoxes((prevBoxes) =>
-        prevBoxes.map((box, index) => {
-          return {
-            ...box,
-            x: initialBoxes[index].x * scaleFactor,
-            y: initialBoxes[index].y * scaleFactor,
-            width: initialBoxes[index].width * scaleFactor,
-            height: initialBoxes[index].height * scaleFactor
-          };
-        })
-      );
-    }
-  }, [dimensions.videoWidth, dimensions.pixelWidth, scaleFactor, initialBoxes]);
 
   const getWidgetPixelPosition = (
     position: { x: number; y: number },
@@ -603,6 +609,7 @@ const App: React.FC = () => {
             <VideoPlayer
               height={window.innerHeight}
               onDimensionsUpdate={handleDimensionsUpdate}
+              logVideoDimensionsRef={logVideoDimensionsRef}
             />
 
             {/* Overlay Surface aligned with the video element */}
