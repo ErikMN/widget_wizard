@@ -226,9 +226,7 @@ const App: React.FC = () => {
     fetchSystemReady();
   }, []);
 
-  const handleDrawerOpen = () => {
-    setManualDrawerControl(false);
-    setDrawerOpen(true);
+  const recalculateDimensions = () => {
     /* The delay allows the DOM to settle before recalculating dimensions. */
     if (logVideoDimensionsRef.current) {
       setTimeout(() => {
@@ -239,17 +237,16 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDrawerOpen = () => {
+    setManualDrawerControl(false);
+    setDrawerOpen(true);
+    recalculateDimensions();
+  };
+
   const handleDrawerClose = () => {
     setManualDrawerControl(true);
     setDrawerOpen(false);
-    /* The delay allows the DOM to settle before recalculating dimensions. */
-    if (logVideoDimensionsRef.current) {
-      setTimeout(() => {
-        if (logVideoDimensionsRef.current) {
-          logVideoDimensionsRef.current();
-        }
-      }, 300);
-    }
+    recalculateDimensions();
   };
 
   const toggleTheme = useCallback(() => {
