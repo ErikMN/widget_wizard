@@ -23,6 +23,7 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import Tooltip from '@mui/material/Tooltip';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const WidgetHandler: React.FC = () => {
@@ -139,21 +140,23 @@ const WidgetHandler: React.FC = () => {
         </FormControl>
 
         {/* Plus sign button */}
-        <IconButton
-          color="primary"
-          aria-label="add widget"
-          onClick={handleAddClick}
-          sx={{
-            marginLeft: 1,
-            backgroundColor: green[500],
-            color: 'white',
-            '&:hover': {
-              backgroundColor: green[700]
-            }
-          }}
-        >
-          <AddIcon />
-        </IconButton>
+        <Tooltip title="Add a Widget" arrow placement="right">
+          <IconButton
+            color="primary"
+            aria-label="add widget"
+            onClick={handleAddClick}
+            sx={{
+              marginLeft: 1,
+              backgroundColor: green[500],
+              color: 'white',
+              '&:hover': {
+                backgroundColor: green[700]
+              }
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* Remove all widgets confirmation dialog */}

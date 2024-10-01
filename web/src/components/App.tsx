@@ -426,7 +426,7 @@ const App: React.FC = () => {
             }}
           >
             {/* Menu button (left-aligned) */}
-            <Tooltip title="Open Drawer" arrow>
+            <Tooltip title="Open the menu" arrow placement="right">
               <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -579,13 +579,15 @@ const App: React.FC = () => {
             <Typography variant="h6" sx={{ textAlign: 'center', flexGrow: 1 }}>
               Widgets menu | Active widgets: {activeWidgets.length}
             </Typography>
-            <IconButton onClick={handleDrawerClose}>
-              {theme.direction === 'ltr' ? (
-                <ChevronLeftIcon />
-              ) : (
-                <ChevronRightIcon />
-              )}
-            </IconButton>
+            <Tooltip title="Close the menu" arrow placement="right">
+              <IconButton onClick={handleDrawerClose}>
+                {theme.direction === 'ltr' ? (
+                  <ChevronLeftIcon />
+                ) : (
+                  <ChevronRightIcon />
+                )}
+              </IconButton>
+            </Tooltip>
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
