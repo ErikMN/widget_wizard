@@ -23,6 +23,7 @@ import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
@@ -163,7 +164,10 @@ const WidgetHandler: React.FC = () => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          {'Remove all widgets'}
+          <Box display="flex" alignItems="center">
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {'Remove all widgets'}
+          </Box>
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
@@ -172,10 +176,19 @@ const WidgetHandler: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDialogClose} color="primary">
+          <Button
+            variant="outlined"
+            onClick={handleDialogClose}
+            color="primary"
+          >
             No
           </Button>
-          <Button onClick={handleConfirmRemoveAll} color="error" autoFocus>
+          <Button
+            variant="contained"
+            onClick={handleConfirmRemoveAll}
+            color="error"
+            autoFocus
+          >
             Yes
           </Button>
         </DialogActions>
@@ -200,6 +213,7 @@ const WidgetHandler: React.FC = () => {
         onClick={handleRemoveAllClick}
         disabled={activeWidgets.length === 0}
         startIcon={<DeleteIcon />}
+        sx={{ marginBottom: 2 }}
       >
         Remove all widgets
       </Button>
