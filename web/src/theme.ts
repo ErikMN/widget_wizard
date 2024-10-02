@@ -8,7 +8,7 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: grey[500], // Primary color (buttons, app bar, etc.)
+      main: '#ffa726', // Primary color (buttons, app bar, etc.)
       contrastText: '#525252' // Text color on primary elements
     },
     secondary: {
@@ -89,7 +89,7 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: grey[500], // Primary color (buttons, app bar, etc.)
+      main: '#ffa726', // Primary color (buttons, app bar, etc.)
       contrastText: '#fff' // Text color on primary elements
     },
     secondary: {

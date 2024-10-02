@@ -245,17 +245,20 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           color: 'text.primary',
           /* Highlight selected widget */
           backgroundColor:
-            activeDraggableWidget.id === widget.generalParams.id &&
-            activeDraggableWidget.active
+            (activeDraggableWidget.id === widget.generalParams.id &&
+              activeDraggableWidget.active) ||
+            openDropdownIndex === index
               ? 'primary.light'
               : 'unset',
           borderColor:
-            activeDraggableWidget.id === widget.generalParams.id &&
-            activeDraggableWidget.active
+            (activeDraggableWidget.id === widget.generalParams.id &&
+              activeDraggableWidget.active) ||
+            openDropdownIndex === index
               ? 'primary.main'
               : 'grey.600',
           borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '8px',
-          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '8px'
+          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '8px',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease'
         }}
         startIcon={<WidgetsIcon color="primary" />}
         endIcon={

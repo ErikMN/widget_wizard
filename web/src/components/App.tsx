@@ -18,6 +18,7 @@ import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import { styled } from '@mui/material/styles';
+import { grey } from '@mui/material/colors';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -38,6 +39,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
@@ -557,14 +559,14 @@ const App: React.FC = () => {
                 backgroundColor: 'transparent'
               },
               '&::-webkit-scrollbar-thumb': {
-                backgroundColor: 'primary.light',
+                backgroundColor: grey[500],
                 borderRadius: '8px'
               },
               '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: 'secondary.dark'
+                backgroundColor: grey[600]
               },
               '&::-webkit-scrollbar-track': {
-                backgroundColor: 'primary.dark'
+                backgroundColor: grey[300]
               }
             }
           }}
@@ -579,8 +581,21 @@ const App: React.FC = () => {
               alignItems: 'center'
             }}
           >
-            <Typography variant="h6" sx={{ textAlign: 'center', flexGrow: 1 }}>
-              Widgets menu | Active widgets: {activeWidgets.length}
+            <Typography
+              variant="h6"
+              sx={{
+                textAlign: 'center',
+                flexGrow: 1,
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                color: 'text.primary',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <WidgetsOutlinedIcon sx={{ mr: 1 }} />
+              Widgets Menu | Active Widgets: {activeWidgets.length}
             </Typography>
             <Tooltip title="Close the menu" arrow placement="right">
               <IconButton onClick={handleDrawerClose}>
