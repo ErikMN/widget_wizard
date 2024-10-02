@@ -2,7 +2,7 @@
  * A collection of custom hooks.
  */
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Custom hook to get and set a value in localStorage.
@@ -42,4 +42,20 @@ const useLocalStorage = (key, defaultValue, setItemIfNone = false) => {
   return [localStorageValue, setLocalStorageStateValue];
 };
 
-export { useLocalStorage };
+function useDebouncedValue(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export { useLocalStorage, useDebouncedValue };

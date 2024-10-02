@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Widget } from '../widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import { useDebouncedValue } from '../helpers/hooks.jsx';
 import ReactJson from 'react-json-view';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -141,33 +142,60 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     updateWidget(updatedWidget);
   };
 
+  /* Debounced textfield handlers */
+  const debouncedDatasource = useDebouncedValue(datasource, 300);
+  const debouncedChannel = useDebouncedValue(channel, 200);
+  const debouncedUpdateTime = useDebouncedValue(updateTime, 500);
+
+  useEffect(() => {
+    if (debouncedDatasource) {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          datasource: debouncedDatasource
+        }
+      };
+      updateWidget(updatedWidget);
+    }
+  }, [debouncedDatasource]);
+
+  useEffect(() => {
+    if (debouncedChannel) {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          channel: debouncedChannel
+        }
+      };
+      updateWidget(updatedWidget);
+    }
+  }, [debouncedChannel]);
+
+  useEffect(() => {
+    if (debouncedUpdateTime) {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          updateTime: debouncedUpdateTime
+        }
+      };
+      updateWidget(updatedWidget);
+    }
+  }, [debouncedUpdateTime]);
+
   const handleDatasourceChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const newDatasource = event.target.value;
-    setDatasource(newDatasource);
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        datasource: newDatasource
-      }
-    };
-    updateWidget(updatedWidget);
+    setDatasource(event.target.value);
   };
 
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newChannel = parseInt(event.target.value, 10);
     if (!isNaN(newChannel)) {
       setChannel(newChannel);
-      const updatedWidget = {
-        ...widget,
-        generalParams: {
-          ...widget.generalParams,
-          channel: newChannel
-        }
-      };
-      updateWidget(updatedWidget);
     }
   };
 
@@ -176,16 +204,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   ) => {
     const newUpdateTime = parseFloat(event.target.value);
     if (!isNaN(newUpdateTime)) {
-      // Ensure it's a valid number
       setUpdateTime(newUpdateTime);
-      const updatedWidget = {
-        ...widget,
-        generalParams: {
-          ...widget.generalParams,
-          updateTime: newUpdateTime
-        }
-      };
-      updateWidget(updatedWidget);
     }
   };
 
