@@ -12,7 +12,6 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import CodeIcon from '@mui/icons-material/Code';
 import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DataObjectIcon from '@mui/icons-material/DataObject';
@@ -477,10 +476,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </Button>
           {/* Toggle JSON viewer */}
           <Button
-            sx={{ marginTop: 1, marginLeft: 1 }}
+            sx={{ marginTop: '10px', marginLeft: '10px' }}
             color="primary"
+            variant="outlined"
             onClick={toggleJsonVisibility}
-            startIcon={<CodeIcon />}
+            startIcon={<DataObjectIcon />}
           >
             {jsonVisible ? 'Hide JSON' : 'Show JSON'}
           </Button>
