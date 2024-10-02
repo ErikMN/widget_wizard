@@ -148,43 +148,42 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const debouncedUpdateTime = useDebouncedValue(updateTime, 500);
 
   useEffect(() => {
-    if (debouncedDatasource) {
-      const updatedWidget = {
-        ...widget,
+    let updatedWidget = { ...widget };
+    if (debouncedDatasource !== undefined && debouncedDatasource !== '') {
+      updatedWidget = {
+        ...updatedWidget,
         generalParams: {
-          ...widget.generalParams,
+          ...updatedWidget.generalParams,
           datasource: debouncedDatasource
         }
       };
-      updateWidget(updatedWidget);
     }
-  }, [debouncedDatasource]);
-
-  useEffect(() => {
-    if (debouncedChannel) {
-      const updatedWidget = {
-        ...widget,
+    if (debouncedChannel !== undefined && debouncedChannel !== null) {
+      updatedWidget = {
+        ...updatedWidget,
         generalParams: {
-          ...widget.generalParams,
+          ...updatedWidget.generalParams,
           channel: debouncedChannel
         }
       };
-      updateWidget(updatedWidget);
     }
-  }, [debouncedChannel]);
-
-  useEffect(() => {
-    if (debouncedUpdateTime) {
-      const updatedWidget = {
-        ...widget,
+    if (debouncedUpdateTime !== undefined && debouncedUpdateTime !== '') {
+      updatedWidget = {
+        ...updatedWidget,
         generalParams: {
-          ...widget.generalParams,
+          ...updatedWidget.generalParams,
           updateTime: debouncedUpdateTime
         }
       };
+    }
+    if (
+      debouncedDatasource !== undefined ||
+      debouncedChannel !== undefined ||
+      debouncedUpdateTime !== undefined
+    ) {
       updateWidget(updatedWidget);
     }
-  }, [debouncedUpdateTime]);
+  }, [debouncedDatasource, debouncedChannel, debouncedUpdateTime]);
 
   const handleDatasourceChange = (
     event: React.ChangeEvent<HTMLInputElement>
