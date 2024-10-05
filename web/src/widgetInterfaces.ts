@@ -159,10 +159,12 @@ generalParams": {
 export interface AppSettings {
   roundedBboxCorners: boolean;
   bboxColor: string;
+  bboxThickness: 'small' | 'medium' | 'large';
 }
 
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
   roundedBboxCorners: false,
-  bboxColor: 'yellow'
+  bboxColor: 'yellow',
+  bboxThickness: 'medium'
 };

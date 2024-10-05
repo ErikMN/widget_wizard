@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWidgetContext } from './WidgetContext';
-import { AppSettings, defaultAppSettings } from '../widgetInterfaces';
+import { AppSettings } from '../widgetInterfaces';
+import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -21,6 +22,11 @@ interface SettingsModalProps {
 }
 
 const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
+const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
+  'small',
+  'medium',
+  'large'
+];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
   /* Global context */
@@ -49,16 +55,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     handleOpenAlert(`Bounding Box Color: ${selectedColor}`, 'success');
   };
 
+  const handleThicknessChange = (
+    event: SelectChangeEvent<'small' | 'medium' | 'large'>
+  ) => {
+    const selectedThickness = event.target.value as
+      | 'small'
+      | 'medium'
+      | 'large';
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxThickness: selectedThickness
+    }));
+    handleOpenAlert(`Bounding Box Thickness: ${selectedThickness}`, 'success');
+  };
+
   /* Ensure the bboxColor is valid, default to 'yellow' if it's not */
   const currentColor = availableColors.includes(appSettings.bboxColor)
     ? appSettings.bboxColor
     : 'yellow';
+
+  /* Ensure the bboxThickness is valid, default to 'medium' if it's not */
+  const currentThickness = availableThicknesses.includes(
+    appSettings.bboxThickness
+  )
+    ? appSettings.bboxThickness
+    : 'medium';
 
   /* If invalid color, reset to yellow */
   if (appSettings.bboxColor !== currentColor) {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
       bboxColor: 'yellow'
+    }));
+  }
+
+  /* If invalid thickness, reset to medium */
+  if (appSettings.bboxThickness !== currentThickness) {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxThickness: 'medium'
     }));
   }
 
@@ -105,34 +140,78 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             </Typography>
           </Box>
 
-          {/* Switch roundedBboxCorners */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={appSettings.roundedBboxCorners}
-                onChange={handleToggleRoundedCorners}
-                name="roundedBboxCorners"
-              />
-            }
-            label="Rounded Bounding Box Corners"
-          />
+          {/* Bounding Box settings */}
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+              Bounding Box Settings
+            </Typography>
 
-          {/* Select bounding box color */}
-          <FormControl sx={{ mt: 2, width: '50%' }}>
-            <InputLabel id="bbox-color-label">Bounding Box Color</InputLabel>
-            <Select
-              labelId="bbox-color-label"
-              value={currentColor}
-              label="Bounding Box Color"
-              onChange={handleColorChange}
+            {/* Switch for rounded bounding box corners */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={appSettings.roundedBboxCorners}
+                  onChange={handleToggleRoundedCorners}
+                  name="roundedBboxCorners"
+                />
+              }
+              label="Rounded Bounding Box Corners"
+            />
+
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'space-between'
+              }}
             >
-              {availableColors.map((color) => (
-                <MenuItem key={color} value={color}>
-                  {color}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              {/* Select bounding box color */}
+              <FormControl sx={{ mt: 2, width: '50%' }}>
+                <InputLabel id="bbox-color-label">
+                  Bounding Box Color
+                </InputLabel>
+                <Select
+                  labelId="bbox-color-label"
+                  value={currentColor}
+                  label="Bounding Box Color"
+                  onChange={handleColorChange}
+                >
+                  {availableColors.map((color) => (
+                    <MenuItem key={color} value={color}>
+                      {capitalizeFirstLetter(color)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Select bounding box thickness */}
+              <FormControl sx={{ mt: 2, width: '50%' }}>
+                <InputLabel id="bbox-thickness-label">
+                  Bounding Box Thickness
+                </InputLabel>
+                <Select
+                  labelId="bbox-thickness-label"
+                  value={currentThickness}
+                  label="Bounding Box Thickness"
+                  onChange={handleThicknessChange}
+                >
+                  {availableThicknesses.map((thickness) => (
+                    <MenuItem key={thickness} value={thickness}>
+                      {capitalizeFirstLetter(thickness)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
 
           {/* Close button */}
           <Box

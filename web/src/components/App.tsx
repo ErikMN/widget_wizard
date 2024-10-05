@@ -433,6 +433,15 @@ const App: React.FC = () => {
   const defaultColor = '#ffcc33';
   const bboxColor = colorMappings[appSettings.bboxColor] || defaultColor;
 
+  /* BBox thickness */
+  const thicknessMappings: { [key: string]: string } = {
+    small: '1px',
+    medium: '2px',
+    large: '4px'
+  };
+
+  const bboxThickness = thicknessMappings[appSettings.bboxThickness];
+
   const contentMain = () => {
     // log('MAIN CONTENT');
     return (
@@ -706,7 +715,7 @@ const App: React.FC = () => {
                             sx={{
                               width: `${widget.width * scaleFactor}px`,
                               height: `${widget.height * scaleFactor}px`,
-                              border: `2px solid ${bboxColor}`,
+                              border: `${bboxThickness} solid ${bboxColor}`,
                               borderRadius: appSettings.roundedBboxCorners
                                 ? '8px'
                                 : '0px',
