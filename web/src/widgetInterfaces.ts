@@ -158,9 +158,11 @@ generalParams": {
 /* Application settings JSON interface */
 export interface AppSettings {
   roundedBboxCorners: boolean;
+  bboxColor: string;
 }
 
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
-  roundedBboxCorners: false
+  roundedBboxCorners: false,
+  bboxColor: 'yellow'
 };

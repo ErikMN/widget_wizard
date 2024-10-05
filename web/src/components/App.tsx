@@ -422,6 +422,17 @@ const App: React.FC = () => {
     }
   };
 
+  /* BBox colors */
+  const colorMappings: { [key: string]: string } = {
+    yellow: '#ffcc33',
+    blue: '#00aaff',
+    red: '#ff4444',
+    green: '#00cc00',
+    purple: '#d633ff'
+  };
+  const defaultColor = '#ffcc33';
+  const bboxColor = colorMappings[appSettings.bboxColor] || defaultColor;
+
   const contentMain = () => {
     // log('MAIN CONTENT');
     return (
@@ -695,7 +706,7 @@ const App: React.FC = () => {
                             sx={{
                               width: `${widget.width * scaleFactor}px`,
                               height: `${widget.height * scaleFactor}px`,
-                              border: '2px solid #ffcc33',
+                              border: `2px solid ${bboxColor}`,
                               borderRadius: appSettings.roundedBboxCorners
                                 ? '8px'
                                 : '0px',

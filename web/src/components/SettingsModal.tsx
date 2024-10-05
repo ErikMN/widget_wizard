@@ -5,8 +5,12 @@ import { AppSettings, defaultAppSettings } from '../widgetInterfaces';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Fade from '@mui/material/Fade';
+import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
 import Modal from '@mui/material/Modal';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
@@ -15,6 +19,8 @@ interface SettingsModalProps {
   open: boolean;
   handleClose: () => void;
 }
+
+const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
   /* Global context */
@@ -33,6 +39,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       'success'
     );
   };
+
+  const handleColorChange = (event: SelectChangeEvent<string>) => {
+    const selectedColor = event.target.value as string;
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxColor: selectedColor
+    }));
+    handleOpenAlert(`Bounding Box Color: ${selectedColor}`, 'success');
+  };
+
+  /* Ensure the bboxColor is valid, default to 'yellow' if it's not */
+  const currentColor = availableColors.includes(appSettings.bboxColor)
+    ? appSettings.bboxColor
+    : 'yellow';
+
+  /* If invalid color, reset to yellow */
+  if (appSettings.bboxColor !== currentColor) {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxColor: 'yellow'
+    }));
+  }
 
   /****************************************************************************/
 
@@ -88,6 +116,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             }
             label="Rounded Bounding Box Corners"
           />
+
+          {/* Select bounding box color */}
+          <FormControl sx={{ mt: 2, width: '50%' }}>
+            <InputLabel id="bbox-color-label">Bounding Box Color</InputLabel>
+            <Select
+              labelId="bbox-color-label"
+              value={currentColor}
+              label="Bounding Box Color"
+              onChange={handleColorChange}
+            >
+              {availableColors.map((color) => (
+                <MenuItem key={color} value={color}>
+                  {color}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           {/* Close button */}
           <Box
