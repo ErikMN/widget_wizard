@@ -43,7 +43,9 @@ DOCKER_CMD := docker run --rm -i -t \
               -v /etc/group:/etc/group:ro \
               -v $(d)/.yarnrc:$(d)/.yarnrc
 
-PKGS += glib-2.0 gio-2.0
+LDFLAGS = -L./libwebsockets -Wl,--no-as-needed,-rpath,'$$ORIGIN/libwebsockets'
+
+PKGS += glib-2.0 gio-2.0 jansson libwebsockets
 ifdef PKGS
   LDLIBS += $(shell pkg-config --libs $(PKGS))
   CFLAGS += $(shell pkg-config --cflags $(PKGS))
@@ -167,6 +169,7 @@ dockersetup: checkdocker
 # Build ACAP for ARM64 using Docker:
 .PHONY: acap
 acap: checkdocker
+	@./scripts/copylib.sh $(DOCKER_X64_IMG) libwebsockets
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build_aarch64.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
 
 # Fast build (only binary file) using Docker:
@@ -198,7 +201,7 @@ clean:
 # Cleanup everything:
 .PHONY: distclean
 distclean: clean
-	$(RM) -r html .*var_log_messages* *.old *.orig tmp* release*
+	$(RM) -r html .*var_log_messages* *.old *.orig tmp* release* libwebsockets
 
 # Clean node modules:
 .PHONY: webclean

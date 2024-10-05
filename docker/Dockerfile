@@ -37,3 +37,42 @@ ARG ACAP_SDK_INSTALL_DIR=/opt/axis/acapsdk/sysroots/aarch64/usr
 
 # Install libs here:
 ARG INC_DIR=${ACAP_SDK_INSTALL_DIR}/include
+
+##################### Setup and build libwebsockets for aarch64 ################
+
+# libwebsockets paths and version:
+  ARG LWS_VER=v4.3-stable
+  ARG BUILD_DIR=/opt/build
+  ARG LWS_SRC_DIR=${BUILD_DIR}/LWS
+  ARG LWS_BUILD_DIR=${LWS_SRC_DIR}/build
+
+  # Clone libwebsockets to LWS_SRC_DIR:
+  RUN git clone https://github.com/warmcat/libwebsockets.git --branch=${LWS_VER} ${LWS_SRC_DIR}
+
+  # Create build directory:
+  RUN mkdir -p ${LWS_BUILD_DIR}
+
+  # Configure and build libwebsockets:
+  WORKDIR ${LWS_BUILD_DIR}
+  RUN . /opt/axis/acapsdk/environment-setup* && \
+    cmake \
+    -D CMAKE_INSTALL_PREFIX=${ACAP_SDK_INSTALL_DIR} \
+    -D CMAKE_CXX_COMPILER=${CXX%-g++*}-g++ \
+    -D CMAKE_CXX_FLAGS="${CXX#*-g++}" \
+    -D CMAKE_C_COMPILER=${CC%-gcc*}-gcc \
+    -D CMAKE_C_FLAGS="${CC#*-gcc}" \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CPU_BASELINE=NEON,VFPV3 \
+    -D LWS_WITH_SSL=OFF \
+    -D LWS_WITH_CRYPTO=OFF \
+    -D LWS_WITH_ZLIB=OFF \
+    -D LWS_WITH_STATIC=OFF \
+    -D LWS_WITH_SHARED=ON \
+    -D LWS_WITHOUT_TESTAPPS=ON \
+    -D LWS_HAVE_LIBCAP=OFF \
+    ${LWS_SRC_DIR} && \
+    make -j$(nproc) install
+
+  # Copy libwebsockets libs to /opt/app in order to easily get them to host for packaging in ACAP:
+  RUN mkdir -p /opt/app/libwebsockets
+  RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.so* /opt/app/libwebsockets

@@ -20,3 +20,4 @@ credentials.json
 .yarnrc
 .cache
 .bash_history
+libwebsockets
