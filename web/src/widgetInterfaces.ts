@@ -154,3 +154,13 @@ generalParams": {
     "isVisible": false
 }
 */
+
+/* Application settings JSON interface */
+export interface AppSettings {
+  roundedBboxCorners: boolean;
+}
+
+/* Application settings default values */
+export const defaultAppSettings: AppSettings = {
+  roundedBboxCorners: false
+};

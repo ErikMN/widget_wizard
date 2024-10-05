@@ -8,6 +8,7 @@ import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
+import SettingsModal from './SettingsModal.js';
 import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
@@ -33,6 +34,7 @@ import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
@@ -127,6 +129,7 @@ const App: React.FC = () => {
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
     useState<boolean>(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [dimensions, setDimensions] = useState({
     videoWidth: 0,
     videoHeight: 0,
@@ -155,7 +158,8 @@ const App: React.FC = () => {
     activeDraggableWidget,
     setActiveDraggableWidget,
     openDropdownIndex,
-    setOpenDropdownIndex
+    setOpenDropdownIndex,
+    appSettings
   } = useWidgetContext();
 
   /* Refs */
@@ -256,11 +260,15 @@ const App: React.FC = () => {
     setCurrentTheme(newTheme);
   }, [currentTheme, setCurrentTheme]);
 
+  /* Modal open/close handlers */
   const handleOpenAboutModal = () => setAboutModalOpen(true);
   const handleCloseAboutModal = () => setAboutModalOpen(false);
 
   const handleOpenCapabilitiesModal = () => setCapabilitiesModalOpen(true);
   const handleCloseCapabilitiesModal = () => setCapabilitiesModalOpen(false);
+
+  const handleOpenSettingsModal = () => setSettingsModalOpen(true);
+  const handleCloseSettingsModal = () => setSettingsModalOpen(false);
 
   /* Alert handler */
   const handleCloseAlert = (
@@ -531,15 +539,28 @@ const App: React.FC = () => {
               </IconButton>
             </Tooltip>
 
-            {/* Theme Toggle Button (right-aligned) */}
+            {/* Theme Toggle Button */}
             <Tooltip title="Toggle Theme" arrow>
               <IconButton
                 color="inherit"
                 aria-label="toggle theme"
                 onClick={toggleTheme}
                 edge="end"
+                sx={{ marginRight: '0px' }}
               >
                 <ContrastIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* Settings button */}
+            <Tooltip title="Application Settings" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="settings"
+                onClick={handleOpenSettingsModal}
+                edge="end"
+              >
+                <SettingsIcon />
               </IconButton>
             </Tooltip>
           </Toolbar>
@@ -679,7 +700,9 @@ const App: React.FC = () => {
                               width: `${widget.width * scaleFactor}px`,
                               height: `${widget.height * scaleFactor}px`,
                               border: '2px solid #ffcc33',
-                              borderRadius: '8px',
+                              borderRadius: appSettings.roundedBboxCorners
+                                ? '8px'
+                                : '0px',
                               position: 'absolute',
                               pointerEvents: 'auto',
                               cursor: 'move'
@@ -743,6 +766,12 @@ const App: React.FC = () => {
         <CapabilitiesModal
           open={capabilitiesModalOpen}
           handleClose={handleCloseCapabilitiesModal}
+        />
+
+        {/* Settings Modal */}
+        <SettingsModal
+          open={settingsModalOpen}
+          handleClose={handleCloseSettingsModal}
         />
       </>
     );

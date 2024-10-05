@@ -6,7 +6,13 @@ import React, { createContext, useContext, useState } from 'react';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
 import { log, enableLogging } from '../helpers/logger';
-import { ApiResponse, Widget, WidgetCapabilities } from '../widgetInterfaces';
+import {
+  ApiResponse,
+  Widget,
+  WidgetCapabilities,
+  AppSettings,
+  defaultAppSettings
+} from '../widgetInterfaces';
 import { W_CGI } from './constants';
 
 /* Interface defining the structure of the context */
@@ -68,6 +74,10 @@ interface WidgetContextProps {
   /* Theme-related state */
   currentTheme: string;
   setCurrentTheme: React.Dispatch<React.SetStateAction<string>>;
+
+  /* Global settings for the application */
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 /* Creating the Widget context */
@@ -95,6 +105,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Local storage state */
   const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'dark');
+  const [appSettings, setAppSettings] = useLocalStorage(
+    'appSettings',
+    defaultAppSettings
+  );
 
   /* Disabling logging by default, but can be enabled as needed */
   enableLogging(false);
@@ -378,7 +392,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         alertSeverity,
         setAlertSeverity,
         currentTheme,
-        setCurrentTheme
+        setCurrentTheme,
+        appSettings,
+        setAppSettings
       }}
     >
       {children}
