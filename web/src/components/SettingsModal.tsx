@@ -46,6 +46,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     );
   };
 
+  const handleToggleBboxLabel = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxLabel: !prevSettings.bboxLabel
+    }));
+    handleOpenAlert(`Bounding Box Label: ${!appSettings.bboxLabel}`, 'success');
+  };
+
   const handleColorChange = (event: SelectChangeEvent<string>) => {
     const selectedColor = event.target.value as string;
     setAppSettings((prevSettings: AppSettings) => ({
@@ -164,6 +172,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                 />
               }
               label="Rounded Bounding Box Corners"
+            />
+
+            {/* Switch for bounding box label */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={appSettings.bboxLabel}
+                  onChange={handleToggleBboxLabel}
+                  name="bboxLabel"
+                />
+              }
+              label="Show Bounding Box Info Label"
             />
 
             <Box

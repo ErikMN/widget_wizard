@@ -725,24 +725,28 @@ const App: React.FC = () => {
                             }}
                           >
                             {/* Widget info note above the bbox */}
-                            <Typography
-                              sx={{
-                                position: 'absolute',
-                                top: '-20px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                padding: '2px 4px',
-                                borderRadius: '4px',
-                                fontSize: '10px',
-                                color: '#333',
-                                pointerEvents: 'none'
-                              }}
-                            >
-                              {capitalizeFirstLetter(widget.generalParams.type)}
-                              {' ID: '}
-                              {widget.generalParams.id}
-                            </Typography>
+                            {appSettings.bboxLabel && (
+                              <Typography
+                                sx={{
+                                  position: 'absolute',
+                                  top: '-20px',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  color: '#333',
+                                  pointerEvents: 'none'
+                                }}
+                              >
+                                {capitalizeFirstLetter(
+                                  widget.generalParams.type
+                                )}
+                                {' ID: '}
+                                {widget.generalParams.id}
+                              </Typography>
+                            )}
                           </Box>
                         </Draggable>
                       </div>

@@ -160,11 +160,13 @@ export interface AppSettings {
   roundedBboxCorners: boolean;
   bboxColor: string;
   bboxThickness: 'small' | 'medium' | 'large';
+  bboxLabel: boolean;
 }
 
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
   roundedBboxCorners: false,
   bboxColor: 'yellow',
-  bboxThickness: 'medium'
+  bboxThickness: 'medium',
+  bboxLabel: true
 };
