@@ -8,6 +8,8 @@ import Fade from '@mui/material/Fade';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
 
+import license from '../assets/etc/LICENSE?raw';
+
 interface AboutModalProps {
   open: boolean;
   handleClose: () => void;
@@ -30,7 +32,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 600,
+            width: 800,
             bgcolor: 'background.paper',
             boxShadow: 24,
             p: 4,
@@ -45,11 +47,43 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
           <Typography id="about-modal-title" variant="h6" component="h2">
             About {import.meta.env.VITE_WEBSITE_NAME}
           </Typography>
-          <Typography id="about-modal-description" sx={{ mt: 2 }}>
+          <Typography
+            id="about-modal-description"
+            sx={{ mt: 2, marginBottom: 2 }}
+          >
             Version: {import.meta.env.VITE_VERSION}
             <AppVersion />
             Copyright © {new Date().getFullYear()}
           </Typography>
+
+          {/* License box */}
+          <Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6">License</Typography>
+            </Box>
+            {/* Scrollable license box */}
+            <Box
+              sx={(theme) => ({
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: `1px solid ${theme.palette.grey[600]}`,
+                padding: 2,
+                textAlign: 'left'
+              })}
+            >
+              {/* Preserve newlines in license text */}
+              <pre
+                style={{
+                  fontFamily: 'inherit',
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word'
+                }}
+              >
+                {license}
+              </pre>
+            </Box>
+          </Box>
+
           <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
             Close
           </Button>
