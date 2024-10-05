@@ -65,6 +65,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   let vapixParams: Partial<VapixConfig> = {};
   const vapixData = window.localStorage.getItem('vapix');
@@ -149,14 +150,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         /* Log initial dimensions */
         logVideoDimensions();
 
-        /* Add event listeners for resize */
-        window.addEventListener('resize', logVideoDimensions);
+        /* Set up ResizeObserver to monitor changes in video container or video element size */
+        resizeObserverRef.current = new ResizeObserver(() => {
+          logVideoDimensions();
+        });
+
+        /* Observe both the player container and the video element */
+        resizeObserverRef.current.observe(playerContainerRef.current);
+        resizeObserverRef.current.observe(videoElement);
 
         /* Log video dimensions once metadata (e.g., width/height) is loaded */
         videoElement.addEventListener('loadedmetadata', logVideoDimensions);
 
         return () => {
-          window.removeEventListener('resize', logVideoDimensions);
+          /* Cleanup ResizeObserver and event listeners */
+          if (resizeObserverRef.current) {
+            resizeObserverRef.current.disconnect();
+          }
           videoElement.removeEventListener(
             'loadedmetadata',
             logVideoDimensions

@@ -179,10 +179,12 @@ const App: React.FC = () => {
 
     /* Add resize event listeners */
     window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', recalculateDimensions);
 
     /* Clean up */
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', recalculateDimensions);
     };
   }, []);
 
@@ -232,27 +234,21 @@ const App: React.FC = () => {
     fetchSystemReady();
   }, []);
 
+  /* Recalculate the video dimensions when the screen size changes */
   const recalculateDimensions = () => {
-    /* The delay allows the DOM to settle before recalculating dimensions. */
     if (logVideoDimensionsRef.current) {
-      setTimeout(() => {
-        if (logVideoDimensionsRef.current) {
-          logVideoDimensionsRef.current();
-        }
-      }, 300);
+      logVideoDimensionsRef.current();
     }
   };
 
   const handleDrawerOpen = () => {
     setManualDrawerControl(false);
     setDrawerOpen(true);
-    recalculateDimensions();
   };
 
   const handleDrawerClose = () => {
     setManualDrawerControl(true);
     setDrawerOpen(false);
-    recalculateDimensions();
   };
 
   const toggleTheme = useCallback(() => {
