@@ -9,6 +9,7 @@ import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
 import SettingsModal from './SettingsModal.js';
+import MonitorModal from './MonitorModal';
 import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
@@ -34,6 +35,7 @@ import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
@@ -130,6 +132,7 @@ const App: React.FC = () => {
   const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
     useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [monitorModalOpen, setMonitorModalOpen] = useState<boolean>(false);
   const [dimensions, setDimensions] = useState({
     videoWidth: 0,
     videoHeight: 0,
@@ -265,6 +268,9 @@ const App: React.FC = () => {
 
   const handleOpenSettingsModal = () => setSettingsModalOpen(true);
   const handleCloseSettingsModal = () => setSettingsModalOpen(false);
+
+  const handleOpenMonitorModal = () => setMonitorModalOpen(true);
+  const handleCloseMonitorModal = () => setMonitorModalOpen(false);
 
   /* Alert handler */
   const handleCloseAlert = (
@@ -463,7 +469,7 @@ const App: React.FC = () => {
                 edge="start"
                 sx={[
                   {
-                    mr: 2
+                    marginRight: 2
                   },
                   drawerOpen || screenWidth < drawerWidth + drawerOffset
                     ? { display: 'none' }
@@ -504,6 +510,19 @@ const App: React.FC = () => {
                 <img src={logo} alt="Logo" style={{ height: '40px' }} />
               </Box>
             </Box>
+
+            {/* Monitor button */}
+            <Tooltip title="Monitor" arrow>
+              <IconButton
+                color="inherit"
+                aria-label="monitor"
+                onClick={handleOpenMonitorModal}
+                edge="end"
+                sx={{ marginRight: '0px' }}
+              >
+                <MonitorHeartIcon />
+              </IconButton>
+            </Tooltip>
 
             {/* Show Widget Capabilities JSON button */}
             <Tooltip title="Show Widget Capabilities JSON" arrow>
@@ -631,7 +650,7 @@ const App: React.FC = () => {
                 justifyContent: 'center'
               }}
             >
-              <WidgetsOutlinedIcon sx={{ mr: 1 }} />
+              <WidgetsOutlinedIcon sx={{ marginRight: 1 }} />
               Widgets Menu | Active Widgets: {activeWidgets.length}
             </Typography>
             <Tooltip title="Close the menu" arrow placement="right">
@@ -792,6 +811,12 @@ const App: React.FC = () => {
         <SettingsModal
           open={settingsModalOpen}
           handleClose={handleCloseSettingsModal}
+        />
+
+        {/* Monitor Modal */}
+        <MonitorModal
+          open={monitorModalOpen}
+          handleClose={handleCloseMonitorModal}
         />
       </>
     );

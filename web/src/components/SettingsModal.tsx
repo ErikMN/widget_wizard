@@ -194,7 +194,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               }}
             >
               {/* Select bounding box color */}
-              <FormControl sx={{ mt: 2, width: '50%' }}>
+              <FormControl sx={{ marginTop: 2, width: '50%' }}>
                 <InputLabel id="bbox-color-label">
                   Bounding Box Color
                 </InputLabel>
@@ -213,7 +213,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               </FormControl>
 
               {/* Select bounding box thickness */}
-              <FormControl sx={{ mt: 2, width: '50%' }}>
+              <FormControl sx={{ marginTop: 2, width: '50%' }}>
                 <InputLabel id="bbox-thickness-label">
                   Bounding Box Thickness
                 </InputLabel>
@@ -238,10 +238,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              mt: 4
+              marginTop: 4
             }}
           >
-            <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
+            <Button
+              onClick={handleClose}
+              sx={{ marginTop: 2 }}
+              variant="contained"
+            >
               Close
             </Button>
           </Box>

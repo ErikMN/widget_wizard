@@ -83,12 +83,16 @@ const CapabilitiesModal: React.FC<CapabilitiesModal> = ({
           <Button
             onClick={handleToggleCollapse}
             variant="contained"
-            sx={{ mt: 2, mr: 1 }}
+            sx={{ marginTop: 2, marginRight: 1 }}
           >
             {collapsed ? 'Uncollapse All' : 'Collapse All'}
           </Button>
           {/* Close button */}
-          <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
+          <Button
+            onClick={handleClose}
+            sx={{ marginTop: 2 }}
+            variant="contained"
+          >
             Close
           </Button>
         </Box>

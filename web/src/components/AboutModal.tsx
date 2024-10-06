@@ -49,7 +49,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
           </Typography>
           <Typography
             id="about-modal-description"
-            sx={{ mt: 2, marginBottom: 2 }}
+            sx={{ marginTop: 2, marginBottom: 2 }}
           >
             Version: {import.meta.env.VITE_VERSION}
             <AppVersion />
@@ -84,7 +84,11 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             </Box>
           </Box>
 
-          <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
+          <Button
+            onClick={handleClose}
+            sx={{ marginTop: 2 }}
+            variant="contained"
+          >
             Close
           </Button>
         </Box>
