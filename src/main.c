@@ -27,7 +27,7 @@
 #define BUFFER_SIZE 1024
 
 static GMainLoop *main_loop = NULL;
-static int journalctl_fd = -1;
+static int log_fd = -1;
 static volatile bool terminate = false;
 
 /* List of all connected WebSocket clients */
@@ -83,16 +83,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   return 0;
 }
 
-/* Thread function to handle journalctl log streaming */
+/* Thread function to handle log streaming */
 static void *
-journalctl_stream(void *arg)
+log_stream(void *arg)
 {
   (void)arg;
   char buf[BUFFER_SIZE];
   ssize_t bytes_read;
 
   while (!terminate) {
-    bytes_read = read(journalctl_fd, buf, sizeof(buf) - 1);
+    bytes_read = read(log_fd, buf, sizeof(buf) - 1);
     if (bytes_read > 0) {
       buf[bytes_read] = '\0';
 
@@ -103,7 +103,7 @@ journalctl_stream(void *arg)
       }
       pthread_mutex_unlock(&clients_mutex);
     } else if (bytes_read < 0) {
-      syslog(LOG_ERR, "Error reading from journalctl: %s", strerror(errno));
+      syslog(LOG_ERR, "Error reading from log: %s", strerror(errno));
       break;
     }
   }
@@ -120,8 +120,10 @@ ws_run(void *arg)
   struct lws_context_creation_info info;
 
   static struct lws_protocols protocols[] = {
-    { .name = "ws", .callback = ws_callback, .per_session_data_size = 0, .id = 0 }, LWS_PROTOCOL_LIST_TERM
+    { .name = "ws", .callback = ws_callback, .per_session_data_size = 0, .id = 0 },
+    LWS_PROTOCOL_LIST_TERM,
   };
+
   memset(&info, 0, sizeof(info));
   info.port = WS_PORT;
   info.protocols = protocols;
@@ -137,7 +139,7 @@ ws_run(void *arg)
     syslog(LOG_ERR, "Failed to create libwebsocket context");
     return NULL;
   }
-  PRINT_GREEN("WebSocket server started on port %d\n", info.port);
+  syslog(LOG_INFO, "WebSocket server started on port %d\n", info.port);
 
   while (!terminate) {
     lws_service(context, -1);
@@ -147,11 +149,11 @@ ws_run(void *arg)
   return NULL;
 }
 
-/* Setup WebSocket server and journalctl log streaming */
+/* Setup WebSocket server and log streaming */
 static int
 ws_setup(void)
 {
-  pthread_t ws_thread, journal_thread;
+  pthread_t ws_thread, log_thread;
 
   /* Start WebSocket server thread */
   syslog(LOG_INFO, "Start WebSocket thread");
@@ -160,30 +162,30 @@ ws_setup(void)
     return -1;
   }
 
-  /* Start journalctl process */
+  /* Start tail process */
   int fds[2];
   if (pipe(fds) != 0) {
-    syslog(LOG_ERR, "Failed to create pipe for journalctl output");
+    syslog(LOG_ERR, "Failed to create pipe for log output");
     return -1;
   }
 
   if (fork() == 0) {
-    /* Child process: Run journalctl -f */
+    /* Child process: Run tail -f /var/log/*.log* via shell for wildcard expansion */
     dup2(fds[1], STDOUT_FILENO);
     close(fds[0]);
-    execlp("journalctl", "journalctl", "-f", NULL);
-    syslog(LOG_ERR, "Failed to start journalctl");
-    _exit(EXIT_FAILURE);
+    execlp("/bin/sh", "sh", "-c", "tail -f /var/log/*.log*", NULL);
+    syslog(LOG_ERR, "Failed to start tail");
+    exit(EXIT_FAILURE);
   }
 
   /* Parent process: Use the read end of the pipe */
   close(fds[1]);
-  journalctl_fd = fds[0];
+  log_fd = fds[0];
 
-  /* Start journalctl log streaming thread */
-  syslog(LOG_INFO, "Start journalctl streaming thread");
-  if (pthread_create(&journal_thread, NULL, journalctl_stream, NULL) != 0) {
-    syslog(LOG_ERR, "Failed to set up journalctl streaming. Terminating.");
+  /* Start log streaming thread */
+  syslog(LOG_INFO, "Start log streaming thread");
+  if (pthread_create(&log_thread, NULL, log_stream, NULL) != 0) {
+    syslog(LOG_ERR, "Failed to set up log streaming. Terminating.");
     return -1;
   }
 
@@ -233,7 +235,7 @@ main(int argc, char **argv)
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "Starting %s", APP_NAME);
 
-  /* Setup websocket and journalctl tracking */
+  /* Setup websocket and log tracking */
   if (ws_setup() != 0) {
     exit(EXIT_FAILURE);
   }
