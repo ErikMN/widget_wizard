@@ -434,7 +434,8 @@ const App: React.FC = () => {
     blue: '#00aaff',
     red: '#ff4444',
     green: '#00cc00',
-    purple: '#d633ff'
+    purple: '#d633ff',
+    none: 'none'
   };
   const defaultColor = '#ffcc33';
   const bboxColor = colorMappings[appSettings.bboxColor] || defaultColor;

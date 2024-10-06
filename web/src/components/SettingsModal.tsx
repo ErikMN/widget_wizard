@@ -21,7 +21,7 @@ interface SettingsModalProps {
   handleClose: () => void;
 }
 
-const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
+const availableColors = ['yellow', 'blue', 'red', 'green', 'purple', 'none'];
 const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
   'small',
   'medium',
