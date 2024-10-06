@@ -36,6 +36,7 @@ static int num_clients = 0;
 
 /* Mutex to protect the client list */
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t ws_thread, log_thread;
 
 /* WebSocket callback function */
 static int
@@ -83,6 +84,32 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   return 0;
 }
 
+static void
+tail_log()
+{
+  if (log_fd >= 0) {
+    close(log_fd);
+  }
+
+  int fds[2];
+  if (pipe(fds) != 0) {
+    syslog(LOG_ERR, "Failed to create pipe for log output");
+    exit(EXIT_FAILURE);
+  }
+
+  if (fork() == 0) {
+    /* Child process: Run tail -f /var/log/*.log* via shell for wildcard expansion */
+    dup2(fds[1], STDOUT_FILENO);
+    close(fds[0]);
+    if (execlp("/bin/sh", "sh", "-c", "tail -f /var/log/*.log*", NULL) == -1) {
+      syslog(LOG_ERR, "Failed to start tail: %s", strerror(errno));
+      exit(EXIT_FAILURE);
+    }
+  }
+  close(fds[1]);
+  log_fd = fds[0];
+}
+
 /* Thread function to handle log streaming */
 static void *
 log_stream(void *arg)
@@ -94,7 +121,7 @@ log_stream(void *arg)
   while (!terminate) {
     bytes_read = read(log_fd, buf, sizeof(buf) - 1);
     if (bytes_read > 0) {
-      buf[bytes_read] = '\0';
+      buf[bytes_read < (ssize_t)(sizeof(buf) - 1) ? bytes_read : (ssize_t)(sizeof(buf) - 1)] = '\0';
 
       pthread_mutex_lock(&clients_mutex);
       for (int i = 0; i < num_clients; i++) {
@@ -104,7 +131,10 @@ log_stream(void *arg)
       pthread_mutex_unlock(&clients_mutex);
     } else if (bytes_read < 0) {
       syslog(LOG_ERR, "Error reading from log: %s", strerror(errno));
-      break;
+      if (errno == EINTR || errno == EIO) {
+        syslog(LOG_ERR, "Restarting tail process due to error.");
+        tail_log();
+      }
     }
   }
 
@@ -139,7 +169,7 @@ ws_run(void *arg)
     syslog(LOG_ERR, "Failed to create libwebsocket context");
     return NULL;
   }
-  syslog(LOG_INFO, "WebSocket server started on port %d\n", info.port);
+  syslog(LOG_INFO, "WebSocket server started on port %d", info.port);
 
   while (!terminate) {
     lws_service(context, -1);
@@ -153,8 +183,6 @@ ws_run(void *arg)
 static int
 ws_setup(void)
 {
-  pthread_t ws_thread, log_thread;
-
   /* Start WebSocket server thread */
   syslog(LOG_INFO, "Start WebSocket thread");
   if (pthread_create(&ws_thread, NULL, ws_run, NULL) != 0) {
@@ -162,25 +190,8 @@ ws_setup(void)
     return -1;
   }
 
-  /* Start tail process */
-  int fds[2];
-  if (pipe(fds) != 0) {
-    syslog(LOG_ERR, "Failed to create pipe for log output");
-    return -1;
-  }
-
-  if (fork() == 0) {
-    /* Child process: Run tail -f /var/log/*.log* via shell for wildcard expansion */
-    dup2(fds[1], STDOUT_FILENO);
-    close(fds[0]);
-    execlp("/bin/sh", "sh", "-c", "tail -f /var/log/*.log*", NULL);
-    syslog(LOG_ERR, "Failed to start tail");
-    exit(EXIT_FAILURE);
-  }
-
-  /* Parent process: Use the read end of the pipe */
-  close(fds[1]);
-  log_fd = fds[0];
+  /* Start monitoring logs with tail */
+  tail_log();
 
   /* Start log streaming thread */
   syslog(LOG_INFO, "Start log streaming thread");
@@ -198,7 +209,11 @@ handle_sigterm(int signo)
 {
   (void)signo;
   terminate = true;
-  g_main_loop_quit(main_loop);
+
+  /* Stop main loop */
+  if (main_loop != NULL) {
+    g_main_loop_quit(main_loop);
+  }
 }
 
 /* Setup signal handling */
@@ -219,7 +234,7 @@ main(int argc, char **argv)
   (void)argc;
   (void)argv;
 
-  printf("\nHello World!\n");
+  printf("\nHello %s!\n", APP_NAME);
   printf("%s:%d\n", __FILE__, __LINE__);
 
   print_debug("\n*** Development build\n");
@@ -242,6 +257,10 @@ main(int argc, char **argv)
 
   /* Start the main loop */
   g_main_loop_run(main_loop);
+
+  /* Wait for threads to finish */
+  pthread_join(ws_thread, NULL);
+  pthread_join(log_thread, NULL);
 
   /* Unref the main loop */
   g_main_loop_unref(main_loop);

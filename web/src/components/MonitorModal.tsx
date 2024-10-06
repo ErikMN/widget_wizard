@@ -108,7 +108,7 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 800,
+            width: '1000px',
             bgcolor: 'background.paper',
             boxShadow: 24,
             p: 4,
@@ -159,7 +159,7 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
           {/* Logs box */}
           <Box
             sx={(theme) => ({
-              height: 400,
+              height: 500,
               overflowY: 'auto',
               borderRadius: 1,
               border: `1px solid ${theme.palette.grey[600]}`,
