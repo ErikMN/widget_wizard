@@ -26,10 +26,10 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
   const [connectionError, setConnectionError] = useState<string>('');
   const [isRunning, setRunning] = useState<boolean>(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const logsEndRef = useRef<HTMLDivElement>(null);
 
   /* Refs */
   const socketRef = useRef<WebSocket | null>(null);
+  const logsEndRef = useRef<HTMLDivElement>(null);
   const shouldReconnectRef = useRef<boolean>(false);
 
   /* WebSocket setup */
@@ -38,7 +38,10 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
       if (!shouldReconnectRef.current) {
         return;
       }
-
+      if (socketRef.current) {
+        return;
+      }
+      /* Create a WebSocket connection */
       socketRef.current = new WebSocket(wsAddress);
 
       /* WS onopen */
@@ -53,18 +56,21 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
       };
 
       /* WS onclose */
-      socketRef.current.onclose = () => {
+      socketRef.current.onclose = (event) => {
         setRunning(false);
         setConnectionError('WebSocket connection closed. Reconnecting...');
+        socketRef.current = null;
         if (shouldReconnectRef.current) {
           setTimeout(connectWebSocket, TIMEOUT);
         }
       };
 
       /* WS onerror */
-      socketRef.current.onerror = () => {
-        setConnectionError(`Error: Could not establish WebSocket connection.`);
+      socketRef.current.onerror = (error) => {
+        // console.error('WebSocket error:', error);
+        setConnectionError('Error: Could not establish WebSocket connection.');
         setRunning(false);
+        socketRef.current = null;
       };
     };
 
@@ -167,6 +173,9 @@ const MonitorModal: React.FC<MonitorModalProps> = ({ open, handleClose }) => {
               textAlign: 'left',
               fontFamily: 'Monaco, Menlo, "Courier New", monospace'
             })}
+            role="log"
+            aria-live="polite"
+            aria-atomic="true"
           >
             {logs.map((log, index) => (
               <pre
