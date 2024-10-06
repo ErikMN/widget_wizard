@@ -20,6 +20,8 @@
 #include <jansson.h>
 #include <libwebsockets.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "common.h"
 
@@ -29,6 +31,7 @@
 static GMainLoop *main_loop = NULL;
 static int log_fd = -1;
 static volatile bool terminate = false;
+static pid_t tail_pid = -1;
 
 /* List of all connected WebSocket clients */
 static struct lws *clients[FD_SETSIZE];
@@ -37,6 +40,33 @@ static int num_clients = 0;
 /* Mutex to protect the client list */
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t ws_thread, log_thread;
+
+/* Function to add a client to the list (thread-safe) */
+static void
+add_client(struct lws *wsi)
+{
+  pthread_mutex_lock(&clients_mutex);
+  if (num_clients < FD_SETSIZE) {
+    clients[num_clients++] = wsi;
+  } else {
+    syslog(LOG_ERR, "Too many clients connected.");
+  }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+/* Function to remove a client from the list (thread-safe) */
+static void
+remove_client(struct lws *wsi)
+{
+  pthread_mutex_lock(&clients_mutex);
+  for (int i = 0; i < num_clients; i++) {
+    if (clients[i] == wsi) {
+      clients[i] = clients[--num_clients];
+      break;
+    }
+  }
+  pthread_mutex_unlock(&clients_mutex);
+}
 
 /* WebSocket callback function */
 static int
@@ -50,14 +80,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   switch (reason) {
   case LWS_CALLBACK_ESTABLISHED:
     syslog(LOG_INFO, "WebSocket connection established");
-
-    pthread_mutex_lock(&clients_mutex);
-    if (num_clients < FD_SETSIZE) {
-      clients[num_clients++] = wsi;
-    } else {
-      syslog(LOG_ERR, "Too many clients connected.");
-    }
-    pthread_mutex_unlock(&clients_mutex);
+    add_client(wsi);
     break;
 
   case LWS_CALLBACK_RECEIVE:
@@ -66,15 +89,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_CLOSED:
     syslog(LOG_INFO, "WebSocket connection closed");
-
-    pthread_mutex_lock(&clients_mutex);
-    for (int i = 0; i < num_clients; i++) {
-      if (clients[i] == wsi) {
-        clients[i] = clients[--num_clients];
-        break;
-      }
-    }
-    pthread_mutex_unlock(&clients_mutex);
+    remove_client(wsi);
     break;
 
   default:
@@ -84,6 +99,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   return 0;
 }
 
+/* Start the tail log process and setup the pipe */
 static void
 tail_log()
 {
@@ -93,11 +109,11 @@ tail_log()
 
   int fds[2];
   if (pipe(fds) != 0) {
-    syslog(LOG_ERR, "Failed to create pipe for log output");
+    syslog(LOG_ERR, "Failed to create pipe for log output: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  if (fork() == 0) {
+  if ((tail_pid = fork()) == 0) {
     /* Child process: Run tail -f /var/log/*.log* via shell for wildcard expansion */
     dup2(fds[1], STDOUT_FILENO);
     close(fds[0]);
@@ -105,9 +121,29 @@ tail_log()
       syslog(LOG_ERR, "Failed to start tail: %s", strerror(errno));
       exit(EXIT_FAILURE);
     }
+  } else if (tail_pid > 0) {
+    /* Parent process */
+    close(fds[1]);
+    log_fd = fds[0];
+  } else {
+    syslog(LOG_ERR, "Failed to fork tail process: %s", strerror(errno));
+    exit(EXIT_FAILURE);
   }
-  close(fds[1]);
-  log_fd = fds[0];
+}
+
+/* Thread cleanup handler for log streaming thread */
+static void
+log_thread_cleanup(void *arg)
+{
+  (void)arg;
+  if (log_fd >= 0) {
+    close(log_fd);
+    log_fd = -1;
+  }
+  if (tail_pid > 0) {
+    kill(tail_pid, SIGTERM);
+    waitpid(tail_pid, NULL, 0);
+  }
 }
 
 /* Thread function to handle log streaming */
@@ -118,25 +154,39 @@ log_stream(void *arg)
   char buf[BUFFER_SIZE];
   ssize_t bytes_read;
 
+  pthread_cleanup_push(log_thread_cleanup, NULL);
+
   while (!terminate) {
+    /* Read from log fd */
     bytes_read = read(log_fd, buf, sizeof(buf) - 1);
     if (bytes_read > 0) {
       buf[bytes_read < (ssize_t)(sizeof(buf) - 1) ? bytes_read : (ssize_t)(sizeof(buf) - 1)] = '\0';
 
       pthread_mutex_lock(&clients_mutex);
       for (int i = 0; i < num_clients; i++) {
-        lws_write(clients[i], (unsigned char *)buf, bytes_read, LWS_WRITE_TEXT);
-        lws_callback_on_writable(clients[i]);
+        /* Buffer for WebSocket frame header and data */
+        unsigned char ws_buf[LWS_PRE + BUFFER_SIZE];
+
+        /* Data starts after LWS_PRE header */
+        unsigned char *p = &ws_buf[LWS_PRE];
+        memcpy(p, buf, bytes_read);
+
+        /* Write the buffer to the client */
+        int write_status = lws_write(clients[i], p, bytes_read, LWS_WRITE_TEXT);
+
+        if (write_status < bytes_read) {
+          syslog(LOG_ERR, "Error writing to client %d: %d", i, write_status);
+        } else {
+          lws_callback_on_writable(clients[i]);
+        }
       }
       pthread_mutex_unlock(&clients_mutex);
-    } else if (bytes_read < 0) {
+    } else if (bytes_read < 0 && errno != EINTR) {
       syslog(LOG_ERR, "Error reading from log: %s", strerror(errno));
-      if (errno == EINTR || errno == EIO) {
-        syslog(LOG_ERR, "Restarting tail process due to error.");
-        tail_log();
-      }
+      break;
     }
   }
+  pthread_cleanup_pop(1);
 
   return NULL;
 }
@@ -184,7 +234,7 @@ static int
 ws_setup(void)
 {
   /* Start WebSocket server thread */
-  syslog(LOG_INFO, "Start WebSocket thread");
+  syslog(LOG_INFO, "Starting WebSocket thread");
   if (pthread_create(&ws_thread, NULL, ws_run, NULL) != 0) {
     syslog(LOG_ERR, "Failed to set up WebSocket. Terminating.");
     return -1;
@@ -194,7 +244,7 @@ ws_setup(void)
   tail_log();
 
   /* Start log streaming thread */
-  syslog(LOG_INFO, "Start log streaming thread");
+  syslog(LOG_INFO, "Starting log streaming thread");
   if (pthread_create(&log_thread, NULL, log_stream, NULL) != 0) {
     syslog(LOG_ERR, "Failed to set up log streaming. Terminating.");
     return -1;
@@ -213,6 +263,12 @@ handle_sigterm(int signo)
   /* Stop main loop */
   if (main_loop != NULL) {
     g_main_loop_quit(main_loop);
+  }
+
+  /* Wait for child processes to terminate, if any */
+  if (tail_pid > 0) {
+    kill(tail_pid, SIGTERM);
+    waitpid(tail_pid, NULL, 0);
   }
 }
 
@@ -250,7 +306,7 @@ main(int argc, char **argv)
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "Starting %s", APP_NAME);
 
-  /* Setup websocket and log tracking */
+  /* Setup WebSocket and log tracking */
   if (ws_setup() != 0) {
     exit(EXIT_FAILURE);
   }
