@@ -22,16 +22,21 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/inotify.h>
 
 #include "common.h"
 
 #define WS_PORT 9001
 #define BUFFER_SIZE 1024
 
+#define LOG_DIR "/var/log"
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define EVENT_BUF_LEN (1024 * (EVENT_SIZE + 16))
+
 static GMainLoop *main_loop = NULL;
 static int log_fd = -1;
 static volatile bool terminate = false;
-static pid_t tail_pid = -1;
+static int inotify_fd = -1;
 
 /* List of all connected WebSocket clients */
 static struct lws *clients[FD_SETSIZE];
@@ -99,36 +104,23 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   return 0;
 }
 
-/* Start the tail log process and setup the pipe */
+/* Function to initialize inotify and watch the /var/log directory */
 static void
-tail_log()
+setup_inotify(void)
 {
-  if (log_fd >= 0) {
-    close(log_fd);
-  }
-
-  int fds[2];
-  if (pipe(fds) != 0) {
-    syslog(LOG_ERR, "Failed to create pipe for log output: %s", strerror(errno));
+  inotify_fd = inotify_init();
+  if (inotify_fd < 0) {
+    syslog(LOG_ERR, "Failed to initialize inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  if ((tail_pid = fork()) == 0) {
-    /* Child process: Run tail -f /var/log/*.log* via shell for wildcard expansion */
-    dup2(fds[1], STDOUT_FILENO);
-    close(fds[0]);
-    if (execlp("/bin/sh", "sh", "-c", "tail -f /var/log/*.log*", NULL) == -1) {
-      syslog(LOG_ERR, "Failed to start tail: %s", strerror(errno));
-      exit(EXIT_FAILURE);
-    }
-  } else if (tail_pid > 0) {
-    /* Parent process */
-    close(fds[1]);
-    log_fd = fds[0];
-  } else {
-    syslog(LOG_ERR, "Failed to fork tail process: %s", strerror(errno));
+  /* Watch the /var/log directory for file modifications */
+  int wd = inotify_add_watch(inotify_fd, LOG_DIR, IN_MODIFY | IN_MOVE | IN_CREATE);
+  if (wd == -1) {
+    syslog(LOG_ERR, "Failed to add inotify watch on %s: %s", LOG_DIR, strerror(errno));
     exit(EXIT_FAILURE);
   }
+  syslog(LOG_INFO, "Inotify is watching %s for modifications", LOG_DIR);
 }
 
 /* Thread cleanup handler for log streaming thread */
@@ -140,10 +132,6 @@ log_thread_cleanup(void *arg)
     close(log_fd);
     log_fd = -1;
   }
-  if (tail_pid > 0) {
-    kill(tail_pid, SIGTERM);
-    waitpid(tail_pid, NULL, 0);
-  }
 }
 
 /* Thread function to handle log streaming */
@@ -152,39 +140,76 @@ log_stream(void *arg)
 {
   (void)arg;
   char buf[BUFFER_SIZE];
+  char event_buf[EVENT_BUF_LEN];
   ssize_t bytes_read;
+  volatile int event_pos = 0;
 
   pthread_cleanup_push(log_thread_cleanup, NULL);
 
   while (!terminate) {
-    /* Read from log fd */
-    bytes_read = read(log_fd, buf, sizeof(buf) - 1);
-    if (bytes_read > 0) {
-      buf[bytes_read < (ssize_t)(sizeof(buf) - 1) ? bytes_read : (ssize_t)(sizeof(buf) - 1)] = '\0';
+    pthread_testcancel();
 
-      pthread_mutex_lock(&clients_mutex);
-      for (int i = 0; i < num_clients; i++) {
-        /* Buffer for WebSocket frame header and data */
-        unsigned char ws_buf[LWS_PRE + BUFFER_SIZE];
-
-        /* Data starts after LWS_PRE header */
-        unsigned char *p = &ws_buf[LWS_PRE];
-        memcpy(p, buf, bytes_read);
-
-        /* Write the buffer to the client */
-        int write_status = lws_write(clients[i], p, bytes_read, LWS_WRITE_TEXT);
-
-        if (write_status < bytes_read) {
-          syslog(LOG_ERR, "Error writing to client %d: %d", i, write_status);
-        } else {
-          lws_callback_on_writable(clients[i]);
-        }
-      }
-      pthread_mutex_unlock(&clients_mutex);
-    } else if (bytes_read < 0 && errno != EINTR) {
-      syslog(LOG_ERR, "Error reading from log: %s", strerror(errno));
+    /* Wait for inotify events (file modifications in /var/log) */
+    int length = read(inotify_fd, event_buf, EVENT_BUF_LEN);
+    if (length < 0) {
+      syslog(LOG_ERR, "Error reading inotify events: %s", strerror(errno));
       break;
     }
+
+    while (event_pos < length) {
+      struct inotify_event *event = (struct inotify_event *)&event_buf[event_pos];
+
+      /* Check if this is a modification event and ignore rotated log files */
+      if (event->mask & IN_MODIFY) {
+        char fullpath[PATH_MAX];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", LOG_DIR, event->name);
+
+        /* Open the modified file and read the new contents */
+        int fd = open(fullpath, O_RDONLY);
+        if (fd < 0) {
+          syslog(LOG_ERR, "Failed to open modified log file %s: %s", fullpath, strerror(errno));
+          event_pos += EVENT_SIZE + event->len;
+          continue;
+        }
+
+        /* Read the new data */
+        bytes_read = read(fd, buf, sizeof(buf) - 1);
+        if (bytes_read > 0) {
+          buf[bytes_read < (ssize_t)(sizeof(buf) - 1) ? bytes_read : (ssize_t)(sizeof(buf) - 1)] = '\0';
+
+          /* Check if the log contains the word "logrotate" and skip broadcasting if found */
+          if (strstr(buf, "logrotate") != NULL) {
+            syslog(LOG_DEBUG, "Log event contains 'logrotate', ignoring it.");
+            close(fd);
+            event_pos += EVENT_SIZE + event->len;
+            continue;
+          }
+
+          pthread_mutex_lock(&clients_mutex);
+          for (int i = 0; i < num_clients; i++) {
+            /* Buffer for WebSocket frame header and data */
+            unsigned char ws_buf[LWS_PRE + BUFFER_SIZE];
+
+            /* Data starts after LWS_PRE header */
+            unsigned char *p = &ws_buf[LWS_PRE];
+            memcpy(p, buf, bytes_read);
+
+            /* Write the buffer to the client */
+            int write_status = lws_write(clients[i], p, bytes_read, LWS_WRITE_TEXT);
+
+            if (write_status < bytes_read) {
+              syslog(LOG_ERR, "Error writing to client %d: %d", i, write_status);
+            } else {
+              lws_callback_on_writable(clients[i]);
+            }
+          }
+          pthread_mutex_unlock(&clients_mutex);
+        }
+        close(fd);
+      }
+      event_pos += EVENT_SIZE + event->len;
+    }
+    event_pos = 0;
   }
   pthread_cleanup_pop(1);
 
@@ -223,6 +248,7 @@ ws_run(void *arg)
 
   while (!terminate) {
     lws_service(context, -1);
+    pthread_testcancel();
   }
   lws_context_destroy(context);
 
@@ -240,8 +266,8 @@ ws_setup(void)
     return -1;
   }
 
-  /* Start monitoring logs with tail */
-  tail_log();
+  /* Set up inotify for /var/log directory */
+  setup_inotify();
 
   /* Start log streaming thread */
   syslog(LOG_INFO, "Starting log streaming thread");
@@ -260,15 +286,13 @@ handle_sigterm(int signo)
   (void)signo;
   terminate = true;
 
+  /* Stop the WebSocket and log streaming threads */
+  pthread_cancel(ws_thread);
+  pthread_cancel(log_thread);
+
   /* Stop main loop */
   if (main_loop != NULL) {
     g_main_loop_quit(main_loop);
-  }
-
-  /* Wait for child processes to terminate, if any */
-  if (tail_pid > 0) {
-    kill(tail_pid, SIGTERM);
-    waitpid(tail_pid, NULL, 0);
   }
 }
 
