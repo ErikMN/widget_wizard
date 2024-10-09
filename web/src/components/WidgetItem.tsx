@@ -59,6 +59,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   /* Global context */
   const {
+    appSettings,
     removeWidget,
     updateWidget,
     addCustomWidget,
@@ -559,17 +560,18 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               >
                 Update {capitalizeFirstLetter(widget.generalParams.type)}
               </Button>
-
-              <Button
-                onClick={toggleJsonViewer}
-                variant="contained"
-                startIcon={<ImageIcon />}
-                sx={{ marginTop: 1 }}
-              >
-                {useJsonViewer
-                  ? 'Switch to Text Editor'
-                  : 'Switch to JSON Viewer'}
-              </Button>
+              {appSettings.debug && (
+                <Button
+                  onClick={toggleJsonViewer}
+                  variant="contained"
+                  startIcon={<ImageIcon />}
+                  sx={{ marginTop: 1 }}
+                >
+                  {useJsonViewer
+                    ? 'Switch to Text Editor'
+                    : 'Switch to JSON Viewer'}
+                </Button>
+              )}
             </Box>
           </Collapse>
         </Box>

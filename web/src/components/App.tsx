@@ -513,17 +513,19 @@ const App: React.FC = () => {
             </Box>
 
             {/* Monitor button */}
-            <Tooltip title="Monitor" arrow>
-              <IconButton
-                color="inherit"
-                aria-label="monitor"
-                onClick={handleOpenMonitorModal}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                <MonitorHeartIcon />
-              </IconButton>
-            </Tooltip>
+            {appSettings.debug && (
+              <Tooltip title="Monitor" arrow>
+                <IconButton
+                  color="inherit"
+                  aria-label="monitor"
+                  onClick={handleOpenMonitorModal}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  <MonitorHeartIcon />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Show Widget Capabilities JSON button */}
             <Tooltip title="Show Widget Capabilities JSON" arrow>

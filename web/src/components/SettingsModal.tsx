@@ -35,6 +35,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
   /****************************************************************************/
 
   /* Settings handlers */
+  const handleDebugMode = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      debug: !prevSettings.debug
+    }));
+    handleOpenAlert(`Debug mode: ${!appSettings.debug}`, 'success');
+  };
+
   const handleToggleRoundedCorners = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -232,6 +240,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               </FormControl>
             </Box>
           </Box>
+
+          {/* Switch to enable debug mode */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={appSettings.debug}
+                onChange={handleDebugMode}
+                name="debugMode"
+              />
+            }
+            label="Enable debug mode"
+          />
 
           {/* Close button */}
           <Box

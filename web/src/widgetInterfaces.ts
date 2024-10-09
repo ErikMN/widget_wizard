@@ -157,6 +157,7 @@ generalParams": {
 
 /* Application settings JSON interface */
 export interface AppSettings {
+  debug: boolean;
   roundedBboxCorners: boolean;
   bboxColor: string;
   bboxThickness: 'small' | 'medium' | 'large';
@@ -165,6 +166,7 @@ export interface AppSettings {
 
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
+  debug: false,
   roundedBboxCorners: false,
   bboxColor: 'yellow',
   bboxThickness: 'medium',
