@@ -468,7 +468,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             <>
               <Button
                 color="secondary"
-                variant="contained"
+                variant={widgetParamsVisible ? 'outlined' : 'contained'}
                 fullWidth
                 onClick={toggleWidgetParams}
                 startIcon={<WidgetsIcon />}
