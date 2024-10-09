@@ -6,6 +6,7 @@ import { Widget } from '../widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { useDebouncedValue } from '../helpers/hooks.jsx';
+import WidgetParams from './WidgetParams';
 import ReactJson from 'react-json-view';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -41,6 +42,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /* Local state */
   const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
   const [jsonVisible, setJsonVisible] = useState<boolean>(false);
+  const [widgetParamsVisible, setWidgetParamsVisible] =
+    useState<boolean>(false);
   const [widgetId, setWidgetId] = useState<number | null>(null);
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(widget, null, 2)
@@ -205,6 +208,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     if (!isNaN(newUpdateTime)) {
       setUpdateTime(newUpdateTime);
     }
+  };
+
+  /* Toggle Widget Params */
+  const toggleWidgetParams = () => {
+    setWidgetParamsVisible((prev) => !prev);
   };
 
   /****************************************************************************/
@@ -454,6 +462,25 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 valueLabelDisplay="auto"
               />
             </Box>
+          )}
+          {/* Widget Params */}
+          {appSettings.debug && (
+            <>
+              <Button
+                color="secondary"
+                variant="contained"
+                fullWidth
+                onClick={toggleWidgetParams}
+                startIcon={<WidgetsIcon />}
+              >
+                {widgetParamsVisible
+                  ? 'Hide Widget Parameters'
+                  : 'Show Widget Parameters'}
+              </Button>
+              <Collapse in={widgetParamsVisible}>
+                <WidgetParams widget={widget} />
+              </Collapse>
+            </>
           )}
           {/* Remove widget button */}
           <Button
