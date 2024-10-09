@@ -32,12 +32,14 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     (widgetCap) => widgetCap.type === widget?.generalParams?.type
   );
 
+  /* Simple param UI */
   const renderWidgetParam = (
     paramKey: string,
     paramValue: any,
     paramConfig: any
   ) => {
     switch (paramConfig.type) {
+      /* A text input: {type: 'string'} */
       case 'string':
         return (
           <TextField
@@ -48,6 +50,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             margin="normal"
           />
         );
+      /* A slider: {type: 'float', minimum: 0, maximum: 100} */
       case 'float':
         return (
           <Box>
@@ -64,6 +67,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             />
           </Box>
         );
+      /* A switch: {type: 'bool'} */
       case 'bool':
         return (
           <Box display="flex" alignItems="center">
@@ -96,6 +100,33 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     }
   };
 
+  /* Complex param UI */
+  const renderComplexParam = (
+    paramKey: string,
+    paramValue: any,
+    paramConfig: any
+  ) => {
+    /* Slider: yInterval: { yMax: {type: 'float'}, yMin: {type: 'float'}} */
+    if (paramConfig.yMin && paramConfig.yMax) {
+      return (
+        <Box>
+          <Typography>{paramKey}</Typography>
+          <Slider
+            value={paramValue}
+            min={paramConfig.yMin || 0}
+            max={paramConfig.yMax || 100}
+            onChange={(e, newValue) =>
+              console.log(`Update ${paramKey}:`, newValue)
+            }
+            step={0.01}
+            valueLabelDisplay="auto"
+          />
+        </Box>
+      );
+    }
+    return renderWidgetParam(paramKey, paramValue, paramConfig);
+  };
+
   return (
     <Box sx={{ marginTop: 1 }}>
       <Typography variant="h6" sx={{ marginBottom: 1 }}>
@@ -116,7 +147,10 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           if (paramConfig) {
             return (
               <Box key={paramKey} sx={{ marginBottom: 2 }}>
-                {renderWidgetParam(paramKey, paramValue, paramConfig)}
+                {/* Check if the param has nested config like yMin/yMax */}
+                {paramConfig.yMin && paramConfig.yMax
+                  ? renderComplexParam(paramKey, paramValue, paramConfig)
+                  : renderWidgetParam(paramKey, paramValue, paramConfig)}
               </Box>
             );
           } else {
