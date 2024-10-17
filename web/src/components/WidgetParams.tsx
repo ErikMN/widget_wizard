@@ -38,6 +38,18 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     paramValue: any,
     paramConfig: any
   ) => {
+    /* Handle widget parameter changes */
+    const handleParamChange = (newValue: any) => {
+      const updatedWidget = {
+        ...widget,
+        widgetParams: {
+          ...widget.widgetParams,
+          [paramKey]: newValue
+        }
+      };
+      updateWidget(updatedWidget);
+    };
+
     switch (paramConfig.type) {
       /* A text input: {type: 'string'} */
       case 'string':
@@ -45,7 +57,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           <TextField
             label={paramKey}
             value={paramValue}
-            onChange={(e) => console.log(`Update ${paramKey}:`, e.target.value)}
+            onChange={(e) => handleParamChange(e.target.value)}
             fullWidth
             margin="normal"
           />
@@ -59,10 +71,8 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               value={paramValue}
               min={paramConfig.minimum}
               max={paramConfig.maximum}
-              onChange={(e, newValue) =>
-                console.log(`Update ${paramKey}:`, newValue)
-              }
-              step={0.01}
+              onChange={(e, newValue) => handleParamChange(newValue)}
+              // step={0.01}
               valueLabelDisplay="auto"
             />
           </Box>
@@ -74,9 +84,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             <Typography>{paramKey}</Typography>
             <Switch
               checked={paramValue}
-              onChange={(e) =>
-                console.log(`Update ${paramKey}:`, e.target.checked)
-              }
+              onChange={(e) => handleParamChange(e.target.checked)}
               inputProps={{ 'aria-label': paramKey }}
             />
           </Box>
@@ -85,7 +93,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         return (
           <Select
             value={paramValue}
-            onChange={(e) => console.log(`Update ${paramKey}:`, e.target.value)}
+            onChange={(e) => handleParamChange(e.target.value)}
             fullWidth
           >
             {paramConfig.enum.map((option: string) => (
