@@ -16,7 +16,7 @@ interface WidgetParamsProps {
 
 const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   /* Global context */
-  const { appSettings, widgetCapabilities } = useWidgetContext();
+  const { appSettings, widgetCapabilities, updateWidget } = useWidgetContext();
 
   /* Print widget params capabilities for this widget */
   const widgetCap = widgetCapabilities?.data?.widgets?.filter(
@@ -100,33 +100,6 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     }
   };
 
-  /* Complex param UI */
-  const renderComplexParam = (
-    paramKey: string,
-    paramValue: any,
-    paramConfig: any
-  ) => {
-    /* Slider: yInterval: { yMax: {type: 'float'}, yMin: {type: 'float'}} */
-    if (paramConfig.yMin && paramConfig.yMax) {
-      return (
-        <Box>
-          <Typography>{paramKey}</Typography>
-          <Slider
-            value={paramValue}
-            min={paramConfig.yMin || 0}
-            max={paramConfig.yMax || 100}
-            onChange={(e, newValue) =>
-              console.log(`Update ${paramKey}:`, newValue)
-            }
-            step={0.01}
-            valueLabelDisplay="auto"
-          />
-        </Box>
-      );
-    }
-    return renderWidgetParam(paramKey, paramValue, paramConfig);
-  };
-
   return (
     <Box sx={{ marginTop: 1 }}>
       <Typography variant="h6" sx={{ marginBottom: 1 }}>
@@ -147,10 +120,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           if (paramConfig) {
             return (
               <Box key={paramKey} sx={{ marginBottom: 2 }}>
-                {/* Check if the param has nested config like yMin/yMax */}
-                {paramConfig.yMin && paramConfig.yMax
-                  ? renderComplexParam(paramKey, paramValue, paramConfig)
-                  : renderWidgetParam(paramKey, paramValue, paramConfig)}
+                {renderWidgetParam(paramKey, paramValue, paramConfig)}
               </Box>
             );
           } else {
