@@ -464,24 +464,29 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             </Box>
           )}
           {/* Widget Params */}
-          {appSettings.debug && (
-            <>
-              <Button
-                color="secondary"
-                variant={widgetParamsVisible ? 'outlined' : 'contained'}
-                fullWidth
-                onClick={toggleWidgetParams}
-                startIcon={<WidgetsIcon />}
-              >
-                {widgetParamsVisible
-                  ? 'Hide Widget Parameters'
-                  : 'Show Widget Parameters'}
-              </Button>
-              <Collapse in={widgetParamsVisible}>
-                <WidgetParams widget={widget} />
-              </Collapse>
-            </>
-          )}
+          <Button
+            color="secondary"
+            variant={widgetParamsVisible ? 'outlined' : 'contained'}
+            fullWidth
+            onClick={toggleWidgetParams}
+            startIcon={<WidgetsIcon />}
+            endIcon={
+              widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
+            }
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 1
+            }}
+          >
+            {widgetParamsVisible
+              ? 'Hide Widget Parameters'
+              : 'Show Widget Parameters'}
+          </Button>
+          <Collapse in={widgetParamsVisible}>
+            <WidgetParams widget={widget} />
+          </Collapse>
           {/* Remove widget button */}
           <Button
             sx={{ marginTop: '10px' }}
