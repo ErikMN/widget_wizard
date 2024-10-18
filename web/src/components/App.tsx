@@ -668,7 +668,9 @@ const App: React.FC = () => {
           </DrawerHeader>
           <Divider />
           {/* Drawer content here */}
-          <WidgetHandler />
+          <Box sx={{ paddingBottom: 1 }}>
+            <WidgetHandler />
+          </Box>
         </Drawer>
 
         {/* Main content */}

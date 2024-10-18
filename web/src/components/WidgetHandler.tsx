@@ -216,7 +216,6 @@ const WidgetHandler: React.FC = () => {
         onClick={handleRemoveAllClick}
         disabled={activeWidgets.length === 0}
         startIcon={<DeleteIcon />}
-        sx={{ marginBottom: 2 }}
       >
         Remove all widgets
       </Button>
