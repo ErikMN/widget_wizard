@@ -70,8 +70,6 @@ const WidgetHandler: React.FC = () => {
       if (index !== -1) {
         /* Indicate that the dropdown was opened by a double-click */
         setIsDoubleClick(true);
-        /* Open the dropdown for this widget */
-        setOpenDropdownIndex(index);
         /* Reset double-click flag to be able to open dropdown with click */
         setIsDoubleClick(false);
       }
