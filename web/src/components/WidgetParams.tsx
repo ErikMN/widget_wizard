@@ -81,6 +81,9 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               height: '40px',
               '& .MuiOutlinedInput-root': {
                 height: '100%'
+              },
+              '& .MuiInputLabel-root': {
+                top: '-4px'
               }
             }}
           />

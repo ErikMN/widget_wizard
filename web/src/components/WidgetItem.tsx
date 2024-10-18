@@ -358,6 +358,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                     height: '40px',
                     '& .MuiOutlinedInput-root': {
                       height: '100%'
+                    },
+                    '& .MuiInputLabel-root': {
+                      top: '-4px'
                     }
                   }}
                 />
@@ -375,6 +378,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                     height: '40px',
                     '& .MuiOutlinedInput-root': {
                       height: '100%'
+                    },
+                    '& .MuiInputLabel-root': {
+                      top: '-4px'
                     }
                   }}
                 />
@@ -393,6 +399,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                     height: '40px',
                     '& .MuiOutlinedInput-root': {
                       height: '100%'
+                    },
+                    '& .MuiInputLabel-root': {
+                      top: '-4px'
                     }
                   }}
                 />
