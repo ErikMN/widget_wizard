@@ -20,9 +20,10 @@ import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import {
   HD_WIDTH,
+  Dimensions,
+  getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
-  getNormalizedCoordinateRanges,
-  calculateWidgetPosition
+  getNormalizedCoordinateRanges
 } from '../helpers/bboxhelper';
 /* MUI */
 import { styled } from '@mui/material/styles';
@@ -116,14 +117,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end'
 }));
 
-interface BoundingBox {
-  id: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 /******************************************************************************/
 
 const App: React.FC = () => {
@@ -139,7 +132,7 @@ const App: React.FC = () => {
     useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [monitorModalOpen, setMonitorModalOpen] = useState<boolean>(false);
-  const [dimensions, setDimensions] = useState({
+  const [dimensions, setDimensions] = useState<Dimensions>({
     videoWidth: 0,
     videoHeight: 0,
     pixelWidth: 0,
@@ -327,35 +320,6 @@ const App: React.FC = () => {
 
   /* Widget backend uses 1920x1080 HD resolution */
   const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
-
-  const getWidgetPixelPosition = (
-    position: { x: number; y: number },
-    widgetWidth: number,
-    widgetHeight: number
-  ) => {
-    const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
-      widgetWidth,
-      widgetHeight,
-      scaleFactor,
-      dimensions
-    );
-    const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
-      widgetWidthPx,
-      widgetHeightPx,
-      dimensions
-    );
-
-    return calculateWidgetPosition(
-      position,
-      widgetWidthPx,
-      widgetHeightPx,
-      dimensions,
-      Xmin,
-      Xmax,
-      Ymin,
-      Ymax
-    );
-  };
 
   const handleDragStop = (widget: Widget, newX: number, newY: number) => {
     // console.log(
@@ -717,6 +681,8 @@ const App: React.FC = () => {
                     widget.generalParams.isVisible
                   ) {
                     const { x, y } = getWidgetPixelPosition(
+                      dimensions,
+                      scaleFactor,
                       widget.generalParams.position,
                       widget.width,
                       widget.height
