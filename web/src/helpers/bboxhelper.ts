@@ -6,12 +6,12 @@
 export const HD_WIDTH = 1920;
 
 export interface Dimensions {
-  videoWidth: number;
-  videoHeight: number;
-  pixelWidth: number;
-  pixelHeight: number;
-  offsetX: number;
-  offsetY: number;
+  videoWidth: number; // Video stream width
+  videoHeight: number; // Video stream height
+  pixelWidth: number; // Video pixel width
+  pixelHeight: number; // Video pixel height
+  offsetX: number; // Offset X (left margin of the video in the container)
+  offsetY: number; // Offset Y (top margin of the video in the container)
 }
 
 /* Calculate widget size in pixels */
