@@ -21,11 +21,12 @@ export const calculateWidgetSizeInPixels = (
   scaleFactor: number,
   dimensions: { pixelWidth: number; pixelHeight: number }
 ) => {
-  let widgetWidthPx = Math.min(
+  /* Limit widget size so it does not exceed video dimensions */
+  const widgetWidthPx = Math.min(
     widgetWidth * scaleFactor,
     dimensions.pixelWidth
   );
-  let widgetHeightPx = Math.min(
+  const widgetHeightPx = Math.min(
     widgetHeight * scaleFactor,
     dimensions.pixelHeight
   );
@@ -58,12 +59,22 @@ export const calculateWidgetPosition = (
   Ymin: number,
   Ymax: number
 ) => {
-  const widgetX =
+  let widgetX =
     ((position.x - Xmin) / (Xmax - Xmin)) *
     (dimensions.pixelWidth - widgetWidthPx);
-  const widgetY =
+  let widgetY =
     ((position.y - Ymin) / (Ymax - Ymin)) *
     (dimensions.pixelHeight - widgetHeightPx);
+
+  /* Clamp the position to ensure the widget doesn't go outside the bounds */
+  widgetX = Math.max(
+    0,
+    Math.min(widgetX, dimensions.pixelWidth - widgetWidthPx)
+  );
+  widgetY = Math.max(
+    0,
+    Math.min(widgetY, dimensions.pixelHeight - widgetHeightPx)
+  );
 
   return { x: widgetX, y: widgetY };
 };

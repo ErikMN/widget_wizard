@@ -336,10 +336,14 @@ const App: React.FC = () => {
       widgetHeightPx,
       dimensions
     );
-    const posX =
+    /* Calculate new normalized positions */
+    let posX =
       (newX / (dimensions.pixelWidth - widgetWidthPx)) * (Xmax - Xmin) + Xmin;
-    const posY =
+    let posY =
       (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
+    /* Ensure widget stays within boundaries (clamping) */
+    posX = Math.max(Xmin, Math.min(posX, Xmax));
+    posY = Math.max(Ymin, Math.min(posY, Ymax));
 
     /* Compare with current position */
     const EPSILON = 1e-6;
