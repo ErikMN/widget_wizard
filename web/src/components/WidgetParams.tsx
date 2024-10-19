@@ -1,3 +1,4 @@
+/* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useCallback, useState } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from '../widgetInterfaces';
@@ -165,7 +166,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
 
           if (paramConfig) {
             return (
-              <Box key={paramKey} sx={{ marginBottom: 2 }}>
+              <Box key={paramKey} sx={{ marginBottom: 1 }}>
                 {renderWidgetParam(paramKey, paramValue, paramConfig)}
               </Box>
             );
