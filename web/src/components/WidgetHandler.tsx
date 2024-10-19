@@ -34,6 +34,7 @@ const WidgetHandler: React.FC = () => {
   /* Global context */
   const {
     activeDraggableWidget,
+    setActiveDraggableWidget,
     activeWidgets,
     listWidgets,
     listWidgetCapabilities,
@@ -90,6 +91,11 @@ const WidgetHandler: React.FC = () => {
   /* Handle dropdown toggle */
   const toggleDropdown = (index: number) => {
     // console.log(index, openDropdownIndex);
+    /* Set id of activeWidgets to current for updating bbox zIndex */
+    setActiveDraggableWidget((prev) => ({
+      ...prev,
+      id: activeWidgets[index].generalParams.id
+    }));
     if (!isDoubleClick) {
       setOpenDropdownIndex(openDropdownIndex === index ? null : index);
     }

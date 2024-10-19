@@ -765,7 +765,13 @@ const App: React.FC = () => {
                                 : '0px',
                               position: 'absolute',
                               pointerEvents: 'auto',
-                              cursor: 'move'
+                              cursor: 'move',
+                              /* Set zIndex higher for active draggable widget */
+                              zIndex:
+                                activeDraggableWidget?.id ===
+                                widget.generalParams.id
+                                  ? 1000
+                                  : 1
                             }}
                           >
                             {/* Widget info note above the bbox */}
