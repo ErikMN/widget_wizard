@@ -18,6 +18,12 @@ import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import {
+  HD_WIDTH,
+  calculateWidgetSizeInPixels,
+  getNormalizedCoordinateRanges,
+  calculateWidgetPosition
+} from '../helpers/bboxhelper';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { grey } from '@mui/material/colors';
@@ -320,7 +326,6 @@ const App: React.FC = () => {
   };
 
   /* Widget backend uses 1920x1080 HD resolution */
-  const HD_WIDTH = 1920;
   const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
 
   const getWidgetPixelPosition = (
@@ -328,36 +333,45 @@ const App: React.FC = () => {
     widgetWidth: number,
     widgetHeight: number
   ) => {
-    const widgetWidthPx = widgetWidth * scaleFactor;
-    const widgetHeightPx = widgetHeight * scaleFactor;
-    const Xmin = -1.0;
-    const Xmax = 1.0 - 2 * (widgetWidthPx / dimensions.pixelWidth);
-    const Ymin = -1.0;
-    const Ymax = 1.0 - 2 * (widgetHeightPx / dimensions.pixelHeight);
+    const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
+      widgetWidth,
+      widgetHeight,
+      scaleFactor,
+      dimensions
+    );
+    const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
+      widgetWidthPx,
+      widgetHeightPx,
+      dimensions
+    );
 
-    const widgetX =
-      ((position.x - Xmin) / (Xmax - Xmin)) *
-      (dimensions.pixelWidth - widgetWidthPx);
-    const widgetY =
-      ((position.y - Ymin) / (Ymax - Ymin)) *
-      (dimensions.pixelHeight - widgetHeightPx);
-
-    // console.log('getWidgetPixelPosition:', { x: widgetX, y: widgetY });
-
-    return { x: widgetX, y: widgetY };
+    return calculateWidgetPosition(
+      position,
+      widgetWidthPx,
+      widgetHeightPx,
+      dimensions,
+      Xmin,
+      Xmax,
+      Ymin,
+      Ymax
+    );
   };
 
   const handleDragStop = (widget: Widget, newX: number, newY: number) => {
     // console.log(
     //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
     // );
-    const widgetWidthPx = widget.width * scaleFactor;
-    const widgetHeightPx = widget.height * scaleFactor;
-    const Xmin = -1.0;
-    const Xmax = 1.0 - 2 * (widgetWidthPx / dimensions.pixelWidth);
-    const Ymin = -1.0;
-    const Ymax = 1.0 - 2 * (widgetHeightPx / dimensions.pixelHeight);
-
+    const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
+      widget.width,
+      widget.height,
+      scaleFactor,
+      dimensions
+    );
+    const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
+      widgetWidthPx,
+      widgetHeightPx,
+      dimensions
+    );
     const posX =
       (newX / (dimensions.pixelWidth - widgetWidthPx)) * (Xmax - Xmin) + Xmin;
     const posY =
@@ -377,10 +391,7 @@ const App: React.FC = () => {
         ...widget,
         generalParams: {
           ...widget.generalParams,
-          position: {
-            x: posX,
-            y: posY
-          }
+          position: { x: posX, y: posY }
         }
       };
       /* Update the active widget state */
