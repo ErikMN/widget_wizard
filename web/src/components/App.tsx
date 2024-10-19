@@ -45,6 +45,7 @@ import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
@@ -510,7 +511,15 @@ const App: React.FC = () => {
               />
               {/* Title */}
               <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
-                <Typography variant="h5" noWrap component="div">
+                <Typography
+                  variant="h5"
+                  noWrap
+                  component="div"
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  {appSettings.debug && (
+                    <ScienceOutlinedIcon style={{ marginRight: '8px' }} />
+                  )}{' '}
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   <GetParam param="Brand.ProdFullName" />
                 </Typography>

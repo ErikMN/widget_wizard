@@ -11,6 +11,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Modal from '@mui/material/Modal';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Switch from '@mui/material/Switch';
@@ -250,7 +251,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                 name="debugMode"
               />
             }
-            label="Enable debug mode"
+            label={
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                Enable debug mode
+                <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
+              </span>
+            }
           />
 
           {/* Close button */}
