@@ -342,14 +342,21 @@ const App: React.FC = () => {
     let posY =
       (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
 
-    /* Ensure horizontal movement is always allowed */
-    posX = Math.max(Xmin, Math.min(posX, Xmax));
+    /* Clamping logic */
 
-    /* Clamp vertical movement only if widget height is less than video height */
+    /* Horizontal Movement: Always allow if widgetWidthPx < dimensions.pixelWidth */
+    if (widgetWidthPx < dimensions.pixelWidth) {
+      posX = Math.max(Xmin, Math.min(posX, Xmax));
+    } else {
+      /* If the widget is as wide as the video, it can still move vertically */
+      posX = Xmin;
+    }
+
+    /* Vertical Movement: Always allow if widgetHeightPx < dimensions.pixelHeight */
     if (widgetHeightPx < dimensions.pixelHeight) {
       posY = Math.max(Ymin, Math.min(posY, Ymax));
     } else {
-      /* If the widget is as tall as the video, fix it at the top boundary (Ymin) */
+      /* If the widget is as tall as the video, it can still move horizontally */
       posY = Ymin;
     }
 

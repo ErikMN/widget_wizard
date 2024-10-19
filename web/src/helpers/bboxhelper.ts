@@ -66,19 +66,25 @@ export const calculateWidgetPosition = (
     ((position.y - Ymin) / (Ymax - Ymin)) *
     (dimensions.pixelHeight - widgetHeightPx);
 
-  /* Clamp the horizontal position (X-axis) */
-  widgetX = Math.max(
-    0,
-    Math.min(widgetX, dimensions.pixelWidth - widgetWidthPx)
-  );
-  /* Only clamp vertical position if the widget's height is smaller than video height */
+  /* Horizontal Clamping (X-axis) */
+  if (widgetWidthPx < dimensions.pixelWidth) {
+    widgetX = Math.max(
+      0,
+      Math.min(widgetX, dimensions.pixelWidth - widgetWidthPx)
+    );
+  } else {
+    /* If the widget is as wide as the video, allow vertical movement */
+    widgetX = 0;
+  }
+
+  /* Vertical Clamping (Y-axis) */
   if (widgetHeightPx < dimensions.pixelHeight) {
     widgetY = Math.max(
       0,
       Math.min(widgetY, dimensions.pixelHeight - widgetHeightPx)
     );
   } else {
-    /* If the widget is as tall as the video, fix it at the top of the video */
+    /* If the widget is as tall as the video, allow horizontal movement */
     widgetY = 0;
   }
 
