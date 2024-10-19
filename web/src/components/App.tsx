@@ -341,9 +341,17 @@ const App: React.FC = () => {
       (newX / (dimensions.pixelWidth - widgetWidthPx)) * (Xmax - Xmin) + Xmin;
     let posY =
       (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
-    /* Ensure widget stays within boundaries (clamping) */
+
+    /* Ensure horizontal movement is always allowed */
     posX = Math.max(Xmin, Math.min(posX, Xmax));
-    posY = Math.max(Ymin, Math.min(posY, Ymax));
+
+    /* Clamp vertical movement only if widget height is less than video height */
+    if (widgetHeightPx < dimensions.pixelHeight) {
+      posY = Math.max(Ymin, Math.min(posY, Ymax));
+    } else {
+      /* If the widget is as tall as the video, fix it at the top boundary (Ymin) */
+      posY = Ymin;
+    }
 
     /* Compare with current position */
     const EPSILON = 1e-6;
