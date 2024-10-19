@@ -20,9 +20,11 @@ import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import {
   HD_WIDTH,
+  EPSILON,
   Dimensions,
   getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
+  calculateNormalizedPosition,
   getNormalizedCoordinateRanges
 } from '../helpers/bboxhelper';
 /* MUI */
@@ -325,6 +327,10 @@ const App: React.FC = () => {
     // console.log(
     //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
     // );
+    if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
+      console.error('Invalid dimensions detected');
+      return;
+    }
     const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
       widget.width,
       widget.height,
@@ -337,10 +343,20 @@ const App: React.FC = () => {
       dimensions
     );
     /* Calculate new normalized positions */
-    let posX =
-      (newX / (dimensions.pixelWidth - widgetWidthPx)) * (Xmax - Xmin) + Xmin;
-    let posY =
-      (newY / (dimensions.pixelHeight - widgetHeightPx)) * (Ymax - Ymin) + Ymin;
+    let posX = calculateNormalizedPosition(
+      newX,
+      Xmin,
+      Xmax,
+      widgetWidthPx,
+      dimensions.pixelWidth
+    );
+    let posY = calculateNormalizedPosition(
+      newY,
+      Ymin,
+      Ymax,
+      widgetHeightPx,
+      dimensions.pixelHeight
+    );
 
     /* Clamping logic */
 
@@ -361,7 +377,6 @@ const App: React.FC = () => {
     }
 
     /* Compare with current position */
-    const EPSILON = 1e-6;
     const currentPosX = widget.generalParams.position.x;
     const currentPosY = widget.generalParams.position.y;
 
