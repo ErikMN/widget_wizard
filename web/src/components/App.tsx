@@ -246,15 +246,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDrawerOpen = () => {
+  const handleDrawerOpen = useCallback(() => {
     setManualDrawerControl(false);
     setDrawerOpen(true);
-  };
+  }, []);
 
-  const handleDrawerClose = () => {
+  const handleDrawerClose = useCallback(() => {
     setManualDrawerControl(true);
     setDrawerOpen(false);
-  };
+  }, []);
 
   const toggleTheme = useCallback(() => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
