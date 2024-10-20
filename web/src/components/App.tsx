@@ -7,7 +7,7 @@ import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
-import SettingsModal from './SettingsModal.js';
+import SettingsModal from './SettingsModal';
 import MonitorModal from './MonitorModal';
 import BBox from './BBox';
 import { lightTheme, darkTheme } from '../theme';
@@ -16,7 +16,7 @@ import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
-import { Dimensions } from '../helpers/bboxhelper';
+import { Dimensions } from '../widgetInterfaces';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { grey } from '@mui/material/colors';

@@ -5,9 +5,9 @@ import React from 'react';
 import Draggable from 'react-draggable';
 import { Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import { Dimensions } from '../widgetInterfaces';
 import {
   HD_WIDTH,
-  Dimensions,
   getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
   calculateNormalizedPosition,

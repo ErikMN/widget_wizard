@@ -1,18 +1,10 @@
 /**
  * Helper functions for drawing bounding boxes
  */
+import { Dimensions } from '../widgetInterfaces';
 
 /* Widget backend uses 1920x1080 HD resolution */
 export const HD_WIDTH = 1920;
-
-export interface Dimensions {
-  videoWidth: number; // Video stream width
-  videoHeight: number; // Video stream height
-  pixelWidth: number; // Video pixel width
-  pixelHeight: number; // Video pixel height
-  offsetX: number; // Offset X (left margin of the video in the container)
-  offsetY: number; // Offset Y (top margin of the video in the container)
-}
 
 export interface Position {
   x: number;
