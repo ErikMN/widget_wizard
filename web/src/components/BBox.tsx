@@ -16,20 +16,14 @@ interface BBoxProps {
   widget: Widget;
   dimensions: Dimensions;
   scaleFactor: number;
-  isActive: boolean;
-  onDragStart: (widget: Widget, x: number, y: number) => void;
   onDragStop: (widget: Widget, x: number, y: number) => void;
-  onDoubleClick: (widget: Widget) => void;
 }
 
 const BBox: React.FC<BBoxProps> = ({
   widget,
   dimensions,
   scaleFactor,
-  isActive,
-  onDragStart,
-  onDragStop,
-  onDoubleClick
+  onDragStop
 }) => {
   const { x, y } = getWidgetPixelPosition(
     dimensions,
@@ -40,7 +34,14 @@ const BBox: React.FC<BBoxProps> = ({
   );
 
   /* Global context */
-  const { appSettings } = useWidgetContext();
+  const {
+    appSettings,
+    activeWidgets,
+    activeDraggableWidget,
+    setActiveDraggableWidget,
+    openDropdownIndex,
+    setOpenDropdownIndex
+  } = useWidgetContext();
 
   /* BBox colors */
   const colorMappings: { [key: string]: string } = {
@@ -63,9 +64,37 @@ const BBox: React.FC<BBoxProps> = ({
 
   const bboxThickness = thicknessMappings[appSettings.bboxThickness];
 
+  const handleDragStart = (widget: Widget, x: number, y: number) => {
+    // console.log(
+    //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
+    // );
+    setActiveDraggableWidget({
+      id: widget.generalParams.id,
+      active: true,
+      doubleClick: false
+    });
+  };
+
+  const handleDoubleClick = (widget: Widget) => {
+    // console.log(`Double clicked widget ${widget.generalParams.id}`);
+    const index = activeWidgets.findIndex(
+      (w) => w.generalParams.id === widget.generalParams.id
+    );
+    if (index !== -1) {
+      const isCurrentlyOpen = openDropdownIndex === index;
+      setActiveDraggableWidget({
+        id: widget.generalParams.id,
+        active: false,
+        doubleClick: !isCurrentlyOpen
+      });
+      /* Toggle dropdown: close if open, open if closed */
+      setOpenDropdownIndex(isCurrentlyOpen ? null : index);
+    }
+  };
+
   return (
     /* Wrap Draggable in div to handle double-click events */
-    <div onDoubleClick={() => onDoubleClick(widget)}>
+    <div onDoubleClick={(e) => handleDoubleClick(widget)}>
       <Draggable
         key={`${widget.generalParams.id}-${x}-${y}`}
         position={{ x, y }}
@@ -75,7 +104,7 @@ const BBox: React.FC<BBoxProps> = ({
           right: dimensions.pixelWidth - widget.width * scaleFactor,
           bottom: dimensions.pixelHeight - widget.height * scaleFactor
         }}
-        onStart={(e, data) => onDragStart(widget, data.x, data.y)}
+        onStart={(e, data) => handleDragStart(widget, data.x, data.y)}
         onStop={(e, data) => onDragStop(widget, data.x, data.y)}
       >
         <Box
@@ -87,7 +116,8 @@ const BBox: React.FC<BBoxProps> = ({
             position: 'absolute',
             pointerEvents: 'auto',
             cursor: 'move',
-            zIndex: isActive ? 1000 : 1
+            zIndex:
+              activeDraggableWidget?.id === widget.generalParams.id ? 1000 : 1
           }}
         >
           {/* Widget info note above the bbox */}

@@ -158,10 +158,7 @@ const App: React.FC = () => {
     alertSeverity,
     currentTheme,
     setCurrentTheme,
-    activeDraggableWidget,
     setActiveDraggableWidget,
-    openDropdownIndex,
-    setOpenDropdownIndex,
     appSettings
   } = useWidgetContext();
 
@@ -406,34 +403,6 @@ const App: React.FC = () => {
       active: false,
       doubleClick: false
     });
-  };
-
-  const handleDragStart = (widget: Widget, x: number, y: number) => {
-    // console.log(
-    //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
-    // );
-    setActiveDraggableWidget({
-      id: widget.generalParams.id,
-      active: true,
-      doubleClick: false
-    });
-  };
-
-  const handleDoubleClick = (widget: Widget) => {
-    // console.log(`Double clicked widget ${widget.generalParams.id}`);
-    const index = activeWidgets.findIndex(
-      (w) => w.generalParams.id === widget.generalParams.id
-    );
-    if (index !== -1) {
-      const isCurrentlyOpen = openDropdownIndex === index;
-      setActiveDraggableWidget({
-        id: widget.generalParams.id,
-        active: false,
-        doubleClick: !isCurrentlyOpen
-      });
-      /* Toggle dropdown: close if open, open if closed */
-      setOpenDropdownIndex(isCurrentlyOpen ? null : index);
-    }
   };
 
   const contentMain = () => {
@@ -706,12 +675,7 @@ const App: React.FC = () => {
                         widget={widget}
                         dimensions={dimensions}
                         scaleFactor={scaleFactor}
-                        isActive={
-                          activeDraggableWidget?.id === widget.generalParams.id
-                        }
-                        onDragStart={handleDragStart}
                         onDragStop={handleDragStop}
-                        onDoubleClick={handleDoubleClick}
                       />
                     );
                   }
