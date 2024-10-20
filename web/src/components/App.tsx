@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import logo from '../assets/img/widgy2.png';
-import Draggable from 'react-draggable';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
@@ -10,6 +9,7 @@ import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
 import SettingsModal from './SettingsModal.js';
 import MonitorModal from './MonitorModal';
+import BBox from './BBox';
 import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
@@ -17,12 +17,9 @@ import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
-import { capitalizeFirstLetter } from '../helpers/utils';
 import {
   HD_WIDTH,
-  EPSILON,
   Dimensions,
-  getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
   calculateNormalizedPosition,
   getNormalizedCoordinateRanges
@@ -57,6 +54,7 @@ import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
+const EPSILON = 1e-6;
 
 /******************************************************************************/
 
@@ -438,27 +436,6 @@ const App: React.FC = () => {
     }
   };
 
-  /* BBox colors */
-  const colorMappings: { [key: string]: string } = {
-    yellow: '#ffcc33',
-    blue: '#00aaff',
-    red: '#ff4444',
-    green: '#00cc00',
-    purple: '#d633ff',
-    none: 'none'
-  };
-  const defaultColor = '#ffcc33';
-  const bboxColor = colorMappings[appSettings.bboxColor] || defaultColor;
-
-  /* BBox thickness */
-  const thicknessMappings: { [key: string]: string } = {
-    small: '1px',
-    medium: '2px',
-    large: '4px'
-  };
-
-  const bboxThickness = thicknessMappings[appSettings.bboxThickness];
-
   const contentMain = () => {
     // log('MAIN CONTENT');
     return (
@@ -705,6 +682,7 @@ const App: React.FC = () => {
 
             {/* Overlay Surface aligned with the video element */}
             {showBoundingBoxes && (
+              /* BBox */
               <Box
                 sx={{
                   // backgroundColor: 'blue',
@@ -718,88 +696,23 @@ const App: React.FC = () => {
                 }}
               >
                 {activeWidgets.map((widget) => {
-                  /* Only render the bounding box if anchor is set to "none" and visible */
                   if (
                     widget.generalParams.anchor === 'none' &&
                     widget.generalParams.isVisible
                   ) {
-                    const { x, y } = getWidgetPixelPosition(
-                      dimensions,
-                      scaleFactor,
-                      widget.generalParams.position,
-                      widget.width,
-                      widget.height
-                    );
-
                     return (
-                      /* Wrap Draggable in div to handle double-click events */
-                      <div onDoubleClick={(e) => handleDoubleClick(widget)}>
-                        <Draggable
-                          key={`${widget.generalParams.id}-${x}-${y}`}
-                          position={{ x, y }}
-                          bounds={{
-                            left: 0,
-                            top: 0,
-                            right:
-                              dimensions.pixelWidth -
-                              widget.width * scaleFactor,
-                            bottom:
-                              dimensions.pixelHeight -
-                              widget.height * scaleFactor
-                          }}
-                          onStart={(e, data) =>
-                            handleDragStart(widget, data.x, data.y)
-                          }
-                          onStop={(e, data) =>
-                            handleDragStop(widget, data.x, data.y)
-                          }
-                        >
-                          {/* BBox */}
-                          <Box
-                            sx={{
-                              width: `${widget.width * scaleFactor}px`,
-                              height: `${widget.height * scaleFactor}px`,
-                              border: `${bboxThickness} solid ${bboxColor}`,
-                              borderRadius: appSettings.roundedBboxCorners
-                                ? '8px'
-                                : '0px',
-                              position: 'absolute',
-                              pointerEvents: 'auto',
-                              cursor: 'move',
-                              /* Set zIndex higher for active draggable widget */
-                              zIndex:
-                                activeDraggableWidget?.id ===
-                                widget.generalParams.id
-                                  ? 1000
-                                  : 1
-                            }}
-                          >
-                            {/* Widget info note above the bbox */}
-                            {appSettings.bboxLabel && (
-                              <Typography
-                                sx={{
-                                  position: 'absolute',
-                                  top: '-20px',
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  color: '#333',
-                                  pointerEvents: 'none'
-                                }}
-                              >
-                                {capitalizeFirstLetter(
-                                  widget.generalParams.type
-                                )}
-                                {' ID: '}
-                                {widget.generalParams.id}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Draggable>
-                      </div>
+                      <BBox
+                        key={widget.generalParams.id}
+                        widget={widget}
+                        dimensions={dimensions}
+                        scaleFactor={scaleFactor}
+                        isActive={
+                          activeDraggableWidget?.id === widget.generalParams.id
+                        }
+                        onDragStart={handleDragStart}
+                        onDragStop={handleDragStop}
+                        onDoubleClick={handleDoubleClick}
+                      />
                     );
                   }
                   return null;

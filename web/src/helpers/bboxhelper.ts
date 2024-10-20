@@ -4,7 +4,6 @@
 
 /* Widget backend uses 1920x1080 HD resolution */
 export const HD_WIDTH = 1920;
-export const EPSILON = 1e-6;
 
 export interface Dimensions {
   videoWidth: number; // Video stream width
