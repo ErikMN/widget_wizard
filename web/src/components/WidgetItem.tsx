@@ -71,6 +71,15 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     activeDraggableWidget
   } = useWidgetContext();
 
+  /* Safe JSON parser */
+  const safeParseJson = (json: string) => {
+    try {
+      return JSON.parse(json);
+    } catch (err) {
+      return null;
+    }
+  };
+
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
     /* Store the widget's id */
@@ -78,7 +87,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       setWidgetId(widget.generalParams.id);
     }
     /* Deep widget copy */
-    const widgetCopy = JSON.parse(JSON.stringify(widget));
+    const widgetCopy = safeParseJson(JSON.stringify(widget));
     /* Remove ID in order to not edit other widgets */
     if (widgetCopy.generalParams && widgetCopy.generalParams.id) {
       delete widgetCopy.generalParams.id;
@@ -242,7 +251,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const handleUpdateJSON = () => {
     try {
-      const parsedWidget = JSON.parse(jsonInput);
+      const parsedWidget = safeParseJson(jsonInput);
       /* Re-attach the widget ID */
       if (widgetId !== null) {
         parsedWidget.generalParams.id = widgetId;
@@ -563,7 +572,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               ) : (
                 <ReactJson
-                  src={JSON.parse(jsonInput)}
+                  src={safeParseJson(jsonInput)}
                   onEdit={(edit) => {
                     const updatedJson = JSON.stringify(
                       edit.updated_src,
