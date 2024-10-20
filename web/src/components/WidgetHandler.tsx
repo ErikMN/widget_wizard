@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { log, enableLogging } from '../helpers/logger';
 import WidgetItem from './WidgetItem';
 import { useWidgetContext } from './WidgetContext';
@@ -78,28 +78,40 @@ const WidgetHandler: React.FC = () => {
   }, [activeDraggableWidget, activeWidgets]);
 
   /* Handle dropdown change */
-  const handleWidgetChange = (event: SelectChangeEvent<string>) => {
-    setSelectedWidget(event.target.value);
-  };
+  const handleWidgetChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      setSelectedWidget(event.target.value);
+    },
+    [setSelectedWidget]
+  );
 
   /* Handle add button click */
-  const handleAddClick = () => {
+  const handleAddClick = useCallback(() => {
     log('Add widget:', selectedWidget);
     addWidget(selectedWidget);
-  };
+  }, [selectedWidget, addWidget]);
 
   /* Handle dropdown toggle */
-  const toggleDropdown = (index: number) => {
-    // console.log(index, openDropdownIndex);
-    /* Set id of activeWidgets to current for updating bbox zIndex */
-    setActiveDraggableWidget((prev) => ({
-      ...prev,
-      id: activeWidgets[index].generalParams.id
-    }));
-    if (!isDoubleClick) {
-      setOpenDropdownIndex(openDropdownIndex === index ? null : index);
-    }
-  };
+  const toggleDropdown = useCallback(
+    (index: number) => {
+      // console.log(index, openDropdownIndex);
+      /* Set id of activeWidgets to current for updating bbox zIndex */
+      setActiveDraggableWidget((prev) => ({
+        ...prev,
+        id: activeWidgets[index].generalParams.id
+      }));
+      if (!isDoubleClick) {
+        setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+      }
+    },
+    [
+      activeWidgets,
+      isDoubleClick,
+      openDropdownIndex,
+      setActiveDraggableWidget,
+      setOpenDropdownIndex
+    ]
+  );
 
   const handleRemoveAllClick = () => {
     setOpenDialog(true);
