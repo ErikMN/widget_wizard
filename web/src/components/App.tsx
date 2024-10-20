@@ -13,7 +13,7 @@ import BBox from './BBox';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
-import { SR_CGI } from './constants';
+import { SR_CGI, drawerWidth, drawerOffset } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
 import { Dimensions } from '../widgetInterfaces';
@@ -44,9 +44,6 @@ import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
-
-const drawerWidth = 500;
-const drawerOffset = 400;
 
 /******************************************************************************/
 
