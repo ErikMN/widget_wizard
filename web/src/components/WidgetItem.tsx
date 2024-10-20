@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from '../widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter } from '../helpers/utils';
@@ -90,7 +90,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /****************************************************************************/
   /* Handle UI updates for general parameters */
 
-  const handleVisibilityChange = () => {
+  const handleVisibilityChange = useCallback(() => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
     const updatedWidget = {
@@ -101,40 +101,46 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       }
     };
     updateWidget(updatedWidget);
-  };
+  }, [isVisible, widget, updateWidget]);
 
-  const handleAnchorChange = (event: SelectChangeEvent<string>) => {
-    const newAnchor = event.target.value as string;
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        anchor: newAnchor
-      }
-    };
-    updateWidget(updatedWidget);
-  };
+  const handleAnchorChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      const newAnchor = event.target.value as string;
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          anchor: newAnchor
+        }
+      };
+      updateWidget(updatedWidget);
+    },
+    [widget, updateWidget]
+  );
 
-  const handleSizeChange = (event: SelectChangeEvent<string>) => {
-    const newSize = event.target.value;
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        size: newSize
-      }
-    };
-    updateWidget(updatedWidget);
-  };
+  const handleSizeChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      const newSize = event.target.value;
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          size: newSize
+        }
+      };
+      updateWidget(updatedWidget);
+    },
+    [widget, updateWidget]
+  );
 
-  const handleTransparencyChange = (
-    event: Event,
-    newValue: number | number[]
-  ) => {
-    setSliderValue(Array.isArray(newValue) ? newValue[0] : newValue);
-  };
+  const handleTransparencyChange = useCallback(
+    (event: Event, newValue: number | number[]) => {
+      setSliderValue(Array.isArray(newValue) ? newValue[0] : newValue);
+    },
+    []
+  );
 
-  const handleTransparencyChangeCommitted = () => {
+  const handleTransparencyChangeCommitted = useCallback(() => {
     const updatedWidget = {
       ...widget,
       generalParams: {
@@ -143,7 +149,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       }
     };
     updateWidget(updatedWidget);
-  };
+  }, [sliderValue, widget, updateWidget]);
 
   /* Debounced textfield handlers */
   const debouncedDatasource = useDebouncedValue(datasource, 300);
@@ -211,23 +217,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   };
 
   /* Toggle Widget Params */
-  const toggleWidgetParams = () => {
+  const toggleWidgetParams = useCallback(() => {
     setWidgetParamsVisible((prev) => !prev);
-  };
+  }, []);
 
   /****************************************************************************/
   /* JSON viewer handlers */
   const [useJsonViewer, setUseJsonViewer] = useState(false);
 
   /* Toggle how to display JSON in JSON viewer */
-  const toggleJsonViewer = () => {
+  const toggleJsonViewer = useCallback(() => {
     setUseJsonViewer((prev) => !prev);
-  };
+  }, []);
 
   /* Toggle JSON viewer */
-  const toggleJsonVisibility = () => {
+  const toggleJsonVisibility = useCallback(() => {
     setJsonVisible((prev) => !prev);
-  };
+  }, []);
 
   /* Handle edited JSON in the viewer */
   const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
