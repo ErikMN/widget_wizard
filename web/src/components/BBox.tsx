@@ -4,39 +4,34 @@
 import React from 'react';
 import Draggable from 'react-draggable';
 import { Widget } from '../widgetInterfaces';
-import { getWidgetPixelPosition } from '../helpers/bboxhelper';
 import { capitalizeFirstLetter } from '../helpers/utils';
-import { Dimensions } from '../helpers/bboxhelper';
+import {
+  HD_WIDTH,
+  Dimensions,
+  getWidgetPixelPosition,
+  calculateWidgetSizeInPixels,
+  calculateNormalizedPosition,
+  getNormalizedCoordinateRanges
+} from '../helpers/bboxhelper';
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
+const EPSILON = 1e-6;
+
 interface BBoxProps {
   widget: Widget;
   dimensions: Dimensions;
-  scaleFactor: number;
-  onDragStop: (widget: Widget, x: number, y: number) => void;
 }
 
-const BBox: React.FC<BBoxProps> = ({
-  widget,
-  dimensions,
-  scaleFactor,
-  onDragStop
-}) => {
-  const { x, y } = getWidgetPixelPosition(
-    dimensions,
-    scaleFactor,
-    widget.generalParams.position,
-    widget.width,
-    widget.height
-  );
-
+const BBox: React.FC<BBoxProps> = ({ widget, dimensions }) => {
   /* Global context */
   const {
     appSettings,
     activeWidgets,
+    setActiveWidgets,
+    updateWidget,
     activeDraggableWidget,
     setActiveDraggableWidget,
     openDropdownIndex,
@@ -92,6 +87,103 @@ const BBox: React.FC<BBoxProps> = ({
     }
   };
 
+  /* Widget backend uses 1920x1080 HD resolution */
+  const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
+
+  const handleDragStop = (widget: Widget, newX: number, newY: number) => {
+    // console.log(
+    //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
+    // );
+    if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
+      console.error('Invalid dimensions detected');
+      return;
+    }
+    const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
+      widget.width,
+      widget.height,
+      scaleFactor,
+      dimensions
+    );
+    const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
+      widgetWidthPx,
+      widgetHeightPx,
+      dimensions
+    );
+    /* Calculate new normalized positions */
+    let posX = calculateNormalizedPosition(
+      newX,
+      Xmin,
+      Xmax,
+      widgetWidthPx,
+      dimensions.pixelWidth
+    );
+    let posY = calculateNormalizedPosition(
+      newY,
+      Ymin,
+      Ymax,
+      widgetHeightPx,
+      dimensions.pixelHeight
+    );
+
+    /* Clamping logic */
+
+    /* Horizontal Movement: Always allow if widgetWidthPx < dimensions.pixelWidth */
+    if (widgetWidthPx < dimensions.pixelWidth) {
+      posX = Math.max(Xmin, Math.min(posX, Xmax));
+    } else {
+      /* If the widget is as wide as the video, it can still move vertically */
+      posX = Xmin;
+    }
+
+    /* Vertical Movement: Always allow if widgetHeightPx < dimensions.pixelHeight */
+    if (widgetHeightPx < dimensions.pixelHeight) {
+      posY = Math.max(Ymin, Math.min(posY, Ymax));
+    } else {
+      /* If the widget is as tall as the video, it can still move horizontally */
+      posY = Ymin;
+    }
+
+    /* Compare with current position */
+    const currentPosX = widget.generalParams.position.x;
+    const currentPosY = widget.generalParams.position.y;
+
+    /* Only update if the position has changed */
+    if (
+      Math.abs(posX - currentPosX) > EPSILON ||
+      Math.abs(posY - currentPosY) > EPSILON
+    ) {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          position: { x: posX, y: posY }
+        }
+      };
+      /* Update the active widget state */
+      setActiveWidgets((prevWidgets) =>
+        prevWidgets.map((w) =>
+          w.generalParams.id === widget.generalParams.id ? updatedWidget : w
+        )
+      );
+      /* Update the widget */
+      updateWidget(updatedWidget);
+    }
+
+    setActiveDraggableWidget({
+      id: widget.generalParams.id,
+      active: false,
+      doubleClick: false
+    });
+  };
+
+  const { x, y } = getWidgetPixelPosition(
+    dimensions,
+    scaleFactor,
+    widget.generalParams.position,
+    widget.width,
+    widget.height
+  );
+
   return (
     /* Wrap Draggable in div to handle double-click events */
     <div onDoubleClick={(e) => handleDoubleClick(widget)}>
@@ -105,7 +197,7 @@ const BBox: React.FC<BBoxProps> = ({
           bottom: dimensions.pixelHeight - widget.height * scaleFactor
         }}
         onStart={(e, data) => handleDragStart(widget, data.x, data.y)}
-        onStop={(e, data) => onDragStop(widget, data.x, data.y)}
+        onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
       >
         <Box
           sx={{

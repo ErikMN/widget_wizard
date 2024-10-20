@@ -10,20 +10,13 @@ import CapabilitiesModal from './CapabilitiesModal';
 import SettingsModal from './SettingsModal.js';
 import MonitorModal from './MonitorModal';
 import BBox from './BBox';
-import { Widget } from '../widgetInterfaces';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
-import {
-  HD_WIDTH,
-  Dimensions,
-  calculateWidgetSizeInPixels,
-  calculateNormalizedPosition,
-  getNormalizedCoordinateRanges
-} from '../helpers/bboxhelper';
+import { Dimensions } from '../helpers/bboxhelper';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { grey } from '@mui/material/colors';
@@ -54,7 +47,6 @@ import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 const drawerWidth = 500;
 const drawerOffset = 400;
-const EPSILON = 1e-6;
 
 /******************************************************************************/
 
@@ -149,8 +141,6 @@ const App: React.FC = () => {
   const {
     widgetLoading,
     activeWidgets,
-    setActiveWidgets,
-    updateWidget,
     handleOpenAlert,
     openAlert,
     setOpenAlert,
@@ -158,7 +148,6 @@ const App: React.FC = () => {
     alertSeverity,
     currentTheme,
     setCurrentTheme,
-    setActiveDraggableWidget,
     appSettings
   } = useWidgetContext();
 
@@ -313,95 +302,6 @@ const App: React.FC = () => {
       pixelHeight,
       offsetX,
       offsetY
-    });
-  };
-
-  /* Widget backend uses 1920x1080 HD resolution */
-  const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
-
-  const handleDragStop = (widget: Widget, newX: number, newY: number) => {
-    // console.log(
-    //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
-    // );
-    if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
-      console.error('Invalid dimensions detected');
-      return;
-    }
-    const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
-      widget.width,
-      widget.height,
-      scaleFactor,
-      dimensions
-    );
-    const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
-      widgetWidthPx,
-      widgetHeightPx,
-      dimensions
-    );
-    /* Calculate new normalized positions */
-    let posX = calculateNormalizedPosition(
-      newX,
-      Xmin,
-      Xmax,
-      widgetWidthPx,
-      dimensions.pixelWidth
-    );
-    let posY = calculateNormalizedPosition(
-      newY,
-      Ymin,
-      Ymax,
-      widgetHeightPx,
-      dimensions.pixelHeight
-    );
-
-    /* Clamping logic */
-
-    /* Horizontal Movement: Always allow if widgetWidthPx < dimensions.pixelWidth */
-    if (widgetWidthPx < dimensions.pixelWidth) {
-      posX = Math.max(Xmin, Math.min(posX, Xmax));
-    } else {
-      /* If the widget is as wide as the video, it can still move vertically */
-      posX = Xmin;
-    }
-
-    /* Vertical Movement: Always allow if widgetHeightPx < dimensions.pixelHeight */
-    if (widgetHeightPx < dimensions.pixelHeight) {
-      posY = Math.max(Ymin, Math.min(posY, Ymax));
-    } else {
-      /* If the widget is as tall as the video, it can still move horizontally */
-      posY = Ymin;
-    }
-
-    /* Compare with current position */
-    const currentPosX = widget.generalParams.position.x;
-    const currentPosY = widget.generalParams.position.y;
-
-    /* Only update if the position has changed */
-    if (
-      Math.abs(posX - currentPosX) > EPSILON ||
-      Math.abs(posY - currentPosY) > EPSILON
-    ) {
-      const updatedWidget = {
-        ...widget,
-        generalParams: {
-          ...widget.generalParams,
-          position: { x: posX, y: posY }
-        }
-      };
-      /* Update the active widget state */
-      setActiveWidgets((prevWidgets) =>
-        prevWidgets.map((w) =>
-          w.generalParams.id === widget.generalParams.id ? updatedWidget : w
-        )
-      );
-      /* Update the widget */
-      updateWidget(updatedWidget);
-    }
-
-    setActiveDraggableWidget({
-      id: widget.generalParams.id,
-      active: false,
-      doubleClick: false
     });
   };
 
@@ -648,10 +548,9 @@ const App: React.FC = () => {
               onDimensionsUpdate={handleDimensionsUpdate}
               logVideoDimensionsRef={logVideoDimensionsRef}
             />
-
             {/* Overlay Surface aligned with the video element */}
             {showBoundingBoxes && (
-              /* BBox */
+              /* BBox surface */
               <Box
                 sx={{
                   // backgroundColor: 'blue',
@@ -670,12 +569,11 @@ const App: React.FC = () => {
                     widget.generalParams.isVisible
                   ) {
                     return (
+                      /* One BBox per widget */
                       <BBox
                         key={widget.generalParams.id}
                         widget={widget}
                         dimensions={dimensions}
-                        scaleFactor={scaleFactor}
-                        onDragStop={handleDragStop}
                       />
                     );
                   }
