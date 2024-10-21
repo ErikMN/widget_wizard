@@ -146,6 +146,12 @@ const WidgetHandler: React.FC = () => {
             value={selectedWidget}
             onChange={handleWidgetChange}
             label="Select Widget"
+            sx={{
+              height: '40px',
+              '& .MuiOutlinedInput-root': {
+                height: '100%'
+              }
+            }}
           >
             {widgetCapabilities?.data.widgets.map((widget, index) => (
               <MenuItem key={index} value={widget.type}>
