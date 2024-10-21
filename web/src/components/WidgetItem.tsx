@@ -360,7 +360,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               }}
             >
               {/* Channel TextField */}
-              <Box sx={{ flex: 0.4 }}>
+              <Box sx={{ flex: 0.5 }}>
                 <TextField
                   label="Channel"
                   value={channel}
@@ -381,7 +381,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               </Box>
               {/* Datasource TextField */}
-              <Box sx={{ flex: 0.6 }}>
+              <Box sx={{ flex: 0.7 }}>
                 <TextField
                   label="Datasource"
                   value={datasource}
@@ -401,7 +401,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               </Box>
               {/* UpdateTime TextField */}
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 0.8 }}>
                 <TextField
                   label="Update interval"
                   value={updateTime}
@@ -519,7 +519,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             onClick={() => removeWidget(widget.generalParams.id)}
             startIcon={<DeleteIcon />}
           >
-            Remove Widget
+            Remove
           </Button>
           {/* Duplicate widget button */}
           <Button
@@ -623,9 +623,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   startIcon={<ImageIcon />}
                   sx={{ marginTop: 1 }}
                 >
-                  {useJsonViewer
-                    ? 'Switch to Text Editor'
-                    : 'Switch to JSON Viewer'}
+                  {useJsonViewer ? 'Text Editor' : 'JSON Viewer'}
                 </Button>
               )}
             </Box>

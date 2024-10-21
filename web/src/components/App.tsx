@@ -515,7 +515,7 @@ const App: React.FC = () => {
               }}
             >
               <WidgetsOutlinedIcon sx={{ marginRight: 1 }} />
-              Widgets Menu | Active Widgets: {activeWidgets.length}
+              Active Widgets: {activeWidgets.length}
             </Typography>
             <Tooltip title="Close the menu" arrow placement="right">
               <IconButton onClick={handleDrawerClose}>
