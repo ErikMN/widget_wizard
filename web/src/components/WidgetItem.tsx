@@ -273,7 +273,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /****************************************************************************/
 
   return (
-    <Box key={widget.generalParams.id} sx={{ marginBottom: 2 }}>
+    <Box key={widget.generalParams.id} sx={{ marginBottom: 1.4 }}>
       <Button
         variant="outlined"
         fullWidth
@@ -501,7 +501,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: 1
+              padding: 1,
+              height: '32px'
             }}
           >
             {widgetParamsVisible
@@ -511,36 +512,45 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Collapse in={widgetParamsVisible}>
             <WidgetParams widget={widget} />
           </Collapse>
-          {/* Remove widget button */}
-          <Button
-            sx={{ marginTop: '10px' }}
-            color="error"
-            variant="contained"
-            onClick={() => removeWidget(widget.generalParams.id)}
-            startIcon={<DeleteIcon />}
+          {/* Remove, Duplicate and JSON buttons */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
           >
-            Remove
-          </Button>
-          {/* Duplicate widget button */}
-          <Button
-            sx={{ marginTop: '10px', marginLeft: '10px' }}
-            color="secondary"
-            variant="contained"
-            onClick={() => addCustomWidget({ ...widget })}
-            startIcon={<ContentCopyIcon />}
-          >
-            Duplicate
-          </Button>
-          {/* Toggle JSON viewer */}
-          <Button
-            sx={{ marginTop: '10px', marginLeft: '10px' }}
-            color="primary"
-            variant="outlined"
-            onClick={toggleJsonVisibility}
-            startIcon={<DataObjectIcon />}
-          >
-            {jsonVisible ? 'Hide JSON' : 'Show JSON'}
-          </Button>
+            {/* Remove widget button */}
+            <Button
+              sx={{ marginTop: '10px' }}
+              color="error"
+              variant="contained"
+              onClick={() => removeWidget(widget.generalParams.id)}
+              startIcon={<DeleteIcon />}
+            >
+              Remove
+            </Button>
+            {/* Duplicate widget button */}
+            <Button
+              sx={{ marginTop: '10px', marginLeft: '10px' }}
+              color="secondary"
+              variant="contained"
+              onClick={() => addCustomWidget({ ...widget })}
+              startIcon={<ContentCopyIcon />}
+            >
+              Duplicate
+            </Button>
+            {/* Toggle JSON viewer */}
+            <Button
+              sx={{ marginTop: '10px', marginLeft: '10px' }}
+              color="primary"
+              variant="outlined"
+              onClick={toggleJsonVisibility}
+              startIcon={<DataObjectIcon />}
+            >
+              {jsonVisible ? 'Hide JSON' : 'Show JSON'}
+            </Button>
+          </Box>
           {/* JSON viewer expander */}
           <Collapse in={jsonVisible}>
             <Box

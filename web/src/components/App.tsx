@@ -498,25 +498,32 @@ const App: React.FC = () => {
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              position: 'relative'
             }}
           >
+            {/* Left-aligned icon */}
+            <WidgetsOutlinedIcon
+              sx={{
+                position: 'absolute',
+                left: 16
+              }}
+            />
+            {/* Centered text */}
             <Typography
               variant="h6"
               sx={{
-                textAlign: 'center',
-                flexGrow: 1,
                 fontWeight: 600,
                 letterSpacing: '0.05em',
                 color: 'text.primary',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexGrow: 1
               }}
             >
-              <WidgetsOutlinedIcon sx={{ marginRight: 1 }} />
               Active Widgets: {activeWidgets.length}
             </Typography>
+            {/* Close button on the right */}
             <Tooltip title="Close the menu" arrow placement="right">
               <IconButton onClick={handleDrawerClose}>
                 {theme.direction === 'ltr' ? (

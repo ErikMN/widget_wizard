@@ -148,7 +148,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   };
 
   return (
-    <Box sx={{ marginTop: 1 }}>
+    <Box sx={{ marginTop: 1.4 }}>
       <Typography variant="h6" sx={{ marginBottom: 1 }}>
         Widget Parameters
       </Typography>
