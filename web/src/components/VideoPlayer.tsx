@@ -36,17 +36,23 @@ const authorize = async (): Promise<void> => {
 };
 
 /* OPTIONAL: Set default Vapix params if not already set */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const setDefaultParams = (): void => {
   const existingVapixJSON = localStorage.getItem('vapix');
   if (!existingVapixJSON) {
-    const vapixConfig: VapixConfig = {
-      compression: '20',
-      resolution: '1920x1080'
-    };
+    /* Detect the browser using userAgent */
+    const userAgent =
+      typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
+    let vapixConfig: Partial<VapixConfig> = {};
+    /* Set specific parameters based on the browser */
+    if (userAgent.includes('firefox')) {
+      vapixConfig = {
+        compression: '20',
+        resolution: '1920x1080'
+      };
+    }
     const vapixJSON = JSON.stringify(vapixConfig);
     localStorage.setItem('vapix', vapixJSON);
-    console.log('Setting Vapix params:', vapixJSON);
+    console.log('Setting Vapix params for browser:', userAgent, vapixJSON);
   }
 };
 
@@ -128,7 +134,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       .catch((err) => {
         console.error(err);
       });
-    // setDefaultParams();
+    setDefaultParams();
   }, []);
 
   /* Set a ref to the logVideoDimensions function to be used by parent */
