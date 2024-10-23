@@ -31,7 +31,8 @@ const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
   /* Global context */
-  const { appSettings, setAppSettings, handleOpenAlert } = useWidgetContext();
+  const { appSettings, setAppSettings, handleOpenAlert, setOpenDropdownIndex } =
+    useWidgetContext();
 
   /****************************************************************************/
 
@@ -113,6 +114,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       bboxThickness: 'medium'
     }));
   }
+
+  const handleSortChange = (event: SelectChangeEvent<string>) => {
+    /* Close all open widgets first */
+    setOpenDropdownIndex(null);
+    const selectedSort = event.target.value as 'id' | 'type';
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      sortBy: selectedSort
+    }));
+    handleOpenAlert(
+      `Sort By: ${capitalizeFirstLetter(selectedSort)}`,
+      'success'
+    );
+  };
 
   /****************************************************************************/
 
@@ -242,6 +257,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             </Box>
           </Box>
 
+          {/* Widget settings */}
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+              Widget Settings
+            </Typography>
+
+            {/* Widget sorting */}
+            <Box sx={{ marginTop: 2 }}>
+              <FormControl sx={{ width: '100%' }}>
+                <InputLabel id="sort-by-label">Sort Widgets By</InputLabel>
+                <Select
+                  labelId="sort-by-label"
+                  value={appSettings.sortBy}
+                  label="Sort Widgets By"
+                  onChange={handleSortChange}
+                >
+                  <MenuItem value="id">ID</MenuItem>
+                  <MenuItem value="type">Type</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
           {/* Switch to enable debug mode */}
           <FormControlLabel
             control={

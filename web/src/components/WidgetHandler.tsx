@@ -33,6 +33,7 @@ const WidgetHandler: React.FC = () => {
 
   /* Global context */
   const {
+    appSettings,
     activeDraggableWidget,
     setActiveDraggableWidget,
     activeWidgets,
@@ -221,14 +222,25 @@ const WidgetHandler: React.FC = () => {
 
       {/* List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
-        {activeWidgets.map((widget, index) => (
-          <WidgetItem
-            key={widget.generalParams.id}
-            widget={widget}
-            index={index}
-            toggleDropdown={toggleDropdown}
-          />
-        ))}
+        {activeWidgets
+          .sort((a, b) => {
+            switch (appSettings.sortBy) {
+              case 'id':
+                return a.generalParams.id - b.generalParams.id;
+              case 'type':
+                return a.generalParams.type.localeCompare(b.generalParams.type);
+              default:
+                return 0;
+            }
+          })
+          .map((widget, index) => (
+            <WidgetItem
+              key={widget.generalParams.id}
+              widget={widget}
+              index={index}
+              toggleDropdown={toggleDropdown}
+            />
+          ))}
       </Box>
 
       {/* Remove all widgets button */}

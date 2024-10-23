@@ -162,6 +162,7 @@ export interface AppSettings {
   bboxColor: string;
   bboxThickness: 'small' | 'medium' | 'large';
   bboxLabel: boolean;
+  sortBy: 'id' | 'type';
 }
 
 /* Application settings default values */
@@ -170,7 +171,8 @@ export const defaultAppSettings: AppSettings = {
   roundedBboxCorners: false,
   bboxColor: 'yellow',
   bboxThickness: 'medium',
-  bboxLabel: true
+  bboxLabel: true,
+  sortBy: 'id'
 };
 
 /* VideoBox dimensions interface */
