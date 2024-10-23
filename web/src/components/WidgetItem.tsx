@@ -336,13 +336,19 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             marginTop: 0
           })}
         >
-          <Typography variant="h6" sx={{ marginBottom: 1 }}>
-            General parameters
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* General Params */}
+          <Typography variant="h6">General parameters</Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+              marginBottom: 3
+            }}
+          >
             {/* Visible toggle */}
             {widgetCapabilities && widgetCapabilities.data.isVisible && (
-              <Typography variant="body2" sx={{ marginRight: 1 }}>
+              <Typography variant="body2" sx={{ marginTop: 4 }}>
                 Visible
                 <Switch
                   checked={isVisible}
@@ -351,6 +357,55 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 />
               </Typography>
             )}
+            {/* Anchor Dropdown */}
+            {widgetCapabilities && widgetCapabilities.data.anchor && (
+              <Box sx={{ flex: 1, marginTop: 2 }}>
+                <Typography variant="body2">Anchor</Typography>
+                <Select
+                  value={widget.generalParams.anchor}
+                  onChange={handleAnchorChange}
+                  fullWidth
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                >
+                  {widgetCapabilities.data.anchor.enum.map((anchor) => (
+                    <MenuItem key={anchor} value={anchor}>
+                      {capitalizeFirstLetter(anchor)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+            )}
+            {/* Size Dropdown */}
+            {widgetCapabilities && widgetCapabilities.data.size && (
+              <Box sx={{ flex: 1, marginTop: 2 }}>
+                <Typography variant="body2">Size</Typography>
+                <Select
+                  value={widget.generalParams.size}
+                  onChange={handleSizeChange}
+                  fullWidth
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                >
+                  {widgetCapabilities.data.size.enum.map((size) => (
+                    <MenuItem key={size} value={size}>
+                      {capitalizeFirstLetter(size)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+            )}
+          </Box>
+          {/* Channel, Datasource, Update Interval */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Box
               sx={{
                 display: 'flex',
@@ -423,54 +478,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               </Box>
             </Box>
           </Box>
-          {/* Anchor Dropdown */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {widgetCapabilities && widgetCapabilities.data.anchor && (
-              <Box sx={{ flex: 1, marginTop: 2 }}>
-                <Typography variant="body2">Anchor</Typography>
-                <Select
-                  value={widget.generalParams.anchor}
-                  onChange={handleAnchorChange}
-                  fullWidth
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    }
-                  }}
-                >
-                  {widgetCapabilities.data.anchor.enum.map((anchor) => (
-                    <MenuItem key={anchor} value={anchor}>
-                      {capitalizeFirstLetter(anchor)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
-            )}
-            {/* Size Dropdown */}
-            {widgetCapabilities && widgetCapabilities.data.size && (
-              <Box sx={{ flex: 1, marginTop: 2 }}>
-                <Typography variant="body2">Size</Typography>
-                <Select
-                  value={widget.generalParams.size}
-                  onChange={handleSizeChange}
-                  fullWidth
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    }
-                  }}
-                >
-                  {widgetCapabilities.data.size.enum.map((size) => (
-                    <MenuItem key={size} value={size}>
-                      {capitalizeFirstLetter(size)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
-            )}
-          </Box>
           {/* Transparency Slider */}
           {widgetCapabilities && widgetCapabilities.data.transparency && (
             <Box sx={{ marginTop: 2 }}>
@@ -487,6 +494,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               />
             </Box>
           )}
+          {/* General Params End */}
           {/* Widget Params */}
           <Button
             color="secondary"
@@ -512,9 +520,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Collapse in={widgetParamsVisible}>
             <WidgetParams widget={widget} />
           </Collapse>
+          {/* Widget Params End */}
           {/* Remove, Duplicate and JSON buttons */}
           <Box
             sx={{
+              marginTop: 2,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
@@ -522,7 +532,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           >
             {/* Remove widget button */}
             <Button
-              sx={{ marginTop: '10px' }}
               color="error"
               variant="contained"
               onClick={() => removeWidget(widget.generalParams.id)}
@@ -532,7 +541,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             </Button>
             {/* Duplicate widget button */}
             <Button
-              sx={{ marginTop: '10px', marginLeft: '10px' }}
               color="secondary"
               variant="contained"
               onClick={() => addCustomWidget({ ...widget })}
@@ -542,7 +550,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             </Button>
             {/* Toggle JSON viewer */}
             <Button
-              sx={{ marginTop: '10px', marginLeft: '10px' }}
               color="primary"
               variant="outlined"
               onClick={toggleJsonVisibility}

@@ -150,7 +150,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   return (
     <Box sx={{ marginTop: 1.4 }}>
       <Typography variant="h6" sx={{ marginBottom: 1 }}>
-        Widget Parameters
+        Widget parameters
       </Typography>
       {/* Render UI elements for each widget parameter */}
       {filteredWidget &&
