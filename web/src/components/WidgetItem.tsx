@@ -211,8 +211,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newChannel = parseInt(event.target.value, 10);
-    if (!isNaN(newChannel)) {
+    if (!isNaN(newChannel) && newChannel >= -1) {
       setChannel(newChannel);
+    } else if (event.target.value === '') {
+      setChannel(0);
     }
   };
 
