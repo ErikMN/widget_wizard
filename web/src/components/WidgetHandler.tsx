@@ -224,14 +224,20 @@ const WidgetHandler: React.FC = () => {
       <Box sx={{ marginTop: 2 }}>
         {activeWidgets
           .sort((a, b) => {
+            let sortResult = 0;
             switch (appSettings.sortBy) {
               case 'id':
-                return a.generalParams.id - b.generalParams.id;
+                sortResult = a.generalParams.id - b.generalParams.id;
+                break;
               case 'type':
-                return a.generalParams.type.localeCompare(b.generalParams.type);
+                sortResult = a.generalParams.type.localeCompare(
+                  b.generalParams.type
+                );
+                break;
               default:
-                return 0;
+                break;
             }
+            return appSettings.sortAscending ? sortResult : -sortResult;
           })
           .map((widget, index) => (
             <WidgetItem

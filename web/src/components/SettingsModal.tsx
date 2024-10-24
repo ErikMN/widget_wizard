@@ -129,6 +129,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     );
   };
 
+  const handleToggleSortOrder = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      sortAscending: !prevSettings.sortAscending
+    }));
+    handleOpenAlert(
+      `Sort Order: ${!appSettings.sortAscending ? 'Descending' : 'Ascending'}`,
+      'success'
+    );
+  };
+
   /****************************************************************************/
 
   return (
@@ -272,8 +283,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             </Typography>
 
             {/* Widget sorting */}
-            <Box sx={{ marginTop: 2 }}>
-              <FormControl sx={{ width: '100%' }}>
+            <Box
+              sx={{
+                marginTop: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <FormControl sx={{ width: '40%' }}>
                 <InputLabel id="sort-by-label">Sort Widgets By</InputLabel>
                 <Select
                   labelId="sort-by-label"
@@ -285,6 +303,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                   <MenuItem value="type">Type</MenuItem>
                 </Select>
               </FormControl>
+              {/* Toggle for sorting ascending/descending */}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={appSettings.sortAscending}
+                    onChange={handleToggleSortOrder}
+                    name="sortAscending"
+                  />
+                }
+                label="Sort in Ascending Order"
+                sx={{ marginLeft: 2 }}
+              />
             </Box>
           </Box>
           {/* Switch to enable debug mode */}
