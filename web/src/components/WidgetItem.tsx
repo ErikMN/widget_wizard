@@ -76,6 +76,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     try {
       return JSON.parse(json);
     } catch (err) {
+      console.error(err);
       return null;
     }
   };
@@ -88,6 +89,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     }
     /* Deep widget copy */
     const widgetCopy = safeParseJson(JSON.stringify(widget));
+    if (widgetCopy == null) {
+      return;
+    }
     /* Remove ID in order to not edit other widgets */
     if (widgetCopy.generalParams && widgetCopy.generalParams.id) {
       delete widgetCopy.generalParams.id;
@@ -254,6 +258,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const handleUpdateJSON = () => {
     try {
       const parsedWidget = safeParseJson(jsonInput);
+      if (parsedWidget == null) {
+        setJsonError('Invalid JSON format');
+        return;
+      }
       /* Re-attach the widget ID */
       if (widgetId !== null) {
         parsedWidget.generalParams.id = widgetId;
