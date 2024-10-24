@@ -158,7 +158,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 600,
+            width: {
+              xs: '90%',
+              sm: '80%',
+              md: '70%',
+              lg: '60%',
+              xl: '50%'
+            },
+            maxWidth: '600px',
+            minWidth: '300px',
             bgcolor: 'background.paper',
             boxShadow: 24,
             p: 4,
