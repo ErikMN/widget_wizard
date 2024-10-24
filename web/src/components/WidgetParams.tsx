@@ -1,5 +1,5 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from '../widgetInterfaces';
 import { debounce } from 'lodash';
@@ -19,7 +19,12 @@ interface WidgetParamsProps {
 
 const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   /* Global context */
-  const { appSettings, widgetCapabilities, updateWidget } = useWidgetContext();
+  const { widgetCapabilities, updateWidget } = useWidgetContext();
+
+  /* Store local values for all widget parameters */
+  const [localValues, setLocalValues] = useState<Record<string, any>>(
+    widget.widgetParams || {}
+  );
 
   /* Function to print widget parameters and capabilities */
   const printParams = () => {
@@ -35,42 +40,43 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   };
   // printParams();
 
-  /* Memoized filtered widget to avoid unnecessary recalculations */
-  const filteredWidget = useMemo(
-    () =>
-      widgetCapabilities?.data?.widgets?.find(
-        (widgetCap) => widgetCap.type === widget?.generalParams?.type
-      ),
-    [widgetCapabilities, widget]
+  /* Effect to sync localValues with widget updates */
+  useEffect(() => {
+    setLocalValues(widget.widgetParams);
+  }, [widget.widgetParams]);
+
+  /* Handle local state change immediately */
+  const handleLocalValueChange = (paramKey: string, newValue: any) => {
+    setLocalValues((prevValues) => ({
+      ...prevValues,
+      [paramKey]: newValue
+    }));
+  };
+
+  /* Debounced function for global widget updates */
+  const debouncedHandleParamChange = useCallback(
+    debounce((paramKey: string, newValue: any) => {
+      const updatedWidget = {
+        ...widget,
+        widgetParams: {
+          ...widget.widgetParams,
+          [paramKey]: newValue
+        }
+      };
+      updateWidget(updatedWidget);
+    }, 500),
+    [widget, updateWidget]
   );
 
-  /* Simple param UI */
-  const renderWidgetParam = (
-    paramKey: string,
-    paramValue: any,
-    paramConfig: any
-  ) => {
-    const [localValue, setLocalValue] = useState(paramValue);
+  /* Commit changes to the global state (debounced) */
+  const handleParamCommit = (paramKey: string, newValue: any) => {
+    handleLocalValueChange(paramKey, newValue);
+    debouncedHandleParamChange(paramKey, newValue);
+  };
 
-    /* Debounced handler for widget parameter changes */
-    const debouncedHandleParamChange = useCallback(
-      debounce((paramKey: string, newValue: any) => {
-        const updatedWidget = {
-          ...widget,
-          widgetParams: {
-            ...widget.widgetParams,
-            [paramKey]: newValue
-          }
-        };
-        updateWidget(updatedWidget);
-      }, 300),
-      [widget, updateWidget]
-    );
-
-    /* Immediate handler for updating local value */
-    const handleLocalValueChange = (newValue: any) => {
-      setLocalValue(newValue);
-    };
+  /* Simple param UI rendering */
+  const renderWidgetParam = (paramKey: string, paramConfig: any) => {
+    const paramValue = localValues[paramKey];
 
     switch (paramConfig.type) {
       /* A text input: {type: 'string'} */
@@ -78,9 +84,9 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         return (
           <TextField
             label={capitalizeFirstLetter(paramKey)}
-            value={localValue}
-            onChange={(e) => handleLocalValueChange(e.target.value)}
-            onBlur={() => debouncedHandleParamChange(paramKey, localValue)}
+            value={paramValue || ''}
+            onChange={(e) => handleLocalValueChange(paramKey, e.target.value)}
+            onBlur={() => handleParamCommit(paramKey, paramValue)}
             fullWidth
             margin="normal"
             sx={{
@@ -100,12 +106,14 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           <Box>
             <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
             <Slider
-              value={localValue}
+              value={paramValue || paramConfig.minimum}
               min={paramConfig.minimum}
               max={paramConfig.maximum}
-              onChange={(e, newValue) => handleLocalValueChange(newValue)}
+              onChange={(e, newValue) =>
+                handleLocalValueChange(paramKey, newValue)
+              }
               onChangeCommitted={(e, newValue) =>
-                debouncedHandleParamChange(paramKey, newValue)
+                handleParamCommit(paramKey, newValue)
               }
               // step={0.01}
               valueLabelDisplay="auto"
@@ -118,11 +126,11 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           <Box display="flex" alignItems="center">
             <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
             <Switch
-              checked={!!localValue}
+              checked={!!paramValue}
               onChange={(e) => {
                 const newValue = e.target.checked;
-                handleLocalValueChange(newValue);
-                debouncedHandleParamChange(paramKey, newValue);
+                handleLocalValueChange(paramKey, newValue);
+                handleParamCommit(paramKey, newValue);
               }}
               inputProps={{ 'aria-label': paramKey }}
             />
@@ -132,11 +140,11 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       case 'enum':
         return (
           <Select
-            value={localValue}
+            value={paramValue || ''}
             onChange={(e) => {
               const newValue = e.target.value;
-              handleLocalValueChange(newValue);
-              debouncedHandleParamChange(paramKey, newValue);
+              handleLocalValueChange(paramKey, newValue);
+              handleParamCommit(paramKey, newValue);
             }}
             fullWidth
           >
@@ -152,6 +160,11 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     }
   };
 
+  /* Render UI for each widget parameter */
+  const filteredWidget = widgetCapabilities?.data?.widgets?.find(
+    (widgetCap) => widgetCap.type === widget?.generalParams?.type
+  );
+
   return (
     <Box sx={{ marginTop: 1.4 }}>
       <Typography variant="h6" sx={{ marginBottom: 1 }}>
@@ -159,11 +172,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       </Typography>
       {/* Render UI elements for each widget parameter */}
       {filteredWidget?.widgetParams &&
-        widget?.widgetParams &&
-        Object.keys(widget.widgetParams).map((paramKey) => {
-          const paramValue = (widget.widgetParams as Record<string, any>)[
-            paramKey
-          ];
+        Object.keys(filteredWidget.widgetParams).map((paramKey) => {
           const paramConfig = (
             filteredWidget.widgetParams as Record<string, any>
           )[paramKey];
@@ -171,7 +180,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           if (paramConfig) {
             return (
               <Box key={paramKey} sx={{ marginBottom: 1 }}>
-                {renderWidgetParam(paramKey, paramValue, paramConfig)}
+                {renderWidgetParam(paramKey, paramConfig)}
               </Box>
             );
           } else {
