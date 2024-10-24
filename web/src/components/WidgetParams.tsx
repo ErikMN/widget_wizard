@@ -1,5 +1,5 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from '../widgetInterfaces';
 import { debounce } from 'lodash';
@@ -40,39 +40,43 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   };
   // printParams();
 
-  /* Effect to sync localValues with widget updates */
-  useEffect(() => {
-    setLocalValues(widget.widgetParams);
-  }, [widget.widgetParams]);
+  /* Refs */
+  const widgetRef = useRef(widget);
+  const updateWidgetRef = useRef(updateWidget);
 
-  /* Handle local state change immediately */
+  /* Update refs when widget or updateWidget change */
+  useEffect(() => {
+    widgetRef.current = widget;
+    updateWidgetRef.current = updateWidget;
+  }, [widget, updateWidget]);
+
+  /* Debounced function for global widget updates */
+  const debouncedHandleParamChange = useRef(
+    debounce((paramKey: string, newValue: any) => {
+      const updatedWidget = {
+        ...widgetRef.current,
+        widgetParams: {
+          ...widgetRef.current.widgetParams,
+          [paramKey]: newValue
+        }
+      };
+      updateWidgetRef.current(updatedWidget);
+    }, 500)
+  ).current;
+
+  /* Handle local state change and debounced global update */
   const handleLocalValueChange = (paramKey: string, newValue: any) => {
     setLocalValues((prevValues) => ({
       ...prevValues,
       [paramKey]: newValue
     }));
-  };
-
-  /* Debounced function for global widget updates */
-  const debouncedHandleParamChange = useCallback(
-    debounce((paramKey: string, newValue: any) => {
-      const updatedWidget = {
-        ...widget,
-        widgetParams: {
-          ...widget.widgetParams,
-          [paramKey]: newValue
-        }
-      };
-      updateWidget(updatedWidget);
-    }, 500),
-    [widget, updateWidget]
-  );
-
-  /* Commit changes to the global state (debounced) */
-  const handleParamCommit = (paramKey: string, newValue: any) => {
-    handleLocalValueChange(paramKey, newValue);
     debouncedHandleParamChange(paramKey, newValue);
   };
+
+  /* Effect to sync localValues with widget updates */
+  useEffect(() => {
+    setLocalValues(widget.widgetParams || {});
+  }, [widget.widgetParams]);
 
   /* Simple param UI rendering */
   const renderWidgetParam = (paramKey: string, paramConfig: any) => {
@@ -84,9 +88,8 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         return (
           <TextField
             label={capitalizeFirstLetter(paramKey)}
-            value={paramValue || ''}
+            value={paramValue !== undefined ? paramValue : ''}
             onChange={(e) => handleLocalValueChange(paramKey, e.target.value)}
-            onBlur={() => handleParamCommit(paramKey, paramValue)}
             fullWidth
             margin="normal"
             sx={{
@@ -106,17 +109,17 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           <Box>
             <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
             <Slider
-              value={paramValue || paramConfig.minimum}
+              value={
+                paramValue !== undefined ? paramValue : paramConfig.minimum
+              }
               min={paramConfig.minimum}
               max={paramConfig.maximum}
               onChange={(e, newValue) =>
-                handleLocalValueChange(paramKey, newValue)
-              }
-              onChangeCommitted={(e, newValue) =>
-                handleParamCommit(paramKey, newValue)
+                handleLocalValueChange(paramKey, newValue as number)
               }
               // step={0.01}
               valueLabelDisplay="auto"
+              step={paramConfig.step || 1}
             />
           </Box>
         );
@@ -130,7 +133,6 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               onChange={(e) => {
                 const newValue = e.target.checked;
                 handleLocalValueChange(paramKey, newValue);
-                handleParamCommit(paramKey, newValue);
               }}
               inputProps={{ 'aria-label': paramKey }}
             />
@@ -140,11 +142,10 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       case 'enum':
         return (
           <Select
-            value={paramValue || ''}
+            value={paramValue !== undefined ? paramValue : ''}
             onChange={(e) => {
               const newValue = e.target.value;
               handleLocalValueChange(paramKey, newValue);
-              handleParamCommit(paramKey, newValue);
             }}
             fullWidth
           >
