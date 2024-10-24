@@ -1,5 +1,5 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from '../widgetInterfaces';
 import { debounce } from 'lodash';
@@ -35,8 +35,13 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   };
   // printParams();
 
-  const filteredWidget = widgetCapabilities?.data?.widgets?.find(
-    (widgetCap) => widgetCap.type === widget?.generalParams?.type
+  /* Memoized filtered widget to avoid unnecessary recalculations */
+  const filteredWidget = useMemo(
+    () =>
+      widgetCapabilities?.data?.widgets?.find(
+        (widgetCap) => widgetCap.type === widget?.generalParams?.type
+      ),
+    [widgetCapabilities, widget]
   );
 
   /* Simple param UI */
@@ -47,8 +52,8 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   ) => {
     const [localValue, setLocalValue] = useState(paramValue);
 
-    /* Handle widget parameter changes (debounced for text inputs) */
-    const handleParamChange = useCallback(
+    /* Debounced handler for widget parameter changes */
+    const debouncedHandleParamChange = useCallback(
       debounce((paramKey: string, newValue: any) => {
         const updatedWidget = {
           ...widget,
@@ -75,7 +80,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             label={capitalizeFirstLetter(paramKey)}
             value={localValue}
             onChange={(e) => handleLocalValueChange(e.target.value)}
-            onBlur={() => handleParamChange(paramKey, localValue)}
+            onBlur={() => debouncedHandleParamChange(paramKey, localValue)}
             fullWidth
             margin="normal"
             sx={{
@@ -100,7 +105,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               max={paramConfig.maximum}
               onChange={(e, newValue) => handleLocalValueChange(newValue)}
               onChangeCommitted={(e, newValue) =>
-                handleParamChange(paramKey, newValue)
+                debouncedHandleParamChange(paramKey, newValue)
               }
               // step={0.01}
               valueLabelDisplay="auto"
@@ -117,7 +122,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               onChange={(e) => {
                 const newValue = e.target.checked;
                 handleLocalValueChange(newValue);
-                handleParamChange(paramKey, newValue);
+                debouncedHandleParamChange(paramKey, newValue);
               }}
               inputProps={{ 'aria-label': paramKey }}
             />
@@ -131,7 +136,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             onChange={(e) => {
               const newValue = e.target.value;
               handleLocalValueChange(newValue);
-              handleParamChange(paramKey, newValue);
+              debouncedHandleParamChange(paramKey, newValue);
             }}
             fullWidth
           >
@@ -153,9 +158,8 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         Widget parameters
       </Typography>
       {/* Render UI elements for each widget parameter */}
-      {filteredWidget &&
-        filteredWidget.widgetParams &&
-        widget.widgetParams &&
+      {filteredWidget?.widgetParams &&
+        widget?.widgetParams &&
         Object.keys(widget.widgetParams).map((paramKey) => {
           const paramValue = (widget.widgetParams as Record<string, any>)[
             paramKey
