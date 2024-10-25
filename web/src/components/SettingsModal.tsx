@@ -130,6 +130,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
   };
 
   const handleToggleSortOrder = () => {
+    /* Close all open widgets first */
+    setOpenDropdownIndex(null);
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
       sortAscending: !prevSettings.sortAscending
