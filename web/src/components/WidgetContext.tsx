@@ -249,9 +249,25 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           size: 'small',
           transparency: 0,
           updateTime: 1
+        },
+        widgetParams: {} as {
+          minAlarmThreshold?: { value: number; enabled: boolean };
+          maxAlarmThreshold?: { value: number; enabled: boolean };
         }
       }
     };
+    /* NOTE: Official web UI seems to need these to move the bbox */
+    if (widgetType === 'linegraph' || widgetType === 'meter') {
+      payload.params.widgetParams.minAlarmThreshold = {
+        value: 0,
+        enabled: false
+      };
+      payload.params.widgetParams.maxAlarmThreshold = {
+        value: 100,
+        enabled: false
+      };
+    }
+
     try {
       setWidgetLoading(true);
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
