@@ -13,6 +13,15 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+/* TODO: add stuff here */
+interface ParamConfig {
+  type: 'string' | 'float' | 'bool' | 'enum';
+  minimum?: number;
+  maximum?: number;
+  step?: number;
+  enum?: string[];
+}
+
 interface WidgetParamsProps {
   widget: Widget;
 }
@@ -25,6 +34,10 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   const [localValues, setLocalValues] = useState<Record<string, any>>(
     widget.widgetParams || {}
   );
+
+  /* Refs */
+  const widgetRef = useRef(widget);
+  const updateWidgetRef = useRef(updateWidget);
 
   /* Function to print widget parameters and capabilities */
   const printParams = () => {
@@ -39,10 +52,6 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     console.log('Widget params:', widget?.widgetParams);
   };
   // printParams();
-
-  /* Refs */
-  const widgetRef = useRef(widget);
-  const updateWidgetRef = useRef(updateWidget);
 
   /* Update refs when widget or updateWidget change */
   useEffect(() => {
@@ -79,7 +88,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   }, [widget.widgetParams]);
 
   /* Simple param UI rendering */
-  const renderWidgetParam = (paramKey: string, paramConfig: any) => {
+  const renderWidgetParam = (paramKey: string, paramConfig: ParamConfig) => {
     const paramValue = localValues[paramKey];
 
     switch (paramConfig.type) {
@@ -114,7 +123,13 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
               }
               min={paramConfig.minimum}
               max={paramConfig.maximum}
-              onChange={(e, newValue) =>
+              onChange={(e, newValue) => {
+                setLocalValues((prevValues) => ({
+                  ...prevValues,
+                  [paramKey]: newValue
+                }));
+              }}
+              onChangeCommitted={(e, newValue) =>
                 handleLocalValueChange(paramKey, newValue as number)
               }
               // step={0.01}
@@ -149,7 +164,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             }}
             fullWidth
           >
-            {paramConfig.enum.map((option: string) => (
+            {paramConfig.enum?.map((option: string) => (
               <MenuItem key={option} value={option}>
                 {capitalizeFirstLetter(option)}
               </MenuItem>
@@ -157,6 +172,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           </Select>
         );
       default:
+        // console.warn(`Unhandled parameter type: ${paramConfig.type}`);
         return null;
     }
   };
@@ -175,18 +191,13 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       {filteredWidget?.widgetParams &&
         Object.keys(filteredWidget.widgetParams).map((paramKey) => {
           const paramConfig = (
-            filteredWidget.widgetParams as Record<string, any>
+            filteredWidget.widgetParams as Record<string, ParamConfig>
           )[paramKey];
-
-          if (paramConfig) {
-            return (
-              <Box key={paramKey} sx={{ marginBottom: 1 }}>
-                {renderWidgetParam(paramKey, paramConfig)}
-              </Box>
-            );
-          } else {
-            return null;
-          }
+          return paramConfig ? (
+            <Box key={paramKey} sx={{ marginBottom: 1 }}>
+              {renderWidgetParam(paramKey, paramConfig)}
+            </Box>
+          ) : null;
         })}
     </Box>
   );
