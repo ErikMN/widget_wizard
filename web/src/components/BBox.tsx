@@ -274,6 +274,45 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
+  const triangleSize =
+    0.1 * Math.min(widget.width, widget.height) * scaleFactor;
+
+  /* Define styles for each anchor position */
+  const anchorTriangleStyles = (() => {
+    switch (widget.generalParams.anchor) {
+      case 'topLeft':
+        return {
+          top: 0,
+          left: 0,
+          borderTop: `${triangleSize}px solid ${bboxColor}`,
+          borderRight: `${triangleSize}px solid transparent`
+        };
+      case 'topRight':
+        return {
+          top: 0,
+          right: 0,
+          borderTop: `${triangleSize}px solid ${bboxColor}`,
+          borderLeft: `${triangleSize}px solid transparent`
+        };
+      case 'bottomLeft':
+        return {
+          bottom: 0,
+          left: 0,
+          borderBottom: `${triangleSize}px solid ${bboxColor}`,
+          borderRight: `${triangleSize}px solid transparent`
+        };
+      case 'bottomRight':
+        return {
+          bottom: 0,
+          right: 0,
+          borderBottom: `${triangleSize}px solid ${bboxColor}`,
+          borderLeft: `${triangleSize}px solid transparent`
+        };
+      default:
+        return {};
+    }
+  })();
+
   const { x, y } = anchoredPosition;
 
   return (
@@ -311,34 +350,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
                 position: 'absolute',
                 width: 0,
                 height: 0,
-                ...(widget.generalParams.anchor === 'topLeft' && {
-                  top: 0,
-                  left: 0,
-                  borderTop: `15px solid ${bboxColor}`,
-                  borderRight: '15px solid transparent',
-                  borderBottom: '15px solid transparent'
-                }),
-                ...(widget.generalParams.anchor === 'topRight' && {
-                  top: 0,
-                  right: 0,
-                  borderTop: `15px solid ${bboxColor}`,
-                  borderLeft: '15px solid transparent',
-                  borderBottom: '15px solid transparent'
-                }),
-                ...(widget.generalParams.anchor === 'bottomLeft' && {
-                  bottom: 0,
-                  left: 0,
-                  borderBottom: `15px solid ${bboxColor}`,
-                  borderRight: '15px solid transparent',
-                  borderTop: '15px solid transparent'
-                }),
-                ...(widget.generalParams.anchor === 'bottomRight' && {
-                  bottom: 0,
-                  right: 0,
-                  borderBottom: `15px solid ${bboxColor}`,
-                  borderLeft: '15px solid transparent',
-                  borderTop: '15px solid transparent'
-                })
+                ...anchorTriangleStyles
               }}
             />
           )}
