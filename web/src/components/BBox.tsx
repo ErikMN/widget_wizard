@@ -64,6 +64,78 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   /* Widget backend uses 1920x1080 HD resolution */
   const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
 
+  /* Set bounding box position based on anchor */
+  const getAnchoredPosition = (anchor: string, dimensions: Dimensions) => {
+    switch (anchor) {
+      case 'topLeft':
+        return { x: -1, y: -1 };
+      case 'topCenter':
+        return {
+          x: (dimensions.pixelWidth - widget.width * scaleFactor) / 2,
+          y: -1
+        };
+      case 'topRight':
+        return {
+          x: dimensions.pixelWidth - widget.width * scaleFactor + 1,
+          y: -1
+        };
+      case 'centerLeft':
+        return {
+          x: -1,
+          y: (dimensions.pixelHeight - widget.height * scaleFactor) / 2
+        };
+      case 'center':
+        return {
+          x: (dimensions.pixelWidth - widget.width * scaleFactor) / 2,
+          y: (dimensions.pixelHeight - widget.height * scaleFactor) / 2
+        };
+      case 'centerRight':
+        return {
+          x: dimensions.pixelWidth - widget.width * scaleFactor + 1,
+          y: (dimensions.pixelHeight - widget.height * scaleFactor) / 2
+        };
+      case 'bottomLeft':
+        return {
+          x: -1,
+          y: dimensions.pixelHeight - widget.height * scaleFactor + 1
+        };
+      case 'bottomCenter':
+        return {
+          x: (dimensions.pixelWidth - widget.width * scaleFactor) / 2,
+          y: dimensions.pixelHeight - widget.height * scaleFactor + 1
+        };
+      case 'bottomRight':
+        return {
+          x: dimensions.pixelWidth - widget.width * scaleFactor + 1,
+          y: dimensions.pixelHeight - widget.height * scaleFactor + 1
+        };
+      default:
+        return { x: 0, y: 0 };
+    }
+  };
+
+  /* Adjust position if widget is anchored */
+  const anchoredPosition = useMemo(() => {
+    if (widget.generalParams.anchor !== 'none') {
+      return getAnchoredPosition(widget.generalParams.anchor, dimensions);
+    }
+    /* Fall back to normal position if no anchor is set */
+    return getWidgetPixelPosition(
+      dimensions,
+      scaleFactor,
+      widget.generalParams.position,
+      widget.width,
+      widget.height
+    );
+  }, [
+    widget.generalParams.anchor,
+    dimensions,
+    scaleFactor,
+    widget.generalParams.position,
+    widget.width,
+    widget.height
+  ]);
+
   /* Handle drag start */
   const handleDragStart = useCallback(
     (widget: Widget, x: number, y: number) => {
@@ -147,7 +219,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           ...widget,
           generalParams: {
             ...widget.generalParams,
-            position: { x: posX, y: posY }
+            position: { x: posX, y: posY },
+            anchor: 'none'
           }
         };
         /* Update the active widget state */
@@ -201,13 +274,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
-  const { x, y } = getWidgetPixelPosition(
-    dimensions,
-    scaleFactor,
-    widget.generalParams.position,
-    widget.width,
-    widget.height
-  );
+  const { x, y } = anchoredPosition;
 
   return (
     /* Wrap Draggable in div to handle double-click events */

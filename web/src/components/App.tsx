@@ -568,10 +568,7 @@ const App: React.FC = () => {
                 }}
               >
                 {activeWidgets.map((widget) => {
-                  if (
-                    widget.generalParams.anchor === 'none' &&
-                    widget.generalParams.isVisible
-                  ) {
+                  if (widget.generalParams.isVisible) {
                     return (
                       /* One BBox per widget */
                       <BBox
