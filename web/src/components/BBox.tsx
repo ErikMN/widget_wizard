@@ -287,6 +287,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           borderTop: `${triangleSize}px solid ${bboxColor}`,
           borderRight: `${triangleSize}px solid transparent`
         };
+      case 'topCenter':
+        return {
+          top: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          borderBottom: `${triangleSize}px solid ${bboxColor}`,
+          borderRight: `${triangleSize / 2}px solid transparent`,
+          borderLeft: `${triangleSize / 2}px solid transparent`
+        };
       case 'topRight':
         return {
           top: 0,
@@ -294,12 +303,39 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           borderTop: `${triangleSize}px solid ${bboxColor}`,
           borderLeft: `${triangleSize}px solid transparent`
         };
+      case 'centerLeft':
+        return {
+          top: '50%',
+          left: 0,
+          transform: 'translateY(-50%)',
+          borderRight: `${triangleSize}px solid ${bboxColor}`,
+          borderTop: `${triangleSize / 2}px solid transparent`,
+          borderBottom: `${triangleSize / 2}px solid transparent`
+        };
+      case 'centerRight':
+        return {
+          top: '50%',
+          right: 0,
+          transform: 'translateY(-50%)',
+          borderLeft: `${triangleSize}px solid ${bboxColor}`,
+          borderTop: `${triangleSize / 2}px solid transparent`,
+          borderBottom: `${triangleSize / 2}px solid transparent`
+        };
       case 'bottomLeft':
         return {
           bottom: 0,
           left: 0,
           borderBottom: `${triangleSize}px solid ${bboxColor}`,
           borderRight: `${triangleSize}px solid transparent`
+        };
+      case 'bottomCenter':
+        return {
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          borderTop: `${triangleSize}px solid ${bboxColor}`,
+          borderRight: `${triangleSize / 2}px solid transparent`,
+          borderLeft: `${triangleSize / 2}px solid transparent`
         };
       case 'bottomRight':
         return {
