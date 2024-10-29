@@ -199,7 +199,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     >
       <Player
         hostname={window.location.host}
-        initialFormat={Format.RTP_H264}
+        initialFormat={Format.MP4_H264}
         autoPlay
         autoRetry
         vapixParams={vapixParams}
