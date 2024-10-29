@@ -279,13 +279,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
 
   /* Define styles for each anchor position */
   const anchorTriangleStyles = (() => {
+    const opacity = 0.7;
     switch (widget.generalParams.anchor) {
       case 'topLeft':
         return {
           top: 0,
           left: 0,
           borderTop: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize}px solid transparent`
+          borderRight: `${triangleSize}px solid transparent`,
+          opacity: opacity
         };
       case 'topCenter':
         return {
@@ -294,14 +296,16 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           transform: 'translateX(-50%)',
           borderBottom: `${triangleSize}px solid ${bboxColor}`,
           borderRight: `${triangleSize / 2}px solid transparent`,
-          borderLeft: `${triangleSize / 2}px solid transparent`
+          borderLeft: `${triangleSize / 2}px solid transparent`,
+          opacity: opacity
         };
       case 'topRight':
         return {
           top: 0,
           right: 0,
           borderTop: `${triangleSize}px solid ${bboxColor}`,
-          borderLeft: `${triangleSize}px solid transparent`
+          borderLeft: `${triangleSize}px solid transparent`,
+          opacity: opacity
         };
       case 'centerLeft':
         return {
@@ -310,7 +314,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           transform: 'translateY(-50%)',
           borderRight: `${triangleSize}px solid ${bboxColor}`,
           borderTop: `${triangleSize / 2}px solid transparent`,
-          borderBottom: `${triangleSize / 2}px solid transparent`
+          borderBottom: `${triangleSize / 2}px solid transparent`,
+          opacity: opacity
         };
       case 'centerRight':
         return {
@@ -319,14 +324,16 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           transform: 'translateY(-50%)',
           borderLeft: `${triangleSize}px solid ${bboxColor}`,
           borderTop: `${triangleSize / 2}px solid transparent`,
-          borderBottom: `${triangleSize / 2}px solid transparent`
+          borderBottom: `${triangleSize / 2}px solid transparent`,
+          opacity: opacity
         };
       case 'bottomLeft':
         return {
           bottom: 0,
           left: 0,
           borderBottom: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize}px solid transparent`
+          borderRight: `${triangleSize}px solid transparent`,
+          opacity: opacity
         };
       case 'bottomCenter':
         return {
@@ -335,14 +342,16 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           transform: 'translateX(-50%)',
           borderTop: `${triangleSize}px solid ${bboxColor}`,
           borderRight: `${triangleSize / 2}px solid transparent`,
-          borderLeft: `${triangleSize / 2}px solid transparent`
+          borderLeft: `${triangleSize / 2}px solid transparent`,
+          opacity: opacity
         };
       case 'bottomRight':
         return {
           bottom: 0,
           right: 0,
           borderBottom: `${triangleSize}px solid ${bboxColor}`,
-          borderLeft: `${triangleSize}px solid transparent`
+          borderLeft: `${triangleSize}px solid transparent`,
+          opacity: opacity
         };
       default:
         return {};
