@@ -64,6 +64,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     handleOpenAlert(`Bounding Box Label: ${!appSettings.bboxLabel}`, 'success');
   };
 
+  const handleToggleBboxAnchorIndicator = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxAnchorIndicator: !prevSettings.bboxAnchorIndicator
+    }));
+    handleOpenAlert(
+      `Bounding Anchor Indicator: ${!appSettings.bboxLabel}`,
+      'success'
+    );
+  };
+
   const handleColorChange = (event: SelectChangeEvent<string>) => {
     const selectedColor = event.target.value as string;
     setAppSettings((prevSettings: AppSettings) => ({
@@ -229,6 +240,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                 />
               }
               label="Show Bounding Box Info Label"
+            />
+
+            {/* Switch for bounding anchor indicator */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={appSettings.bboxAnchorIndicator}
+                  onChange={handleToggleBboxAnchorIndicator}
+                  name="bboxAnchorIndicator"
+                />
+              }
+              label="Show Bounding Box Anchor Indicator"
             />
 
             <Box

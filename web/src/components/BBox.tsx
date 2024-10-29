@@ -380,16 +380,17 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           }}
         >
           {/* Render corner triangle if widget is in anchored mode */}
-          {widget.generalParams.anchor !== 'none' && (
-            <Box
-              sx={{
-                position: 'absolute',
-                width: 0,
-                height: 0,
-                ...anchorTriangleStyles
-              }}
-            />
-          )}
+          {widget.generalParams.anchor !== 'none' &&
+            appSettings.bboxAnchorIndicator && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  width: 0,
+                  height: 0,
+                  ...anchorTriangleStyles
+                }}
+              />
+            )}
           {/* Widget info note above the bbox */}
           {appSettings.bboxLabel && (
             <Typography
