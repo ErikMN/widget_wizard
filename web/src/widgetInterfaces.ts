@@ -163,6 +163,7 @@ export interface AppSettings {
   bboxThickness: 'small' | 'medium' | 'large';
   bboxLabel: boolean;
   bboxAnchorIndicator: boolean;
+  bboxOnlyShowActive: boolean;
   sortBy: 'id' | 'type';
   sortAscending: boolean;
 }
@@ -175,6 +176,7 @@ export const defaultAppSettings: AppSettings = {
   bboxThickness: 'medium',
   bboxLabel: true,
   bboxAnchorIndicator: true,
+  bboxOnlyShowActive: false,
   sortBy: 'id',
   sortAscending: true
 };

@@ -75,6 +75,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     );
   };
 
+  const handleToggleBboxOnlyShowActive = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      bboxOnlyShowActive: !prevSettings.bboxOnlyShowActive
+    }));
+    handleOpenAlert(
+      `Only Show Active Widget BBox: ${!appSettings.bboxLabel}`,
+      'success'
+    );
+  };
+
   const handleColorChange = (event: SelectChangeEvent<string>) => {
     const selectedColor = event.target.value as string;
     setAppSettings((prevSettings: AppSettings) => ({
@@ -252,6 +263,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                 />
               }
               label="Show Bounding Box Anchor Indicator"
+            />
+
+            {/* Switch for only showing active bbox */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={appSettings.bboxOnlyShowActive}
+                  onChange={handleToggleBboxOnlyShowActive}
+                  name="bboxOnlyShowActive"
+                />
+              }
+              label="Only Show Bounding Box For Active Widget"
             />
 
             <Box

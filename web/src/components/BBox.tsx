@@ -376,7 +376,12 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
             pointerEvents: 'auto',
             cursor: 'move',
             zIndex:
-              activeDraggableWidget?.id === widget.generalParams.id ? 1000 : 1
+              activeDraggableWidget?.id === widget.generalParams.id ? 1000 : 1,
+            opacity:
+              appSettings.bboxOnlyShowActive &&
+              activeDraggableWidget?.id !== widget.generalParams.id
+                ? 0
+                : 1
           }}
         >
           {/* Render corner triangle if widget is in anchored mode */}
