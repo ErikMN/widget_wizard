@@ -3,6 +3,7 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import Draggable from 'react-draggable';
+import AnchorTriangles from './AnchorTriangles';
 import { Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { Dimensions } from '../widgetInterfaces';
@@ -274,90 +275,6 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
-  const triangleSize =
-    0.1 * Math.min(widget.width, widget.height) * scaleFactor;
-
-  /* Define styles for each anchor position */
-  const anchorTriangleStyles = (() => {
-    const opacity = 0.7;
-    switch (widget.generalParams.anchor) {
-      case 'topLeft':
-        return {
-          top: 0,
-          left: 0,
-          borderTop: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize}px solid transparent`,
-          opacity: opacity
-        };
-      case 'topCenter':
-        return {
-          top: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          borderBottom: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize / 2}px solid transparent`,
-          borderLeft: `${triangleSize / 2}px solid transparent`,
-          opacity: opacity
-        };
-      case 'topRight':
-        return {
-          top: 0,
-          right: 0,
-          borderTop: `${triangleSize}px solid ${bboxColor}`,
-          borderLeft: `${triangleSize}px solid transparent`,
-          opacity: opacity
-        };
-      case 'centerLeft':
-        return {
-          top: '50%',
-          left: 0,
-          transform: 'translateY(-50%)',
-          borderRight: `${triangleSize}px solid ${bboxColor}`,
-          borderTop: `${triangleSize / 2}px solid transparent`,
-          borderBottom: `${triangleSize / 2}px solid transparent`,
-          opacity: opacity
-        };
-      case 'centerRight':
-        return {
-          top: '50%',
-          right: 0,
-          transform: 'translateY(-50%)',
-          borderLeft: `${triangleSize}px solid ${bboxColor}`,
-          borderTop: `${triangleSize / 2}px solid transparent`,
-          borderBottom: `${triangleSize / 2}px solid transparent`,
-          opacity: opacity
-        };
-      case 'bottomLeft':
-        return {
-          bottom: 0,
-          left: 0,
-          borderBottom: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize}px solid transparent`,
-          opacity: opacity
-        };
-      case 'bottomCenter':
-        return {
-          bottom: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          borderTop: `${triangleSize}px solid ${bboxColor}`,
-          borderRight: `${triangleSize / 2}px solid transparent`,
-          borderLeft: `${triangleSize / 2}px solid transparent`,
-          opacity: opacity
-        };
-      case 'bottomRight':
-        return {
-          bottom: 0,
-          right: 0,
-          borderBottom: `${triangleSize}px solid ${bboxColor}`,
-          borderLeft: `${triangleSize}px solid transparent`,
-          opacity: opacity
-        };
-      default:
-        return {};
-    }
-  })();
-
   const { x, y } = anchoredPosition;
 
   return (
@@ -393,18 +310,13 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
                 : 1
           }}
         >
-          {/* Render corner triangle if widget is in anchored mode */}
-          {widget.generalParams.anchor !== 'none' &&
-            appSettings.bboxAnchorIndicator && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: 0,
-                  height: 0,
-                  ...anchorTriangleStyles
-                }}
-              />
-            )}
+          {/* Anchor point indicators */}
+          <AnchorTriangles
+            widget={widget}
+            scaleFactor={scaleFactor}
+            bboxColor={bboxColor}
+            bboxAnchorIndicator={appSettings.bboxAnchorIndicator}
+          />
           {/* Widget info note above the bbox */}
           {appSettings.bboxLabel && (
             <Typography
