@@ -27,6 +27,11 @@ interface BBoxProps {
 }
 
 const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
+  /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
+  if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
+    return null;
+  }
+
   /* Global context */
   const {
     appSettings,
