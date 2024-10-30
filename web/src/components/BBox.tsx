@@ -17,6 +17,7 @@ import {
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
+import Fade from '@mui/material/Fade';
 import Typography from '@mui/material/Typography';
 
 const EPSILON = 1e-6;
@@ -285,65 +286,71 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   return (
     /* Wrap Draggable in div to handle double-click events */
     <div onDoubleClick={() => handleDoubleClick(widget)}>
-      <Draggable
-        key={`${widget.generalParams.id}-${x}-${y}`}
-        position={{ x, y }}
-        bounds={{
-          left: 0,
-          top: 0,
-          right: dimensions.pixelWidth - widget.width * scaleFactor,
-          bottom: dimensions.pixelHeight - widget.height * scaleFactor
-        }}
-        onStart={(e, data) => handleDragStart(widget, data.x, data.y)}
-        onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
-      >
-        <Box
-          sx={{
-            width: `${widget.width * scaleFactor}px`,
-            height: `${widget.height * scaleFactor}px`,
-            border: `${bboxThickness} solid ${bboxColor}`,
-            borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
-            position: 'absolute',
-            pointerEvents: 'auto',
-            cursor: 'move',
-            zIndex:
-              activeDraggableWidget?.id === widget.generalParams.id ? 1000 : 1,
-            opacity:
-              appSettings.bboxOnlyShowActive &&
-              activeDraggableWidget?.id !== widget.generalParams.id
-                ? 0
-                : 1
-          }}
-        >
-          {/* Anchor point indicators */}
-          <AnchorTriangles
-            widget={widget}
-            scaleFactor={scaleFactor}
-            bboxColor={bboxColor}
-            bboxAnchorIndicator={appSettings.bboxAnchorIndicator}
-          />
-          {/* Widget info note above the bbox */}
-          {appSettings.bboxLabel && (
-            <Typography
+      <Fade in={true} timeout={500}>
+        <div>
+          <Draggable
+            key={`${widget.generalParams.id}-${x}-${y}`}
+            position={{ x, y }}
+            bounds={{
+              left: 0,
+              top: 0,
+              right: dimensions.pixelWidth - widget.width * scaleFactor,
+              bottom: dimensions.pixelHeight - widget.height * scaleFactor
+            }}
+            onStart={(e, data) => handleDragStart(widget, data.x, data.y)}
+            onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
+          >
+            <Box
               sx={{
+                width: `${widget.width * scaleFactor}px`,
+                height: `${widget.height * scaleFactor}px`,
+                border: `${bboxThickness} solid ${bboxColor}`,
+                borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
-                top: '-20px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                padding: '2px 4px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                color: '#333',
-                pointerEvents: 'none'
+                pointerEvents: 'auto',
+                cursor: 'move',
+                zIndex:
+                  activeDraggableWidget?.id === widget.generalParams.id
+                    ? 1000
+                    : 1,
+                opacity:
+                  appSettings.bboxOnlyShowActive &&
+                  activeDraggableWidget?.id !== widget.generalParams.id
+                    ? 0
+                    : 1
               }}
             >
-              {capitalizeFirstLetter(widget.generalParams.type)} ID:{' '}
-              {widget.generalParams.id}
-            </Typography>
-          )}
-        </Box>
-      </Draggable>
+              {/* Anchor point indicators */}
+              <AnchorTriangles
+                widget={widget}
+                scaleFactor={scaleFactor}
+                bboxColor={bboxColor}
+                bboxAnchorIndicator={appSettings.bboxAnchorIndicator}
+              />
+              {/* Widget info note above the bbox */}
+              {appSettings.bboxLabel && (
+                <Typography
+                  sx={{
+                    position: 'absolute',
+                    top: '-20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    color: '#333',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {capitalizeFirstLetter(widget.generalParams.type)} ID:{' '}
+                  {widget.generalParams.id}
+                </Typography>
+              )}
+            </Box>
+          </Draggable>
+        </div>
+      </Fade>
     </div>
   );
 });
