@@ -206,9 +206,12 @@ const App: React.FC = () => {
           }, 2000); /* Wait before retrying */
         } else {
           /* Delay setting the system ready state a little bit */
-          setTimeout(() => {
-            setSystemReady(systemReadyState);
-          }, 500);
+          // setTimeout(() => {
+          //   setSystemReady(systemReadyState);
+          // }, 500);
+
+          /* No delay just start */
+          setSystemReady(systemReadyState);
         }
       } catch (error) {
         console.error(error);
