@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
@@ -30,9 +30,15 @@ const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
 ];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
+  /* Local state */
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   /* Global context */
   const { appSettings, setAppSettings, handleOpenAlert, setOpenDropdownIndex } =
     useWidgetContext();
+
+  /* Refs */
+  const timerRef = useRef<number | null>(null);
 
   /****************************************************************************/
 
@@ -70,7 +76,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       bboxAnchorIndicator: !prevSettings.bboxAnchorIndicator
     }));
     handleOpenAlert(
-      `Bounding Anchor Indicator: ${!appSettings.bboxLabel}`,
+      `Bounding Anchor Indicator: ${!appSettings.bboxAnchorIndicator}`,
       'success'
     );
   };
@@ -81,7 +87,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       bboxOnlyShowActive: !prevSettings.bboxOnlyShowActive
     }));
     handleOpenAlert(
-      `Only Show Active Widget BBox: ${!appSettings.bboxLabel}`,
+      `Only Show Active Widget BBox: ${!appSettings.bboxOnlyShowActive}`,
       'success'
     );
   };
@@ -170,8 +176,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       wsDefault: !prevSettings.wsDefault
     }));
     handleOpenAlert(`WebSocket Stream: ${!appSettings.wsDefault}`, 'success');
-    /* Reload the page to activate the change */
-    window.location.reload();
+    /* Start the countdown */
+    setCountdown(3);
+  };
+
+  useEffect(() => {
+    if (countdown !== null && open) {
+      if (countdown > 0) {
+        timerRef.current = setTimeout(() => {
+          setCountdown((prevCountdown) => (prevCountdown as number) - 1);
+        }, 1000);
+      } else {
+        /* When countdown reaches zero, reload the page */
+        window.location.reload();
+      }
+    } else {
+      /* If countdown is null or modal is closed, clear any existing timer */
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    /* Cleanup function to clear timer if the component unmounts */
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [countdown, open]);
+
+  /* Handle modal close and cancel countdown */
+  const handleModalClose = () => {
+    /* Reset the countdown */
+    setCountdown(null);
+    /* Call handleClose callback */
+    handleClose();
   };
 
   /****************************************************************************/
@@ -181,7 +221,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
       aria-labelledby="settings-modal-title"
       aria-describedby="settings-modal-description"
       open={open}
-      onClose={handleClose}
+      onClose={handleModalClose}
       closeAfterTransition
     >
       <Fade in={open}>
@@ -411,6 +451,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             />
           </Box>
 
+          {/* Display the countdown if it's active */}
+          {countdown !== null && (
+            <Typography
+              variant="subtitle1"
+              sx={{ marginTop: 1, textAlign: 'center', color: 'red' }}
+            >
+              Reloading application in {countdown}...
+            </Typography>
+          )}
+
           {/* Switch to enable debug mode */}
           <FormControlLabel
             control={
@@ -437,7 +487,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             }}
           >
             <Button
-              onClick={handleClose}
+              onClick={handleModalClose}
               sx={{ marginTop: 2 }}
               variant="contained"
             >
