@@ -66,7 +66,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [retryCount, setRetryCount] = useState<number>(0);
 
   /* Global context */
-  const { currentTheme } = useWidgetContext();
+  const { appSettings, currentTheme } = useWidgetContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -199,7 +199,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     >
       <Player
         hostname={window.location.host}
-        initialFormat={Format.MP4_H264}
+        initialFormat={
+          appSettings.wsDefault ? Format.RTP_H264 : Format.MP4_H264
+        }
         autoPlay
         autoRetry
         vapixParams={vapixParams}

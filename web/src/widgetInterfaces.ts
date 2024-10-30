@@ -166,6 +166,7 @@ export interface AppSettings {
   bboxOnlyShowActive: boolean;
   sortBy: 'id' | 'type';
   sortAscending: boolean;
+  wsDefault: boolean;
 }
 
 /* Application settings default values */
@@ -178,7 +179,8 @@ export const defaultAppSettings: AppSettings = {
   bboxAnchorIndicator: true,
   bboxOnlyShowActive: false,
   sortBy: 'id',
-  sortAscending: true
+  sortAscending: true,
+  wsDefault: false
 };
 
 /* VideoBox dimensions interface */

@@ -164,6 +164,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     );
   };
 
+  const handleToggleWSDefault = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      wsDefault: !prevSettings.wsDefault
+    }));
+    handleOpenAlert(`WebSocket Stream: ${!appSettings.wsDefault}`, 'success');
+    /* Reload the page to activate the change */
+    window.location.reload();
+  };
+
   /****************************************************************************/
 
   return (
@@ -189,7 +199,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               lg: '60%',
               xl: '50%'
             },
-            maxWidth: '600px',
+            maxWidth: '650px',
             minWidth: '300px',
             bgcolor: 'background.paper',
             boxShadow: 24,
@@ -225,7 +235,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               textAlign: 'left'
             })}
           >
-            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
               Bounding Box Settings
             </Typography>
 
@@ -334,7 +344,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               textAlign: 'left'
             })}
           >
-            <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
               Widget Settings
             </Typography>
 
@@ -373,6 +383,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               />
             </Box>
           </Box>
+
+          {/* Misc. settings */}
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
+              Misc. Settings
+            </Typography>
+
+            {/* Switch for using WS stream as default */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={appSettings.wsDefault}
+                  onChange={handleToggleWSDefault}
+                  name="wsDefault"
+                />
+              }
+              label="Use WebSocket stream by default (faster, but may be less reliable)"
+            />
+          </Box>
+
           {/* Switch to enable debug mode */}
           <FormControlLabel
             control={
