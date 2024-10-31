@@ -28,6 +28,7 @@ import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
@@ -359,33 +360,39 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             }}
           >
             <Typography variant="h6">General parameters</Typography>
-            <IconButton
-              aria-label="info"
-              onMouseDown={() => {
-                setActiveDraggableWidget((prev) => ({
-                  ...prev,
-                  highlight: true
-                }));
-              }}
-              onMouseUp={() => {
-                setActiveDraggableWidget((prev) => ({
-                  ...prev,
-                  highlight: false
-                }));
-              }}
-              onMouseLeave={() => {
-                setActiveDraggableWidget((prev) => ({
-                  ...prev,
-                  highlight: false
-                }));
-              }}
+            <Tooltip
+              title={`Highlight ${capitalizeFirstLetter(widget.generalParams.type)}`}
+              arrow
+              placement="right"
             >
-              {activeDraggableWidget?.highlight ? (
-                <LightbulbIcon />
-              ) : (
-                <LightbulbOutlinedIcon />
-              )}
-            </IconButton>
+              <IconButton
+                aria-label="info"
+                onMouseDown={() => {
+                  setActiveDraggableWidget((prev) => ({
+                    ...prev,
+                    highlight: true
+                  }));
+                }}
+                onMouseUp={() => {
+                  setActiveDraggableWidget((prev) => ({
+                    ...prev,
+                    highlight: false
+                  }));
+                }}
+                onMouseLeave={() => {
+                  setActiveDraggableWidget((prev) => ({
+                    ...prev,
+                    highlight: false
+                  }));
+                }}
+              >
+                {activeDraggableWidget?.highlight ? (
+                  <LightbulbIcon />
+                ) : (
+                  <LightbulbOutlinedIcon />
+                )}
+              </IconButton>
+            </Tooltip>
           </Box>
           <Box
             sx={{
