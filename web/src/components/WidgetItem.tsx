@@ -226,7 +226,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newUpdateTime = parseFloat(event.target.value);
-    if (!isNaN(newUpdateTime)) {
+    if (!isNaN(newUpdateTime) && newUpdateTime >= 0) {
       setUpdateTime(newUpdateTime);
     }
   };
