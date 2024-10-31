@@ -177,7 +177,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     }));
     handleOpenAlert(`WebSocket Stream: ${!appSettings.wsDefault}`, 'success');
     /* Start the countdown */
-    setCountdown(3);
+    setCountdown(2);
   };
 
   useEffect(() => {
