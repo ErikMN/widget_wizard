@@ -46,12 +46,14 @@ interface WidgetContextProps {
     id: number | null;
     active: boolean;
     doubleClick: boolean;
+    highlight: boolean;
   };
   setActiveDraggableWidget: React.Dispatch<
     React.SetStateAction<{
       id: number | null;
       active: boolean;
       doubleClick: boolean;
+      highlight: boolean;
     }>
   >;
 
@@ -118,7 +120,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     id: number | null;
     active: boolean;
     doubleClick: boolean;
-  }>({ id: null, active: false, doubleClick: false });
+    highlight: boolean;
+  }>({ id: null, active: false, doubleClick: false, highlight: false });
 
   /* Function to open an alert with content and severity */
   const handleOpenAlert = (

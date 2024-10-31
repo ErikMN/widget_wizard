@@ -152,7 +152,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       setActiveDraggableWidget({
         id: widget.generalParams.id,
         active: true,
-        doubleClick: false
+        doubleClick: false,
+        highlight: false
       });
     },
     [setActiveDraggableWidget]
@@ -243,7 +244,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       setActiveDraggableWidget({
         id: widget.generalParams.id,
         active: false,
-        doubleClick: false
+        doubleClick: false,
+        highlight: false
       });
     },
     [
@@ -267,7 +269,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         setActiveDraggableWidget({
           id: widget.generalParams.id,
           active: false,
-          doubleClick: !isCurrentlyOpen
+          doubleClick: !isCurrentlyOpen,
+          highlight: false
         });
         /* Toggle dropdown: close if open, open if closed */
         setOpenDropdownIndex(isCurrentlyOpen ? null : index);
@@ -309,6 +312,11 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
                 position: 'absolute',
                 pointerEvents: 'auto',
                 cursor: 'move',
+                backgroundColor:
+                  activeDraggableWidget?.id === widget.generalParams.id &&
+                  activeDraggableWidget?.highlight
+                    ? 'rgba(255, 255, 255, 0.3)'
+                    : 'transparent',
                 zIndex:
                   activeDraggableWidget?.id === widget.generalParams.id
                     ? 1000

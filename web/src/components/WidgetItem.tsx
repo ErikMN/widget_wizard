@@ -19,7 +19,10 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import IconButton from '@mui/material/IconButton';
 import ImageIcon from '@mui/icons-material/Image';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
@@ -68,7 +71,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     addCustomWidget,
     widgetCapabilities,
     openDropdownIndex,
-    activeDraggableWidget
+    activeDraggableWidget,
+    setActiveDraggableWidget
   } = useWidgetContext();
 
   /* Safe JSON parser */
@@ -347,7 +351,42 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           })}
         >
           {/* General Params */}
-          <Typography variant="h6">General parameters</Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <Typography variant="h6">General parameters</Typography>
+            <IconButton
+              aria-label="info"
+              onMouseDown={() => {
+                setActiveDraggableWidget((prev) => ({
+                  ...prev,
+                  highlight: true
+                }));
+              }}
+              onMouseUp={() => {
+                setActiveDraggableWidget((prev) => ({
+                  ...prev,
+                  highlight: false
+                }));
+              }}
+              onMouseLeave={() => {
+                setActiveDraggableWidget((prev) => ({
+                  ...prev,
+                  highlight: false
+                }));
+              }}
+            >
+              {activeDraggableWidget?.highlight ? (
+                <LightbulbIcon />
+              ) : (
+                <LightbulbOutlinedIcon />
+              )}
+            </IconButton>
+          </Box>
           <Box
             sx={{
               display: 'flex',
