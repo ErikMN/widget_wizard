@@ -14,7 +14,7 @@ FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
 # Install some utils:
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && apt-get install -y -f --no-install-recommends \
-  jq gnupg ripgrep python3-pip git pkgconf ninja-build cmake
+  jq gnupg ripgrep
 
 # Install Node.js:
 ARG NODE_MAJOR=20
@@ -37,3 +37,5 @@ ARG ACAP_SDK_INSTALL_DIR=/opt/axis/acapsdk/sysroots/aarch64/usr
 
 # Install libs here:
 ARG INC_DIR=${ACAP_SDK_INSTALL_DIR}/include
+
+################################################################################
