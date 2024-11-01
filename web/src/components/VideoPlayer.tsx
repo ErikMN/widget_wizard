@@ -103,8 +103,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         videoRect.width === 0 ||
         videoRect.height === 0
       ) {
-        console.warn('Video dimensions not ready, retrying...');
-
+        if (appSettings.debug) {
+          console.warn('Video dimensions not ready, retrying...');
+        }
         /* Retry after a short delay (e.g., 500ms) */
         setTimeout(() => {
           setRetryCount((count) => count + 1);
