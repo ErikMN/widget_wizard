@@ -618,8 +618,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Collapse in={jsonVisible}>
             <Box
               sx={(theme) => ({
-                marginTop: 1,
-                padding: 2,
+                marginTop: 2,
+                padding: 1,
                 border: '1px solid #ccc',
                 borderRadius: '8px',
                 backgroundColor: theme.palette.background.paper
@@ -637,6 +637,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   fullWidth
                   variant="outlined"
                   sx={{
+                    marginTop: 1,
                     '& textarea': {
                       resize: 'none',
                       fontFamily: 'Monospace'
