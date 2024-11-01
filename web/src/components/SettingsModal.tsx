@@ -336,7 +336,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             >
               {/* Select bounding box color */}
               <FormControl sx={{ marginTop: 2, width: '50%' }}>
-                <InputLabel id="bbox-color-label">
+                <InputLabel id="bbox-color-label" sx={{ top: '-4px' }}>
                   Bounding Box Color
                 </InputLabel>
                 <Select
@@ -344,6 +344,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                   value={currentColor}
                   label="Bounding Box Color"
                   onChange={handleColorChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
                 >
                   {availableColors.map((color) => (
                     <MenuItem key={color} value={color}>
@@ -355,7 +361,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
 
               {/* Select bounding box thickness */}
               <FormControl sx={{ marginTop: 2, width: '50%' }}>
-                <InputLabel id="bbox-thickness-label">
+                <InputLabel id="bbox-thickness-label" sx={{ top: '-4px' }}>
                   Bounding Box Thickness
                 </InputLabel>
                 <Select
@@ -363,6 +369,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                   value={currentThickness}
                   label="Bounding Box Thickness"
                   onChange={handleThicknessChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
                 >
                   {availableThicknesses.map((thickness) => (
                     <MenuItem key={thickness} value={thickness}>
@@ -398,12 +410,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               }}
             >
               <FormControl sx={{ width: '40%' }}>
-                <InputLabel id="sort-by-label">Sort Widgets By</InputLabel>
+                <InputLabel id="sort-by-label" sx={{ top: '-4px' }}>
+                  Sort Widgets By
+                </InputLabel>
                 <Select
                   labelId="sort-by-label"
                   value={appSettings.sortBy}
                   label="Sort Widgets By"
                   onChange={handleSortChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
                 >
                   <MenuItem value="id">ID</MenuItem>
                   <MenuItem value="type">Type</MenuItem>
@@ -486,11 +506,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               marginTop: 4
             }}
           >
-            <Button
-              onClick={handleModalClose}
-              sx={{ marginTop: 2 }}
-              variant="contained"
-            >
+            <Button onClick={handleModalClose} variant="contained">
               Close
             </Button>
           </Box>
