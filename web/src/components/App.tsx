@@ -133,6 +133,7 @@ const App: React.FC = () => {
 
   /* Global context */
   const {
+    widgetSupported,
     widgetLoading,
     activeWidgets,
     handleOpenAlert,
@@ -519,7 +520,18 @@ const App: React.FC = () => {
           <Divider />
           {/* Drawer content here */}
           <Box sx={{ paddingBottom: 1 }}>
-            <WidgetHandler />
+            {widgetSupported ? (
+              <WidgetHandler />
+            ) : (
+              <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
+                <Alert
+                  severity="warning"
+                  sx={{ marginTop: 2, marginLeft: 1, marginRight: 1 }}
+                >
+                  <Typography>This device does not support widgets</Typography>
+                </Alert>
+              </Fade>
+            )}
           </Box>
         </Drawer>
 

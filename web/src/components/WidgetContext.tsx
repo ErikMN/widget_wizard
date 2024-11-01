@@ -40,6 +40,8 @@ interface WidgetContextProps {
     React.SetStateAction<WidgetCapabilities | null>
   >;
   widgetLoading: boolean;
+  widgetSupported: boolean;
+  setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
 
   /* Draggable widget state */
   activeDraggableWidget: {
@@ -97,6 +99,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     null
   );
   const [widgetLoading, setWidgetLoading] = useState<boolean>(false);
+  const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
 
   /* Alert-related state variables */
   const [openAlert, setOpenAlert] = useState<boolean>(false);
@@ -171,6 +174,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         'success'
       );
     } catch (error) {
+      setWidgetLoading(false);
       handleOpenAlert(
         `Widget ${widgetItem.generalParams.id} failed to update`,
         'error'
@@ -201,6 +205,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveWidgets(resp.data.widgets);
       }
     } catch (error) {
+      /* Failed to contact widget backend: Widgets are not supported */
+      setWidgetSupported(false);
+      setWidgetLoading(false);
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
@@ -231,6 +238,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     } catch (error) {
+      /* Failed to contact widget backend: Widgets are not supported */
+      setWidgetSupported(false);
+      setWidgetLoading(false);
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
@@ -286,6 +296,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       handleOpenAlert(`Added ${widgetType}`, 'success');
     } catch (error) {
+      setWidgetLoading(false);
       handleOpenAlert(`Failed to add ${widgetType}`, 'error');
       console.error('Error:', error);
     }
@@ -318,6 +329,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
     } catch (error) {
+      setWidgetLoading(false);
       handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
       console.error('Error:', error);
     }
@@ -349,6 +361,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       handleOpenAlert(`Removed widget ${widgetID}`, 'success');
     } catch (error) {
+      setWidgetLoading(false);
       handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
       console.error('Error:', error);
     }
@@ -371,6 +384,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
+      setWidgetLoading(false);
       handleOpenAlert('Failed to remove all widgets', 'error');
       console.error('Error:', error);
     }
@@ -392,6 +406,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         widgetCapabilities,
         setWidgetCapabilities,
         widgetLoading,
+        widgetSupported,
+        setWidgetSupported,
         selectedWidget,
         setSelectedWidget,
         openDropdownIndex,
