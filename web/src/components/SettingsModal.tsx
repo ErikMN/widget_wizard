@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useWidgetContext } from './WidgetContext';
-import { AppSettings } from '../widgetInterfaces';
+import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -212,6 +212,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     setCountdown(null);
     /* Call handleClose callback */
     handleClose();
+  };
+
+  /* Handle reset to default settings */
+  const handleResetDefaults = () => {
+    setAppSettings(defaultAppSettings);
+    handleOpenAlert('Settings have been reset to default values', 'success');
   };
 
   /****************************************************************************/
@@ -498,14 +504,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             }
           />
 
-          {/* Close button */}
+          {/* Close and Reset Defaults buttons */}
           <Box
             sx={{
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
               marginTop: 4
             }}
           >
+            <Button onClick={handleResetDefaults} variant="outlined">
+              Reset Defaults
+            </Button>
             <Button onClick={handleModalClose} variant="contained">
               Close
             </Button>
