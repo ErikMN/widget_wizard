@@ -140,7 +140,9 @@ const WidgetHandler: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
         {/* Dropdown for widget names */}
         <FormControl fullWidth variant="outlined">
-          <InputLabel id="widget-select-label">Select Widget</InputLabel>
+          <InputLabel id="widget-select-label" sx={{ top: '-4px' }}>
+            Select Widget
+          </InputLabel>
           <Select
             labelId="widget-select-label"
             id="widget-select"
