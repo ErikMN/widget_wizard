@@ -526,9 +526,17 @@ const App: React.FC = () => {
               <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
                 <Alert
                   severity="warning"
-                  sx={{ marginTop: 2, marginLeft: 1, marginRight: 1 }}
+                  sx={{
+                    marginTop: 2,
+                    marginLeft: 1,
+                    marginRight: 1,
+                    alignItems: 'center'
+                  }}
                 >
-                  <Typography>This device does not support widgets</Typography>
+                  <Typography>
+                    Widgets are not supported on this device, or the widget
+                    backend is disabled.
+                  </Typography>
                 </Alert>
               </Fade>
             )}
