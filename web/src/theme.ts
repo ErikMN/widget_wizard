@@ -12,7 +12,7 @@ const lightTheme = createTheme({
       contrastText: '#525252' // Text color on primary elements
     },
     secondary: {
-      main: grey[300] // Secondary color (accents, floating action buttons)
+      main: '#ffffff' // Secondary color (accents, floating action buttons)
     },
     background: {
       default: grey[50], // Main background color
@@ -41,7 +41,11 @@ const lightTheme = createTheme({
       fontSize: '2.5rem',
       fontWeight: 700
     },
+    h5: {
+      color: '#525252'
+    },
     h6: {
+      color: '#525252',
       fontSize: '1.25rem',
       fontWeight: 500
     },
@@ -93,11 +97,11 @@ const darkTheme = createTheme({
       contrastText: '#fff' // Text color on primary elements
     },
     secondary: {
-      main: grey[300] // Secondary color
+      main: '#292929' // Secondary color
     },
     background: {
       default: grey[900], // Background color for the whole app
-      paper: grey[800] // Background color for cards, dialogs, etc.
+      paper: '#292929' // Background color for cards, dialogs, etc.
     },
     text: {
       primary: '#fff', // Text color for the default dark background
@@ -122,7 +126,11 @@ const darkTheme = createTheme({
       fontSize: '2.5rem',
       fontWeight: 700
     },
+    h5: {
+      color: '#b8b8b8'
+    },
     h6: {
+      color: '#b8b8b8',
       fontSize: '1.25rem',
       fontWeight: 500
     },

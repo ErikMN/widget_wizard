@@ -81,6 +81,7 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<AppBarProps>(({ theme, open, isMobile }) => ({
   overflowX: 'auto',
+  backgroundColor: theme.palette.secondary.main,
   whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
@@ -506,7 +507,7 @@ const App: React.FC = () => {
               sx={{
                 fontWeight: 600,
                 letterSpacing: '0.05em',
-                color: 'text.primary',
+                color: 'palette.secondary.main',
                 display: 'flex',
                 justifyContent: 'center',
                 flexGrow: 1,
