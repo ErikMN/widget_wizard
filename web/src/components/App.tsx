@@ -305,7 +305,13 @@ const App: React.FC = () => {
                 edge="start"
                 sx={{ ...(!isMobile && drawerOpen ? { display: 'none' } : {}) }}
               >
-                <MenuIcon />
+                <MenuIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
               </IconButton>
             </Tooltip>
 
@@ -357,7 +363,13 @@ const App: React.FC = () => {
                 edge="end"
                 sx={{ marginRight: '0px' }}
               >
-                <DataObjectIcon />
+                <DataObjectIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
               </IconButton>
             </Tooltip>
 
@@ -378,9 +390,21 @@ const App: React.FC = () => {
                 sx={{ marginRight: '0px' }}
               >
                 {showBoundingBoxes ? (
-                  <VisibilityOutlinedIcon />
+                  <VisibilityOutlinedIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
                 ) : (
-                  <VisibilityOffOutlinedIcon />
+                  <VisibilityOffOutlinedIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
                 )}
               </IconButton>
             </Tooltip>
@@ -394,7 +418,13 @@ const App: React.FC = () => {
                 edge="end"
                 sx={{ marginRight: '0px' }}
               >
-                <InfoOutlinedIcon />
+                <InfoOutlinedIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
               </IconButton>
             </Tooltip>
 
@@ -407,7 +437,13 @@ const App: React.FC = () => {
                 edge="end"
                 sx={{ marginRight: '0px' }}
               >
-                <ContrastIcon />
+                <ContrastIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
               </IconButton>
             </Tooltip>
 
@@ -419,7 +455,13 @@ const App: React.FC = () => {
                 onClick={handleOpenSettingsModal}
                 edge="end"
               >
-                <SettingsIcon />
+                <SettingsIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
               </IconButton>
             </Tooltip>
           </Toolbar>
@@ -497,6 +539,7 @@ const App: React.FC = () => {
             {/* Left-aligned icon */}
             <WidgetsOutlinedIcon
               sx={{
+                color: 'text.secondary',
                 position: 'absolute',
                 left: 16
               }}

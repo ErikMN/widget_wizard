@@ -20,7 +20,7 @@ const lightTheme = createTheme({
     },
     text: {
       primary: grey[900], // Text color on the default background
-      secondary: grey[700] // Secondary text color
+      secondary: '#525252' // Secondary text color
     },
     error: {
       main: '#d32f2f' // Error color for alerts, inputs, etc.
@@ -105,7 +105,7 @@ const darkTheme = createTheme({
     },
     text: {
       primary: '#fff', // Text color for the default dark background
-      secondary: grey[500] // Lighter text color
+      secondary: '#b8b8b8' // Lighter text color
     },
     error: {
       main: '#f44336' // Error color
