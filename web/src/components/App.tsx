@@ -145,9 +145,6 @@ const App: React.FC = () => {
     appSettings
   } = useWidgetContext();
 
-  /* Refs */
-  const logVideoDimensionsRef = useRef<() => void | null>(null);
-
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
@@ -155,23 +152,6 @@ const App: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   enableLogging(true);
-
-  /* Handle screen and video box size */
-  useEffect(() => {
-    const handleResize = () => {
-      if (logVideoDimensionsRef.current) {
-        logVideoDimensionsRef.current();
-      }
-    };
-
-    /* Add resize event listener */
-    window.addEventListener('resize', handleResize);
-
-    /* Clean up */
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   /* App mount calls */
   useEffect(() => {
@@ -247,7 +227,7 @@ const App: React.FC = () => {
   };
 
   /* Update video dimensions
-   * Passed as callback to VideoPlayer, also runs via ref at drawer toggle
+   * Passed as callback to VideoPlayer
    */
   const handleDimensionsUpdate = (
     videoWidth: number,
@@ -566,10 +546,7 @@ const App: React.FC = () => {
             }}
           >
             {/* Video Player */}
-            <VideoPlayer
-              onDimensionsUpdate={handleDimensionsUpdate}
-              logVideoDimensionsRef={logVideoDimensionsRef}
-            />
+            <VideoPlayer onDimensionsUpdate={handleDimensionsUpdate} />
             {/* Overlay Surface aligned with the video element */}
             {showBoundingBoxes && (
               /* BBox surface */

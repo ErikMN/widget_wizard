@@ -16,7 +16,6 @@ interface VideoPlayerProps {
     offsetX: number,
     offsetY: number
   ) => void;
-  logVideoDimensionsRef: React.MutableRefObject<(() => void) | null>;
 }
 
 /* Force a login by fetching usergroup */
@@ -52,10 +51,7 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  onDimensionsUpdate,
-  logVideoDimensionsRef
-}) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ onDimensionsUpdate }) => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
@@ -132,14 +128,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       });
     setDefaultParams();
   }, []);
-
-  /* Set a ref to the logVideoDimensions function to be used by parent */
-  useEffect(() => {
-    logVideoDimensionsRef.current = logVideoDimensions;
-    return () => {
-      logVideoDimensionsRef.current = null;
-    };
-  }, [logVideoDimensionsRef]);
 
   useEffect(() => {
     if (authorized && playerContainerRef.current) {
