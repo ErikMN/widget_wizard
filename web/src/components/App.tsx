@@ -308,7 +308,7 @@ const App: React.FC = () => {
               {/* Title */}
               <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
                 <Typography
-                  variant="h5"
+                  variant={isMobile ? 'h6' : 'h5'}
                   noWrap
                   component="div"
                   style={{ display: 'flex', alignItems: 'center' }}
