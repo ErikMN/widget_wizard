@@ -2,16 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useWidgetContext } from './WidgetContext';
 
-/* Vertical offset */
-const OFFSET = 120;
-
 interface VapixConfig {
   compression: string;
   resolution: string;
 }
 
 interface VideoPlayerProps {
-  height: number;
   onDimensionsUpdate: (
     videoWidth: number,
     videoHeight: number,
@@ -57,7 +53,6 @@ const setDefaultParams = (): void => {
 };
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  height,
   onDimensionsUpdate,
   logVideoDimensionsRef
 }) => {
@@ -191,11 +186,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <div
       ref={playerContainerRef}
       style={{
-        height: `${height - OFFSET}px`,
+        flexGrow: 1,
         backgroundColor:
           currentTheme === 'dark' ? 'rgb(82, 82, 82)' : 'rgb(0, 0, 0)',
         padding: '3px',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
       <Player

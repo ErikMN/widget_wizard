@@ -1,6 +1,6 @@
 /* Widget Wizard main component */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
 import logo from '../assets/img/widgy2.png';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
@@ -12,7 +12,7 @@ import BBox from './BBox';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
-import { SR_CGI, drawerWidth, drawerOffset } from './constants';
+import { SR_CGI, drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
 import { Dimensions } from '../widgetInterfaces';
@@ -32,6 +32,7 @@ import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import MenuIcon from '@mui/icons-material/Menu';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -45,55 +46,56 @@ import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 /******************************************************************************/
 
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
+const Main = styled('main', {
+  shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
+})<{
   open?: boolean;
-}>(({ theme }) => ({
+  isMobile?: boolean;
+}>(({ theme, open, isMobile }) => ({
   flexGrow: 1,
+  display: 'flex',
+  flexDirection: 'column',
   padding: theme.spacing(3),
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen
   }),
-  marginLeft: `-${drawerWidth}px`,
-  variants: [
-    {
-      props: ({ open }) => open,
-      style: {
-        transition: theme.transitions.create('margin', {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen
-        }),
-        marginLeft: 0,
-        position: 'relative'
-      }
-    }
-  ]
+  ...(isMobile
+    ? { marginBottom: open ? drawerHeight : 0 }
+    : { marginLeft: open ? drawerWidth : 0 }),
+  ...(open && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen
+    }),
+    position: 'relative'
+  })
 }));
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
+  isMobile?: boolean;
 }
 
 const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open'
-})<AppBarProps>(({ theme }) => ({
-  transition: theme.transitions.create(['margin', 'width'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen
-  }),
-  variants: [
+  shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
+})<AppBarProps>(({ theme, open, isMobile }) => ({
+  transition: theme.transitions.create(
+    isMobile ? 'margin' : ['margin', 'width'],
     {
-      props: ({ open }) => open,
-      style: {
-        width: `calc(100% - ${drawerWidth}px)`,
-        marginLeft: `${drawerWidth}px`,
-        transition: theme.transitions.create(['margin', 'width'], {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen
-        })
-      }
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen
     }
-  ]
+  ),
+  ...(open &&
+    !isMobile && {
+      width: `calc(100% - ${drawerWidth}px)`,
+      marginLeft: `${drawerWidth}px`,
+      transition: theme.transitions.create(['margin', 'width'], {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen
+      })
+    })
 }));
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -112,9 +114,6 @@ const App: React.FC = () => {
   const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
-  const [screenWidth, setScreenWidth] = useState<number>(window.innerWidth);
-  const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
-  const [manualDrawerControl, setManualDrawerControl] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
     useState<boolean>(false);
@@ -152,35 +151,27 @@ const App: React.FC = () => {
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
+  /* Mobile mode */
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   enableLogging(true);
 
   /* Handle screen and video box size */
   useEffect(() => {
     const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-      setScreenHeight(window.innerHeight);
+      if (logVideoDimensionsRef.current) {
+        logVideoDimensionsRef.current();
+      }
     };
 
-    /* Add resize event listeners */
+    /* Add resize event listener */
     window.addEventListener('resize', handleResize);
-    window.addEventListener('resize', recalculateDimensions);
 
     /* Clean up */
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', recalculateDimensions);
     };
   }, []);
-
-  /* Automatically open or close drawer depending on screen size */
-  useEffect(() => {
-    if (!manualDrawerControl) {
-      setDrawerOpen(screenWidth >= drawerWidth + drawerOffset);
-    }
-    if (drawerOpen) {
-      setManualDrawerControl(false);
-    }
-  }, [screenWidth, manualDrawerControl, setDrawerOpen, drawerOpen]);
 
   /* App mount calls */
   useEffect(() => {
@@ -221,20 +212,11 @@ const App: React.FC = () => {
     fetchSystemReady();
   }, []);
 
-  /* Recalculate the video dimensions when the screen size changes */
-  const recalculateDimensions = () => {
-    if (logVideoDimensionsRef.current) {
-      logVideoDimensionsRef.current();
-    }
-  };
-
   const handleDrawerOpen = useCallback(() => {
-    setManualDrawerControl(false);
     setDrawerOpen(true);
   }, []);
 
   const handleDrawerClose = useCallback(() => {
-    setManualDrawerControl(true);
     setDrawerOpen(false);
   }, []);
 
@@ -305,7 +287,7 @@ const App: React.FC = () => {
     return (
       <>
         {/* Application header bar */}
-        <AppBar position="fixed" open={drawerOpen}>
+        <AppBar position="fixed" open={drawerOpen} isMobile={isMobile}>
           <Toolbar
             sx={{
               display: 'flex',
@@ -319,14 +301,7 @@ const App: React.FC = () => {
                 aria-label="open drawer"
                 onClick={handleDrawerOpen}
                 edge="start"
-                sx={[
-                  {
-                    marginRight: 2
-                  },
-                  drawerOpen || screenWidth < drawerWidth + drawerOffset
-                    ? { display: 'none' }
-                    : {}
-                ]}
+                sx={{ ...(drawerOpen ? { display: 'none' } : {}) }}
               >
                 <MenuIcon />
               </IconButton>
@@ -451,30 +426,62 @@ const App: React.FC = () => {
         {/* Drawer menu */}
         <Drawer
           sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              overflow: 'auto',
-              '&::-webkit-scrollbar': {
-                width: '10px',
-                backgroundColor: 'transparent'
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: grey[500],
-                borderRadius: '8px'
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: grey[600]
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: grey[300]
-              }
-            }
+            ...(isMobile
+              ? {
+                  flexShrink: 0,
+                  '& .MuiDrawer-paper': {
+                    height: drawerHeight,
+                    boxSizing: 'border-box',
+                    overflow: 'auto',
+                    position: 'fixed',
+                    bottom: 0,
+                    width: '100%',
+                    '&::-webkit-scrollbar': {
+                      width: '10px',
+                      backgroundColor: 'transparent'
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: grey[500],
+                      borderRadius: '8px'
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      backgroundColor: grey[600]
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: grey[300]
+                    }
+                  }
+                }
+              : {
+                  width: drawerWidth,
+                  flexShrink: 0,
+                  '& .MuiDrawer-paper': {
+                    width: drawerWidth,
+                    boxSizing: 'border-box',
+                    overflow: 'auto',
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    '&::-webkit-scrollbar': {
+                      width: '10px',
+                      backgroundColor: 'transparent'
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: grey[500],
+                      borderRadius: '8px'
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      backgroundColor: grey[600]
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: grey[300]
+                    }
+                  }
+                })
           }}
           variant="persistent"
-          anchor="left"
+          anchor={isMobile ? 'bottom' : 'left'}
           open={drawerOpen}
         >
           <DrawerHeader
@@ -501,15 +508,18 @@ const App: React.FC = () => {
                 color: 'text.primary',
                 display: 'flex',
                 justifyContent: 'center',
-                flexGrow: 1
+                flexGrow: 1,
+                ...(isMobile && { marginBottom: 1 })
               }}
             >
               Active Widgets: {activeWidgets.length}
             </Typography>
-            {/* Close button on the right */}
-            <Tooltip title="Close the menu" arrow placement="right">
+            {/* Menu close button */}
+            <Tooltip title="Close the menu" arrow placement={'right'}>
               <IconButton onClick={handleDrawerClose}>
-                {theme.direction === 'ltr' ? (
+                {isMobile ? (
+                  <KeyboardArrowDownIcon />
+                ) : theme.direction === 'ltr' ? (
                   <ChevronLeftIcon />
                 ) : (
                   <ChevronRightIcon />
@@ -544,13 +554,19 @@ const App: React.FC = () => {
         </Drawer>
 
         {/* Main content */}
-        <Main open={drawerOpen}>
+        <Main open={drawerOpen} isMobile={isMobile}>
           <DrawerHeader />
           {/* Video Player */}
-          <Box sx={{ position: 'relative' }}>
+          <Box
+            sx={{
+              position: 'relative',
+              flexGrow: 1,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             {/* Video Player */}
             <VideoPlayer
-              height={window.innerHeight}
               onDimensionsUpdate={handleDimensionsUpdate}
               logVideoDimensionsRef={logVideoDimensionsRef}
             />
@@ -659,7 +675,7 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <CssBaseline />
         {checkSystemState()}
       </Box>
