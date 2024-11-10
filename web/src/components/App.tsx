@@ -80,6 +80,8 @@ interface AppBarProps extends MuiAppBarProps {
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<AppBarProps>(({ theme, open, isMobile }) => ({
+  overflowX: 'auto',
+  whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
     {
@@ -95,7 +97,22 @@ const AppBar = styled(MuiAppBar, {
         easing: theme.transitions.easing.easeOut,
         duration: theme.transitions.duration.enteringScreen
       })
-    })
+    }),
+  /* Horizontal scrollbar style */
+  '&::-webkit-scrollbar': {
+    height: '8px',
+    backgroundColor: 'transparent'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: theme.palette.grey[500],
+    borderRadius: '8px'
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: theme.palette.grey[600]
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: theme.palette.grey[300]
+  }
 }));
 
 const DrawerHeader = styled('div')(({ theme }) => ({
