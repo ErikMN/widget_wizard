@@ -200,6 +200,10 @@ const App: React.FC = () => {
     setDrawerOpen(false);
   }, []);
 
+  const toggleDrawerOpen = useCallback(() => {
+    setDrawerOpen(!drawerOpen);
+  }, [drawerOpen]);
+
   const toggleTheme = useCallback(() => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     setCurrentTheme(newTheme);
@@ -279,9 +283,9 @@ const App: React.FC = () => {
               <IconButton
                 color="inherit"
                 aria-label="open drawer"
-                onClick={handleDrawerOpen}
+                onClick={toggleDrawerOpen}
                 edge="start"
-                sx={{ ...(drawerOpen ? { display: 'none' } : {}) }}
+                sx={{ ...(!isMobile && drawerOpen ? { display: 'none' } : {}) }}
               >
                 <MenuIcon />
               </IconButton>
