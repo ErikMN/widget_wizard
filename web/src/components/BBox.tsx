@@ -3,7 +3,7 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import Draggable from 'react-draggable';
-import AnchorTriangles from './AnchorTriangles';
+import AnchorIndicators from './AnchorIndicators';
 import { Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { Dimensions } from '../widgetInterfaces';
@@ -329,7 +329,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               }}
             >
               {/* Anchor point indicators */}
-              <AnchorTriangles
+              <AnchorIndicators
                 widget={widget}
                 scaleFactor={scaleFactor}
                 bboxColor={bboxColor}
