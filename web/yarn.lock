@@ -4490,10 +4490,10 @@ vite-plugin-svgr@^4.3.0:
     "@svgr/core" "^8.1.0"
     "@svgr/plugin-jsx" "^8.1.0"
 
-vite-tsconfig-paths@^5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/vite-tsconfig-paths/-/vite-tsconfig-paths-5.1.0.tgz#b449b6749eb69e635ad4b5fcf4f4181b92d512c9"
-  integrity sha512-Y1PLGHCJfAq1Zf4YIGEsmuU/NCX1epoZx9zwSr32Gjn3aalwQHRKr5aUmbo6r0JHeHkqmWpmDg7WOynhYXw1og==
+vite-tsconfig-paths@^5.1.2:
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/vite-tsconfig-paths/-/vite-tsconfig-paths-5.1.2.tgz#975810f12cdaebcda196ce3c2cb4ba19df277bb1"
+  integrity sha512-gEIbKfJzSEv0yR3XS2QEocKetONoWkbROj6hGx0FHM18qKUojhvcokQsxQx5nMkelZq2n37zbSGCJn+FSODSjA==
   dependencies:
     debug "^4.1.1"
     globrex "^0.1.2"
