@@ -553,8 +553,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           {/* General Params End */}
           {/* Widget Params */}
           <Button
-            color="secondary"
-            variant={widgetParamsVisible ? 'outlined' : 'contained'}
+            variant={widgetParamsVisible ? 'contained' : 'outlined'}
             fullWidth
             onClick={toggleWidgetParams}
             startIcon={<WidgetsIcon />}
@@ -562,6 +561,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
             }
             sx={{
+              color: 'text.secondary',
+              backgroundColor: 'background.default',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

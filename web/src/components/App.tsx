@@ -347,7 +347,14 @@ const App: React.FC = () => {
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
                   {appSettings.debug && (
-                    <ScienceOutlinedIcon style={{ marginRight: '8px' }} />
+                    <ScienceOutlinedIcon
+                      sx={{
+                        marginRight: '8px',
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
                   )}{' '}
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   <GetParam param="Brand.ProdFullName" />
@@ -544,9 +551,9 @@ const App: React.FC = () => {
             {/* Left-aligned icon */}
             <WidgetsOutlinedIcon
               sx={{
-                color: 'text.secondary',
-                position: 'absolute',
-                left: 16
+                width: '20px',
+                height: '20px',
+                color: 'text.secondary'
               }}
             />
             {/* Centered text */}
