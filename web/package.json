@@ -1,7 +1,7 @@
 {
   "name": "widget_wizard",
   "sitename": "Widget Wizard",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "homepage": "./",
   "private": true,
