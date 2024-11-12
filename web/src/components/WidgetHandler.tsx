@@ -174,6 +174,9 @@ const WidgetHandler: React.FC = () => {
               marginLeft: 1,
               backgroundColor: green[500],
               color: 'white',
+              width: 40,
+              height: 40,
+              borderRadius: '8px',
               '&:hover': {
                 backgroundColor: green[700]
               }
