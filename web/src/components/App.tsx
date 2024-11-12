@@ -106,14 +106,11 @@ const AppBar = styled(MuiAppBar, {
     backgroundColor: 'transparent'
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.grey[500],
-    borderRadius: '8px'
-  },
-  '&::-webkit-scrollbar-thumb:hover': {
-    backgroundColor: theme.palette.grey[600]
+    backgroundColor: theme.palette.grey[600],
+    borderRadius: '6px'
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: theme.palette.grey[300]
+    backgroundColor: theme.palette.grey[800]
   },
   '& .MuiToolbar-root': {
     minHeight: '54px'
@@ -493,18 +490,15 @@ const App: React.FC = () => {
                     bottom: 0,
                     width: '100%',
                     '&::-webkit-scrollbar': {
-                      width: '10px',
+                      width: '8px',
                       backgroundColor: 'transparent'
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      backgroundColor: grey[500],
-                      borderRadius: '8px'
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      backgroundColor: grey[600]
+                      backgroundColor: grey[600],
+                      borderRadius: '6px'
                     },
                     '&::-webkit-scrollbar-track': {
-                      backgroundColor: grey[300]
+                      backgroundColor: grey[800]
                     }
                   }
                 }
@@ -520,18 +514,15 @@ const App: React.FC = () => {
                     top: 0,
                     height: '100%',
                     '&::-webkit-scrollbar': {
-                      width: '10px',
+                      width: '8px',
                       backgroundColor: 'transparent'
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      backgroundColor: grey[500],
-                      borderRadius: '8px'
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      backgroundColor: grey[600]
+                      backgroundColor: grey[600],
+                      borderRadius: '6px'
                     },
                     '&::-webkit-scrollbar-track': {
-                      backgroundColor: grey[300]
+                      backgroundColor: grey[800]
                     }
                   }
                 })
