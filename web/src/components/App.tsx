@@ -81,7 +81,8 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<AppBarProps>(({ theme, open, isMobile }) => ({
   overflowX: 'auto',
-  backgroundColor: theme.palette.secondary.main,
+  backgroundColor: theme.palette.background.paper,
+  backgroundImage: 'none',
   whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
@@ -113,6 +114,9 @@ const AppBar = styled(MuiAppBar, {
   },
   '&::-webkit-scrollbar-track': {
     backgroundColor: theme.palette.grey[300]
+  },
+  '& .MuiToolbar-root': {
+    minHeight: '54px'
   }
 }));
 
@@ -120,8 +124,9 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 1),
+  height: '54px',
   // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
+  // ...theme.mixins.toolbar,
   justifyContent: 'flex-end'
 }));
 
@@ -546,9 +551,8 @@ const App: React.FC = () => {
             />
             {/* Centered text */}
             <Typography
-              variant="h6"
+              variant="inherit"
               sx={{
-                fontWeight: 600,
                 letterSpacing: '0.05em',
                 color: 'palette.secondary.main',
                 display: 'flex',

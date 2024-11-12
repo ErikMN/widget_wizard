@@ -20,7 +20,7 @@ const lightTheme = createTheme({
     },
     text: {
       primary: grey[900], // Text color on the default background
-      secondary: '#525252' // Secondary text color
+      secondary: '#242424' // Secondary text color
     },
     error: {
       main: '#d32f2f' // Error color for alerts, inputs, etc.
@@ -36,17 +36,18 @@ const lightTheme = createTheme({
     }
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: 'Segoe UI, Roboto, Arial, sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 700
     },
     h5: {
-      color: '#525252'
+      color: '#525252',
+      fontSize: '24px'
     },
     h6: {
       color: '#525252',
-      fontSize: '1.25rem',
+      fontSize: '16px',
       fontWeight: 500
     },
     body1: {
@@ -105,7 +106,7 @@ const darkTheme = createTheme({
     },
     text: {
       primary: '#fff', // Text color for the default dark background
-      secondary: '#b8b8b8' // Lighter text color
+      secondary: '#d6d6d6' // Lighter text color
     },
     error: {
       main: '#f44336' // Error color
@@ -121,17 +122,18 @@ const darkTheme = createTheme({
     }
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: 'Segoe UI, Roboto, Arial, sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 700
     },
     h5: {
-      color: '#b8b8b8'
+      color: '#b8b8b8',
+      fontSize: '24px'
     },
     h6: {
       color: '#b8b8b8',
-      fontSize: '1.25rem',
+      fontSize: '16px',
       fontWeight: 500
     },
     body1: {
