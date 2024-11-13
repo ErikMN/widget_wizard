@@ -9,6 +9,7 @@ import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
 import SettingsModal from './SettingsModal';
 import BBox from './BBox';
+import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
@@ -30,7 +31,6 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
-import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -300,7 +300,7 @@ const App: React.FC = () => {
           >
             {/* Menu button (left-aligned) */}
             <Tooltip title="Open the menu" arrow placement="right">
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="open drawer"
                 onClick={toggleDrawerOpen}
@@ -314,7 +314,7 @@ const App: React.FC = () => {
                     color: 'text.secondary'
                   }}
                 />
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
 
             {/* Title and Logo */}
@@ -330,7 +330,6 @@ const App: React.FC = () => {
               <CircularProgress
                 size={30}
                 sx={{
-                  color: '#ffcc33',
                   marginRight: 2,
                   visibility: widgetLoading ? 'visible' : 'hidden'
                 }}
@@ -358,14 +357,16 @@ const App: React.FC = () => {
                 </Typography>
               </Fade>
               {/* Logo */}
-              <Box sx={{ marginLeft: 1 }}>
-                <img src={logo} alt="Logo" style={{ height: '40px' }} />
-              </Box>
+              {!isMobile && (
+                <Box sx={{ marginLeft: 1 }}>
+                  <img src={logo} alt="Logo" style={{ height: '40px' }} />
+                </Box>
+              )}
             </Box>
 
             {/* Show Widget Capabilities JSON button */}
             <Tooltip title="Show Widget Capabilities JSON" arrow>
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="Show Widget Capabilities JSON"
                 onClick={handleOpenCapabilitiesModal}
@@ -379,7 +380,7 @@ const App: React.FC = () => {
                     color: 'text.secondary'
                   }}
                 />
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
 
             {/* Toggle Bounding Boxes Button */}
@@ -391,7 +392,7 @@ const App: React.FC = () => {
               }
               arrow
             >
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="toggle bounding boxes"
                 onClick={() => setShowBoundingBoxes((prev) => !prev)}
@@ -415,12 +416,12 @@ const App: React.FC = () => {
                     }}
                   />
                 )}
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
 
             {/* Info Button (left of theme icon) */}
             <Tooltip title="About Info" arrow>
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="about info"
                 onClick={handleOpenAboutModal}
@@ -434,12 +435,12 @@ const App: React.FC = () => {
                     color: 'text.secondary'
                   }}
                 />
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
 
             {/* Theme Toggle Button */}
             <Tooltip title="Toggle Theme" arrow>
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="toggle theme"
                 onClick={toggleTheme}
@@ -453,12 +454,12 @@ const App: React.FC = () => {
                     color: 'text.secondary'
                   }}
                 />
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
 
             {/* Settings button */}
             <Tooltip title="Application Settings" arrow>
-              <IconButton
+              <CustomStyledIconButton
                 color="inherit"
                 aria-label="settings"
                 onClick={handleOpenSettingsModal}
@@ -471,7 +472,7 @@ const App: React.FC = () => {
                     color: 'text.secondary'
                   }}
                 />
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
           </Toolbar>
         </AppBar>
@@ -563,7 +564,7 @@ const App: React.FC = () => {
             </Typography>
             {/* Menu close button */}
             <Tooltip title="Close the menu" arrow placement={'right'}>
-              <IconButton onClick={handleDrawerClose}>
+              <CustomStyledIconButton onClick={handleDrawerClose}>
                 {isMobile ? (
                   <KeyboardArrowDownIcon />
                 ) : theme.direction === 'ltr' ? (
@@ -571,7 +572,7 @@ const App: React.FC = () => {
                 ) : (
                   <ChevronRightIcon />
                 )}
-              </IconButton>
+              </CustomStyledIconButton>
             </Tooltip>
           </DrawerHeader>
           <Divider />
@@ -702,7 +703,7 @@ const App: React.FC = () => {
             {import.meta.env.VITE_WEBSITE_NAME} is getting ready
           </Typography>
         </Fade>
-        <CircularProgress size={50} sx={{ color: '#ffcc33' }} />
+        <CircularProgress size={50} />
       </Box>
     );
   };
