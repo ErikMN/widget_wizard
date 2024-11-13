@@ -55,7 +55,7 @@ const Main = styled('main', {
   flexGrow: 1,
   display: 'flex',
   flexDirection: 'column',
-  padding: theme.spacing(isMobile ? 0 : 2),
+  padding: theme.spacing(isMobile ? 0 : '4px'),
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen
