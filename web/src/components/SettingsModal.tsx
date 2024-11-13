@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useWidgetContext } from './WidgetContext';
 import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import { CustomSwitch } from './CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -14,7 +15,6 @@ import Modal from '@mui/material/Modal';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
-import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
 
 interface SettingsModalProps {
@@ -288,7 +288,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             {/* Switch for rounded bounding box corners */}
             <FormControlLabel
               control={
-                <Switch
+                <CustomSwitch
                   checked={appSettings.roundedBboxCorners}
                   onChange={handleToggleRoundedCorners}
                   name="roundedBboxCorners"
@@ -300,7 +300,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             {/* Switch for bounding box label */}
             <FormControlLabel
               control={
-                <Switch
+                <CustomSwitch
                   checked={appSettings.bboxLabel}
                   onChange={handleToggleBboxLabel}
                   name="bboxLabel"
@@ -312,7 +312,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             {/* Switch for bounding anchor indicator */}
             <FormControlLabel
               control={
-                <Switch
+                <CustomSwitch
                   checked={appSettings.bboxAnchorIndicator}
                   onChange={handleToggleBboxAnchorIndicator}
                   name="bboxAnchorIndicator"
@@ -324,7 +324,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             {/* Switch for only showing active bbox */}
             <FormControlLabel
               control={
-                <Switch
+                <CustomSwitch
                   checked={appSettings.bboxOnlyShowActive}
                   onChange={handleToggleBboxOnlyShowActive}
                   name="bboxOnlyShowActive"
@@ -438,7 +438,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
               {/* Toggle for sorting ascending/descending */}
               <FormControlLabel
                 control={
-                  <Switch
+                  <CustomSwitch
                     checked={appSettings.sortAscending}
                     onChange={handleToggleSortOrder}
                     name="sortAscending"
@@ -467,7 +467,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
             {/* Switch for using WS stream as default */}
             <FormControlLabel
               control={
-                <Switch
+                <CustomSwitch
                   checked={appSettings.wsDefault}
                   onChange={handleToggleWSDefault}
                   name="wsDefault"
@@ -490,7 +490,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
           {/* Switch to enable debug mode */}
           <FormControlLabel
             control={
-              <Switch
+              <CustomSwitch
                 checked={appSettings.debug}
                 onChange={handleDebugMode}
                 name="debugMode"

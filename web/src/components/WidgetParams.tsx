@@ -4,12 +4,12 @@ import { useWidgetContext } from './WidgetContext';
 import { Widget } from '../widgetInterfaces';
 import { debounce } from 'lodash';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import { CustomSwitch } from './CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
-import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -143,7 +143,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         return (
           <Box display="flex" alignItems="center">
             <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
-            <Switch
+            <CustomSwitch
               checked={!!paramValue}
               onChange={(e) => {
                 const newValue = e.target.checked;
