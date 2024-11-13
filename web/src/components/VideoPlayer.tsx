@@ -176,7 +176,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ onDimensionsUpdate }) => {
       style={{
         flexGrow: 1,
         backgroundColor:
-          currentTheme === 'dark' ? 'rgb(82, 82, 82)' : 'rgb(0, 0, 0)',
+          currentTheme === 'dark' ? 'rgb(61, 61, 61)' : 'rgb(0, 0, 0)',
         padding: '3px',
         position: 'relative',
         display: 'flex',
