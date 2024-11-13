@@ -29,7 +29,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const [isDoubleClick, setIsDoubleClick] = useState<boolean>(false);
+  const [IsBBoxClick, setIsBBoxClick] = useState<boolean>(false);
 
   /* Global context */
   const {
@@ -65,15 +65,15 @@ const WidgetHandler: React.FC = () => {
     if (activeWidgets.length === 0) {
       log('No more widgets: reset dropdown state');
       setOpenDropdownIndex(null);
-    } else if (activeDraggableWidget?.doubleClick) {
+    } else if (activeDraggableWidget?.clickBBox) {
       const index = activeWidgets.findIndex(
         (widget) => widget.generalParams.id === activeDraggableWidget.id
       );
       if (index !== -1) {
-        /* Indicate that the dropdown was opened by a double-click */
-        setIsDoubleClick(true);
-        /* Reset double-click flag to be able to open dropdown with click */
-        setIsDoubleClick(false);
+        /* Indicate that the dropdown was opened by a click */
+        setIsBBoxClick(true);
+        /* Reset click flag to be able to open dropdown with click */
+        setIsBBoxClick(false);
       }
     }
   }, [activeDraggableWidget, activeWidgets]);
@@ -101,13 +101,13 @@ const WidgetHandler: React.FC = () => {
         ...prev,
         id: activeWidgets[index].generalParams.id
       }));
-      if (!isDoubleClick) {
+      if (!IsBBoxClick) {
         setOpenDropdownIndex(openDropdownIndex === index ? null : index);
       }
     },
     [
       activeWidgets,
-      isDoubleClick,
+      IsBBoxClick,
       openDropdownIndex,
       setActiveDraggableWidget,
       setOpenDropdownIndex

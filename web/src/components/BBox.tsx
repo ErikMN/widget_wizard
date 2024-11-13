@@ -152,7 +152,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       setActiveDraggableWidget({
         id: widget.generalParams.id,
         active: true,
-        doubleClick: false,
+        clickBBox: false,
         highlight: false
       });
     },
@@ -244,7 +244,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       setActiveDraggableWidget({
         id: widget.generalParams.id,
         active: false,
-        doubleClick: false,
+        clickBBox: false,
         highlight: false
       });
     },
@@ -257,10 +257,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
-  /* Handle double click */
-  const handleDoubleClick = useCallback(
+  /* Handle clicking the bbox */
+  const handleBBoxClick = useCallback(
     (widget: Widget) => {
-      // console.log(`Double clicked widget ${widget.generalParams.id}`);
+      // console.log(`clicked widget ${widget.generalParams.id}`);
       const index = activeWidgets.findIndex(
         (w) => w.generalParams.id === widget.generalParams.id
       );
@@ -269,7 +269,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         setActiveDraggableWidget({
           id: widget.generalParams.id,
           active: false,
-          doubleClick: !isCurrentlyOpen,
+          clickBBox: !isCurrentlyOpen,
           highlight: false
         });
         /* Toggle dropdown: close if open, open if closed */
@@ -287,8 +287,11 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   const { x, y } = anchoredPosition;
 
   return (
-    /* Wrap Draggable in div to handle double-click events */
-    <div onDoubleClick={() => handleDoubleClick(widget)}>
+    /* Wrap Draggable in div to handle click events */
+    <div
+      onClick={() => handleBBoxClick(widget)} /* Regular click */
+      onTouchEnd={() => handleBBoxClick(widget)} /* Touch display click */
+    >
       <Fade in={true} timeout={500}>
         <div>
           <Draggable
