@@ -284,12 +284,20 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
+  const handleClick = !appSettings.widgetDoubleClick
+    ? () => handleBBoxClick(widget)
+    : undefined;
+  const handleDoubleClick = appSettings.widgetDoubleClick
+    ? () => handleBBoxClick(widget)
+    : undefined;
+
   const { x, y } = anchoredPosition;
 
   return (
     /* Wrap Draggable in div to handle click events */
     <div
-      onClick={() => handleBBoxClick(widget)} /* Regular click */
+      onClick={handleClick} /* Regular click */
+      onDoubleClick={handleDoubleClick} /* Double-click */
       onTouchEnd={() => handleBBoxClick(widget)} /* Touch display click */
     >
       <Fade in={true} timeout={500}>

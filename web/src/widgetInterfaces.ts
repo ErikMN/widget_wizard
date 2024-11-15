@@ -166,6 +166,7 @@ export interface AppSettings {
   bboxOnlyShowActive: boolean;
   sortBy: 'id' | 'type';
   sortAscending: boolean;
+  widgetDoubleClick: boolean;
   wsDefault: boolean;
 }
 
@@ -180,6 +181,7 @@ export const defaultAppSettings: AppSettings = {
   bboxOnlyShowActive: false,
   sortBy: 'id',
   sortAscending: true,
+  widgetDoubleClick: false,
   wsDefault: false
 };
 

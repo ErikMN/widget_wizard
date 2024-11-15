@@ -170,6 +170,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
     );
   };
 
+  const handleToggleDoubleClick = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      widgetDoubleClick: !prevSettings.widgetDoubleClick
+    }));
+    handleOpenAlert(
+      `Double click to activate widget: ${!appSettings.widgetDoubleClick}`,
+      'success'
+    );
+  };
+
   const handleToggleWSDefault = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -448,8 +459,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, handleClose }) => {
                 sx={{ marginLeft: 2 }}
               />
             </Box>
+            {/* Switch setting double or single click for widget activation */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.widgetDoubleClick}
+                  onChange={handleToggleDoubleClick}
+                  name="wsDefault"
+                />
+              }
+              label="Use double click for widget activation"
+            />
           </Box>
-
           {/* Misc. settings */}
           <Box
             sx={(theme) => ({
