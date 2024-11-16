@@ -68,7 +68,7 @@ const CustomStyledSwitch = styled(Switch)(({ theme }) => ({
   '& .Mui-checked + .MuiSwitch-track': {
     backgroundColor: theme.palette.primary.main,
     border: 'none',
-    opacity: 1
+    opacity: '1 !important'
   }
 }));
 
