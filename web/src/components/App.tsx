@@ -1,7 +1,7 @@
 /* Widget Wizard main component */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
-import logo from '../assets/img/widgy2.png';
+import Logo from './Logo';
 import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
@@ -359,7 +359,7 @@ const App: React.FC = () => {
               {/* Logo */}
               {!isMobile && (
                 <Box sx={{ marginLeft: 1 }}>
-                  <img src={logo} alt="Logo" style={{ height: '40px' }} />
+                  <Logo style={{ height: '40px' }} />
                 </Box>
               )}
             </Box>
