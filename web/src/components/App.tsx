@@ -2,13 +2,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
 import Logo from './Logo';
-import GetParam from './GetParam';
+// import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
 import SettingsModal from './SettingsModal';
 import BBox from './BBox';
+import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
@@ -165,6 +166,10 @@ const App: React.FC = () => {
     appSettings
   } = useWidgetContext();
 
+  /* Global parameter list */
+  const { parameters, paramsLoading } = useParameters();
+  const ProdFullName = parameters?.['root.Brand.ProdFullName'];
+
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
@@ -194,12 +199,6 @@ const App: React.FC = () => {
             fetchSystemReady();
           }, 2000); /* Wait before retrying */
         } else {
-          /* Delay setting the system ready state a little bit */
-          // setTimeout(() => {
-          //   setSystemReady(systemReadyState);
-          // }, 500);
-
-          /* No delay just start */
           setSystemReady(systemReadyState);
         }
       } catch (error) {
@@ -342,6 +341,7 @@ const App: React.FC = () => {
                   component="div"
                   style={{ display: 'flex', alignItems: 'center' }}
                 >
+                  {/* Debug Icon */}
                   {appSettings.debug && (
                     <ScienceOutlinedIcon
                       sx={{
@@ -351,17 +351,17 @@ const App: React.FC = () => {
                         color: 'text.secondary'
                       }}
                     />
-                  )}{' '}
-                  {import.meta.env.VITE_WEBSITE_NAME} @{' '}
-                  <GetParam param="Brand.ProdFullName" />
+                  )}
+                  {/* Website Name and Product Full Name */}
+                  {import.meta.env.VITE_WEBSITE_NAME} @ {ProdFullName}
+                  {/* Logo */}
+                  {!isMobile && (
+                    <Box sx={{ marginLeft: 1 }}>
+                      <Logo style={{ height: '40px' }} />
+                    </Box>
+                  )}
                 </Typography>
               </Fade>
-              {/* Logo */}
-              {!isMobile && (
-                <Box sx={{ marginLeft: 1 }}>
-                  <Logo style={{ height: '40px' }} />
-                </Box>
-              )}
             </Box>
 
             {/* Show Widget Capabilities JSON button */}
@@ -710,7 +710,7 @@ const App: React.FC = () => {
 
   const checkSystemState = () => {
     let content;
-    if (!appLoading && systemReady === 'yes') {
+    if (!appLoading && !paramsLoading && systemReady === 'yes') {
       content = contentMain();
     } else {
       content = loadingSystem();
