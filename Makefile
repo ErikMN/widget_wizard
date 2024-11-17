@@ -43,7 +43,7 @@ DOCKER_CMD := docker run --rm -i -t \
               -v /etc/group:/etc/group:ro \
               -v $(d)/.yarnrc:$(d)/.yarnrc
 
-PKGS += glib-2.0
+PKGS += glib-2.0 axparameter
 ifdef PKGS
   LDLIBS += $(shell pkg-config --libs $(PKGS))
   CFLAGS += $(shell pkg-config --cflags $(PKGS))

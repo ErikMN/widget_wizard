@@ -15,6 +15,13 @@
             "version": "1.0.2"
         },
         "configuration": {
+            "paramConfig": [
+                {
+                    "name": "ApplicationRunning",
+                    "type": "yes_no",
+                    "default": "no"
+                }
+            ],
             "settingPage": "index.html"
         }
     }
