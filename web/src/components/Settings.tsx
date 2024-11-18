@@ -8,7 +8,7 @@ import { CustomSwitch } from './CustomComponents';
 import VideoPlayer from './VideoPlayer';
 import BBox from './BBox';
 /* MUI */
-import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -58,7 +58,6 @@ const Settings: React.FC = () => {
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   /* List widgets on mount */
   useEffect(() => {
@@ -278,7 +277,6 @@ const Settings: React.FC = () => {
       <Container
         sx={{
           p: 4,
-          marginTop: isMobile ? 0 : 4,
           textAlign: 'center',
           bgcolor: 'background.paper',
           display: 'flex',
