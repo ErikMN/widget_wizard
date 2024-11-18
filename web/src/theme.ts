@@ -16,7 +16,7 @@ const lightTheme = createTheme({
     },
     background: {
       default: grey[50], // Main background color
-      paper: grey[50] // Background color for cards, dialogs, etc.
+      paper: grey[200] // Background color for cards, dialogs, etc.
     },
     text: {
       primary: grey[900], // Text color on the default background

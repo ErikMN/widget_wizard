@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './components/App';
+import AppRoutes from './components/AppRoutes';
 import { WidgetProvider } from './components/WidgetContext';
 import { ParametersProvider } from './components/ParametersContext';
 
@@ -13,7 +13,7 @@ root.render(
   <React.StrictMode>
     <ParametersProvider>
       <WidgetProvider>
-        <App />
+        <AppRoutes />
       </WidgetProvider>
     </ParametersProvider>
   </React.StrictMode>

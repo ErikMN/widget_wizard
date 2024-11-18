@@ -1,13 +1,12 @@
 /* Widget Wizard main component */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
 import Logo from './Logo';
-// import GetParam from './GetParam';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './WidgetHandler';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
-import SettingsModal from './SettingsModal';
 import BBox from './BBox';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
@@ -138,7 +137,6 @@ const App: React.FC = () => {
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
     useState<boolean>(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [dimensions, setDimensions] = useState<Dimensions>({
     videoWidth: 0,
     videoHeight: 0,
@@ -175,6 +173,8 @@ const App: React.FC = () => {
 
   /* Mobile mode */
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const navigate = useNavigate();
 
   enableLogging(true);
 
@@ -235,8 +235,10 @@ const App: React.FC = () => {
   const handleOpenCapabilitiesModal = () => setCapabilitiesModalOpen(true);
   const handleCloseCapabilitiesModal = () => setCapabilitiesModalOpen(false);
 
-  const handleOpenSettingsModal = () => setSettingsModalOpen(true);
-  const handleCloseSettingsModal = () => setSettingsModalOpen(false);
+  /* App routes navigation handlers */
+  const handleNavigateToSettings = () => {
+    navigate('/settings');
+  };
 
   /* Alert handler */
   const handleCloseAlert = (
@@ -462,7 +464,7 @@ const App: React.FC = () => {
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="settings"
-                onClick={handleOpenSettingsModal}
+                onClick={handleNavigateToSettings}
                 edge="end"
               >
                 <SettingsIcon
@@ -675,12 +677,6 @@ const App: React.FC = () => {
         <CapabilitiesModal
           open={capabilitiesModalOpen}
           handleClose={handleCloseCapabilitiesModal}
-        />
-
-        {/* Settings Modal */}
-        <SettingsModal
-          open={settingsModalOpen}
-          handleClose={handleCloseSettingsModal}
         />
       </>
     );
