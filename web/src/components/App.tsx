@@ -16,7 +16,6 @@ import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI, drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useWidgetContext } from './WidgetContext';
-import { Dimensions } from '../widgetInterfaces';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { grey } from '@mui/material/colors';
@@ -137,20 +136,13 @@ const App: React.FC = () => {
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
     useState<boolean>(false);
-  const [dimensions, setDimensions] = useState<Dimensions>({
-    videoWidth: 0,
-    videoHeight: 0,
-    pixelWidth: 0,
-    pixelHeight: 0,
-    offsetX: 0,
-    offsetY: 0
-  });
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
 
   /* Global context */
   const {
+    dimensions,
     widgetSupported,
     widgetLoading,
     activeWidgets,
@@ -249,42 +241,6 @@ const App: React.FC = () => {
       return;
     }
     setOpenAlert(false);
-  };
-
-  /* Update video dimensions
-   * Passed as callback to VideoPlayer
-   */
-  const handleDimensionsUpdate = (
-    videoWidth: number,
-    videoHeight: number,
-    pixelWidth: number,
-    pixelHeight: number,
-    offsetX: number,
-    offsetY: number
-  ) => {
-    // console.log('---------- handleDimensionsUpdate ---------------');
-    // console.log('Video Dimensions (stream):', {
-    //   videoWidth,
-    //   videoHeight
-    // });
-    // console.log('Pixel Dimensions (rendered):', {
-    //   pixelWidth,
-    //   pixelHeight
-    // });
-    // console.log('Offsets:', {
-    //   offsetX,
-    //   offsetY
-    // });
-    // console.log('-------------------------------------------------');
-
-    setDimensions({
-      videoWidth,
-      videoHeight,
-      pixelWidth,
-      pixelHeight,
-      offsetX,
-      offsetY
-    });
   };
 
   const contentMain = () => {
@@ -616,7 +572,7 @@ const App: React.FC = () => {
             }}
           >
             {/* Video Player */}
-            <VideoPlayer onDimensionsUpdate={handleDimensionsUpdate} />
+            <VideoPlayer />
             {/* Overlay Surface aligned with the video element */}
             {showBoundingBoxes && (
               /* BBox surface */

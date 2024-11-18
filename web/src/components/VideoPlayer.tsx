@@ -7,17 +7,6 @@ interface VapixConfig {
   resolution: string;
 }
 
-interface VideoPlayerProps {
-  onDimensionsUpdate: (
-    videoWidth: number,
-    videoHeight: number,
-    pixelWidth: number,
-    pixelHeight: number,
-    offsetX: number,
-    offsetY: number
-  ) => void;
-}
-
 /* Force a login by fetching usergroup */
 const authorize = async (): Promise<void> => {
   try {
@@ -51,13 +40,13 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ onDimensionsUpdate }) => {
+const VideoPlayer: React.FC = () => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
 
   /* Global context */
-  const { appSettings, currentTheme } = useWidgetContext();
+  const { appSettings, currentTheme, setDimensions } = useWidgetContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -105,16 +94,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ onDimensionsUpdate }) => {
 
         return;
       }
-
-      /* Send both stream and pixel dimensions, and offsets to the parent via callback */
-      onDimensionsUpdate(
+      /* Set stream and pixel dimensions */
+      setDimensions({
         videoWidth, // Stream width
         videoHeight, // Stream height
-        videoRect.width, // Pixel width
-        videoRect.height, // Pixel height
+        pixelWidth: videoRect.width, // Pixel width
+        pixelHeight: videoRect.height, // Pixel height
         offsetX, // Offset X (left margin of the video in the container)
         offsetY // Offset Y (top margin of the video in the container)
-      );
+      });
     }
   };
 
