@@ -5,6 +5,8 @@ import { useWidgetContext } from './WidgetContext';
 import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { CustomSwitch } from './CustomComponents';
+import VideoPlayer from './VideoPlayer';
+import BBox from './BBox';
 /* MUI */
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
 import Alert from '@mui/material/Alert';
@@ -34,6 +36,9 @@ const Settings: React.FC = () => {
 
   /* Global context */
   const {
+    listWidgets,
+    dimensions,
+    activeWidgets,
     appSettings,
     currentTheme,
     setAppSettings,
@@ -54,6 +59,14 @@ const Settings: React.FC = () => {
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  /* List widgets on mount */
+  useEffect(() => {
+    const fetchData = async () => {
+      await listWidgets();
+    };
+    fetchData();
+  }, []);
 
   /****************************************************************************/
 
@@ -545,6 +558,45 @@ const Settings: React.FC = () => {
           <Button onClick={handleBack} variant="contained">
             Back
           </Button>
+        </Box>
+
+        {/* Video preview */}
+        <Box
+          sx={{
+            position: 'relative',
+            flexGrow: 1,
+            display: 'flex',
+            height: '40vh',
+            marginTop: 4
+          }}
+        >
+          <VideoPlayer />
+          <Box
+            sx={{
+              // backgroundColor: 'blue',
+              position: 'absolute',
+              pointerEvents: 'none',
+              top: `${dimensions.offsetY}px`,
+              left: `${dimensions.offsetX}px`,
+              width: `${dimensions.pixelWidth}px`,
+              height: `${dimensions.pixelHeight}px`,
+              zIndex: 1
+            }}
+          >
+            {activeWidgets.map((widget) => {
+              if (widget.generalParams.isVisible) {
+                return (
+                  /* One BBox per widget */
+                  <BBox
+                    key={widget.generalParams.id}
+                    widget={widget}
+                    dimensions={dimensions}
+                  />
+                );
+              }
+              return null;
+            })}
+          </Box>
         </Box>
 
         {/* Alert Snackbar */}
