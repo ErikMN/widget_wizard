@@ -1,10 +1,10 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
-import { useWidgetContext } from './WidgetContext';
-import { Widget } from '../widgetInterfaces';
+import { useWidgetContext } from '../WidgetContext';
+import { Widget } from '../../widgetInterfaces';
 import { debounce } from 'lodash';
-import { capitalizeFirstLetter } from '../helpers/utils';
-import { CustomSwitch } from './CustomComponents';
+import { capitalizeFirstLetter } from '../../helpers/utils';
+import { CustomSwitch } from '../CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';

@@ -2,10 +2,10 @@
  * WidgetHandler: Handler of widgets.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { log, enableLogging } from '../helpers/logger';
+import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
-import { useWidgetContext } from './WidgetContext';
-import { capitalizeFirstLetter } from '../helpers/utils';
+import { useWidgetContext } from '../WidgetContext';
+import { capitalizeFirstLetter } from '../../helpers/utils';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';

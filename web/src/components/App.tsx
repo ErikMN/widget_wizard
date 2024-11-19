@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
 import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
-import WidgetHandler from './WidgetHandler';
+import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
 import CapabilitiesModal from './CapabilitiesModal';
 import BBox from './BBox';

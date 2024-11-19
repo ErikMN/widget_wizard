@@ -2,12 +2,12 @@
  * WidgetItem: Represent one widget.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Widget } from '../widgetInterfaces';
-import { useWidgetContext } from './WidgetContext';
-import { capitalizeFirstLetter } from '../helpers/utils';
-import { useDebouncedValue } from '../helpers/hooks.jsx';
-import { CustomSwitch } from './CustomComponents';
-import WidgetParams from './WidgetParams';
+import { Widget } from '../../widgetInterfaces.js';
+import { useWidgetContext } from '../WidgetContext.js';
+import { capitalizeFirstLetter } from '../../helpers/utils.js';
+import { useDebouncedValue } from '../../helpers/hooks.jsx';
+import { CustomSwitch } from '../CustomComponents.js';
+import WidgetParams from './WidgetParams.js';
 import ReactJson from 'react-json-view';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
