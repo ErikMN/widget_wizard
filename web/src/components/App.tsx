@@ -6,7 +6,6 @@ import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
-import CapabilitiesModal from './CapabilitiesModal';
 import BBox from './BBox';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
@@ -135,8 +134,6 @@ const App: React.FC = () => {
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [capabilitiesModalOpen, setCapabilitiesModalOpen] =
-    useState<boolean>(false);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -225,12 +222,13 @@ const App: React.FC = () => {
   const handleOpenAboutModal = () => setAboutModalOpen(true);
   const handleCloseAboutModal = () => setAboutModalOpen(false);
 
-  const handleOpenCapabilitiesModal = () => setCapabilitiesModalOpen(true);
-  const handleCloseCapabilitiesModal = () => setCapabilitiesModalOpen(false);
-
   /* App routes navigation handlers */
   const handleNavigateToSettings = () => {
     navigate('/settings');
+  };
+
+  const handleNavigateToCapabilities = () => {
+    navigate('/capabilities');
   };
 
   /* Alert handler */
@@ -328,7 +326,7 @@ const App: React.FC = () => {
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="Show Widget Capabilities JSON"
-                onClick={handleOpenCapabilitiesModal}
+                onClick={handleNavigateToCapabilities}
                 edge="end"
                 sx={{ marginRight: '0px' }}
               >
@@ -629,12 +627,6 @@ const App: React.FC = () => {
 
         {/* About Modal */}
         <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
-
-        {/* Capabilities Modal */}
-        <CapabilitiesModal
-          open={capabilitiesModalOpen}
-          handleClose={handleCloseCapabilitiesModal}
-        />
       </>
     );
   };
