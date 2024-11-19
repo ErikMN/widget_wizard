@@ -174,7 +174,18 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const debouncedChannel = useDebouncedValue(channel, 200);
   const debouncedUpdateTime = useDebouncedValue(updateTime, 500);
 
+  /* FIXME: HACK: to not fire updateWidget on mount */
+  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    /* HACK: */
+    if (!isReady) {
+      return;
+    }
+
     let updatedWidget = { ...widget };
     if (debouncedDatasource !== undefined && debouncedDatasource !== '') {
       updatedWidget = {
