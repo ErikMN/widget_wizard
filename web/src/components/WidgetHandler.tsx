@@ -48,7 +48,7 @@ const WidgetHandler: React.FC = () => {
     setOpenDropdownIndex
   } = useWidgetContext();
 
-  enableLogging(true);
+  enableLogging(false);
 
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
   useEffect(() => {
