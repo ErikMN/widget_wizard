@@ -42,6 +42,7 @@ import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
+import { Widget } from '../widgetInterfaces.js';
 
 /******************************************************************************/
 
@@ -588,7 +589,7 @@ const App: React.FC = () => {
                   zIndex: 1
                 }}
               >
-                {activeWidgets.map((widget) => {
+                {activeWidgets.map((widget: Widget) => {
                   if (widget.generalParams.isVisible) {
                     return (
                       /* One BBox per widget */

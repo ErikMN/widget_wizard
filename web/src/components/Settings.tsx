@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
-import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
+import { defaultAppSettings, AppSettings, Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { CustomSwitch } from './CustomComponents';
 import VideoPlayer from './VideoPlayer';
@@ -581,7 +581,7 @@ const Settings: React.FC = () => {
               zIndex: 1
             }}
           >
-            {activeWidgets.map((widget) => {
+            {activeWidgets.map((widget: Widget) => {
               if (widget.generalParams.isVisible) {
                 return (
                   /* One BBox per widget */
