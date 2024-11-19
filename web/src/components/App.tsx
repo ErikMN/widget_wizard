@@ -15,7 +15,7 @@ import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper';
 import { SR_CGI, drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
-import { useWidgetContext } from './WidgetContext';
+import { useGlobalContext } from './GlobalContext';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import { grey } from '@mui/material/colors';
@@ -154,7 +154,7 @@ const App: React.FC = () => {
     currentTheme,
     setCurrentTheme,
     appSettings
-  } = useWidgetContext();
+  } = useGlobalContext();
 
   /* Global parameter list */
   const { parameters, paramsLoading } = useParameters();

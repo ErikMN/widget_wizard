@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
-import { useWidgetContext } from '../WidgetContext';
+import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -46,7 +46,7 @@ const WidgetHandler: React.FC = () => {
     widgetCapabilities,
     openDropdownIndex,
     setOpenDropdownIndex
-  } = useWidgetContext();
+  } = useGlobalContext();
 
   enableLogging(false);
 

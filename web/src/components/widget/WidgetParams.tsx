@@ -1,6 +1,6 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
-import { useWidgetContext } from '../WidgetContext';
+import { useGlobalContext } from '../GlobalContext';
 import { Widget } from '../../widgetInterfaces';
 import { debounce } from 'lodash';
 import { capitalizeFirstLetter } from '../../helpers/utils';
@@ -28,7 +28,7 @@ interface WidgetParamsProps {
 
 const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   /* Global context */
-  const { widgetCapabilities, updateWidget } = useWidgetContext();
+  const { widgetCapabilities, updateWidget } = useGlobalContext();
 
   /* Store local values for all widget parameters */
   const [localValues, setLocalValues] = useState<Record<string, any>>(

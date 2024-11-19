@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from '../../widgetInterfaces.js';
-import { useWidgetContext } from '../WidgetContext.js';
+import { useGlobalContext } from '../GlobalContext.js';
 import { capitalizeFirstLetter } from '../../helpers/utils.js';
 import { useDebouncedValue } from '../../helpers/hooks.jsx';
 import { CustomSwitch } from '../CustomComponents.js';
@@ -74,7 +74,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     openDropdownIndex,
     activeDraggableWidget,
     setActiveDraggableWidget
-  } = useWidgetContext();
+  } = useGlobalContext();
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {

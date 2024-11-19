@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useWidgetContext } from './WidgetContext';
+import { useGlobalContext } from './GlobalContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -20,7 +20,7 @@ const CapabilitiesModal: React.FC<CapabilitiesModal> = ({
   handleClose
 }) => {
   /* Global context */
-  const { widgetCapabilities } = useWidgetContext();
+  const { widgetCapabilities } = useGlobalContext();
   const jsonData = widgetCapabilities?.data;
 
   /* Local state for controlling collapse */

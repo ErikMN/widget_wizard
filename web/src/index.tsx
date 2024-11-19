@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AppRoutes from './components/AppRoutes';
-import { WidgetProvider } from './components/WidgetContext';
+import { GlobalProvider } from './components/GlobalContext';
 import { ParametersProvider } from './components/ParametersContext';
 
 import './assets/css/index.css';
@@ -12,9 +12,9 @@ const root = ReactDOM.createRoot(rootElement!);
 root.render(
   <React.StrictMode>
     <ParametersProvider>
-      <WidgetProvider>
+      <GlobalProvider>
         <AppRoutes />
-      </WidgetProvider>
+      </GlobalProvider>
     </ParametersProvider>
   </React.StrictMode>
 );

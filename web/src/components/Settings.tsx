@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
-import { useWidgetContext } from './WidgetContext';
+import { useGlobalContext } from './GlobalContext';
 import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { CustomSwitch } from './CustomComponents';
@@ -48,7 +48,7 @@ const Settings: React.FC = () => {
     setOpenAlert,
     handleOpenAlert,
     setOpenDropdownIndex
-  } = useWidgetContext();
+  } = useGlobalContext();
 
   /* Refs */
   const timerRef = useRef<number | null>(null);

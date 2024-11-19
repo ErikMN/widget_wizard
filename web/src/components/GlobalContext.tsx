@@ -1,23 +1,23 @@
-/* Widget Wizard global context
+/* Application global context
  * This context manages widget-related operations and state
  * throughout the app.
  */
 import React, { createContext, useContext, useState } from 'react';
 import { useLocalStorage } from '../helpers/hooks.jsx';
-import { jsonRequest } from '../helpers/cgihelper';
-import { log, enableLogging } from '../helpers/logger';
-import { Dimensions } from '../widgetInterfaces';
+import { jsonRequest } from '../helpers/cgihelper.jsx';
+import { log, enableLogging } from '../helpers/logger.js';
+import { Dimensions } from '../widgetInterfaces.js';
 import {
   ApiResponse,
   Widget,
   WidgetCapabilities,
   AppSettings,
   defaultAppSettings
-} from '../widgetInterfaces';
-import { W_CGI } from './constants';
+} from '../widgetInterfaces.js';
+import { W_CGI } from './constants.js';
 
 /* Interface defining the structure of the context */
-interface WidgetContextProps {
+interface GlobalContextProps {
   /* Widget operations */
   listWidgets: () => Promise<void>;
   listWidgetCapabilities: () => Promise<void>;
@@ -89,9 +89,9 @@ interface WidgetContextProps {
 }
 
 /* Creating the Widget context */
-const WidgetContext = createContext<WidgetContextProps | undefined>(undefined);
+const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
 
-export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
+export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
   /* Widget-related state variables */
@@ -410,7 +410,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /****************************************************************************/
 
   return (
-    <WidgetContext.Provider
+    <GlobalContext.Provider
       value={{
         dimensions,
         setDimensions,
@@ -448,15 +448,15 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       }}
     >
       {children}
-    </WidgetContext.Provider>
+    </GlobalContext.Provider>
   );
 };
 
-/* Hook to use the WidgetContext, with an error if used outside the provider */
-export const useWidgetContext = () => {
-  const context = useContext(WidgetContext);
+/* Hook to use the GlobalContext, with an error if used outside the provider */
+export const useGlobalContext = () => {
+  const context = useContext(GlobalContext);
   if (context === undefined) {
-    throw new Error('useWidgetContext must be used within a WidgetProvider');
+    throw new Error('useGlobalContext must be used within a GlobalProvider');
   }
   return context;
 };

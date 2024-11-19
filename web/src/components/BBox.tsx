@@ -14,7 +14,7 @@ import {
   calculateNormalizedPosition,
   getNormalizedCoordinateRanges
 } from '../helpers/bboxhelper';
-import { useWidgetContext } from './WidgetContext';
+import { useGlobalContext } from './GlobalContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -43,7 +43,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     setActiveDraggableWidget,
     openDropdownIndex,
     setOpenDropdownIndex
-  } = useWidgetContext();
+  } = useGlobalContext();
 
   /* BBox colors */
   const bboxColor = useMemo(() => {

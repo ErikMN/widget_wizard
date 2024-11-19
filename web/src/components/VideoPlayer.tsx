@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
-import { useWidgetContext } from './WidgetContext';
+import { useGlobalContext } from './GlobalContext';
 
 interface VapixConfig {
   compression: string;
@@ -46,7 +46,7 @@ const VideoPlayer: React.FC = () => {
   const [retryCount, setRetryCount] = useState<number>(0);
 
   /* Global context */
-  const { appSettings, currentTheme, setDimensions } = useWidgetContext();
+  const { appSettings, currentTheme, setDimensions } = useGlobalContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
