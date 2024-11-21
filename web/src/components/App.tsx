@@ -7,6 +7,7 @@ import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
 import BBox from './BBox';
+import LoadingScreen from './LoadingScreen';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
@@ -631,36 +632,12 @@ const App: React.FC = () => {
     );
   };
 
-  const loadingSystem = () => {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          width: '100%'
-        }}
-      >
-        <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
-          <Typography variant="h6" sx={{ marginBottom: 2 }}>
-            {import.meta.env.VITE_WEBSITE_NAME} is getting ready
-          </Typography>
-        </Fade>
-        <CircularProgress size={50} />
-      </Box>
-    );
-  };
-
   const checkSystemState = () => {
-    let content;
-    if (!appLoading && !paramsLoading && systemReady === 'yes') {
-      content = contentMain();
-    } else {
-      content = loadingSystem();
-    }
-    return content;
+    return !appLoading && !paramsLoading && systemReady === 'yes' ? (
+      contentMain()
+    ) : (
+      <LoadingScreen />
+    );
   };
 
   return (
