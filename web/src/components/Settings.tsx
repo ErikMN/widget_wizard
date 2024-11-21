@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
 import { defaultAppSettings, AppSettings, Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
-import { CustomSwitch } from './CustomComponents';
+import { CustomSwitch, CustomStyledIconButton } from './CustomComponents';
 import VideoPlayer from './VideoPlayer';
 import BBox from './BBox';
+import backgroundImage from '../assets/img/c1.jpeg';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
@@ -22,6 +23,8 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
+import ContrastIcon from '@mui/icons-material/Contrast';
 
 const availableColors = ['yellow', 'blue', 'red', 'green', 'purple', 'none'];
 const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
@@ -47,7 +50,8 @@ const Settings: React.FC = () => {
     openAlert,
     setOpenAlert,
     handleOpenAlert,
-    setOpenDropdownIndex
+    setOpenDropdownIndex,
+    setCurrentTheme
   } = useGlobalContext();
 
   /* Refs */
@@ -269,7 +273,27 @@ const Settings: React.FC = () => {
     handleOpenAlert('Settings have been reset to default values', 'success');
   };
 
+  const toggleTheme = useCallback(() => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setCurrentTheme(newTheme);
+  }, [currentTheme, setCurrentTheme]);
+
   /****************************************************************************/
+
+  useEffect(() => {
+    if (appSettings.debug) {
+      document.body.style.backgroundImage = `url(${backgroundImage})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundRepeat = 'no-repeat';
+      return () => {
+        document.body.style.backgroundImage = '';
+        document.body.style.backgroundSize = '';
+        document.body.style.backgroundPosition = '';
+        document.body.style.backgroundRepeat = '';
+      };
+    }
+  }, [appSettings.debug]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -288,14 +312,35 @@ const Settings: React.FC = () => {
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-start',
+            justifyContent: 'space-between',
+            width: '100%',
             marginBottom: 2
           }}
         >
-          <SettingsIcon sx={{ marginRight: 1 }} />
-          <Typography id="settings-modal-title" variant="h5" component="h2">
-            Application Settings
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <SettingsIcon sx={{ marginRight: 1 }} />
+            <Typography id="settings-modal-title" variant="h5" component="h2">
+              Application Settings
+            </Typography>
+          </Box>
+          {/* Theme Toggle Button */}
+          <Tooltip title="Toggle Theme" arrow>
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label="toggle theme"
+              onClick={toggleTheme}
+              edge="end"
+              sx={{ marginRight: '0px' }}
+            >
+              <ContrastIcon
+                sx={{
+                  width: '20px',
+                  height: '20px',
+                  color: 'text.secondary'
+                }}
+              />
+            </CustomStyledIconButton>
+          </Tooltip>
         </Box>
 
         {/* Bounding Box settings */}
