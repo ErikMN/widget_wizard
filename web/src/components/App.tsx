@@ -7,13 +7,11 @@ import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
 import BBox from './BBox';
-import LoadingScreen from './LoadingScreen';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage } from '../helpers/hooks.jsx';
-import { jsonRequest } from '../helpers/cgihelper';
-import { SR_CGI, drawerWidth, drawerHeight } from './constants';
+import { drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
 /* MUI */
@@ -132,8 +130,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 const App: React.FC = () => {
   /* Local state */
   const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
-  const [appLoading, setAppLoading] = useState<boolean>(true);
-  const [systemReady, setSystemReady] = useState<string>('no');
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
 
   /* Local storage state */
@@ -168,43 +164,6 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   enableLogging(true);
-
-  /* App mount calls */
-  useEffect(() => {
-    /* Check system state */
-    const fetchSystemReady = async () => {
-      setAppLoading(true);
-      const payload = {
-        apiVersion: '1.0',
-        method: 'systemready',
-        params: {
-          timeout: 10
-        }
-      };
-      try {
-        const resp = await jsonRequest(SR_CGI, payload);
-        const systemReadyState = resp.data.systemready;
-        /* If the system is not ready, wait a couple of seconds and retry */
-        if (systemReadyState !== 'yes') {
-          setTimeout(() => {
-            fetchSystemReady();
-          }, 2000); /* Wait before retrying */
-        } else {
-          setSystemReady(systemReadyState);
-        }
-      } catch (error) {
-        console.error(error);
-        handleOpenAlert('Failed to check system status', 'error');
-      } finally {
-        setAppLoading(false);
-      }
-    };
-    fetchSystemReady();
-  }, []);
-
-  const handleDrawerOpen = useCallback(() => {
-    setDrawerOpen(true);
-  }, []);
 
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
@@ -632,19 +591,11 @@ const App: React.FC = () => {
     );
   };
 
-  const checkSystemState = () => {
-    return !appLoading && !paramsLoading && systemReady === 'yes' ? (
-      contentMain()
-    ) : (
-      <LoadingScreen />
-    );
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <CssBaseline />
-        {checkSystemState()}
+        {contentMain()}
       </Box>
     </ThemeProvider>
   );
