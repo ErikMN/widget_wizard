@@ -3,6 +3,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
+/* MUI */
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 /**
  * Custom hook to get and set a value in localStorage.
@@ -42,7 +45,10 @@ const useLocalStorage = (key, defaultValue, setItemIfNone = false) => {
   return [localStorageValue, setLocalStorageStateValue];
 };
 
-function useDebouncedValue(value, delay) {
+/**
+ * Custom hook to debounce values at a delay.
+ */
+const useDebouncedValue = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
@@ -56,6 +62,17 @@ function useDebouncedValue(value, delay) {
   }, [value, delay]);
 
   return debouncedValue;
-}
+};
 
-export { useLocalStorage, useDebouncedValue };
+/**
+ * Custom hook to check screen sizes.
+ */
+const useScreenSizes = () => {
+  const theme = useTheme();
+  /* Screen widths */
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  return { isMobile };
+};
+
+export { useLocalStorage, useDebouncedValue, useScreenSizes };

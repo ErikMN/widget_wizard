@@ -5,6 +5,7 @@ import { useGlobalContext } from './GlobalContext';
 import { defaultAppSettings, AppSettings, Widget } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { CustomSwitch, CustomStyledIconButton } from './CustomComponents';
+import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
 import BBox from './BBox';
 import backgroundImage from '../assets/img/c1.jpeg';
@@ -62,6 +63,9 @@ const Settings: React.FC = () => {
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
+
+  /* Screen size */
+  const { isMobile } = useScreenSizes();
 
   /* List widgets on mount */
   useEffect(() => {
@@ -300,12 +304,12 @@ const Settings: React.FC = () => {
       <CssBaseline />
       <Container
         sx={{
-          p: 4,
-          textAlign: 'center',
+          p: 2,
           bgcolor: 'background.paper',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'flex-start'
+          justifyContent: 'flex-start',
+          height: isMobile ? 'unset' : '100vh'
         }}
       >
         <Box

@@ -1,7 +1,7 @@
 /* Widget Wizard main component */
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './widget/WidgetHandler.js';
@@ -10,7 +10,7 @@ import BBox from './BBox';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
-import { useLocalStorage } from '../helpers/hooks.jsx';
+import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
@@ -158,8 +158,8 @@ const App: React.FC = () => {
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
-  /* Mobile mode */
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  /* Screen size */
+  const { isMobile } = useScreenSizes();
 
   const navigate = useNavigate();
 
