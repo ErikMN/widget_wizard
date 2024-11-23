@@ -2,15 +2,13 @@
  * WidgetItem: Represent one widget.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Widget } from '../../widgetInterfaces.js';
-import { useGlobalContext } from '../GlobalContext.js';
-import { capitalizeFirstLetter } from '../../helpers/utils.js';
-import { useDebouncedValue } from '../../helpers/hooks.jsx';
-import { CustomSwitch } from '../CustomComponents.js';
-import WidgetParams from './WidgetParams.js';
+import { Widget } from '../../widgetInterfaces';
+import { useGlobalContext } from '../GlobalContext';
+import { capitalizeFirstLetter } from '../../helpers/utils';
+import WidgetGeneralParams from './WidgetGeneralParams';
+import WidgetParams from './WidgetParams';
 import ReactJson from 'react-json-view';
 /* MUI */
-import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -20,15 +18,8 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import IconButton from '@mui/material/IconButton';
 import ImageIcon from '@mui/icons-material/Image';
-import LightbulbIcon from '@mui/icons-material/Lightbulb';
-import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
@@ -44,25 +35,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   toggleDropdown
 }) => {
   /* Local state */
-  const [isVisible, setIsVisible] = useState(widget.generalParams.isVisible);
-  const [jsonVisible, setJsonVisible] = useState<boolean>(false);
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
-  const [widgetId, setWidgetId] = useState<number | null>(null);
+  const [jsonVisible, setJsonVisible] = useState<boolean>(false);
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(widget, null, 2)
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [sliderValue, setSliderValue] = useState<number>(
-    widget.generalParams.transparency
-  );
-  const [datasource, setDatasource] = useState<string>(
-    widget.generalParams.datasource
-  );
-  const [channel, setChannel] = useState<number>(widget.generalParams.channel);
-  const [updateTime, setUpdateTime] = useState<number>(
-    widget.generalParams.updateTime
-  );
+
+  /* Combined widget general param state */
+  const [widgetState, setWidgetState] = useState({
+    isVisible: widget.generalParams.isVisible,
+    widgetId: null as number | null,
+    sliderValue: widget.generalParams.transparency,
+    datasource: widget.generalParams.datasource,
+    channel: widget.generalParams.channel,
+    updateTime: widget.generalParams.updateTime
+  });
 
   /* Global context */
   const {
@@ -70,10 +59,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     removeWidget,
     updateWidget,
     addCustomWidget,
-    widgetCapabilities,
     openDropdownIndex,
-    activeDraggableWidget,
-    setActiveDraggableWidget
+    activeDraggableWidget
   } = useGlobalContext();
 
   /* Safe JSON parser */
@@ -90,7 +77,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   useEffect(() => {
     /* Store the widget's id */
     if (widget.generalParams && widget.generalParams.id) {
-      setWidgetId(widget.generalParams.id);
+      setWidgetState((prevState) => ({
+        ...prevState,
+        widgetId: widget.generalParams.id
+      }));
     }
     /* Deep widget copy */
     const widgetCopy = safeParseJson(JSON.stringify(widget));
@@ -106,146 +96,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   }, [widget]);
 
   /****************************************************************************/
-  /* Handle UI updates for general parameters */
-
-  const handleVisibilityChange = useCallback(() => {
-    const newVisibility = !isVisible;
-    setIsVisible(newVisibility);
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        isVisible: newVisibility
-      }
-    };
-    updateWidget(updatedWidget);
-  }, [isVisible, widget, updateWidget]);
-
-  const handleAnchorChange = useCallback(
-    (event: SelectChangeEvent<string>) => {
-      const newAnchor = event.target.value as string;
-      const updatedWidget = {
-        ...widget,
-        generalParams: {
-          ...widget.generalParams,
-          anchor: newAnchor
-        }
-      };
-      updateWidget(updatedWidget);
-    },
-    [widget, updateWidget]
-  );
-
-  const handleSizeChange = useCallback(
-    (event: SelectChangeEvent<string>) => {
-      const newSize = event.target.value;
-      const updatedWidget = {
-        ...widget,
-        generalParams: {
-          ...widget.generalParams,
-          size: newSize
-        }
-      };
-      updateWidget(updatedWidget);
-    },
-    [widget, updateWidget]
-  );
-
-  const handleTransparencyChange = useCallback(
-    (event: Event, newValue: number | number[]) => {
-      setSliderValue(Array.isArray(newValue) ? newValue[0] : newValue);
-    },
-    []
-  );
-
-  const handleTransparencyChangeCommitted = useCallback(() => {
-    const updatedWidget = {
-      ...widget,
-      generalParams: {
-        ...widget.generalParams,
-        transparency: sliderValue
-      }
-    };
-    updateWidget(updatedWidget);
-  }, [sliderValue, widget, updateWidget]);
-
-  /* Debounced textfield handlers */
-  const debouncedDatasource = useDebouncedValue(datasource, 300);
-  const debouncedChannel = useDebouncedValue(channel, 200);
-  const debouncedUpdateTime = useDebouncedValue(updateTime, 500);
-
-  /* FIXME: HACK: to not fire updateWidget on mount */
-  const [isReady, setIsReady] = useState(false);
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
-
-  useEffect(() => {
-    /* HACK: */
-    if (!isReady) {
-      return;
-    }
-
-    let updatedWidget = { ...widget };
-    if (debouncedDatasource !== undefined && debouncedDatasource !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          datasource: debouncedDatasource
-        }
-      };
-    }
-    if (debouncedChannel !== undefined && debouncedChannel !== null) {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          channel: debouncedChannel
-        }
-      };
-    }
-    if (debouncedUpdateTime !== undefined && debouncedUpdateTime !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          updateTime: debouncedUpdateTime
-        }
-      };
-    }
-    if (
-      debouncedDatasource !== undefined ||
-      debouncedChannel !== undefined ||
-      debouncedUpdateTime !== undefined
-    ) {
-      updateWidget(updatedWidget);
-    }
-  }, [debouncedDatasource, debouncedChannel, debouncedUpdateTime]);
-
-  const handleDatasourceChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setDatasource(event.target.value);
-  };
-
-  const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newChannel = parseInt(event.target.value, 10);
-    if (!isNaN(newChannel) && newChannel >= -1) {
-      setChannel(newChannel);
-    } else if (event.target.value === '') {
-      setChannel(0);
-    }
-  };
-
-  const handleUpdateTimeChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const newUpdateTime = parseFloat(event.target.value);
-    if (!isNaN(newUpdateTime) && newUpdateTime >= 0) {
-      setUpdateTime(newUpdateTime);
-    }
-  };
 
   /* Toggle Widget Params */
   const toggleWidgetParams = useCallback(() => {
@@ -279,17 +129,20 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         return;
       }
       /* Re-attach the widget ID */
-      if (widgetId !== null) {
-        parsedWidget.generalParams.id = widgetId;
+      if (widgetState.widgetId !== null) {
+        parsedWidget.generalParams.id = widgetState.widgetId;
       }
       updateWidget(parsedWidget);
       setJsonError(null);
       /* NOTE: Update UI controls for manual JSON updates */
-      setIsVisible(parsedWidget.generalParams.isVisible);
-      setSliderValue(parsedWidget.generalParams.transparency);
-      setDatasource(parsedWidget.generalParams.datasource);
-      setChannel(parsedWidget.generalParams.channel);
-      setUpdateTime(parsedWidget.generalParams.updateTime);
+      setWidgetState((prevState) => ({
+        ...prevState,
+        isVisible: parsedWidget.generalParams.isVisible,
+        sliderValue: parsedWidget.generalParams.transparency,
+        datasource: parsedWidget.generalParams.datasource,
+        channel: parsedWidget.generalParams.channel,
+        updateTime: parsedWidget.generalParams.updateTime
+      }));
     } catch (err) {
       console.error(err);
       setJsonError('Invalid JSON format');
@@ -349,7 +202,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         </div>
       </Button>
 
-      {/* Dropdown for widget details */}
+      {/* Dropdown for current widget settings */}
       <Collapse in={openDropdownIndex === index}>
         <Box
           sx={(theme) => ({
@@ -363,205 +216,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           })}
         >
           {/* General Params */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <Typography variant="h6">General parameters</Typography>
-            <Tooltip
-              title={`Highlight ${capitalizeFirstLetter(widget.generalParams.type)}`}
-              arrow
-              placement="right"
-            >
-              <IconButton
-                aria-label="info"
-                onMouseDown={() => {
-                  setActiveDraggableWidget((prev) => ({
-                    ...prev,
-                    highlight: true
-                  }));
-                }}
-                onMouseUp={() => {
-                  setActiveDraggableWidget((prev) => ({
-                    ...prev,
-                    highlight: false
-                  }));
-                }}
-                onMouseLeave={() => {
-                  setActiveDraggableWidget((prev) => ({
-                    ...prev,
-                    highlight: false
-                  }));
-                }}
-              >
-                {activeDraggableWidget?.highlight ? (
-                  <LightbulbIcon />
-                ) : (
-                  <LightbulbOutlinedIcon />
-                )}
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              alignItems: 'center',
-              marginBottom: 3
-            }}
-          >
-            {/* Visible toggle */}
-            {widgetCapabilities && widgetCapabilities.data.isVisible && (
-              <Typography variant="body2" sx={{ marginTop: 4 }}>
-                Visible
-                <CustomSwitch
-                  checked={isVisible}
-                  onChange={handleVisibilityChange}
-                  color="primary"
-                />
-              </Typography>
-            )}
-            {/* Anchor Dropdown */}
-            {widgetCapabilities && widgetCapabilities.data.anchor && (
-              <Box sx={{ flex: 1, marginTop: 2 }}>
-                <Typography variant="body2">Anchor</Typography>
-                <Select
-                  value={widget.generalParams.anchor}
-                  onChange={handleAnchorChange}
-                  fullWidth
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    }
-                  }}
-                >
-                  {widgetCapabilities.data.anchor.enum.map((anchor) => (
-                    <MenuItem key={anchor} value={anchor}>
-                      {capitalizeFirstLetter(anchor)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
-            )}
-            {/* Size Dropdown */}
-            {widgetCapabilities && widgetCapabilities.data.size && (
-              <Box sx={{ flex: 1, marginTop: 2 }}>
-                <Typography variant="body2">Size</Typography>
-                <Select
-                  value={widget.generalParams.size}
-                  onChange={handleSizeChange}
-                  fullWidth
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    }
-                  }}
-                >
-                  {widgetCapabilities.data.size.enum.map((size) => (
-                    <MenuItem key={size} value={size}>
-                      {capitalizeFirstLetter(size)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
-            )}
-          </Box>
-          {/* Channel, Datasource, Update Interval */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                flexWrap: 'wrap',
-                alignItems: 'center'
-              }}
-            >
-              {/* Channel TextField */}
-              <Box sx={{ flex: 0.5 }}>
-                <TextField
-                  label="Channel"
-                  value={channel}
-                  onChange={handleChannelChange}
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Channel"
-                  type="number"
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    },
-                    '& .MuiInputLabel-root': {
-                      top: '-4px'
-                    }
-                  }}
-                />
-              </Box>
-              {/* Datasource TextField */}
-              <Box sx={{ flex: 0.7 }}>
-                <TextField
-                  label="Datasource"
-                  value={datasource}
-                  onChange={handleDatasourceChange}
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Enter datasource"
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    },
-                    '& .MuiInputLabel-root': {
-                      top: '-4px'
-                    }
-                  }}
-                />
-              </Box>
-              {/* UpdateTime TextField */}
-              <Box sx={{ flex: 0.8 }}>
-                <TextField
-                  label="Update interval"
-                  value={updateTime}
-                  onChange={handleUpdateTimeChange}
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Update interval"
-                  type="number"
-                  sx={{
-                    height: '40px',
-                    '& .MuiOutlinedInput-root': {
-                      height: '100%'
-                    },
-                    '& .MuiInputLabel-root': {
-                      top: '-4px'
-                    }
-                  }}
-                />
-              </Box>
-            </Box>
-          </Box>
-          {/* Transparency Slider */}
-          {widgetCapabilities && widgetCapabilities.data.transparency && (
-            <Box sx={{ marginTop: 2 }}>
-              <Typography variant="body2">Transparency</Typography>
-              <Slider
-                value={sliderValue}
-                onChange={handleTransparencyChange}
-                onChangeCommitted={handleTransparencyChangeCommitted}
-                aria-labelledby="transparency-slider"
-                min={widgetCapabilities.data.transparency.minimum}
-                max={widgetCapabilities.data.transparency.maximum}
-                // step={0.01}
-                valueLabelDisplay="auto"
-              />
-            </Box>
-          )}
-          {/* General Params End */}
+          <WidgetGeneralParams
+            widget={widget}
+            widgetState={widgetState}
+            setWidgetState={setWidgetState}
+          />
+
           {/* Widget Params */}
           <Button
             variant={widgetParamsVisible ? 'contained' : 'outlined'}
@@ -589,6 +249,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             <WidgetParams widget={widget} />
           </Collapse>
           {/* Widget Params End */}
+
           {/* Remove, Duplicate and JSON buttons */}
           <Box
             sx={{
@@ -626,7 +287,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               {jsonVisible ? 'Hide JSON' : 'Show JSON'}
             </Button>
           </Box>
-          {/* JSON viewer expander */}
+
+          {/* JSON viewer */}
           <Collapse in={jsonVisible}>
             <Box
               sx={(theme) => ({
@@ -714,8 +376,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               )}
             </Box>
           </Collapse>
+          {/* JSON viewer end */}
         </Box>
       </Collapse>
+      {/* Dropdown for current widget settings end */}
     </Box>
   );
 };
