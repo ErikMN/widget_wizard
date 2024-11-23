@@ -7,7 +7,6 @@ import { capitalizeFirstLetter } from '../helpers/utils';
 import { CustomSwitch, CustomStyledIconButton } from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
-import BBox from './BBox';
 import backgroundImage from '../assets/img/c1.jpeg';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -15,6 +14,7 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import ContrastIcon from '@mui/icons-material/Contrast';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
@@ -23,9 +23,8 @@ import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
-import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
-import ContrastIcon from '@mui/icons-material/Contrast';
+import Typography from '@mui/material/Typography';
 
 const availableColors = ['yellow', 'blue', 'red', 'green', 'purple', 'none'];
 const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
@@ -41,8 +40,6 @@ const Settings: React.FC = () => {
   /* Global context */
   const {
     listWidgets,
-    dimensions,
-    activeWidgets,
     appSettings,
     currentTheme,
     setAppSettings,
@@ -618,32 +615,6 @@ const Settings: React.FC = () => {
           }}
         >
           <VideoPlayer />
-          <Box
-            sx={{
-              // backgroundColor: 'blue',
-              position: 'absolute',
-              pointerEvents: 'none',
-              top: `${dimensions.offsetY}px`,
-              left: `${dimensions.offsetX}px`,
-              width: `${dimensions.pixelWidth}px`,
-              height: `${dimensions.pixelHeight}px`,
-              zIndex: 1
-            }}
-          >
-            {activeWidgets.map((widget: Widget) => {
-              if (widget.generalParams.isVisible) {
-                return (
-                  /* One BBox per widget */
-                  <BBox
-                    key={widget.generalParams.id}
-                    widget={widget}
-                    dimensions={dimensions}
-                  />
-                );
-              }
-              return null;
-            })}
-          </Box>
         </Box>
 
         {/* Alert Snackbar */}

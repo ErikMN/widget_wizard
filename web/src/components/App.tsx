@@ -6,7 +6,6 @@ import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
 import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
-import BBox from './BBox';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
@@ -40,7 +39,6 @@ import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
-import { Widget } from '../widgetInterfaces.js';
 
 /******************************************************************************/
 
@@ -137,11 +135,9 @@ const App: React.FC = () => {
 
   /* Global context */
   const {
-    dimensions,
     widgetSupported,
     widgetLoading,
     activeWidgets,
-    handleOpenAlert,
     openAlert,
     setOpenAlert,
     alertContent,
@@ -531,37 +527,7 @@ const App: React.FC = () => {
             }}
           >
             {/* Video Player */}
-            <VideoPlayer />
-            {/* Overlay Surface aligned with the video element */}
-            {showBoundingBoxes && (
-              /* BBox surface */
-              <Box
-                sx={{
-                  // backgroundColor: 'blue',
-                  position: 'absolute',
-                  pointerEvents: 'none',
-                  top: `${dimensions.offsetY}px`,
-                  left: `${dimensions.offsetX}px`,
-                  width: `${dimensions.pixelWidth}px`,
-                  height: `${dimensions.pixelHeight}px`,
-                  zIndex: 1
-                }}
-              >
-                {activeWidgets.map((widget: Widget) => {
-                  if (widget.generalParams.isVisible) {
-                    return (
-                      /* One BBox per widget */
-                      <BBox
-                        key={widget.generalParams.id}
-                        widget={widget}
-                        dimensions={dimensions}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </Box>
-            )}
+            <VideoPlayer showBoundingBoxes={showBoundingBoxes} />
           </Box>
         </Main>
 

@@ -1,6 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
+import { Widget } from '../widgetInterfaces';
+import BBox from './BBox';
+
+interface VideoPlayerProps {
+  showBoundingBoxes?: boolean;
+}
 
 interface VapixConfig {
   compression: string;
@@ -40,13 +46,21 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC = () => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  showBoundingBoxes = true
+}) => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
 
   /* Global context */
-  const { appSettings, currentTheme, setDimensions } = useGlobalContext();
+  const {
+    appSettings,
+    currentTheme,
+    dimensions,
+    setDimensions,
+    activeWidgets
+  } = useGlobalContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -115,6 +129,19 @@ const VideoPlayer: React.FC = () => {
         console.error(err);
       });
     setDefaultParams();
+
+    return () => {
+      /* Reset dimensions to 0 on unmount */
+      // console.log('VideoPlayer unmounted: Set dimensions to 0');
+      setDimensions({
+        videoWidth: 0,
+        videoHeight: 0,
+        pixelWidth: 0,
+        pixelHeight: 0,
+        offsetX: 0,
+        offsetY: 0
+      });
+    };
   }, []);
 
   useEffect(() => {
@@ -180,6 +207,36 @@ const VideoPlayer: React.FC = () => {
         autoRetry
         vapixParams={vapixParams}
       />
+      {/* Widget bounding boxes */}
+      {showBoundingBoxes && (
+        /* BBox surface */
+        <div
+          style={{
+            // backgroundColor: 'blue',
+            position: 'absolute',
+            pointerEvents: 'none',
+            top: `${dimensions.offsetY}px`,
+            left: `${dimensions.offsetX}px`,
+            width: `${dimensions.pixelWidth}px`,
+            height: `${dimensions.pixelHeight}px`,
+            zIndex: 1
+          }}
+        >
+          {activeWidgets.map((widget: Widget) => {
+            if (widget.generalParams.isVisible) {
+              return (
+                /* One BBox per active widget */
+                <BBox
+                  key={widget.generalParams.id}
+                  widget={widget}
+                  dimensions={dimensions}
+                />
+              );
+            }
+            return null;
+          })}
+        </div>
+      )}
     </div>
   );
 };

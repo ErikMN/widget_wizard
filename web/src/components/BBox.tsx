@@ -1,5 +1,5 @@
 /**
- * Draggable bounding boxes
+ * Draggable bounding boxes to be overlaid on a video surface
  */
 import React, { useCallback, useMemo } from 'react';
 import Draggable from 'react-draggable';
