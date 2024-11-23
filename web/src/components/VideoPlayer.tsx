@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
-import { Widget } from '../widgetInterfaces';
+import { Widget, Dimensions } from '../widgetInterfaces';
 import BBox from './BBox';
 
 interface VideoPlayerProps {
@@ -52,15 +52,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [dimensions, setDimensions] = useState<Dimensions>({
+    videoWidth: 0,
+    videoHeight: 0,
+    pixelWidth: 0,
+    pixelHeight: 0,
+    offsetX: 0,
+    offsetY: 0
+  });
 
   /* Global context */
-  const {
-    appSettings,
-    currentTheme,
-    dimensions,
-    setDimensions,
-    activeWidgets
-  } = useGlobalContext();
+  const { appSettings, currentTheme, activeWidgets } = useGlobalContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);

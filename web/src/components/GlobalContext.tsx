@@ -6,7 +6,6 @@ import React, { createContext, useContext, useState } from 'react';
 import { useLocalStorage } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
-import { Dimensions } from '../widgetInterfaces.js';
 import {
   ApiResponse,
   Widget,
@@ -80,9 +79,6 @@ interface GlobalContextProps {
   currentTheme: string;
   setCurrentTheme: React.Dispatch<React.SetStateAction<string>>;
 
-  dimensions: Dimensions;
-  setDimensions: React.Dispatch<React.SetStateAction<Dimensions>>;
-
   /* Global settings for the application */
   appSettings: AppSettings;
   setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
@@ -129,15 +125,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     clickBBox: boolean;
     highlight: boolean;
   }>({ id: null, active: false, clickBBox: false, highlight: false });
-
-  const [dimensions, setDimensions] = useState<Dimensions>({
-    videoWidth: 0,
-    videoHeight: 0,
-    pixelWidth: 0,
-    pixelHeight: 0,
-    offsetX: 0,
-    offsetY: 0
-  });
 
   /* Function to open an alert with content and severity */
   const handleOpenAlert = (
@@ -412,8 +399,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <GlobalContext.Provider
       value={{
-        dimensions,
-        setDimensions,
         activeDraggableWidget,
         setActiveDraggableWidget,
         activeWidgets,
