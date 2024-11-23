@@ -605,15 +605,7 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Video preview */}
-        <Box
-          sx={{
-            position: 'relative',
-            flexGrow: 1,
-            display: 'flex',
-            height: '40vh',
-            marginTop: 4
-          }}
-        >
+        <Box sx={{ display: 'flex', height: '40vh', marginTop: 2 }}>
           <VideoPlayer />
         </Box>
 

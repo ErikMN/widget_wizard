@@ -518,17 +518,7 @@ const App: React.FC = () => {
         <Main open={drawerOpen} isMobile={isMobile}>
           <DrawerHeader />
           {/* Video Player */}
-          <Box
-            sx={{
-              position: 'relative',
-              flexGrow: 1,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {/* Video Player */}
-            <VideoPlayer showBoundingBoxes={showBoundingBoxes} />
-          </Box>
+          <VideoPlayer showBoundingBoxes={showBoundingBoxes} />
         </Main>
 
         {/* Alert Snackbar */}

@@ -197,7 +197,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         padding: '3px',
         position: 'relative',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        overflow: 'hidden'
       }}
     >
       <Player
