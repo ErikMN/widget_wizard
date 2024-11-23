@@ -278,7 +278,7 @@ const App: React.FC = () => {
             </Box>
 
             {/* Show Widget Capabilities JSON button */}
-            <Tooltip title="Show Widget Capabilities JSON" arrow>
+            <Tooltip title="Show widget capabilities JSON" arrow>
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="Show Widget Capabilities JSON"
@@ -300,8 +300,8 @@ const App: React.FC = () => {
             <Tooltip
               title={
                 showBoundingBoxes
-                  ? 'Hide Bounding Boxes'
-                  : 'Show Bounding Boxes'
+                  ? 'Hide bounding boxes'
+                  : 'Show bounding boxes'
               }
               arrow
             >
@@ -333,7 +333,7 @@ const App: React.FC = () => {
             </Tooltip>
 
             {/* Info Button (left of theme icon) */}
-            <Tooltip title="About Info" arrow>
+            <Tooltip title="About info" arrow>
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="about info"
@@ -352,7 +352,7 @@ const App: React.FC = () => {
             </Tooltip>
 
             {/* Theme Toggle Button */}
-            <Tooltip title="Toggle Theme" arrow>
+            <Tooltip title="Toggle theme" arrow>
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="toggle theme"
@@ -371,7 +371,7 @@ const App: React.FC = () => {
             </Tooltip>
 
             {/* Settings button */}
-            <Tooltip title="Application Settings" arrow>
+            <Tooltip title="Application settings" arrow>
               <CustomStyledIconButton
                 color="inherit"
                 aria-label="settings"
@@ -473,7 +473,7 @@ const App: React.FC = () => {
                 ...(isMobile && { marginBottom: 1 })
               }}
             >
-              Active Widgets: {activeWidgets.length}
+              Active widgets: {activeWidgets.length}
             </Typography>
             {/* Menu close button */}
             <Tooltip title="Close the menu" arrow placement={'right'}>

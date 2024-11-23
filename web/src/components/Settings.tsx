@@ -100,7 +100,7 @@ const Settings: React.FC = () => {
       roundedBboxCorners: !prevSettings.roundedBboxCorners
     }));
     handleOpenAlert(
-      `Rounded Bounding Box Corners: ${!appSettings.roundedBboxCorners}`,
+      `Rounded bounding box corners: ${!appSettings.roundedBboxCorners}`,
       'success'
     );
   };
@@ -110,7 +110,7 @@ const Settings: React.FC = () => {
       ...prevSettings,
       bboxLabel: !prevSettings.bboxLabel
     }));
-    handleOpenAlert(`Bounding Box Label: ${!appSettings.bboxLabel}`, 'success');
+    handleOpenAlert(`Bounding box label: ${!appSettings.bboxLabel}`, 'success');
   };
 
   const handleToggleBboxAnchorIndicator = () => {
@@ -119,7 +119,7 @@ const Settings: React.FC = () => {
       bboxAnchorIndicator: !prevSettings.bboxAnchorIndicator
     }));
     handleOpenAlert(
-      `Bounding Anchor Indicator: ${!appSettings.bboxAnchorIndicator}`,
+      `Bounding anchor indicator: ${!appSettings.bboxAnchorIndicator}`,
       'success'
     );
   };
@@ -130,7 +130,7 @@ const Settings: React.FC = () => {
       bboxOnlyShowActive: !prevSettings.bboxOnlyShowActive
     }));
     handleOpenAlert(
-      `Only Show Active Widget BBox: ${!appSettings.bboxOnlyShowActive}`,
+      `Only show active widget bounding box: ${!appSettings.bboxOnlyShowActive}`,
       'success'
     );
   };
@@ -141,7 +141,7 @@ const Settings: React.FC = () => {
       ...prevSettings,
       bboxColor: selectedColor
     }));
-    handleOpenAlert(`Bounding Box Color: ${selectedColor}`, 'success');
+    handleOpenAlert(`Bounding box color: ${selectedColor}`, 'success');
   };
 
   const handleThicknessChange = (
@@ -155,7 +155,7 @@ const Settings: React.FC = () => {
       ...prevSettings,
       bboxThickness: selectedThickness
     }));
-    handleOpenAlert(`Bounding Box Thickness: ${selectedThickness}`, 'success');
+    handleOpenAlert(`Bounding box thickness: ${selectedThickness}`, 'success');
   };
 
   /* Ensure the bboxColor is valid, default to 'yellow' if it's not */
@@ -195,7 +195,7 @@ const Settings: React.FC = () => {
       sortBy: selectedSort
     }));
     handleOpenAlert(
-      `Sort By: ${capitalizeFirstLetter(selectedSort)}`,
+      `Sort by: ${capitalizeFirstLetter(selectedSort)}`,
       'success'
     );
   };
@@ -208,7 +208,7 @@ const Settings: React.FC = () => {
       sortAscending: !prevSettings.sortAscending
     }));
     handleOpenAlert(
-      `Sort Order: ${!appSettings.sortAscending ? 'Descending' : 'Ascending'}`,
+      `Sort order: ${!appSettings.sortAscending ? 'Descending' : 'Ascending'}`,
       'success'
     );
   };
@@ -229,7 +229,7 @@ const Settings: React.FC = () => {
       ...prevSettings,
       wsDefault: !prevSettings.wsDefault
     }));
-    handleOpenAlert(`WebSocket Stream: ${!appSettings.wsDefault}`, 'success');
+    handleOpenAlert(`WebSocket stream: ${!appSettings.wsDefault}`, 'success');
     /* Start the countdown */
     setCountdown(2);
   };
@@ -321,11 +321,11 @@ const Settings: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <SettingsIcon sx={{ marginRight: 1 }} />
             <Typography id="settings-modal-title" variant="h5" component="h2">
-              Application Settings
+              Application settings
             </Typography>
           </Box>
           {/* Theme Toggle Button */}
-          <Tooltip title="Toggle Theme" arrow>
+          <Tooltip title="Toggle theme" arrow>
             <CustomStyledIconButton
               color="inherit"
               aria-label="toggle theme"
@@ -355,7 +355,7 @@ const Settings: React.FC = () => {
           })}
         >
           <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Bounding Box Settings
+            Bounding box settings
           </Typography>
 
           {/* Switch for rounded bounding box corners */}
@@ -367,7 +367,7 @@ const Settings: React.FC = () => {
                 name="roundedBboxCorners"
               />
             }
-            label="Rounded Bounding Box Corners"
+            label="Rounded bounding box corners"
           />
 
           {/* Switch for bounding box label */}
@@ -379,7 +379,7 @@ const Settings: React.FC = () => {
                 name="bboxLabel"
               />
             }
-            label="Show Bounding Box Info Label"
+            label="Show bounding box info label"
           />
 
           {/* Switch for bounding anchor indicator */}
@@ -391,7 +391,7 @@ const Settings: React.FC = () => {
                 name="bboxAnchorIndicator"
               />
             }
-            label="Show Bounding Box Anchor Indicator"
+            label="Show bounding box anchor indicator"
           />
 
           {/* Switch for only showing active bbox */}
@@ -403,7 +403,7 @@ const Settings: React.FC = () => {
                 name="bboxOnlyShowActive"
               />
             }
-            label="Only Show Bounding Box For Active Widget"
+            label="Only show bounding box for active widget"
           />
 
           <Box
@@ -416,12 +416,12 @@ const Settings: React.FC = () => {
             {/* Select bounding box color */}
             <FormControl sx={{ marginTop: 2, width: '50%' }}>
               <InputLabel id="bbox-color-label" sx={{ top: '-4px' }}>
-                Bounding Box Color
+                Bounding box color
               </InputLabel>
               <Select
                 labelId="bbox-color-label"
                 value={currentColor}
-                label="Bounding Box Color"
+                label="Bounding box color"
                 onChange={handleColorChange}
                 sx={{
                   height: '40px',
@@ -441,12 +441,12 @@ const Settings: React.FC = () => {
             {/* Select bounding box thickness */}
             <FormControl sx={{ marginTop: 2, width: '50%' }}>
               <InputLabel id="bbox-thickness-label" sx={{ top: '-4px' }}>
-                Bounding Box Thickness
+                Bounding box thickness
               </InputLabel>
               <Select
                 labelId="bbox-thickness-label"
                 value={currentThickness}
-                label="Bounding Box Thickness"
+                label="Bounding box thickness"
                 onChange={handleThicknessChange}
                 sx={{
                   height: '40px',
@@ -476,7 +476,7 @@ const Settings: React.FC = () => {
           })}
         >
           <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Widget Settings
+            Widget settings
           </Typography>
 
           {/* Widget sorting */}
@@ -490,12 +490,12 @@ const Settings: React.FC = () => {
           >
             <FormControl sx={{ width: '40%' }}>
               <InputLabel id="sort-by-label" sx={{ top: '-4px' }}>
-                Sort Widgets By
+                Sort widgets by
               </InputLabel>
               <Select
                 labelId="sort-by-label"
                 value={appSettings.sortBy}
-                label="Sort Widgets By"
+                label="Sort widgets by"
                 onChange={handleSortChange}
                 sx={{
                   height: '40px',
@@ -517,7 +517,7 @@ const Settings: React.FC = () => {
                   name="sortAscending"
                 />
               }
-              label="Sort in Ascending Order"
+              label="Sort in ascending order"
               sx={{ marginLeft: 2 }}
             />
           </Box>
@@ -545,7 +545,7 @@ const Settings: React.FC = () => {
           })}
         >
           <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Misc. Settings
+            Misc. settings
           </Typography>
 
           {/* Switch for using WS stream as default */}
@@ -597,7 +597,7 @@ const Settings: React.FC = () => {
           }}
         >
           <Button onClick={handleResetDefaults} variant="outlined">
-            Reset Defaults
+            Reset defaults
           </Button>
           <Button onClick={handleBack} variant="contained">
             Back

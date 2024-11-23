@@ -70,7 +70,7 @@ const WidgetCapabilities: React.FC = () => {
         >
           <DataObjectIcon sx={{ marginRight: 1 }} />
           <Typography id="settings-modal-title" variant="h5" component="h2">
-            Widget Capabilities
+            Widget capabilities
           </Typography>
         </Box>
 
@@ -103,7 +103,7 @@ const WidgetCapabilities: React.FC = () => {
             variant="outlined"
             sx={{ marginTop: 2, marginRight: 1 }}
           >
-            {collapsed ? 'Uncollapse All' : 'Collapse All'}
+            {collapsed ? 'Uncollapse all' : 'Collapse all'}
           </Button>
           {/* Back button */}
           <Button

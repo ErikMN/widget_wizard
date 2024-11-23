@@ -582,8 +582,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             }}
           >
             {widgetParamsVisible
-              ? 'Hide Widget Parameters'
-              : 'Show Widget Parameters'}
+              ? 'Hide widget parameters'
+              : 'Show widget parameters'}
           </Button>
           <Collapse in={widgetParamsVisible}>
             <WidgetParams widget={widget} />

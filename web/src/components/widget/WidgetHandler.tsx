@@ -141,7 +141,7 @@ const WidgetHandler: React.FC = () => {
         {/* Dropdown for widget names */}
         <FormControl fullWidth variant="outlined">
           <InputLabel id="widget-select-label" sx={{ top: '-4px' }}>
-            Select Widget
+            Select widget
           </InputLabel>
           <Select
             labelId="widget-select-label"
@@ -165,7 +165,7 @@ const WidgetHandler: React.FC = () => {
         </FormControl>
 
         {/* Plus sign button */}
-        <Tooltip title="Add a Widget" arrow placement="right">
+        <Tooltip title="Add a widget" arrow placement="right">
           <IconButton
             color="primary"
             aria-label="add widget"
