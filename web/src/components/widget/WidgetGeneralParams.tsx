@@ -217,6 +217,20 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
     }
   };
 
+  const handleHighlightStart = () => {
+    setActiveDraggableWidget((prev) => ({
+      ...prev,
+      highlight: true
+    }));
+  };
+
+  const handleHighlightEnd = () => {
+    setActiveDraggableWidget((prev) => ({
+      ...prev,
+      highlight: false
+    }));
+  };
+
   /****************************************************************************/
 
   return (
@@ -237,24 +251,11 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         >
           <IconButton
             aria-label="info"
-            onMouseDown={() => {
-              setActiveDraggableWidget((prev) => ({
-                ...prev,
-                highlight: true
-              }));
-            }}
-            onMouseUp={() => {
-              setActiveDraggableWidget((prev) => ({
-                ...prev,
-                highlight: false
-              }));
-            }}
-            onMouseLeave={() => {
-              setActiveDraggableWidget((prev) => ({
-                ...prev,
-                highlight: false
-              }));
-            }}
+            onMouseDown={handleHighlightStart}
+            onMouseUp={handleHighlightEnd}
+            onMouseLeave={handleHighlightEnd}
+            onTouchStart={handleHighlightStart}
+            onTouchEnd={handleHighlightEnd}
           >
             {activeDraggableWidget?.highlight ? (
               <LightbulbIcon />
