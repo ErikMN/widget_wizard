@@ -1,9 +1,11 @@
-# Widget Wizard <img src="files/images/widgy2.png" width="100" alt="widgy"/>
+# Widget Wizard <img src="files/images/wiz_hat.png" width="64" alt="widgy"/>
 
 Application for managing widgets on Axis devices. \
-Requires a device with widgets capabilities available.
+Written in TypeScript and React.
 
-## How to build
+> **⚠️ Important:**  Requires a device with widgets capabilities available.
+
+## How to build 🛠️
 
 ```shell
 make dockersetup && make acap
