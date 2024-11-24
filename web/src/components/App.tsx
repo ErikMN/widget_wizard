@@ -15,7 +15,6 @@ import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
 /* MUI */
 import { styled } from '@mui/material/styles';
-import { grey } from '@mui/material/colors';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -102,11 +101,17 @@ const AppBar = styled(MuiAppBar, {
     backgroundColor: 'transparent'
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.grey[600],
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[600]
+        : theme.palette.grey[400],
     borderRadius: '6px'
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: theme.palette.grey[800]
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[800]
+        : theme.palette.grey[200]
   },
   '& .MuiToolbar-root': {
     minHeight: '54px'
@@ -402,11 +407,17 @@ const App: React.FC = () => {
                 backgroundColor: 'transparent'
               },
               '&::-webkit-scrollbar-thumb': {
-                backgroundColor: grey[600],
+                backgroundColor: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? theme.palette.grey[600]
+                    : theme.palette.grey[400],
                 borderRadius: '6px'
               },
               '&::-webkit-scrollbar-track': {
-                backgroundColor: grey[800]
+                backgroundColor: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? theme.palette.grey[800]
+                    : theme.palette.grey[200]
               },
               ...(isMobile
                 ? {

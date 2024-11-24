@@ -87,11 +87,17 @@ const CustomStyledBox = styled(Box)(({ theme }) => ({
     backgroundColor: 'transparent'
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.grey[600],
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[600]
+        : theme.palette.grey[400],
     borderRadius: '6px'
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: theme.palette.grey[800]
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[800]
+        : theme.palette.grey[200]
   }
 }));
 
@@ -108,11 +114,17 @@ const CustomStyledContainer = styled(Container)(({ theme }) => ({
     backgroundColor: 'transparent'
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.grey[600],
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[600]
+        : theme.palette.grey[400],
     borderRadius: '6px'
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: theme.palette.grey[800]
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[800]
+        : theme.palette.grey[200]
   }
 }));
 
