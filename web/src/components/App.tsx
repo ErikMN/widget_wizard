@@ -393,53 +393,35 @@ const App: React.FC = () => {
         {/* Drawer menu */}
         <Drawer
           sx={{
-            ...(isMobile
-              ? {
-                  flexShrink: 0,
-                  '& .MuiDrawer-paper': {
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              overflow: 'auto',
+              position: 'fixed',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+                backgroundColor: 'transparent'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: grey[600],
+                borderRadius: '6px'
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: grey[800]
+              },
+              ...(isMobile
+                ? {
                     height: drawerHeight,
-                    boxSizing: 'border-box',
-                    overflow: 'auto',
-                    position: 'fixed',
                     bottom: 0,
-                    width: '100%',
-                    '&::-webkit-scrollbar': {
-                      width: '8px',
-                      backgroundColor: 'transparent'
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      backgroundColor: grey[600],
-                      borderRadius: '6px'
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      backgroundColor: grey[800]
-                    }
+                    width: '100%'
                   }
-                }
-              : {
-                  width: drawerWidth,
-                  flexShrink: 0,
-                  '& .MuiDrawer-paper': {
+                : {
                     width: drawerWidth,
-                    boxSizing: 'border-box',
-                    overflow: 'auto',
-                    position: 'fixed',
                     left: 0,
                     top: 0,
-                    height: '100%',
-                    '&::-webkit-scrollbar': {
-                      width: '8px',
-                      backgroundColor: 'transparent'
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      backgroundColor: grey[600],
-                      borderRadius: '6px'
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      backgroundColor: grey[800]
-                    }
-                  }
-                })
+                    height: '100%'
+                  })
+            }
           }}
           variant="persistent"
           anchor={isMobile ? 'bottom' : 'left'}
