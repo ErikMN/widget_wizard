@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
+import WidgetsDisabled from './WidgetsDisabled';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 /* MUI */
@@ -45,7 +46,8 @@ const WidgetHandler: React.FC = () => {
     setSelectedWidget,
     widgetCapabilities,
     openDropdownIndex,
-    setOpenDropdownIndex
+    setOpenDropdownIndex,
+    widgetSupported
   } = useGlobalContext();
 
   enableLogging(false);
@@ -126,6 +128,10 @@ const WidgetHandler: React.FC = () => {
     removeAllWidgets();
     setOpenDialog(false);
   };
+
+  if (!widgetSupported) {
+    return <WidgetsDisabled />;
+  }
 
   return (
     <Box

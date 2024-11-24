@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
 import { useGlobalContext } from '../GlobalContext';
 import { CustomContainer, CustomBox } from '../CustomComponents';
+import WidgetsDisabled from './WidgetsDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -15,8 +16,12 @@ import ReactJson from 'react-json-view';
 
 const WidgetCapabilities: React.FC = () => {
   /* Global context */
-  const { widgetCapabilities, currentTheme, listWidgetCapabilities } =
-    useGlobalContext();
+  const {
+    widgetCapabilities,
+    currentTheme,
+    listWidgetCapabilities,
+    widgetSupported
+  } = useGlobalContext();
   const jsonData = widgetCapabilities?.data;
 
   /* Navigation */
@@ -75,20 +80,26 @@ const WidgetCapabilities: React.FC = () => {
         </Box>
 
         {/* Collapsible JSON View */}
-        <CustomBox
-          sx={{
-            overflow: 'auto',
-            marginBottom: 2
-          }}
-        >
-          <ReactJson
-            src={jsonData || {}}
-            collapsed={collapsed}
-            enableClipboard={false}
-            displayDataTypes={false}
-            theme="monokai"
-          />
-        </CustomBox>
+        {widgetSupported ? (
+          <>
+            <CustomBox
+              sx={{
+                overflow: 'auto',
+                marginBottom: 2
+              }}
+            >
+              <ReactJson
+                src={jsonData || {}}
+                collapsed={collapsed}
+                enableClipboard={false}
+                displayDataTypes={false}
+                theme="monokai"
+              />
+            </CustomBox>
+          </>
+        ) : (
+          <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 0 }} />
+        )}
 
         <Box
           sx={{
@@ -101,6 +112,7 @@ const WidgetCapabilities: React.FC = () => {
           <Button
             onClick={handleToggleCollapse}
             variant="outlined"
+            disabled={!widgetSupported}
             sx={{ marginTop: 2, marginRight: 1 }}
           >
             {collapsed ? 'Uncollapse all' : 'Collapse all'}

@@ -12,6 +12,7 @@ import {
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
 import backgroundImage from '../assets/img/c1.jpeg';
+import WidgetsDisabled from './widget/WidgetsDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
@@ -52,7 +53,8 @@ const Settings: React.FC = () => {
     setOpenAlert,
     handleOpenAlert,
     setOpenDropdownIndex,
-    setCurrentTheme
+    setCurrentTheme,
+    widgetSupported
   } = useGlobalContext();
 
   /* Refs */
@@ -482,7 +484,9 @@ const Settings: React.FC = () => {
           <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
             Widget settings
           </Typography>
-
+          {!widgetSupported && (
+            <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
+          )}
           {/* Widget sorting */}
           <Box
             sx={{

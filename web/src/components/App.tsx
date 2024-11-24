@@ -135,7 +135,6 @@ const App: React.FC = () => {
 
   /* Global context */
   const {
-    widgetSupported,
     widgetLoading,
     activeWidgets,
     openAlert,
@@ -148,7 +147,7 @@ const App: React.FC = () => {
   } = useGlobalContext();
 
   /* Global parameter list */
-  const { parameters, paramsLoading } = useParameters();
+  const { parameters } = useParameters();
   const ProdFullName = parameters?.['root.Brand.ProdFullName'];
 
   /* Theme */
@@ -473,26 +472,7 @@ const App: React.FC = () => {
           <Divider />
           {/* Drawer content here */}
           <Box sx={{ paddingBottom: 1 }}>
-            {widgetSupported ? (
-              <WidgetHandler />
-            ) : (
-              <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
-                <Alert
-                  severity="warning"
-                  sx={{
-                    marginTop: 2,
-                    marginLeft: 1,
-                    marginRight: 1,
-                    alignItems: 'center'
-                  }}
-                >
-                  <Typography>
-                    Widgets are not supported on this device, or the widget
-                    backend is disabled.
-                  </Typography>
-                </Alert>
-              </Fade>
-            )}
+            <WidgetHandler />
           </Box>
         </Drawer>
 
