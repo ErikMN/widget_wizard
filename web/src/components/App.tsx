@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
-import WidgetHandler from './widget/WidgetHandler.js';
 import AboutModal from './AboutModal';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
@@ -13,6 +12,9 @@ import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { drawerWidth, drawerHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
+/* Widgets */
+import WidgetHandler from './widget/WidgetHandler';
+import WidgetInfo from './widget/WidgetInfo';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -37,7 +39,6 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 /******************************************************************************/
 
@@ -141,7 +142,6 @@ const App: React.FC = () => {
   /* Global context */
   const {
     widgetLoading,
-    activeWidgets,
     openAlert,
     setOpenAlert,
     alertContent,
@@ -442,33 +442,22 @@ const App: React.FC = () => {
           <DrawerHeader
             sx={{
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               alignItems: 'center',
-              position: 'relative'
+              position: 'relative',
+              width: '100%'
             }}
           >
-            {/* Left-aligned icon */}
-            <WidgetsOutlinedIcon
+            <Box
               sx={{
-                width: '20px',
-                height: '20px',
-                color: 'text.secondary'
-              }}
-            />
-            {/* Centered text */}
-            <Typography
-              variant="inherit"
-              sx={{
-                letterSpacing: '0.05em',
-                color: 'palette.secondary.main',
                 display: 'flex',
                 justifyContent: 'center',
-                flexGrow: 1,
-                ...(isMobile && { marginBottom: 1 })
+                alignItems: 'center',
+                flexGrow: 1
               }}
             >
-              Active widgets: {activeWidgets.length}
-            </Typography>
+              <WidgetInfo />
+            </Box>
             {/* Menu close button */}
             <Tooltip title="Close the menu" arrow placement={'right'}>
               <CustomStyledIconButton onClick={handleDrawerClose}>
