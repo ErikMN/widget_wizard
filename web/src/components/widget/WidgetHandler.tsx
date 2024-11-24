@@ -80,6 +80,18 @@ const WidgetHandler: React.FC = () => {
     }
   }, [activeDraggableWidget, activeWidgets]);
 
+  /* Effect for opening last added widget by default */
+  useEffect(() => {
+    if (activeWidgets.length > 0) {
+      const latestWidget = activeWidgets[activeWidgets.length - 1];
+      setActiveDraggableWidget((prev) => ({
+        ...prev,
+        id: latestWidget.generalParams.id
+      }));
+      setOpenDropdownIndex(activeWidgets.length - 1);
+    }
+  }, [activeWidgets, setActiveDraggableWidget, setOpenDropdownIndex]);
+
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
     (event: SelectChangeEvent<string>) => {
