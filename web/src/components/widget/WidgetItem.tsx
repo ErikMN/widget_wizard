@@ -238,7 +238,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: 1,
-              height: '32px'
+              height: '32px',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden'
             }}
           >
             {widgetParamsVisible
@@ -265,6 +268,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               variant="contained"
               onClick={() => removeWidget(widget.generalParams.id)}
               startIcon={<DeleteIcon />}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
             >
               Remove
             </Button>
@@ -274,6 +282,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               variant="contained"
               onClick={() => addCustomWidget({ ...widget })}
               startIcon={<ContentCopyIcon />}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
             >
               Duplicate
             </Button>
@@ -283,6 +296,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               variant="outlined"
               onClick={toggleJsonVisibility}
               startIcon={<DataObjectIcon />}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
             >
               {jsonVisible ? 'Hide JSON' : 'Show JSON'}
             </Button>
