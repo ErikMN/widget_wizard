@@ -13,8 +13,23 @@ const CustomIconButton = styled(IconButton)(({ theme }) => ({
   width: '40px',
   height: '40px',
   borderRadius: '4px',
+  position: 'relative',
   '&:hover svg': {
     color: theme.palette.primary.main
+  },
+  '&:hover::before': {
+    content: '""',
+    position: 'absolute',
+    top: '4px',
+    left: '4px',
+    width: 'calc(100% - 8px)',
+    height: 'calc(100% - 8px)',
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, 0.1)'
+        : 'rgba(211, 211, 211, 0.3)',
+    borderRadius: '4px',
+    zIndex: -1
   }
 }));
 
@@ -23,7 +38,7 @@ export interface CustomIconButtonProps extends IconButtonProps {}
 export const CustomStyledIconButton: React.FC<CustomIconButtonProps> = (
   props
 ) => {
-  return <CustomIconButton {...props} />;
+  return <CustomIconButton {...props} disableRipple />;
 };
 
 /** Custom Switch */
