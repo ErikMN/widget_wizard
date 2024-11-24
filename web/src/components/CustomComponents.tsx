@@ -47,7 +47,11 @@ const CustomStyledSwitch = styled(Switch)(({ theme }) => ({
   '& .MuiSwitch-track': {
     borderRadius: 22 / 2,
     backgroundColor: 'transparent',
-    border: `1px solid ${theme.palette.grey[200]}`,
+    border: `2px solid ${
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[200]
+        : theme.palette.grey[800]
+    }`,
     '&::before, &::after': {
       content: '""',
       position: 'absolute',
