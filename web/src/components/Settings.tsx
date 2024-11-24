@@ -2,9 +2,13 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
-import { defaultAppSettings, AppSettings, Widget } from '../widgetInterfaces';
+import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
-import { CustomSwitch, CustomStyledIconButton } from './CustomComponents';
+import {
+  CustomSwitch,
+  CustomStyledIconButton,
+  CustomContainer
+} from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
 import backgroundImage from '../assets/img/c1.jpeg';
@@ -13,7 +17,6 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -299,14 +302,15 @@ const Settings: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container
+      <CustomContainer
         sx={{
           p: 2,
           bgcolor: 'background.paper',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-start',
-          height: isMobile ? 'unset' : '100vh'
+          height: isMobile ? 'unset' : '100vh',
+          overflowY: 'auto'
         }}
       >
         <Box
@@ -605,7 +609,7 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Video preview */}
-        <Box sx={{ display: 'flex', height: '40vh', marginTop: 2 }}>
+        <Box sx={{ display: 'flex', minHeight: '400px', marginTop: 2 }}>
           <VideoPlayer />
         </Box>
 
@@ -628,7 +632,7 @@ const Settings: React.FC = () => {
             {alertContent}
           </Alert>
         </Snackbar>
-      </Container>
+      </CustomContainer>
     </ThemeProvider>
   );
 };

@@ -5,6 +5,8 @@ import { styled } from '@mui/material/styles';
 import { SwitchProps } from '@mui/material/Switch';
 import IconButton from '@mui/material/IconButton';
 import Switch from '@mui/material/Switch';
+import { Box, BoxProps } from '@mui/material';
+import { Container, ContainerProps } from '@mui/material';
 
 /** Custom IconButton */
 const CustomIconButton = styled(IconButton)(({ theme }) => ({
@@ -76,4 +78,46 @@ export interface CustomSwitchProps extends SwitchProps {}
 
 export const CustomSwitch: React.FC<CustomSwitchProps> = (props) => {
   return <CustomStyledSwitch {...props} />;
+};
+
+/** Custom Box */
+const CustomStyledBox = styled(Box)(({ theme }) => ({
+  '&::-webkit-scrollbar': {
+    width: '8px',
+    backgroundColor: 'transparent'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: theme.palette.grey[600],
+    borderRadius: '6px'
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: theme.palette.grey[800]
+  }
+}));
+
+export interface CustomBoxProps extends BoxProps {}
+
+export const CustomBox: React.FC<CustomBoxProps> = (props) => {
+  return <CustomStyledBox {...props} />;
+};
+
+/** Custom Container */
+const CustomStyledContainer = styled(Container)(({ theme }) => ({
+  '&::-webkit-scrollbar': {
+    width: '8px',
+    backgroundColor: 'transparent'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: theme.palette.grey[600],
+    borderRadius: '6px'
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: theme.palette.grey[800]
+  }
+}));
+
+export interface CustomContainerProps extends ContainerProps {}
+
+export const CustomContainer: React.FC<CustomContainerProps> = (props) => {
+  return <CustomStyledContainer {...props} />;
 };

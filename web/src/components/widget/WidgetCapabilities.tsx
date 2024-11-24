@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
 import { useGlobalContext } from '../GlobalContext';
+import { CustomContainer, CustomBox } from '../CustomComponents';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import Typography from '@mui/material/Typography';
 
@@ -50,7 +50,7 @@ const WidgetCapabilities: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container
+      <CustomContainer
         sx={{
           p: 2,
           bgcolor: 'background.paper',
@@ -75,7 +75,7 @@ const WidgetCapabilities: React.FC = () => {
         </Box>
 
         {/* Collapsible JSON View */}
-        <Box
+        <CustomBox
           sx={{
             overflow: 'auto',
             marginBottom: 2
@@ -88,7 +88,7 @@ const WidgetCapabilities: React.FC = () => {
             displayDataTypes={false}
             theme="monokai"
           />
-        </Box>
+        </CustomBox>
 
         <Box
           sx={{
@@ -114,7 +114,7 @@ const WidgetCapabilities: React.FC = () => {
             Back
           </Button>
         </Box>
-      </Container>
+      </CustomContainer>
     </ThemeProvider>
   );
 };
