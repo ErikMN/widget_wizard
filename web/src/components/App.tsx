@@ -154,6 +154,7 @@ const App: React.FC = () => {
   /* Global parameter list */
   const { parameters } = useParameters();
   const ProdFullName = parameters?.['root.Brand.ProdFullName'];
+  const ProdShortName = parameters?.['root.Brand.ProdShortName'];
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
@@ -270,7 +271,8 @@ const App: React.FC = () => {
                     />
                   )}
                   {/* Website Name and Product Full Name */}
-                  {import.meta.env.VITE_WEBSITE_NAME} @ {ProdFullName}
+                  {import.meta.env.VITE_WEBSITE_NAME} @{' '}
+                  {isMobile ? ProdShortName : ProdFullName}
                   {/* Logo */}
                   {!isMobile && (
                     <Box sx={{ marginLeft: 1 }}>
