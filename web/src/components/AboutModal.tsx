@@ -1,6 +1,8 @@
 import React from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
+import { useScreenSizes } from '../helpers/hooks.jsx';
+import { CustomBox } from './CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -16,6 +18,9 @@ interface AboutModalProps {
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
+  /* Screen size */
+  const { isMobile } = useScreenSizes();
+
   return (
     <Modal
       aria-labelledby="about-modal-title"
@@ -27,30 +32,31 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
       <Fade in={open}>
         <Box
           sx={{
+            p: 2,
             position: 'absolute',
             textAlign: 'center',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: {
-              xs: '90%',
-              sm: '80%',
-              md: '60%',
-              lg: '50%',
-              xl: '40%'
-            },
+            top: isMobile ? 0 : '50%',
+            left: isMobile ? 0 : '50%',
+            transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+            width: isMobile
+              ? '100%'
+              : { xs: '90%', sm: '80%', md: '60%', lg: '50%', xl: '40%' },
+            height: isMobile ? '100%' : 'auto',
             maxWidth: '800px',
             minWidth: '300px',
             bgcolor: 'background.paper',
             boxShadow: 24,
-            p: 4,
-            borderRadius: 1
+            borderRadius: isMobile ? 0 : 1,
+            overflowY: isMobile ? 'auto' : 'unset'
           }}
         >
           <img
             src={logo}
             alt="Widgy logo"
-            style={{ width: '300px', marginBottom: '10px' }}
+            style={{
+              width: isMobile ? '150px' : '300px',
+              marginBottom: '10px'
+            }}
           />
           <Typography id="about-modal-title" variant="h6" component="h2">
             About {import.meta.env.VITE_WEBSITE_NAME}
@@ -70,7 +76,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
               <Typography variant="h6">License</Typography>
             </Box>
             {/* Scrollable license box */}
-            <Box
+            <CustomBox
               sx={(theme) => ({
                 maxHeight: '300px',
                 overflowY: 'auto',
@@ -89,16 +95,19 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
               >
                 {license}
               </pre>
-            </Box>
+            </CustomBox>
           </Box>
 
-          <Button
-            onClick={handleClose}
-            sx={{ marginTop: 2 }}
-            variant="contained"
-          >
-            Close
-          </Button>
+          {/* Close button */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+            <Button
+              onClick={handleClose}
+              sx={{ width: 'auto', paddingX: 3 }}
+              variant="contained"
+            >
+              Close
+            </Button>
+          </Box>
         </Box>
       </Fade>
     </Modal>
