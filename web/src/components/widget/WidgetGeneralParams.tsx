@@ -12,10 +12,10 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import FlipToBackIcon from '@mui/icons-material/FlipToBack';
 import FlipToFrontIcon from '@mui/icons-material/FlipToFront';
-import IconButton from '@mui/material/IconButton';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
+import RecyclingIcon from '@mui/icons-material/Recycling';
 import Select from '@mui/material/Select';
 import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
@@ -264,10 +264,15 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1
+            gap: 0
           }}
         >
           {/* Set widget depth */}
+          <Tooltip title={`Cycle widgets`} arrow placement="top">
+            <CustomStyledIconButton onClick={() => handleSetDepth('cycle')}>
+              <RecyclingIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
           <Tooltip
             title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to back`}
             arrow
@@ -290,9 +295,9 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
           <Tooltip
             title={`Highlight ${capitalizeFirstLetter(widget.generalParams.type)}`}
             arrow
-            placement="right"
+            placement="top"
           >
-            <IconButton
+            <CustomStyledIconButton
               aria-label="info"
               onMouseDown={handleHighlightStart}
               onMouseUp={handleHighlightEnd}
@@ -305,7 +310,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
               ) : (
                 <LightbulbOutlinedIcon />
               )}
-            </IconButton>
+            </CustomStyledIconButton>
           </Tooltip>
         </Box>
       </Box>
