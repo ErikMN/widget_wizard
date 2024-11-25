@@ -20,6 +20,7 @@ export interface Widget {
     transparency: number;
     type: string;
     updateTime: number;
+    depth: string;
   };
   /* Will change depending on widget */
   widgetParams: object;

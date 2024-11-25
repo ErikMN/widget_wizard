@@ -6,10 +6,12 @@ import { Widget } from '../../widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
-import { CustomSwitch } from '../CustomComponents';
+import { CustomSwitch, CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
+import FlipToBackIcon from '@mui/icons-material/FlipToBack';
+import FlipToFrontIcon from '@mui/icons-material/FlipToFront';
 import IconButton from '@mui/material/IconButton';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
@@ -231,6 +233,20 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
     }));
   };
 
+  const handleSetDepth = useCallback(
+    (mode: string) => {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          depth: mode
+        }
+      };
+      updateWidget(updatedWidget);
+    },
+    [widget, updateWidget]
+  );
+
   /****************************************************************************/
 
   return (
@@ -244,26 +260,54 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         }}
       >
         <Typography variant="h6">General parameters</Typography>
-        <Tooltip
-          title={`Highlight ${capitalizeFirstLetter(widget.generalParams.type)}`}
-          arrow
-          placement="right"
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
         >
-          <IconButton
-            aria-label="info"
-            onMouseDown={handleHighlightStart}
-            onMouseUp={handleHighlightEnd}
-            onMouseLeave={handleHighlightEnd}
-            onTouchStart={handleHighlightStart}
-            onTouchEnd={handleHighlightEnd}
+          {/* Set widget depth */}
+          <Tooltip
+            title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to back`}
+            arrow
+            placement="top"
           >
-            {activeDraggableWidget?.highlight ? (
-              <LightbulbIcon />
-            ) : (
-              <LightbulbOutlinedIcon />
-            )}
-          </IconButton>
-        </Tooltip>
+            <CustomStyledIconButton onClick={() => handleSetDepth('back')}>
+              <FlipToBackIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
+          <Tooltip
+            title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to front`}
+            arrow
+            placement="top"
+          >
+            <CustomStyledIconButton onClick={() => handleSetDepth('front')}>
+              <FlipToFrontIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
+          {/* Highlight widget */}
+          <Tooltip
+            title={`Highlight ${capitalizeFirstLetter(widget.generalParams.type)}`}
+            arrow
+            placement="right"
+          >
+            <IconButton
+              aria-label="info"
+              onMouseDown={handleHighlightStart}
+              onMouseUp={handleHighlightEnd}
+              onMouseLeave={handleHighlightEnd}
+              onTouchStart={handleHighlightStart}
+              onTouchEnd={handleHighlightEnd}
+            >
+              {activeDraggableWidget?.highlight ? (
+                <LightbulbIcon />
+              ) : (
+                <LightbulbOutlinedIcon />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       <Box
         sx={{
