@@ -188,7 +188,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           {/* Widget title and info */}
           <Typography
-            variant="subtitle1"
+            variant="subtitle2"
             sx={{ marginRight: '12px', fontWeight: 'bold' }}
           >
             {capitalizeFirstLetter(widget.generalParams.type)} ({widget.width}x
