@@ -615,7 +615,13 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Video preview */}
-        <Box sx={{ display: 'flex', minHeight: '400px', marginTop: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            minHeight: isMobile ? '240px' : '540px',
+            marginTop: 2
+          }}
+        >
           <VideoPlayer />
         </Box>
 
