@@ -332,21 +332,23 @@ const Settings: React.FC = () => {
           </Box>
           {/* Theme Toggle Button */}
           <Tooltip title="Toggle theme" arrow>
-            <CustomStyledIconButton
-              color="inherit"
-              aria-label="toggle theme"
-              onClick={toggleTheme}
-              edge="end"
-              sx={{ marginRight: '0px' }}
-            >
-              <ContrastIcon
-                sx={{
-                  width: '20px',
-                  height: '20px',
-                  color: 'text.secondary'
-                }}
-              />
-            </CustomStyledIconButton>
+            <div>
+              <CustomStyledIconButton
+                color="inherit"
+                aria-label="toggle theme"
+                onClick={toggleTheme}
+                edge="end"
+                sx={{ marginRight: '0px' }}
+              >
+                <ContrastIcon
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    color: 'text.secondary'
+                  }}
+                />
+              </CustomStyledIconButton>
+            </div>
           </Tooltip>
         </Box>
 

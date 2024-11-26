@@ -184,24 +184,26 @@ const WidgetHandler: React.FC = () => {
 
         {/* Plus sign button */}
         <Tooltip title="Add a widget" arrow placement="right">
-          <IconButton
-            color="primary"
-            aria-label="add widget"
-            onClick={handleAddClick}
-            sx={{
-              marginLeft: 1,
-              backgroundColor: green[500],
-              color: 'white',
-              width: 40,
-              height: 40,
-              borderRadius: '8px',
-              '&:hover': {
-                backgroundColor: green[700]
-              }
-            }}
-          >
-            <AddIcon />
-          </IconButton>
+          <div>
+            <IconButton
+              color="primary"
+              aria-label="add widget"
+              onClick={handleAddClick}
+              sx={{
+                marginLeft: 1,
+                backgroundColor: green[500],
+                color: 'white',
+                width: 40,
+                height: 40,
+                borderRadius: '8px',
+                '&:hover': {
+                  backgroundColor: green[700]
+                }
+              }}
+            >
+              <AddIcon />
+            </IconButton>
+          </div>
         </Tooltip>
       </Box>
 

@@ -8,37 +8,53 @@ import Switch from '@mui/material/Switch';
 import { Box, BoxProps } from '@mui/material';
 import { Container, ContainerProps } from '@mui/material';
 
-/** Custom IconButton */
-const CustomIconButton = styled(IconButton)(({ theme }) => ({
-  width: '40px',
-  height: '40px',
-  borderRadius: '4px',
-  position: 'relative',
-  '&:hover svg': {
-    color: theme.palette.primary.main
-  },
-  '&:hover::before': {
-    content: '""',
-    position: 'absolute',
-    top: '4px',
-    left: '4px',
-    width: 'calc(100% - 8px)',
-    height: 'calc(100% - 8px)',
-    backgroundColor:
-      theme.palette.mode === 'dark'
-        ? 'rgba(255, 255, 255, 0.1)'
-        : 'rgba(211, 211, 211, 0.3)',
+/** Extended IconButtonProps to include width and height */
+interface CustomIconButtonProps extends IconButtonProps {
+  width?: string;
+  height?: string;
+}
+
+/** Styled IconButton */
+const StyledCustomIconButton = styled(IconButton)<CustomIconButtonProps>(
+  ({ theme, width = '40px', height = '40px' }) => ({
+    width,
+    height,
     borderRadius: '4px',
-    zIndex: -1
-  }
-}));
+    position: 'relative',
+    '&:hover svg': {
+      color: theme.palette.primary.main
+    },
+    '&:hover::before': {
+      content: '""',
+      position: 'absolute',
+      top: '4px',
+      left: '4px',
+      width: `calc(${width} - 8px)`,
+      height: `calc(${height} - 8px)`,
+      backgroundColor:
+        theme.palette.mode === 'dark'
+          ? 'rgba(255, 255, 255, 0.1)'
+          : 'rgba(211, 211, 211, 0.3)',
+      borderRadius: '4px',
+      zIndex: -1
+    }
+  })
+);
 
-export interface CustomIconButtonProps extends IconButtonProps {}
-
+/** Custom IconButton Component */
 export const CustomStyledIconButton: React.FC<CustomIconButtonProps> = (
   props
 ) => {
-  return <CustomIconButton {...props} disableRipple />;
+  const { width, height, ...rest } = props;
+  return (
+    <StyledCustomIconButton
+      width={width}
+      height={height}
+      disableRipple
+      tabIndex={0}
+      {...rest}
+    />
+  );
 };
 
 /** Custom Switch */

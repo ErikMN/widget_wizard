@@ -217,21 +217,25 @@ const App: React.FC = () => {
           >
             {/* Menu button (left-aligned) */}
             <Tooltip title="Open the menu" arrow placement="right">
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="open drawer"
-                onClick={toggleDrawerOpen}
-                edge="start"
-                sx={{ ...(!isMobile && drawerOpen ? { display: 'none' } : {}) }}
-              >
-                <MenuIcon
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  onClick={toggleDrawerOpen}
+                  edge="start"
                   sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
+                    ...(!isMobile && drawerOpen ? { display: 'none' } : {})
                   }}
-                />
-              </CustomStyledIconButton>
+                >
+                  <MenuIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
 
             {/* Title and Logo */}
@@ -285,21 +289,23 @@ const App: React.FC = () => {
 
             {/* Show Widget Capabilities JSON button */}
             <Tooltip title="Show widget capabilities JSON" arrow>
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="Show Widget Capabilities JSON"
-                onClick={handleNavigateToCapabilities}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                <DataObjectIcon
-                  sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
-                  }}
-                />
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="Show Widget Capabilities JSON"
+                  onClick={handleNavigateToCapabilities}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  <DataObjectIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
 
             {/* Toggle Bounding Boxes Button */}
@@ -311,87 +317,95 @@ const App: React.FC = () => {
               }
               arrow
             >
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="toggle bounding boxes"
-                onClick={() => setShowBoundingBoxes((prev) => !prev)}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                {showBoundingBoxes ? (
-                  <VisibilityOutlinedIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                ) : (
-                  <VisibilityOffOutlinedIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                )}
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="toggle bounding boxes"
+                  onClick={() => setShowBoundingBoxes((prev) => !prev)}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  {showBoundingBoxes ? (
+                    <VisibilityOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  ) : (
+                    <VisibilityOffOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  )}
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
 
             {/* Info Button (left of theme icon) */}
             <Tooltip title="About info" arrow>
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="about info"
-                onClick={handleOpenAboutModal}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                <InfoOutlinedIcon
-                  sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
-                  }}
-                />
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="about info"
+                  onClick={handleOpenAboutModal}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  <InfoOutlinedIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
 
             {/* Theme Toggle Button */}
             <Tooltip title="Toggle theme" arrow>
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="toggle theme"
-                onClick={toggleTheme}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                <ContrastIcon
-                  sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
-                  }}
-                />
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="toggle theme"
+                  onClick={toggleTheme}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  <ContrastIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
 
             {/* Settings button */}
             <Tooltip title="Application settings" arrow>
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="settings"
-                onClick={handleNavigateToSettings}
-                edge="end"
-              >
-                <SettingsIcon
-                  sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
-                  }}
-                />
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="settings"
+                  onClick={handleNavigateToSettings}
+                  edge="end"
+                >
+                  <SettingsIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
           </Toolbar>
         </AppBar>

@@ -269,27 +269,45 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         >
           {/* Set widget depth */}
           <Tooltip title={`Cycle widgets`} arrow placement="top">
-            <CustomStyledIconButton onClick={() => handleSetDepth('cycle')}>
-              <RecyclingIcon />
-            </CustomStyledIconButton>
+            <div>
+              <CustomStyledIconButton
+                width="32px"
+                height="32px"
+                onClick={() => handleSetDepth('cycle')}
+              >
+                <RecyclingIcon />
+              </CustomStyledIconButton>
+            </div>
           </Tooltip>
           <Tooltip
             title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to back`}
             arrow
             placement="top"
           >
-            <CustomStyledIconButton onClick={() => handleSetDepth('back')}>
-              <FlipToBackIcon />
-            </CustomStyledIconButton>
+            <div>
+              <CustomStyledIconButton
+                width="32px"
+                height="32px"
+                onClick={() => handleSetDepth('back')}
+              >
+                <FlipToBackIcon />
+              </CustomStyledIconButton>
+            </div>
           </Tooltip>
           <Tooltip
             title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to front`}
             arrow
             placement="top"
           >
-            <CustomStyledIconButton onClick={() => handleSetDepth('front')}>
-              <FlipToFrontIcon />
-            </CustomStyledIconButton>
+            <div>
+              <CustomStyledIconButton
+                width="32px"
+                height="32px"
+                onClick={() => handleSetDepth('front')}
+              >
+                <FlipToFrontIcon />
+              </CustomStyledIconButton>
+            </div>
           </Tooltip>
           {/* Highlight widget */}
           <Tooltip
@@ -297,20 +315,24 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
             arrow
             placement="top"
           >
-            <CustomStyledIconButton
-              aria-label="info"
-              onMouseDown={handleHighlightStart}
-              onMouseUp={handleHighlightEnd}
-              onMouseLeave={handleHighlightEnd}
-              onTouchStart={handleHighlightStart}
-              onTouchEnd={handleHighlightEnd}
-            >
-              {activeDraggableWidget?.highlight ? (
-                <LightbulbIcon />
-              ) : (
-                <LightbulbOutlinedIcon />
-              )}
-            </CustomStyledIconButton>
+            <div>
+              <CustomStyledIconButton
+                width="32px"
+                height="32px"
+                aria-label="info"
+                onMouseDown={handleHighlightStart}
+                onMouseUp={handleHighlightEnd}
+                onMouseLeave={handleHighlightEnd}
+                onTouchStart={handleHighlightStart}
+                onTouchEnd={handleHighlightEnd}
+              >
+                {activeDraggableWidget?.highlight ? (
+                  <LightbulbIcon />
+                ) : (
+                  <LightbulbOutlinedIcon />
+                )}
+              </CustomStyledIconButton>
+            </div>
           </Tooltip>
         </Box>
       </Box>
