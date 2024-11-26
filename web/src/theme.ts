@@ -43,7 +43,7 @@ const lightTheme = createTheme({
     },
     h5: {
       color: '#525252',
-      fontSize: '24px'
+      fontSize: '22px'
     },
     h6: {
       color: '#525252',
@@ -51,7 +51,7 @@ const lightTheme = createTheme({
       fontWeight: 500
     },
     body1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem',
       lineHeight: 1.5
     },
     button: {
@@ -129,7 +129,7 @@ const darkTheme = createTheme({
     },
     h5: {
       color: '#b8b8b8',
-      fontSize: '24px'
+      fontSize: '22px'
     },
     h6: {
       color: '#b8b8b8',
@@ -137,7 +137,7 @@ const darkTheme = createTheme({
       fontWeight: 500
     },
     body1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem',
       lineHeight: 1.5
     },
     button: {
