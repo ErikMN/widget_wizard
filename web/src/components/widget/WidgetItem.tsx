@@ -298,7 +298,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   '& textarea': {
                     resize: 'none',
                     fontFamily: 'Monospace',
-                    fontSize: '15px'
+                    fontSize: '14px'
                   }
                 }}
               />

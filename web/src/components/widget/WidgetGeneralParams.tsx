@@ -12,6 +12,9 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import FlipToBackIcon from '@mui/icons-material/FlipToBack';
 import FlipToFrontIcon from '@mui/icons-material/FlipToFront';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
@@ -336,105 +339,118 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
           </Tooltip>
         </Box>
       </Box>
+
       <Box
         sx={{
           display: 'flex',
           gap: 1,
+          marginTop: 3,
+          marginBottom: 1,
           alignItems: 'center',
-          marginBottom: 3
+          width: '100%'
         }}
       >
         {/* Visible toggle */}
         {widgetCapabilities && widgetCapabilities.data.isVisible && (
-          <Typography variant="body2" sx={{ marginTop: 4 }}>
-            Visible
-            <CustomSwitch
-              checked={widgetState.isVisible}
-              onChange={handleVisibilityChange}
-              color="primary"
+          <Box sx={{ flex: 1 }}>
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={widgetState.isVisible}
+                  onChange={handleVisibilityChange}
+                  name="widgetVisible"
+                />
+              }
+              label="Visible"
+              labelPlacement="start"
             />
-          </Typography>
+          </Box>
         )}
+        {/* Channel TextField */}
+        <Box sx={{ flex: 1 }}>
+          <TextField
+            label="Channel"
+            value={widgetState.channel}
+            onChange={handleChannelChange}
+            fullWidth
+            variant="outlined"
+            placeholder="Channel"
+            type="number"
+            sx={{
+              height: '40px',
+              '& .MuiOutlinedInput-root': {
+                height: '100%'
+              },
+              '& .MuiInputLabel-root': {
+                top: '-4px'
+              }
+            }}
+          />
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 1, width: '100%', mb: 3 }}>
         {/* Anchor Dropdown */}
         {widgetCapabilities && widgetCapabilities.data.anchor && (
-          <Box sx={{ flex: 1, marginTop: 2 }}>
-            <Typography variant="body2">Anchor</Typography>
-            <Select
-              value={widget.generalParams.anchor}
-              onChange={handleAnchorChange}
-              fullWidth
-              sx={{
-                height: '40px',
-                '& .MuiOutlinedInput-root': {
-                  height: '100%'
-                }
-              }}
-            >
-              {widgetCapabilities.data.anchor.enum.map((anchor) => (
-                <MenuItem key={anchor} value={anchor}>
-                  {capitalizeFirstLetter(anchor)}
-                </MenuItem>
-              ))}
-            </Select>
+          <Box sx={{ flex: 1 }}>
+            <FormControl sx={{ marginTop: 2, width: '100%' }}>
+              <InputLabel id="anchor-label" sx={{ top: '-4px' }}>
+                Anchor
+              </InputLabel>
+              <Select
+                value={widget.generalParams.anchor}
+                onChange={handleAnchorChange}
+                fullWidth
+                sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': {
+                    height: '100%'
+                  }
+                }}
+              >
+                {widgetCapabilities.data.anchor.enum.map((anchor) => (
+                  <MenuItem key={anchor} value={anchor}>
+                    {capitalizeFirstLetter(anchor)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         )}
         {/* Size Dropdown */}
         {widgetCapabilities && widgetCapabilities.data.size && (
-          <Box sx={{ flex: 1, marginTop: 2 }}>
-            <Typography variant="body2">Size</Typography>
-            <Select
-              value={widget.generalParams.size}
-              onChange={handleSizeChange}
-              fullWidth
-              sx={{
-                height: '40px',
-                '& .MuiOutlinedInput-root': {
-                  height: '100%'
-                }
-              }}
-            >
-              {widgetCapabilities.data.size.enum.map((size) => (
-                <MenuItem key={size} value={size}>
-                  {capitalizeFirstLetter(size)}
-                </MenuItem>
-              ))}
-            </Select>
+          <Box sx={{ flex: 1 }}>
+            <FormControl sx={{ marginTop: 2, width: '100%' }}>
+              <InputLabel id="size-label" sx={{ top: '-4px' }}>
+                Size
+              </InputLabel>
+              <Select
+                value={widget.generalParams.size}
+                onChange={handleSizeChange}
+                fullWidth
+                sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': {
+                    height: '100%'
+                  }
+                }}
+              >
+                {widgetCapabilities.data.size.enum.map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {capitalizeFirstLetter(size)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         )}
       </Box>
+
       {/* Channel, Datasource, Update Interval */}
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
-            alignItems: 'center'
-          }}
-        >
-          {/* Channel TextField */}
-          <Box sx={{ flex: 0.5 }}>
-            <TextField
-              label="Channel"
-              value={widgetState.channel}
-              onChange={handleChannelChange}
-              fullWidth
-              variant="outlined"
-              placeholder="Channel"
-              type="number"
-              sx={{
-                height: '40px',
-                '& .MuiOutlinedInput-root': {
-                  height: '100%'
-                },
-                '& .MuiInputLabel-root': {
-                  top: '-4px'
-                }
-              }}
-            />
-          </Box>
+      <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+        <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
           {/* Datasource TextField */}
-          <Box sx={{ flex: 0.7 }}>
+          <Box sx={{ flex: 1 }}>
             <TextField
               label="Datasource"
               value={widgetState.datasource}
@@ -454,7 +470,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
             />
           </Box>
           {/* UpdateTime TextField */}
-          <Box sx={{ flex: 0.8 }}>
+          <Box sx={{ flex: 1 }}>
             <TextField
               label="Update interval"
               value={widgetState.updateTime}
@@ -476,6 +492,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
           </Box>
         </Box>
       </Box>
+
       {/* Transparency Slider */}
       {widgetCapabilities && widgetCapabilities.data.transparency && (
         <Box sx={{ marginTop: 2 }}>
