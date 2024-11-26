@@ -253,7 +253,103 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </Collapse>
           {/* Widget Params End */}
 
-          {/* Remove, Duplicate and JSON buttons */}
+          {/* Toggle JSON viewer button */}
+          <Button
+            variant={jsonVisible ? 'contained' : 'outlined'}
+            fullWidth
+            onClick={toggleJsonVisibility}
+            startIcon={<DataObjectIcon />}
+            endIcon={
+              widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
+            }
+            sx={{
+              color: 'text.secondary',
+              backgroundColor: 'background.default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 1,
+              marginTop: 2,
+              marginBottom: 1,
+              height: '32px',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden'
+            }}
+          >
+            {jsonVisible ? 'Hide JSON viewer' : 'Show JSON viewer'}
+          </Button>
+
+          {/* JSON viewer */}
+          <Collapse in={jsonVisible}>
+            {/* Editable JSON field */}
+            {!useJsonViewer ? (
+              <TextField
+                label="JSON"
+                error={jsonError !== null}
+                multiline
+                minRows={8}
+                value={jsonInput}
+                onChange={handleJsonChange}
+                fullWidth
+                variant="outlined"
+                sx={{
+                  marginTop: 1,
+                  '& textarea': {
+                    resize: 'none',
+                    fontFamily: 'Monospace',
+                    fontSize: '15px'
+                  }
+                }}
+              />
+            ) : (
+              <ReactJson
+                src={safeParseJson(jsonInput)}
+                onEdit={(edit) => {
+                  const updatedJson = JSON.stringify(edit.updated_src, null, 2);
+                  setJsonInput(updatedJson);
+                }}
+                onAdd={(add) => {
+                  const updatedJson = JSON.stringify(add.updated_src, null, 2);
+                  setJsonInput(updatedJson);
+                }}
+                onDelete={(del) => {
+                  const updatedJson = JSON.stringify(del.updated_src, null, 2);
+                  setJsonInput(updatedJson);
+                }}
+                enableClipboard={false}
+                displayDataTypes={false}
+                theme="monokai"
+              />
+            )}
+            {/* Display error if invalid JSON */}
+            {jsonError && (
+              <Typography color="error" variant="body2" sx={{ marginTop: 1 }}>
+                {jsonError}
+              </Typography>
+            )}
+            <Button
+              onClick={handleUpdateJSON}
+              variant="outlined"
+              startIcon={<DataObjectIcon />}
+              sx={{ marginTop: 1, marginRight: 1 }}
+            >
+              Update {capitalizeFirstLetter(widget.generalParams.type)}
+            </Button>
+            {appSettings.debug && (
+              <Button
+                onClick={toggleJsonViewer}
+                variant="contained"
+                startIcon={<ImageIcon />}
+                sx={{ marginTop: 1 }}
+              >
+                {useJsonViewer ? 'Text Editor' : 'JSON Viewer'}
+              </Button>
+            )}
+          </Collapse>
+          {/* JSON viewer end */}
+
+          {/* Remove and Duplicate buttons*/}
           <Box
             sx={{
               marginTop: 2,
@@ -290,111 +386,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             >
               Duplicate
             </Button>
-            {/* Toggle JSON viewer */}
-            <Button
-              color="primary"
-              variant="outlined"
-              onClick={toggleJsonVisibility}
-              startIcon={<DataObjectIcon />}
-              sx={{
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-              }}
-            >
-              {jsonVisible ? 'Hide JSON' : 'Show JSON'}
-            </Button>
           </Box>
-
-          {/* JSON viewer */}
-          <Collapse in={jsonVisible}>
-            <Box
-              sx={(theme) => ({
-                marginTop: 2,
-                padding: 1,
-                border: '1px solid #ccc',
-                borderRadius: '8px',
-                backgroundColor: theme.palette.background.paper
-              })}
-            >
-              {/* Editable JSON field */}
-              {!useJsonViewer ? (
-                <TextField
-                  label="JSON"
-                  error={jsonError !== null}
-                  multiline
-                  minRows={8}
-                  value={jsonInput}
-                  onChange={handleJsonChange}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    marginTop: 1,
-                    '& textarea': {
-                      resize: 'none',
-                      fontFamily: 'Monospace'
-                    }
-                  }}
-                />
-              ) : (
-                <ReactJson
-                  src={safeParseJson(jsonInput)}
-                  onEdit={(edit) => {
-                    const updatedJson = JSON.stringify(
-                      edit.updated_src,
-                      null,
-                      2
-                    );
-                    setJsonInput(updatedJson);
-                  }}
-                  onAdd={(add) => {
-                    const updatedJson = JSON.stringify(
-                      add.updated_src,
-                      null,
-                      2
-                    );
-                    setJsonInput(updatedJson);
-                  }}
-                  onDelete={(del) => {
-                    const updatedJson = JSON.stringify(
-                      del.updated_src,
-                      null,
-                      2
-                    );
-                    setJsonInput(updatedJson);
-                  }}
-                  enableClipboard={false}
-                  displayDataTypes={false}
-                  theme="monokai"
-                />
-              )}
-              {/* Display error if invalid JSON */}
-              {jsonError && (
-                <Typography color="error" variant="body2" sx={{ marginTop: 1 }}>
-                  {jsonError}
-                </Typography>
-              )}
-              <Button
-                onClick={handleUpdateJSON}
-                variant="contained"
-                startIcon={<DataObjectIcon />}
-                sx={{ marginTop: 1, marginRight: 1 }}
-              >
-                Update {capitalizeFirstLetter(widget.generalParams.type)}
-              </Button>
-              {appSettings.debug && (
-                <Button
-                  onClick={toggleJsonViewer}
-                  variant="contained"
-                  startIcon={<ImageIcon />}
-                  sx={{ marginTop: 1 }}
-                >
-                  {useJsonViewer ? 'Text Editor' : 'JSON Viewer'}
-                </Button>
-              )}
-            </Box>
-          </Collapse>
-          {/* JSON viewer end */}
+          {/* Remove and Duplicate buttons end */}
         </Box>
       </Collapse>
       {/* Dropdown for current widget settings end */}
