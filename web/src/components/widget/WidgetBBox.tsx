@@ -33,7 +33,12 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
           }}
         >
           {activeWidgets.map((widget: Widget) => {
-            if (widget.generalParams.isVisible) {
+            if (
+              /* HACK: Until channel can be selected in videoplayer don't show BBox on other channels than -1 and 1 */
+              widget.generalParams.isVisible &&
+              (widget.generalParams.channel === -1 ||
+                widget.generalParams.channel === 1)
+            ) {
               return (
                 /* One BBox per active widget */
                 <BBox
