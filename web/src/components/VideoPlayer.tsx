@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
-import { Widget, Dimensions } from '../widgetInterfaces';
-import BBox from './BBox';
+import { Dimensions } from '../widgetInterfaces';
+import WidgetBBox from './widget/WidgetBBox';
 
 interface VideoPlayerProps {
   showBoundingBoxes?: boolean;
@@ -211,35 +211,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         vapixParams={vapixParams}
       />
       {/* Widget bounding boxes */}
-      {showBoundingBoxes && (
-        /* BBox surface */
-        <div
-          style={{
-            // backgroundColor: 'blue',
-            position: 'absolute',
-            pointerEvents: 'none',
-            top: `${dimensions.offsetY}px`,
-            left: `${dimensions.offsetX}px`,
-            width: `${dimensions.pixelWidth}px`,
-            height: `${dimensions.pixelHeight}px`,
-            zIndex: 1
-          }}
-        >
-          {activeWidgets.map((widget: Widget) => {
-            if (widget.generalParams.isVisible) {
-              return (
-                /* One BBox per active widget */
-                <BBox
-                  key={widget.generalParams.id}
-                  widget={widget}
-                  dimensions={dimensions}
-                />
-              );
-            }
-            return null;
-          })}
-        </div>
-      )}
+      <WidgetBBox
+        dimensions={dimensions}
+        showBoundingBoxes={showBoundingBoxes}
+      />
     </div>
   );
 };
