@@ -259,9 +259,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             fullWidth
             onClick={toggleJsonVisibility}
             startIcon={<DataObjectIcon />}
-            endIcon={
-              widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            }
+            endIcon={jsonVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             sx={{
               color: 'text.secondary',
               backgroundColor: 'background.default',
