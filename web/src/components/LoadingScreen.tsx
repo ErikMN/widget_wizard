@@ -79,7 +79,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             {import.meta.env.VITE_WEBSITE_NAME} is getting ready
           </Typography>
         </Fade>
-        <CircularProgress size={50} />
+        <CircularProgress size={30} />
       </Box>
     </ThemeProvider>
   );
