@@ -474,15 +474,17 @@ const App: React.FC = () => {
             </Box>
             {/* Menu close button */}
             <Tooltip title="Close the menu" arrow placement={'right'}>
-              <CustomStyledIconButton onClick={handleDrawerClose}>
-                {isMobile ? (
-                  <KeyboardArrowDownIcon />
-                ) : theme.direction === 'ltr' ? (
-                  <ChevronLeftIcon />
-                ) : (
-                  <ChevronRightIcon />
-                )}
-              </CustomStyledIconButton>
+              <div>
+                <CustomStyledIconButton onClick={handleDrawerClose}>
+                  {isMobile ? (
+                    <KeyboardArrowDownIcon />
+                  ) : theme.direction === 'ltr' ? (
+                    <ChevronLeftIcon />
+                  ) : (
+                    <ChevronRightIcon />
+                  )}
+                </CustomStyledIconButton>
+              </div>
             </Tooltip>
           </DrawerHeader>
           <Divider />
