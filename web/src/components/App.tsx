@@ -126,7 +126,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   height: '54px',
   // necessary for content to be below app bar
   // ...theme.mixins.toolbar,
-  justifyContent: 'flex-end'
+  justifyContent: 'flex-end',
+  flexShrink: 0
 }));
 
 /******************************************************************************/
