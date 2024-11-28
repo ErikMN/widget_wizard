@@ -22,6 +22,8 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import CircularProgress from '@mui/material/CircularProgress';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import DataObjectIcon from '@mui/icons-material/DataObject';
@@ -29,8 +31,6 @@ import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import MenuIcon from '@mui/icons-material/Menu';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
@@ -42,6 +42,10 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 /******************************************************************************/
 
+const appBarHeight = 54;
+const drawerClosedWidth = 50; // Width of the drawer when closed (desktop)
+const drawerClosedHeight = 50; // Height of the drawer when closed (mobile)
+
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<{
@@ -52,13 +56,14 @@ const Main = styled('main', {
   display: 'flex',
   flexDirection: 'column',
   padding: theme.spacing(isMobile ? 0 : '4px'),
+  paddingTop: `${appBarHeight}px`,
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen
   }),
   ...(isMobile
-    ? { marginBottom: open ? drawerHeight : 0 }
-    : { marginLeft: open ? drawerWidth : 0 }),
+    ? { marginBottom: open ? drawerHeight : drawerClosedHeight }
+    : { marginLeft: open ? drawerWidth : drawerClosedWidth }),
   ...(open && {
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.easeOut,
@@ -87,15 +92,6 @@ const AppBar = styled(MuiAppBar, {
       duration: theme.transitions.duration.leavingScreen
     }
   ),
-  ...(open &&
-    !isMobile && {
-      width: `calc(100% - ${drawerWidth}px)`,
-      marginLeft: `${drawerWidth}px`,
-      transition: theme.transitions.create(['margin', 'width'], {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen
-      })
-    }),
   /* Horizontal scrollbar style */
   '&::-webkit-scrollbar': {
     height: '8px',
@@ -124,9 +120,8 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   alignItems: 'center',
   padding: theme.spacing(0, 1),
   height: '54px',
-  // necessary for content to be below app bar
-  // ...theme.mixins.toolbar,
-  justifyContent: 'flex-end'
+  justifyContent: 'flex-end',
+  flexShrink: 0
 }));
 
 /******************************************************************************/
@@ -212,33 +207,20 @@ const App: React.FC = () => {
           <Toolbar
             sx={{
               display: 'flex',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              alignItems: 'center'
             }}
           >
-            {/* Menu button (left-aligned) */}
-            <Tooltip title="Open the menu" arrow placement="right">
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  onClick={toggleDrawerOpen}
-                  edge="start"
-                  sx={{
-                    ...(!isMobile && drawerOpen ? { display: 'none' } : {})
-                  }}
-                >
-                  <MenuIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
+            {/* Logo (left-aligned) */}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {!isMobile && (
+                <Box sx={{ marginLeft: 1 }}>
+                  <Logo style={{ height: '40px' }} />
+                </Box>
+              )}
+            </Box>
 
-            {/* Title and Logo */}
+            {/* Title and Loading Progress (centered) */}
             <Box
               sx={{
                 flexGrow: 1,
@@ -277,12 +259,6 @@ const App: React.FC = () => {
                   {/* Website Name and Product Full Name */}
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   {isMobile ? ProdShortName : ProdFullName}
-                  {/* Logo */}
-                  {!isMobile && (
-                    <Box sx={{ marginLeft: 1 }}>
-                      <Logo style={{ height: '40px' }} />
-                    </Box>
-                  )}
                 </Typography>
               </Fade>
             </Box>
@@ -346,7 +322,7 @@ const App: React.FC = () => {
               </div>
             </Tooltip>
 
-            {/* Info Button (left of theme icon) */}
+            {/* Info Button */}
             <Tooltip title="About info" arrow>
               <div>
                 <CustomStyledIconButton
@@ -416,87 +392,169 @@ const App: React.FC = () => {
             flexShrink: 0,
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              overflow: 'auto',
               position: 'fixed',
-              '&::-webkit-scrollbar': {
-                width: '8px',
-                backgroundColor: 'transparent'
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? theme.palette.grey[600]
-                    : theme.palette.grey[400],
-                borderRadius: '6px'
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? theme.palette.grey[800]
-                    : theme.palette.grey[200]
-              },
               ...(isMobile
                 ? {
-                    height: drawerHeight,
+                    height: drawerOpen ? drawerHeight : drawerClosedHeight,
                     bottom: 0,
                     width: '100%'
                   }
                 : {
-                    width: drawerWidth,
+                    width: drawerOpen ? drawerWidth : drawerClosedWidth,
                     left: 0,
-                    top: 0,
-                    height: '100%'
+                    right: 'auto',
+                    top: `${appBarHeight}px`,
+                    height: `calc(100% - ${appBarHeight}px)`
                   })
             }
           }}
           variant="persistent"
           anchor={isMobile ? 'bottom' : 'left'}
-          open={drawerOpen}
+          open={true}
         >
-          <DrawerHeader
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              position: 'relative',
-              width: '100%'
-            }}
-          >
+          {drawerOpen ? (
+            <>
+              {isMobile && (
+                <>
+                  <DrawerHeader
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      alignItems: 'center',
+                      position: 'relative',
+                      width: '100%'
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexGrow: 1
+                      }}
+                    >
+                      <WidgetInfo />
+                    </Box>
+                    {/* Menu close button */}
+                    <Tooltip title="Close the menu" arrow placement={'right'}>
+                      <div>
+                        <CustomStyledIconButton onClick={handleDrawerClose}>
+                          {isMobile ? (
+                            <KeyboardArrowDownIcon />
+                          ) : theme.direction === 'ltr' ? (
+                            <ChevronLeftIcon />
+                          ) : (
+                            <ChevronRightIcon />
+                          )}
+                        </CustomStyledIconButton>
+                      </div>
+                    </Tooltip>
+                  </DrawerHeader>
+                  <Divider />
+                </>
+              )}
+              {/* Drawer content */}
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  overflow: 'auto',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                    backgroundColor: 'transparent'
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.grey[600]
+                        : theme.palette.grey[400],
+                    borderRadius: '6px'
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.grey[800]
+                        : theme.palette.grey[200]
+                  }
+                }}
+              >
+                <WidgetHandler />
+              </Box>
+              {!isMobile && (
+                <>
+                  <Divider />
+                  <DrawerHeader
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      alignItems: 'center',
+                      position: 'relative',
+                      width: '100%'
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexGrow: 1
+                      }}
+                    >
+                      <WidgetInfo />
+                    </Box>
+                    {/* Menu close button */}
+                    <Tooltip title="Close the menu" arrow placement={'right'}>
+                      <div>
+                        <CustomStyledIconButton onClick={handleDrawerClose}>
+                          {isMobile ? (
+                            <KeyboardArrowDownIcon />
+                          ) : theme.direction === 'ltr' ? (
+                            <ChevronLeftIcon />
+                          ) : (
+                            <ChevronRightIcon />
+                          )}
+                        </CustomStyledIconButton>
+                      </div>
+                    </Tooltip>
+                  </DrawerHeader>
+                </>
+              )}
+            </>
+          ) : (
+            /* Drawer when closed */
             <Box
               sx={{
                 display: 'flex',
-                justifyContent: 'center',
                 alignItems: 'center',
-                flexGrow: 1
+                justifyContent: 'center',
+                height: '100%',
+                ...(isMobile
+                  ? {}
+                  : {
+                      flexDirection: 'column',
+                      justifyContent: 'flex-end',
+                      pb: 1
+                    })
               }}
             >
-              <WidgetInfo />
+              <Tooltip title="Open the menu" arrow>
+                <div>
+                  <CustomStyledIconButton onClick={toggleDrawerOpen}>
+                    {isMobile ? (
+                      <KeyboardArrowUpIcon />
+                    ) : theme.direction === 'ltr' ? (
+                      <ChevronRightIcon />
+                    ) : (
+                      <ChevronLeftIcon />
+                    )}
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
             </Box>
-            {/* Menu close button */}
-            <Tooltip title="Close the menu" arrow placement={'right'}>
-              <div>
-                <CustomStyledIconButton onClick={handleDrawerClose}>
-                  {isMobile ? (
-                    <KeyboardArrowDownIcon />
-                  ) : theme.direction === 'ltr' ? (
-                    <ChevronLeftIcon />
-                  ) : (
-                    <ChevronRightIcon />
-                  )}
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-          </DrawerHeader>
-          <Divider />
-          {/* Drawer content here */}
-          <Box sx={{ paddingBottom: 1 }}>
-            <WidgetHandler />
-          </Box>
+          )}
         </Drawer>
 
         {/* Main content */}
         <Main open={drawerOpen} isMobile={isMobile}>
-          <DrawerHeader />
           {/* Video Player */}
           <VideoPlayer showBoundingBoxes={showBoundingBoxes} />
         </Main>
