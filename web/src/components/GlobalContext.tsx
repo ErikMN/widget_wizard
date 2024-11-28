@@ -12,7 +12,7 @@ import {
   WidgetCapabilities,
   AppSettings,
   defaultAppSettings
-} from '../widgetInterfaces.js';
+} from './widget/widgetInterfaces.js';
 import { W_CGI } from './constants.js';
 
 /* Interface defining the structure of the context */

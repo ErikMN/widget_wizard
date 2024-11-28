@@ -1,6 +1,6 @@
 import React from 'react';
 import BBox from '../BBox';
-import { Widget, Dimensions } from '../../widgetInterfaces';
+import { Widget, Dimensions } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 
 interface WidgetBBoxProps {

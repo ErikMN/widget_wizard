@@ -1,7 +1,7 @@
 /**
  * Helper functions for drawing bounding boxes
  */
-import { Dimensions } from '../widgetInterfaces';
+import { Dimensions } from '../components/widget/widgetInterfaces';
 
 /* Widget backend uses 1920x1080 HD resolution */
 export const HD_WIDTH = 1920;

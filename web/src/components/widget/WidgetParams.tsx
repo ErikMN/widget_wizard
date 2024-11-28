@@ -1,7 +1,7 @@
 /* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
 import { useGlobalContext } from '../GlobalContext';
-import { Widget } from '../../widgetInterfaces';
+import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { CustomSwitch } from '../CustomComponents';

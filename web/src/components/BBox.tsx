@@ -4,9 +4,9 @@
 import React, { useCallback, useMemo } from 'react';
 import Draggable from 'react-draggable';
 import AnchorIndicators from './AnchorIndicators';
-import { Widget } from '../widgetInterfaces';
+import { Widget } from './widget/widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
-import { Dimensions } from '../widgetInterfaces';
+import { Dimensions } from './widget/widgetInterfaces';
 import {
   HD_WIDTH,
   getWidgetPixelPosition,

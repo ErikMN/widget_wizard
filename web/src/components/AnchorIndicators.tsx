@@ -3,7 +3,7 @@
  * Renders corner squares on the bounding box based on the widget's anchor position.
  */
 import React, { useMemo } from 'react';
-import { Widget } from '../widgetInterfaces';
+import { Widget } from './widget/widgetInterfaces';
 /* MUI */
 import Box from '@mui/material/Box';
 

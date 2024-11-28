@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
-import { Dimensions } from '../widgetInterfaces';
+import { Dimensions } from './widget/widgetInterfaces';
 import WidgetBBox from './widget/WidgetBBox';
 
 interface VideoPlayerProps {

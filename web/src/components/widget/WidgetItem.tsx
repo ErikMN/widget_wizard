@@ -2,7 +2,7 @@
  * WidgetItem: Represent one widget.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Widget } from '../../widgetInterfaces';
+import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import WidgetGeneralParams from './WidgetGeneralParams';

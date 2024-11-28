@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
-import { defaultAppSettings, AppSettings } from '../widgetInterfaces';
+import { defaultAppSettings, AppSettings } from './widget/widgetInterfaces.js';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import {
   CustomSwitch,
