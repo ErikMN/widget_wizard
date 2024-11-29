@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
@@ -50,6 +50,9 @@ const WidgetHandler: React.FC = () => {
     widgetSupported
   } = useGlobalContext();
 
+  /* Refs */
+  const previousWidgetIdsRef = useRef<Set<number>>(new Set());
+
   enableLogging(false);
 
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
@@ -80,17 +83,32 @@ const WidgetHandler: React.FC = () => {
     }
   }, [activeDraggableWidget, activeWidgets]);
 
-  /* FIXME: Effect for opening last added widget by default */
-  // useEffect(() => {
-  //   if (activeWidgets.length > 0) {
-  //     const latestWidget = activeWidgets[activeWidgets.length - 1];
-  //     setActiveDraggableWidget((prev) => ({
-  //       ...prev,
-  //       id: latestWidget.generalParams.id
-  //     }));
-  //     setOpenDropdownIndex(activeWidgets.length - 1);
-  //   }
-  // }, [activeWidgets, setActiveDraggableWidget, setOpenDropdownIndex]);
+  /* Effect for opening last added widget by default (except for first widget added) */
+  useEffect(() => {
+    const currentWidgetIds = new Set(
+      activeWidgets.map((widget) => widget.generalParams.id)
+    );
+    const previousWidgetIds = previousWidgetIdsRef.current;
+    const newWidgetIds = [...currentWidgetIds].filter(
+      (id) => !previousWidgetIds.has(id)
+    );
+    /* Avoid activation on initial render or when no new widgets are added */
+    if (previousWidgetIds.size !== 0 && newWidgetIds.length > 0) {
+      const latestWidgetId = newWidgetIds[newWidgetIds.length - 1];
+      setActiveDraggableWidget((prev) => ({
+        ...prev,
+        id: latestWidgetId
+      }));
+      const index = activeWidgets.findIndex(
+        (widget) => widget.generalParams.id === latestWidgetId
+      );
+      if (index !== -1) {
+        setOpenDropdownIndex(index);
+      }
+    }
+    /* Update the previous IDs for the next comparison */
+    previousWidgetIdsRef.current = currentWidgetIds;
+  }, [activeWidgets, setActiveDraggableWidget, setOpenDropdownIndex]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
