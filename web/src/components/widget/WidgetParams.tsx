@@ -4,12 +4,11 @@ import { useGlobalContext } from '../GlobalContext';
 import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';
 import { capitalizeFirstLetter } from '../../helpers/utils';
-import { CustomSwitch } from '../CustomComponents';
+import { CustomSwitch, CustomSlider } from '../CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -117,7 +116,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         return (
           <Box>
             <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
-            <Slider
+            <CustomSlider
               value={
                 paramValue !== undefined ? paramValue : paramConfig.minimum
               }

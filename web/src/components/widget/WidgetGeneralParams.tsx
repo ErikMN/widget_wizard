@@ -6,7 +6,11 @@ import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
-import { CustomSwitch, CustomStyledIconButton } from '../CustomComponents';
+import {
+  CustomSwitch,
+  CustomStyledIconButton,
+  CustomSlider
+} from '../CustomComponents';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
@@ -20,7 +24,6 @@ import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
 import RecyclingIcon from '@mui/icons-material/Recycling';
 import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -497,7 +500,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       {widgetCapabilities && widgetCapabilities.data.transparency && (
         <Box sx={{ marginTop: 2 }}>
           <Typography variant="body2">Transparency</Typography>
-          <Slider
+          <CustomSlider
             value={widgetState.sliderValue}
             onChange={handleTransparencyChange}
             onChangeCommitted={handleTransparencyChangeCommitted}

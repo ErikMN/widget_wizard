@@ -1,12 +1,11 @@
 import React from 'react';
 /* MUI */
-import { IconButtonProps } from '@mui/material/IconButton';
+import { IconButton, IconButtonProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { SwitchProps } from '@mui/material/Switch';
-import IconButton from '@mui/material/IconButton';
-import Switch from '@mui/material/Switch';
+import { Switch, SwitchProps } from '@mui/material';
 import { Box, BoxProps } from '@mui/material';
 import { Container, ContainerProps } from '@mui/material';
+import { Slider, SliderProps } from '@mui/material';
 
 /** Extended IconButtonProps to include width and height */
 interface CustomIconButtonProps extends IconButtonProps {
@@ -167,4 +166,39 @@ export interface CustomContainerProps extends ContainerProps {}
 
 export const CustomContainer: React.FC<CustomContainerProps> = (props) => {
   return <CustomStyledContainer {...props} />;
+};
+
+/** Custom Slider */
+const CustomStyledSlider = styled(Slider)(({ theme }) => ({
+  '& .MuiSlider-rail': {
+    height: 6,
+    backgroundColor:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[400]
+        : theme.palette.grey[700],
+    opacity: 1
+  },
+  '& .MuiSlider-track': {
+    height: 6,
+    backgroundColor: theme.palette.warning.main,
+    border: 'none'
+  },
+  '& .MuiSlider-thumb': {
+    width: 20,
+    height: 20,
+    backgroundColor: theme.palette.warning.main,
+    border: `4px solid ${theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200]}`
+    // '&:hover, &.Mui-focusVisible': {
+    //   boxShadow: 'none'
+    // },
+    // '&:active': {
+    //   boxShadow: 'none'
+    // }
+  }
+}));
+
+export interface CustomSliderProps extends SliderProps {}
+
+export const CustomSlider: React.FC<CustomSliderProps> = (props) => {
+  return <CustomStyledSlider {...props} />;
 };
