@@ -270,7 +270,7 @@ const Settings: React.FC = () => {
     /* Reset the countdown */
     setCountdown(null);
     /* Navigate back to previous screen */
-    navigate(-1);
+    navigate('/');
   };
 
   /* Handle reset to default settings */

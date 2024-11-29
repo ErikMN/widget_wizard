@@ -36,7 +36,7 @@ const WidgetCapabilities: React.FC = () => {
   /* Handle navigation back */
   const handleBack = () => {
     /* Navigate back to previous screen */
-    navigate(-1);
+    navigate('/');
   };
 
   /* Toggle collapse state */
