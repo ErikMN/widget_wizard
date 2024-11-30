@@ -211,7 +211,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         <Box
           sx={(theme) => ({
             backgroundColor: theme.palette.background.default,
-            padding: 2,
+            padding: '10px',
             border: `1px solid ${theme.palette.grey[600]}`,
             borderTop: 'none',
             borderRadius: '0 0 8px 8px',

@@ -169,7 +169,7 @@ const WidgetHandler: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '10px'
+        padding: '6px'
       }}
     >
       {/* Container for dropdown and button */}
