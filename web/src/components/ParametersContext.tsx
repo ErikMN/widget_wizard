@@ -5,6 +5,7 @@ interface ParametersContextType {
   parameters: { [key: string]: string } | null;
   paramsLoading: boolean;
   error: string | null;
+  fetchParameters: () => Promise<void>;
 }
 
 const ParametersContext = createContext<ParametersContextType | undefined>(
@@ -14,34 +15,12 @@ const ParametersContext = createContext<ParametersContextType | undefined>(
 export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
+  /* Local state */
   const [parameters, setParameters] = useState<{
     [key: string]: string;
   } | null>(null);
-  const [paramsLoading, setParamsLoading] = useState(true);
+  const [paramsLoading, setParamsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchParameters = async () => {
-      try {
-        const response = await fetch(P_CGI);
-        if (!response.ok) {
-          throw new Error(`Error fetching parameters: ${response.statusText}`);
-        }
-        const text = await response.text();
-        const parsedParameters = parseParameters(text);
-        setParameters(parsedParameters);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred.');
-        }
-      } finally {
-        setParamsLoading(false);
-      }
-    };
-    fetchParameters();
-  }, []);
 
   const parseParameters = (text: string): { [key: string]: string } => {
     const paramMap: { [key: string]: string } = {};
@@ -55,8 +34,37 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
     return paramMap;
   };
 
+  const fetchParameters = async () => {
+    setParamsLoading(true);
+    try {
+      const response = await fetch(P_CGI);
+      if (!response.ok) {
+        throw new Error(`Error fetching parameters: ${response.statusText}`);
+      }
+      const text = await response.text();
+      const parsedParameters = parseParameters(text);
+      setParameters(parsedParameters);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
+    } finally {
+      setParamsLoading(false);
+    }
+  };
+
+  /* Fetch all parameters on mount */
+  useEffect(() => {
+    fetchParameters();
+  }, []);
+
   return (
-    <ParametersContext.Provider value={{ parameters, paramsLoading, error }}>
+    <ParametersContext.Provider
+      value={{ parameters, paramsLoading, error, fetchParameters }}
+    >
       {children}
     </ParametersContext.Provider>
   );
