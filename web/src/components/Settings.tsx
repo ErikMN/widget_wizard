@@ -229,6 +229,17 @@ const Settings: React.FC = () => {
     );
   };
 
+  const handleToggleAutoBringFront = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      widgetAutoBringFront: !prevSettings.widgetAutoBringFront
+    }));
+    handleOpenAlert(
+      `Widget auto bring to front: ${!appSettings.widgetAutoBringFront}`,
+      'success'
+    );
+  };
+
   const handleToggleWSDefault = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -541,6 +552,17 @@ const Settings: React.FC = () => {
               />
             }
             label="Use double click for widget activation"
+          />
+          {/* Switch setting auto bring to front */}
+          <FormControlLabel
+            control={
+              <CustomSwitch
+                checked={appSettings.widgetAutoBringFront}
+                onChange={handleToggleAutoBringFront}
+                name="widgetAutoBringFront"
+              />
+            }
+            label="Widget auto bring to front"
           />
         </Box>
 

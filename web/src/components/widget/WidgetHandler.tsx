@@ -7,6 +7,7 @@ import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
+import { Widget } from './widgetInterfaces';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
@@ -47,7 +48,8 @@ const WidgetHandler: React.FC = () => {
     widgetCapabilities,
     openDropdownIndex,
     setOpenDropdownIndex,
-    widgetSupported
+    widgetSupported,
+    updateWidget
   } = useGlobalContext();
 
   /* Refs */
@@ -124,6 +126,20 @@ const WidgetHandler: React.FC = () => {
     addWidget(selectedWidget);
   }, [selectedWidget, addWidget]);
 
+  const setDepth = useCallback(
+    (mode: string, widget: Widget) => {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          depth: mode
+        }
+      };
+      updateWidget(updatedWidget);
+    },
+    [updateWidget]
+  );
+
   /* Handle dropdown toggle */
   const toggleDropdown = useCallback(
     (index: number) => {
@@ -135,6 +151,9 @@ const WidgetHandler: React.FC = () => {
       }));
       if (!IsBBoxClick) {
         setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+      }
+      if (appSettings.widgetAutoBringFront) {
+        setDepth('front', activeWidgets[index]);
       }
     },
     [

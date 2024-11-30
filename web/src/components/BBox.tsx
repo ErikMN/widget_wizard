@@ -228,7 +228,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           generalParams: {
             ...widget.generalParams,
             position: { x: posX, y: posY },
-            anchor: 'none'
+            anchor: 'none',
+            ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
           }
         };
         /* Update the active widget state */
@@ -257,6 +258,20 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
+  const setDepth = useCallback(
+    (mode: string, widget: Widget) => {
+      const updatedWidget = {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          depth: mode
+        }
+      };
+      updateWidget(updatedWidget);
+    },
+    [updateWidget]
+  );
+
   /* Handle clicking the bbox */
   const handleBBoxClick = useCallback(
     (widget: Widget) => {
@@ -274,6 +289,9 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         });
         /* Toggle dropdown: close if open, open if closed */
         setOpenDropdownIndex(isCurrentlyOpen ? null : index);
+      }
+      if (appSettings.widgetAutoBringFront) {
+        setDepth('front', widget);
       }
     },
     [

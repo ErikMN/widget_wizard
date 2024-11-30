@@ -168,6 +168,7 @@ export interface AppSettings {
   sortBy: 'id' | 'type';
   sortAscending: boolean;
   widgetDoubleClick: boolean;
+  widgetAutoBringFront: boolean;
   wsDefault: boolean;
 }
 
@@ -183,6 +184,7 @@ export const defaultAppSettings: AppSettings = {
   sortBy: 'id',
   sortAscending: true,
   widgetDoubleClick: false,
+  widgetAutoBringFront: false,
   wsDefault: false
 };
 
