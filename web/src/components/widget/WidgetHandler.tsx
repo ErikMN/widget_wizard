@@ -226,6 +226,7 @@ const WidgetHandler: React.FC = () => {
               color="primary"
               aria-label="add widget"
               onClick={handleAddClick}
+              disableRipple
               sx={{
                 marginLeft: 1,
                 backgroundColor: green[500],
