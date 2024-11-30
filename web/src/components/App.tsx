@@ -1,5 +1,5 @@
 /* Widget Wizard main component */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
@@ -30,6 +30,7 @@ import Drawer from '@mui/material/Drawer';
 import Fade from '@mui/material/Fade';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MenuIcon from '@mui/icons-material/Menu';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -57,7 +58,7 @@ const Main = styled('main', {
     duration: theme.transitions.duration.leavingScreen
   }),
   ...(isMobile
-    ? { marginBottom: open ? drawerHeight : 0 }
+    ? { marginBottom: open ? drawerHeight : '54px' }
     : { marginLeft: open ? drawerWidth : 0 }),
   ...(open && {
     transition: theme.transitions.create('margin', {
@@ -124,8 +125,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   alignItems: 'center',
   padding: theme.spacing(0, 1),
   height: '54px',
-  // necessary for content to be below app bar
-  // ...theme.mixins.toolbar,
   justifyContent: 'flex-end',
   flexShrink: 0
 }));
@@ -152,6 +151,9 @@ const App: React.FC = () => {
     appSettings
   } = useGlobalContext();
 
+  /* Refs */
+  const drawerRef = useRef<HTMLDivElement>(null);
+
   /* Global parameter list */
   const { parameters } = useParameters();
   const ProdFullName = parameters?.['root.Brand.ProdFullName'];
@@ -169,11 +171,15 @@ const App: React.FC = () => {
 
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
-  }, []);
+  }, [setDrawerOpen]);
 
   const toggleDrawerOpen = useCallback(() => {
     setDrawerOpen(!drawerOpen);
-  }, [drawerOpen]);
+    /* Scroll drawer to top if closed in mobile mode */
+    if (drawerOpen && drawerRef.current) {
+      drawerRef.current.scrollTo({ top: 0 });
+    }
+  }, [drawerOpen, setDrawerOpen]);
 
   const toggleTheme = useCallback(() => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -413,11 +419,12 @@ const App: React.FC = () => {
 
         {/* Drawer menu */}
         <Drawer
+          PaperProps={{ ref: drawerRef }}
           sx={{
             flexShrink: 0,
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              overflow: 'auto',
+              overflow: isMobile && !drawerOpen ? 'hidden' : 'auto',
               position: 'fixed',
               '&::-webkit-scrollbar': {
                 width: '8px',
@@ -438,7 +445,7 @@ const App: React.FC = () => {
               },
               ...(isMobile
                 ? {
-                    height: drawerHeight,
+                    height: drawerOpen ? drawerHeight : '54px',
                     bottom: 0,
                     width: '100%'
                   }
@@ -452,7 +459,8 @@ const App: React.FC = () => {
           }}
           variant="persistent"
           anchor={isMobile ? 'bottom' : 'left'}
-          open={drawerOpen}
+          /* Menu always open to show drawer header in mobile mode */
+          open={isMobile ? true : drawerOpen}
         >
           <DrawerHeader
             sx={{
@@ -473,12 +481,22 @@ const App: React.FC = () => {
             >
               <WidgetInfo />
             </Box>
-            {/* Menu close button */}
-            <Tooltip title="Close the menu" arrow placement={'right'}>
+            {/* Menu toggle button */}
+            <Tooltip
+              title={drawerOpen ? 'Close the menu' : 'Open the menu'}
+              arrow
+              placement={'right'}
+            >
               <div>
-                <CustomStyledIconButton onClick={handleDrawerClose}>
+                <CustomStyledIconButton
+                  onClick={isMobile ? toggleDrawerOpen : handleDrawerClose}
+                >
                   {isMobile ? (
-                    <KeyboardArrowDownIcon />
+                    drawerOpen ? (
+                      <KeyboardArrowDownIcon />
+                    ) : (
+                      <KeyboardArrowUpIcon />
+                    )
                   ) : theme.direction === 'ltr' ? (
                     <ChevronLeftIcon />
                   ) : (
