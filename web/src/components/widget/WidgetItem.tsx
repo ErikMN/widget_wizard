@@ -157,7 +157,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         variant="outlined"
         fullWidth
         onClick={() => toggleDropdown(index)}
-        sx={{
+        sx={(theme) => ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -178,8 +178,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               : 'grey.600',
           borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '8px',
           borderBottomRightRadius: openDropdownIndex === index ? '0px' : '8px',
-          transition: 'background-color 0.3s ease, border-color 0.3s ease'
-        }}
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          /* Text shadow */
+          ...(theme.palette.mode === 'dark'
+            ? { textShadow: '0px 1px 4px rgba(0, 0, 0, 0.8)' }
+            : { textShadow: '0px 1px 2px rgba(255, 255, 255, 0.8)' })
+        })}
         startIcon={<WidgetsIcon color="primary" />}
         endIcon={
           openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
