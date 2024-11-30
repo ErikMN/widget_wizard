@@ -27,6 +27,7 @@ import ContrastIcon from '@mui/icons-material/Contrast';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
+import Fab from '@mui/material/Fab';
 import Fade from '@mui/material/Fade';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -223,7 +224,11 @@ const App: React.FC = () => {
             }}
           >
             {/* Menu button (left-aligned) */}
-            <Tooltip title="Open the menu" arrow placement="right">
+            <Tooltip
+              title={drawerOpen ? 'Close the menu' : 'Open the menu'}
+              arrow
+              placement="right"
+            >
               <div>
                 <CustomStyledIconButton
                   color="inherit"
@@ -542,6 +547,27 @@ const App: React.FC = () => {
 
         {/* About Modal */}
         <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
+
+        {/* Scroll-to-Top Button for mobile */}
+        {isMobile && drawerOpen && (
+          <Fab
+            color="primary"
+            size="small"
+            onClick={() => {
+              if (drawerRef.current) {
+                drawerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            sx={{
+              position: 'fixed',
+              bottom: '16px',
+              right: '16px',
+              zIndex: 2000
+            }}
+          >
+            <KeyboardArrowUpIcon />
+          </Fab>
+        )}
       </>
     );
   };
