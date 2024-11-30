@@ -3,16 +3,61 @@ import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
 import { useGlobalContext } from '../GlobalContext';
 import { CustomContainer, CustomBox } from '../CustomComponents';
+import { useLocalStorage } from '../../helpers/hooks.jsx';
 import WidgetsDisabled from './WidgetsDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import DataObjectIcon from '@mui/icons-material/DataObject';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
 
 /* JSON View */
 import ReactJson from 'react-json-view';
+
+/* Define valid theme keys */
+type ReactJsonThemes =
+  | 'apathy'
+  | 'apathy:inverted'
+  | 'ashes'
+  | 'bespin'
+  | 'brewer'
+  | 'bright:inverted'
+  | 'bright'
+  | 'chalk'
+  | 'codeschool'
+  | 'colors'
+  | 'eighties'
+  | 'embers'
+  | 'flat'
+  | 'google'
+  | 'grayscale'
+  | 'grayscale:inverted'
+  | 'greenscreen'
+  | 'harmonic'
+  | 'hopscotch'
+  | 'isotope'
+  | 'marrakesh'
+  | 'mocha'
+  | 'monokai'
+  | 'ocean'
+  | 'paraiso'
+  | 'pop'
+  | 'railscasts'
+  | 'rjv-default'
+  | 'shapeshifter'
+  | 'shapeshifter:inverted'
+  | 'solarized'
+  | 'summerfruit'
+  | 'summerfruit:inverted'
+  | 'threezerotwofour'
+  | 'tomorrow'
+  | 'tube'
+  | 'twilight';
 
 const WidgetCapabilities: React.FC = () => {
   /* Global context */
@@ -30,12 +75,14 @@ const WidgetCapabilities: React.FC = () => {
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
-  /* Local state for controlling collapse */
+  /* Local state */
   const [collapsed, setCollapsed] = useState(false);
+
+  /* Local storage state */
+  const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
 
   /* Handle navigation back */
   const handleBack = () => {
-    /* Navigate back to previous screen */
     navigate('/');
   };
 
@@ -44,7 +91,12 @@ const WidgetCapabilities: React.FC = () => {
     setCollapsed((prev) => !prev);
   };
 
-  /* List widgets capabilites on mount */
+  /* Handle ReactJson theme change */
+  const handleThemeChange = (event: SelectChangeEvent<ReactJsonThemes>) => {
+    setJsonTheme(event.target.value as ReactJsonThemes);
+  };
+
+  /* List widgets capabilities on mount */
   useEffect(() => {
     const fetchData = async () => {
       await listWidgetCapabilities();
@@ -79,6 +131,68 @@ const WidgetCapabilities: React.FC = () => {
           </Typography>
         </Box>
 
+        {/* Theme Selector */}
+        <FormControl
+          variant="outlined"
+          sx={{
+            marginTop: 1,
+            marginBottom: 2,
+            width: '200px'
+          }}
+        >
+          <InputLabel id="react-json-theme-label">JSON theme</InputLabel>
+          <Select
+            labelId="react-json-theme-label"
+            value={jsonTheme}
+            onChange={handleThemeChange}
+            label="JSON theme"
+          >
+            {[
+              'apathy',
+              'apathy:inverted',
+              'ashes',
+              'bespin',
+              'brewer',
+              'bright:inverted',
+              'bright',
+              'chalk',
+              'codeschool',
+              'colors',
+              'eighties',
+              'embers',
+              'flat',
+              'google',
+              'grayscale',
+              'grayscale:inverted',
+              'greenscreen',
+              'harmonic',
+              'hopscotch',
+              'isotope',
+              'marrakesh',
+              'mocha',
+              'monokai',
+              'ocean',
+              'paraiso',
+              'pop',
+              'railscasts',
+              'rjv-default',
+              'shapeshifter',
+              'shapeshifter:inverted',
+              'solarized',
+              'summerfruit',
+              'summerfruit:inverted',
+              'threezerotwofour',
+              'tomorrow',
+              'tube',
+              'twilight'
+            ].map((theme) => (
+              <MenuItem key={theme} value={theme}>
+                {theme}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         {/* Collapsible JSON View */}
         {widgetSupported ? (
           <>
@@ -93,7 +207,7 @@ const WidgetCapabilities: React.FC = () => {
                 collapsed={collapsed}
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme="monokai"
+                theme={jsonTheme}
               />
             </CustomBox>
           </>
