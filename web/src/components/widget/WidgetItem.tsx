@@ -330,24 +330,28 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 {jsonError}
               </Typography>
             )}
-            <Button
-              onClick={handleUpdateJSON}
-              variant="outlined"
-              startIcon={<DataObjectIcon />}
-              sx={{ marginTop: 1, marginRight: 1 }}
-            >
-              Update {capitalizeFirstLetter(widget.generalParams.type)}
-            </Button>
             {appSettings.debug && (
               <Button
                 onClick={toggleJsonViewer}
                 variant="contained"
                 startIcon={<ImageIcon />}
-                sx={{ marginTop: 1 }}
+                sx={{ marginTop: 1, width: '100%', height: '30px' }}
               >
                 {useJsonViewer ? 'Text Editor' : 'JSON Viewer'}
               </Button>
             )}
+            <Button
+              onClick={handleUpdateJSON}
+              variant="outlined"
+              startIcon={<DataObjectIcon />}
+              sx={{
+                marginTop: 1,
+                marginRight: 1,
+                width: '100%'
+              }}
+            >
+              Update {capitalizeFirstLetter(widget.generalParams.type)}
+            </Button>
           </Collapse>
           {/* JSON viewer end */}
 
