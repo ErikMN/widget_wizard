@@ -115,7 +115,9 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       case 'float':
         return (
           <Box>
-            <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
+            <Typography sx={{ marginTop: 1 }}>
+              {capitalizeFirstLetter(paramKey)}
+            </Typography>
             <CustomSlider
               value={
                 paramValue !== undefined ? paramValue : paramConfig.minimum
@@ -193,9 +195,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             filteredWidget.widgetParams as Record<string, ParamConfig>
           )[paramKey];
           return paramConfig ? (
-            <Box key={paramKey} sx={{ marginBottom: 1 }}>
-              {renderWidgetParam(paramKey, paramConfig)}
-            </Box>
+            <Box key={paramKey}>{renderWidgetParam(paramKey, paramConfig)}</Box>
           ) : null;
         })}
     </Box>
