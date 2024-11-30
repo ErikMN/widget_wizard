@@ -9,7 +9,7 @@ import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
-import { drawerWidth, drawerHeight } from './constants';
+import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
 /* Widgets */
@@ -59,7 +59,7 @@ const Main = styled('main', {
     duration: theme.transitions.duration.leavingScreen
   }),
   ...(isMobile
-    ? { marginBottom: open ? drawerHeight : '54px' }
+    ? { marginBottom: open ? drawerHeight : appbarHeight }
     : { marginLeft: open ? drawerWidth : 0 }),
   ...(open && {
     transition: theme.transitions.create('margin', {
@@ -117,7 +117,7 @@ const AppBar = styled(MuiAppBar, {
         : theme.palette.grey[200]
   },
   '& .MuiToolbar-root': {
-    minHeight: '54px'
+    minHeight: appbarHeight
   }
 }));
 
@@ -125,7 +125,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 1),
-  height: '54px',
+  height: appbarHeight,
   justifyContent: 'flex-end',
   flexShrink: 0
 }));
@@ -450,7 +450,7 @@ const App: React.FC = () => {
               },
               ...(isMobile
                 ? {
-                    height: drawerOpen ? drawerHeight : '54px',
+                    height: drawerOpen ? drawerHeight : appbarHeight,
                     bottom: 0,
                     width: '100%'
                   }
