@@ -289,12 +289,12 @@ const App: React.FC = () => {
                   {/* Website Name and Product Full Name */}
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   {isMobile ? ProdShortName : ProdFullName}
-                  {/* Logo */}
-                  {!isMobile && (
-                    <Box sx={{ marginLeft: 1 }}>
-                      <Logo style={{ height: '40px' }} />
-                    </Box>
-                  )}
+                  {/* App logo (on desktop only) */}
+                  <Box
+                    sx={{ marginLeft: 1, display: { xs: 'none', md: 'block' } }}
+                  >
+                    <Logo style={{ height: '40px' }} />
+                  </Box>
                 </Typography>
               </Fade>
             </Box>
