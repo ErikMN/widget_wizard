@@ -171,7 +171,7 @@ export const CustomContainer: React.FC<CustomContainerProps> = (props) => {
 /** Custom Slider */
 const CustomStyledSlider = styled(Slider)(({ theme }) => ({
   '& .MuiSlider-rail': {
-    height: 6,
+    height: 4,
     backgroundColor:
       theme.palette.mode === 'dark'
         ? theme.palette.grey[400]
@@ -179,13 +179,14 @@ const CustomStyledSlider = styled(Slider)(({ theme }) => ({
     opacity: 1
   },
   '& .MuiSlider-track': {
-    height: 6,
+    height: 4,
     backgroundColor: theme.palette.warning.main,
     border: 'none'
   },
   '& .MuiSlider-thumb': {
     width: 20,
     height: 20,
+    // marginLeft: '10px',
     backgroundColor: theme.palette.warning.main,
     border: `4px solid ${theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[200]}`
     // '&:hover, &.Mui-focusVisible': {
