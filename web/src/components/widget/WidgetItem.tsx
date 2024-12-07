@@ -55,6 +55,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   /* Global context */
   const {
+    jsonTheme,
     appSettings,
     removeWidget,
     updateWidget,
@@ -321,7 +322,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 }}
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme="monokai"
+                theme={jsonTheme}
               />
             )}
             {/* Display error if invalid JSON */}

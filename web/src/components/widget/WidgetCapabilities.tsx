@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
 import { useGlobalContext } from '../GlobalContext';
 import { CustomContainer, CustomBox } from '../CustomComponents';
-import { useLocalStorage } from '../../helpers/hooks.jsx';
 import WidgetsDisabled from './WidgetsDisabled';
+import ReactJson from 'react-json-view';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -15,9 +15,6 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
-
-/* JSON View */
-import ReactJson from 'react-json-view';
 
 /* Define valid theme keys */
 type ReactJsonThemes =
@@ -62,6 +59,8 @@ type ReactJsonThemes =
 const WidgetCapabilities: React.FC = () => {
   /* Global context */
   const {
+    jsonTheme,
+    setJsonTheme,
     widgetCapabilities,
     currentTheme,
     listWidgetCapabilities,
@@ -77,9 +76,6 @@ const WidgetCapabilities: React.FC = () => {
 
   /* Local state */
   const [collapsed, setCollapsed] = useState(false);
-
-  /* Local storage state */
-  const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
 
   /* Handle navigation back */
   const handleBack = () => {

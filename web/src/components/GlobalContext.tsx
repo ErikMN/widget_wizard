@@ -82,6 +82,8 @@ interface GlobalContextProps {
   /* Global settings for the application */
   appSettings: AppSettings;
   setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
+  jsonTheme: undefined;
+  setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /* Creating the Widget context */
@@ -114,6 +116,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     'appSettings',
     defaultAppSettings
   );
+  const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
 
   /* Disabling logging by default, but can be enabled as needed */
   enableLogging(false);
@@ -429,7 +432,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         currentTheme,
         setCurrentTheme,
         appSettings,
-        setAppSettings
+        setAppSettings,
+        jsonTheme,
+        setJsonTheme
       }}
     >
       {children}
