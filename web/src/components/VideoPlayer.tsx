@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
-import WidgetBBox from './widget/WidgetBBox';
+import { WidgetBBox } from './BBox';
 
 interface VideoPlayerProps {
   showBoundingBoxes?: boolean;

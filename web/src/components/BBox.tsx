@@ -20,6 +20,9 @@ import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
 import Typography from '@mui/material/Typography';
 
+/******************************************************************************/
+/* One BBox with scaling logic and click handlers */
+
 const EPSILON = 1e-6;
 
 interface BBoxProps {
@@ -392,4 +395,63 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   );
 });
 
-export default BBox;
+/******************************************************************************/
+/* Widget BBoxes for all widgets in activeWidgets */
+
+interface WidgetBBoxProps {
+  dimensions: Dimensions;
+  showBoundingBoxes?: boolean;
+}
+
+const WidgetBBox: React.FC<WidgetBBoxProps> = ({
+  dimensions,
+  showBoundingBoxes = true
+}) => {
+  /* Global context */
+  const { activeWidgets } = useGlobalContext();
+
+  return (
+    <div>
+      {/* Widget bounding boxes */}
+      {showBoundingBoxes && (
+        /* BBox surface */
+        <div
+          style={{
+            // backgroundColor: 'blue',
+            position: 'absolute',
+            pointerEvents: 'none',
+            top: `${dimensions.offsetY}px`,
+            left: `${dimensions.offsetX}px`,
+            width: `${dimensions.pixelWidth}px`,
+            height: `${dimensions.pixelHeight}px`,
+            zIndex: 1
+          }}
+        >
+          {activeWidgets.map((widget: Widget) => {
+            if (
+              /* HACK: Until channel can be selected in videoplayer don't show BBox on other channels than -1 and 1 */
+              widget.generalParams.isVisible &&
+              (widget.generalParams.channel === -1 ||
+                widget.generalParams.channel === 1)
+            ) {
+              return (
+                /* One BBox per active widget */
+                <BBox
+                  key={widget.generalParams.id}
+                  widget={widget}
+                  dimensions={dimensions}
+                />
+              );
+            }
+            return null;
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/******************************************************************************/
+/* Exports */
+
+export { BBox, WidgetBBox };
