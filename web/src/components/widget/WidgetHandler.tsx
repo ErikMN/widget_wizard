@@ -85,7 +85,7 @@ const WidgetHandler: React.FC = () => {
     }
   }, [activeDraggableWidget, activeWidgets]);
 
-  /* Effect for opening last added widget by default (except for first widget added) */
+  /* Effect for opening last added widget by default */
   useEffect(() => {
     const currentWidgetIds = new Set(
       activeWidgets.map((widget) => widget.generalParams.id)
@@ -94,8 +94,10 @@ const WidgetHandler: React.FC = () => {
     const newWidgetIds = [...currentWidgetIds].filter(
       (id) => !previousWidgetIds.has(id)
     );
-    /* Avoid activation on initial render or when no new widgets are added */
-    if (previousWidgetIds.size !== 0 && newWidgetIds.length > 0) {
+    if (
+      newWidgetIds.length > 0 &&
+      (previousWidgetIds.size !== 0 || currentWidgetIds.size === 1)
+    ) {
       const latestWidgetId = newWidgetIds[newWidgetIds.length - 1];
       setActiveDraggableWidget((prev) => ({
         ...prev,
