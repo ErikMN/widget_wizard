@@ -12,13 +12,14 @@ import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
-/* TODO: add stuff here */
 interface ParamConfig {
-  type: 'string' | 'float' | 'bool' | 'enum';
+  type?: string | string[];
   minimum?: number;
   maximum?: number;
   step?: number;
   enum?: string[];
+  defaultValue?: any;
+  [key: string]: any;
 }
 
 interface WidgetParamsProps {
@@ -27,7 +28,7 @@ interface WidgetParamsProps {
 
 const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   /* Global context */
-  const { widgetCapabilities, updateWidget } = useGlobalContext();
+  const { widgetCapabilities, updateWidget, appSettings } = useGlobalContext();
 
   /* Store local values for all widget parameters */
   const [localValues, setLocalValues] = useState<Record<string, any>>(
@@ -38,150 +39,320 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   const widgetRef = useRef(widget);
   const updateWidgetRef = useRef(updateWidget);
 
-  /* Function to print widget parameters and capabilities */
-  const printParams = () => {
-    /* Print widget params capabilities for this widget */
-    const widgetCap = widgetCapabilities?.data?.widgets?.filter(
-      (widgetCap) => widgetCap.type === widget?.generalParams?.type
-    );
-    if (widgetCap && widgetCap.length > 0) {
-      console.log('Widget capabilities:', widgetCap[0]?.widgetParams);
-    }
-    /* Print widget param values for this widget */
-    console.log('Widget params:', widget?.widgetParams);
-  };
-  // printParams();
-
   /* Update refs when widget or updateWidget change */
   useEffect(() => {
     widgetRef.current = widget;
     updateWidgetRef.current = updateWidget;
   }, [widget, updateWidget]);
 
-  /* Debounced function for global widget updates */
-  const debouncedHandleParamChange = useRef(
-    debounce((paramKey: string, newValue: any) => {
+  /**
+   * If external changes come in (widget.widgetParams changes),
+   * we sync them into our local state.
+   */
+  useEffect(() => {
+    setLocalValues(widget.widgetParams || {});
+  }, [widget.widgetParams]);
+
+  /**
+   * Debounced: whenever a param changes, we store it in local state
+   * and after 500ms, call updateWidget with the *entire* nested structure
+   */
+  const debouncedUpdate = useRef(
+    debounce((newLocalValues: Record<string, any>) => {
       const updatedWidget = {
         ...widgetRef.current,
-        widgetParams: {
-          ...widgetRef.current.widgetParams,
-          [paramKey]: newValue
-        }
+        widgetParams: newLocalValues /* pass the nested object as-is */
       };
       updateWidgetRef.current(updatedWidget);
     }, 500)
   ).current;
 
-  /* Handle local state change and debounced global update */
-  const handleLocalValueChange = (paramKey: string, newValue: any) => {
-    setLocalValues((prevValues) => ({
-      ...prevValues,
-      [paramKey]: newValue
-    }));
-    debouncedHandleParamChange(paramKey, newValue);
+  /**
+   * Called whenever a user changes a field (including nested).
+   * We store it in local state, then fire off the debounced update.
+   */
+  const handleNestedValueChange = (path: string, newValue: any) => {
+    setLocalValues((prev) => {
+      const updated = setNestedValue(prev, path, newValue);
+      debouncedUpdate(updated);
+      return updated;
+    });
   };
 
-  /* Effect to sync localValues with widget updates */
-  useEffect(() => {
-    setLocalValues(widget.widgetParams || {});
-  }, [widget.widgetParams]);
+  /**
+   * Helper: get nested value from localValues
+   */
+  const getNestedValue = (object: any, path: string) => {
+    const keys = path.split('.');
+    let current = object;
+    for (const k of keys) {
+      if (current == null) return undefined;
+      current = current[k];
+    }
+    return current;
+  };
 
-  /* Simple param UI rendering */
-  const renderWidgetParam = (paramKey: string, paramConfig: ParamConfig) => {
-    const paramValue = localValues[paramKey];
+  /**
+   * Helper: set nested value immutably
+   * e.g. setNestedValue(localValues, "yInterval.yMax", 42)
+   */
+  const setNestedValue = (
+    object: Record<string, any>,
+    path: string,
+    newValue: any
+  ): Record<string, any> => {
+    const keys = path.split('.');
+    const newObj = { ...object };
+    let current: any = newObj;
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (i === keys.length - 1) {
+        current[k] = newValue;
+      } else {
+        current[k] = { ...current[k] };
+        current = current[k];
+      }
+    }
+    return newObj;
+  };
+
+  /****************************************************************************/
+
+  /**
+   * Renders a param. If it's an object with no 'type', we assume nested.
+   */
+  const renderWidgetParam = (
+    paramKey: string,
+    paramConfig: ParamConfig,
+    parentPath = ''
+  ) => {
+    const path = parentPath ? `${parentPath}.${paramKey}` : paramKey;
+
+    /* If paramConfig is an object that doesn't have a direct type or an array as type,
+       it's probably a nested group (e.g. yInterval, maxAlarmThreshold, etc.) */
+    const hasNoDirectType =
+      !paramConfig.type ||
+      (typeof paramConfig.type !== 'string' &&
+        !Array.isArray(paramConfig.type));
+
+    if (hasNoDirectType) {
+      return (
+        <Box
+          key={path}
+          /* Set a margin for nested types */
+          sx={(theme) => ({
+            borderLeft: `1px solid ${theme.palette.grey[600]}`,
+            ml: 1,
+            pl: 2,
+            mt: 2
+          })}
+        >
+          <Typography variant="subtitle2">
+            {capitalizeFirstLetter(paramKey)}
+          </Typography>
+          {Object.keys(paramConfig).map((subKey) => {
+            /* skip if subKey is something like 'defaultValue' */
+            if (
+              [
+                'minimum',
+                'maximum',
+                'type',
+                'enum',
+                'defaultValue',
+                'step'
+              ].includes(subKey)
+            ) {
+              return null;
+            }
+            return renderWidgetParam(subKey, paramConfig[subKey], path);
+          })}
+        </Box>
+      );
+    }
+
+    /* Otherwise, handle "type" or array-of-strings "type" */
+    let value = getNestedValue(localValues, path);
+    if (value === undefined && paramConfig.defaultValue !== undefined) {
+      value = paramConfig.defaultValue;
+    }
+
+    /* If type is an array => treat like an enum */
+    if (Array.isArray(paramConfig.type)) {
+      return renderEnumDropdown(
+        path,
+        paramKey,
+        paramConfig,
+        value,
+        paramConfig.type
+      );
+    }
 
     switch (paramConfig.type) {
-      /* A text input: {type: 'string'} */
-      case 'string':
-        return (
-          <TextField
-            label={capitalizeFirstLetter(paramKey)}
-            value={paramValue !== undefined ? paramValue : ''}
-            onChange={(e) => handleLocalValueChange(paramKey, e.target.value)}
-            fullWidth
-            margin="normal"
-            sx={{
-              height: '40px',
-              '& .MuiOutlinedInput-root': {
-                height: '100%'
-              },
-              '& .MuiInputLabel-root': {
-                top: '-4px'
-              }
-            }}
-          />
-        );
-      /* A slider: {type: 'float', minimum: 0, maximum: 100} */
       case 'float':
-        return (
-          <Box>
-            <Typography sx={{ marginTop: 1 }}>
-              {capitalizeFirstLetter(paramKey)}
-            </Typography>
-            <CustomSlider
-              value={
-                paramValue !== undefined ? paramValue : paramConfig.minimum
-              }
-              min={paramConfig.minimum}
-              max={paramConfig.maximum}
-              onChange={(e, newValue) => {
-                setLocalValues((prevValues) => ({
-                  ...prevValues,
-                  [paramKey]: newValue
-                }));
-              }}
-              onChangeCommitted={(e, newValue) =>
-                handleLocalValueChange(paramKey, newValue as number)
-              }
-              // step={0.01}
-              valueLabelDisplay="auto"
-              step={paramConfig.step || 1}
-            />
-          </Box>
-        );
-      /* A switch: {type: 'bool'} */
+        return renderFloatSlider(path, paramKey, paramConfig, value);
+      case 'integer':
+        return renderIntegerInput(path, paramKey, paramConfig, value);
       case 'bool':
-        return (
-          <Box display="flex" alignItems="center">
-            <Typography>{capitalizeFirstLetter(paramKey)}</Typography>
-            <CustomSwitch
-              checked={!!paramValue}
-              onChange={(e) => {
-                const newValue = e.target.checked;
-                handleLocalValueChange(paramKey, newValue);
-              }}
-              inputProps={{ 'aria-label': paramKey }}
-            />
-          </Box>
-        );
-      /* Dropdown: {type: 'enum'} */
+        return renderSwitch(path, paramKey, paramConfig, !!value);
       case 'enum':
-        return (
-          <Select
-            value={paramValue !== undefined ? paramValue : ''}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              handleLocalValueChange(paramKey, newValue);
-            }}
-            fullWidth
-          >
-            {paramConfig.enum?.map((option: string) => (
-              <MenuItem key={option} value={option}>
-                {capitalizeFirstLetter(option)}
-              </MenuItem>
-            ))}
-          </Select>
+        return renderEnumDropdown(
+          path,
+          paramKey,
+          paramConfig,
+          value,
+          paramConfig.enum
         );
+      case 'string':
+        return renderStringInput(path, paramKey, paramConfig, value);
       default:
-        // console.warn(`Unhandled parameter type: ${paramConfig.type}`);
+        if (appSettings.debug) {
+          console.warn(`Unhandled parameter type: ${paramConfig.type}`);
+        }
         return null;
     }
   };
 
-  /* Render UI for each widget parameter */
+  /****************************************************************************/
+  /* Renderers */
+
+  /* Common style for smaller text fields */
+  const smallTextFieldSx = {
+    height: '40px',
+    '& .MuiOutlinedInput-root': { height: '100%' },
+    '& .MuiInputLabel-root': { top: '-4px' }
+  };
+
+  const renderStringInput = (
+    path: string,
+    label: string,
+    paramConfig: ParamConfig,
+    value: any
+  ) => {
+    return (
+      <Box key={path} sx={{ mt: 2 }}>
+        <TextField
+          size="small"
+          label={capitalizeFirstLetter(label)}
+          value={value ?? ''}
+          onChange={(e) => handleNestedValueChange(path, e.target.value)}
+          fullWidth
+          sx={smallTextFieldSx}
+        />
+      </Box>
+    );
+  };
+
+  const renderSwitch = (
+    path: string,
+    label: string,
+    paramConfig: ParamConfig,
+    value: boolean
+  ) => {
+    return (
+      <Box key={path} sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+        <Typography sx={{ mr: 2 }}>{capitalizeFirstLetter(label)}</Typography>
+        <CustomSwitch
+          checked={value}
+          onChange={(e) => handleNestedValueChange(path, e.target.checked)}
+        />
+      </Box>
+    );
+  };
+
+  const renderFloatSlider = (
+    path: string,
+    label: string,
+    paramConfig: ParamConfig,
+    value: number
+  ) => {
+    const val = value ?? paramConfig.minimum ?? 0;
+    return (
+      <Box key={path} sx={{ mt: 2 }}>
+        <Typography>
+          {capitalizeFirstLetter(label)}: {val}
+        </Typography>
+        <CustomSlider
+          value={val}
+          min={paramConfig.minimum ?? 0}
+          max={paramConfig.maximum ?? 100}
+          step={paramConfig.step || 1}
+          onChange={(e, newVal) => {
+            /* immediate UI update */
+            setLocalValues((prev) =>
+              setNestedValue(prev, path, newVal as number)
+            );
+          }}
+          onChangeCommitted={(e, newVal) => {
+            /* Debounced call to update widget */
+            handleNestedValueChange(path, newVal as number);
+          }}
+        />
+      </Box>
+    );
+  };
+
+  const renderIntegerInput = (
+    path: string,
+    label: string,
+    paramConfig: ParamConfig,
+    value: number
+  ) => {
+    return (
+      <Box key={path} sx={{ mt: 2 }}>
+        <TextField
+          size="small"
+          label={capitalizeFirstLetter(label)}
+          type="number"
+          value={value ?? ''}
+          onChange={(e) => {
+            const parsed = parseInt(e.target.value, 10);
+            handleNestedValueChange(path, isNaN(parsed) ? 0 : parsed);
+          }}
+          fullWidth
+          sx={smallTextFieldSx}
+        />
+      </Box>
+    );
+  };
+
+  const renderEnumDropdown = (
+    path: string,
+    label: string,
+    paramConfig: ParamConfig,
+    value: any,
+    options?: string[]
+  ) => {
+    const enumOptions = options ?? paramConfig.enum ?? [];
+    return (
+      <Box key={path} sx={{ mt: 2 }}>
+        <Typography>{capitalizeFirstLetter(label)}</Typography>
+        <Select
+          size="small"
+          value={value ?? ''}
+          onChange={(e) => handleNestedValueChange(path, e.target.value)}
+          fullWidth
+          sx={{ mt: 1 }}
+        >
+          {enumOptions.map((option) => (
+            <MenuItem key={option} value={option}>
+              {capitalizeFirstLetter(option)}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
+    );
+  };
+
+  /****************************************************************************/
+
+  /* Identify capabilities for the current widget type */
   const filteredWidget = widgetCapabilities?.data?.widgets?.find(
     (widgetCap) => widgetCap.type === widget?.generalParams?.type
   );
+
+  /* Cast widgetParams to a typed record to avoid TS7053 error */
+  const paramConfigs =
+    (filteredWidget?.widgetParams as Record<string, ParamConfig>) || {};
 
   return (
     <Box sx={{ marginTop: 1.4 }}>
@@ -189,15 +360,9 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
         Widget parameters
       </Typography>
       {/* Render UI elements for each widget parameter */}
-      {filteredWidget?.widgetParams &&
-        Object.keys(filteredWidget.widgetParams).map((paramKey) => {
-          const paramConfig = (
-            filteredWidget.widgetParams as Record<string, ParamConfig>
-          )[paramKey];
-          return paramConfig ? (
-            <Box key={paramKey}>{renderWidgetParam(paramKey, paramConfig)}</Box>
-          ) : null;
-        })}
+      {Object.keys(paramConfigs).map((paramKey) =>
+        renderWidgetParam(paramKey, paramConfigs[paramKey])
+      )}
     </Box>
   );
 };
