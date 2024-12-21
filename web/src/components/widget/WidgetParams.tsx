@@ -170,13 +170,25 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       );
     }
 
-    /* Otherwise, handle "type" or array-of-strings "type" */
+    /* Otherwise, handle enumerations first if present */
     let value = getNestedValue(localValues, path);
     if (value === undefined && paramConfig.defaultValue !== undefined) {
       value = paramConfig.defaultValue;
     }
 
-    /* If type is an array => treat like an enum */
+    /* If paramConfig.enum is present, treat it like an enum dropdown,
+       even if paramConfig.type is "string" */
+    if (Array.isArray(paramConfig.enum) && paramConfig.enum.length > 0) {
+      return renderEnumDropdown(
+        path,
+        paramKey,
+        paramConfig,
+        value,
+        paramConfig.enum
+      );
+    }
+
+    /* If type is an array => treat that as an enum too (clock "theme": ["light","dark"]) */
     if (Array.isArray(paramConfig.type)) {
       return renderEnumDropdown(
         path,
