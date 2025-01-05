@@ -6,7 +6,7 @@ import svgr from 'vite-plugin-svgr';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/local/widget_wizard',
+  // base: '/local/widget_wizard',
   build: {
     outDir: 'build',
     assetsDir: 'static',
@@ -30,14 +30,36 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 8080,
     open: true,
+
+    // proxy: process.env.USE_VITE_PROXY === 'true' ? {
+    //   '/rtsp-over-websocket': {
+    //     target: `ws://${process.env.TARGET_IP}`,
+    //     ws: true
+    //   },
+    //   '/axis-cgi/': {
+    //     target: `http://${process.env.TARGET_IP}`,
+    //     changeOrigin: true
+    //   }
+    // } : undefined
+
     proxy: {
       '/rtsp-over-websocket': {
         target: `ws://${process.env.TARGET_IP}`,
-        ws: true
-      },
-      '/axis-cgi/': {
-        target: `http://${process.env.TARGET_IP}`,
+        ws: true,
         changeOrigin: true
+      },
+      '/axis-cgi': {
+        target: `http://${process.env.TARGET_IP}`,
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const authHeader = req.headers['authorization'];
+            if (authHeader) {
+              proxyReq.setHeader('Authorization', authHeader);
+            }
+          });
+        }
       }
     }
   },
@@ -46,8 +68,8 @@ export default defineConfig({
     viteTsconfigPaths(),
     svgr({
       include: '**/*.svg?react'
-    }),
+    })
     // https://www.npmjs.com/package/vite-plugin-compression2
-    compression({ deleteOriginalAssets: true, exclude: [/\.html$/] })
+    // compression({ deleteOriginalAssets: true, exclude: [/\.html$/] })
   ]
 });

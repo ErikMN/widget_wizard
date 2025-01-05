@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { P_CGI } from './constants';
+import { useAuth } from './AuthContext';
+import { P_CGI, buildUrl } from './constants';
 
 interface ParametersContextType {
   parameters: { [key: string]: string } | null;
@@ -22,6 +23,8 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   const [paramsLoading, setParamsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { deviceIP } = useAuth();
+
   const parseParameters = (text: string): { [key: string]: string } => {
     const paramMap: { [key: string]: string } = {};
     const lines = text.split('\n');
@@ -37,7 +40,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   const fetchParameters = async () => {
     setParamsLoading(true);
     try {
-      const response = await fetch(P_CGI);
+      const response = await fetch(buildUrl(deviceIP, P_CGI));
       if (!response.ok) {
         throw new Error(`Error fetching parameters: ${response.statusText}`);
       }

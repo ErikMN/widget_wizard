@@ -1,15 +1,20 @@
 const DEFAULT_OPTIONS = {
   cache: 'no-store',
-  credentials: 'same-origin',
+  credentials: 'include',
+  mode: 'cors',
   headers: {
     'Content-Type': 'application/json'
-    // 'Content-Type': 'application/x-www-form-urlencoded',
   }
 };
 
 const serverFetch = async (url, init = {}) => {
   const options = { ...DEFAULT_OPTIONS, ...init };
   const response = await fetch(url, options);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+  }
+
   return response;
 };
 
@@ -22,12 +27,12 @@ export const serverGet = (url) => {
 };
 
 export const getCgiResponse = async (path) => {
-  const resp = (await fetch(path)).text();
+  const resp = (await serverFetch(path)).text(); // Use serverFetch to handle CORS and defaults
   return resp;
 };
 
 export const getCgiResponseJSON = async (path) => {
-  const resp = (await fetch(path)).json();
+  const resp = (await serverFetch(path)).json(); // Use serverFetch to handle CORS and defaults
   return resp;
 };
 
@@ -36,8 +41,8 @@ export const jsonRequest = async (url, body) => {
     const response = await serverPost(url, JSON.stringify(body));
     return response.json();
   } catch (error) {
-    // Response probably not JSON
-    console.error(error);
+    console.error('Error in jsonRequest:', error);
+    throw error; // Re-throw the error for further handling
   }
 };
 
@@ -46,7 +51,8 @@ export const cgiRequest = async (url, body) => {
     const response = await serverPost(url, JSON.stringify(body));
     return response;
   } catch (error) {
-    console.error(error);
+    console.error('Error in cgiRequest:', error);
+    throw error; // Re-throw the error for further handling
   }
 };
 
@@ -57,7 +63,7 @@ export const getParam = async (param) => {
     const parsedData = resp.substring(resp.indexOf('=') + 1);
     return parsedData;
   } catch (error) {
-    console.error(error);
-    return error;
+    console.error('Error in getParam:', error);
+    throw error; // Re-throw the error for further handling
   }
 };

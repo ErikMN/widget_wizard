@@ -1,0 +1,50 @@
+// To test:
+google-chrome --disable-web-security --user-data-dir="/tmp/chrome_dev"
+
+// This is populated when starting httpd:
+cat /run/apache2/customheaders.conf
+
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Content-Security-Policy "default-src 'self'; frame-ancestors 'self'; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.axis.com mediastream: blob:; script-src 'self' https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://*.axis.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.axis.com data: blob:; media-src 'self' mediastream: blob:; object-src 'none'"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+
+// Find where it is used:
+grep -r "customheaders.conf" /etc/apache2 /lib/systemd/system /usr/lib/systemd/system
+
+// Create persistent with CORS allowed:
+vi /etc/apache2/conf.d/customheaders.conf
+
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+
+// Backup original conf:
+cp /etc/apache2/httpd.conf /etc/apache2/httpd.conf.orig
+cp /etc/apache2/httpd-ssl-vhosts.conf /etc/apache2/httpd-ssl-vhosts.conf.orig
+
+// Replace in original conf:
+sed -i 's|/run/apache2/customheaders.conf|/etc/apache2/conf.d/customheaders.conf|g' /etc/apache2/httpd.conf
+sed -i 's|/run/apache2/customheaders.conf|/etc/apache2/conf.d/customheaders.conf|g' /etc/apache2/httpd-ssl-vhosts.conf
+
+systemctl restart httpd
+
+
+curl -I 192.168.0.230
+
+HTTP/1.1 200 OK
+Date: Sun, 05 Jan 2025 17:12:54 GMT
+Server: Apache/2.4.62 (Unix) OpenSSL/3.0.15
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept
+Upgrade: h2
+Connection: Upgrade
+Last-Modified: Tue, 05 Apr 2011 23:00:00 GMT
+Accept-Ranges: bytes
+Content-Length: 173
+Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html

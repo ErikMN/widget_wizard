@@ -15,6 +15,8 @@ project_root_dir="$(dirname "$0")"
 # Export environment variables required by React:
 export VITE_TARGET_IP=$TARGET_IP
 
+# export USE_VITE_PROXY=false
+
 # Return to the original directory:
 cd "$original_dir"
 

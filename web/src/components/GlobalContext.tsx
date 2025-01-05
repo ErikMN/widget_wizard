@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState } from 'react';
 import { useLocalStorage, useTabVisibility } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
+import { useAuth } from './AuthContext';
 import {
   ApiResponse,
   Widget,
@@ -13,7 +14,7 @@ import {
   AppSettings,
   defaultAppSettings
 } from './widget/widgetInterfaces.js';
-import { W_CGI } from './constants.js';
+import { W_CGI, buildUrl } from './constants.js';
 
 /* Interface defining the structure of the context */
 interface GlobalContextProps {
@@ -139,6 +140,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     setOpenAlert(true);
   };
 
+  const { deviceIP } = useAuth();
+
   /****************************************************************************/
   /* Widget endpoint communication functions */
 
@@ -155,7 +158,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       if (resp.error) {
         handleOpenAlert(resp.error.message, 'error');
@@ -196,7 +202,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp.error) {
@@ -227,7 +236,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
+      const resp: WidgetCapabilities = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** WIDGET CAPABILITIES', { resp });
       if (resp.error) {
@@ -289,7 +301,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
@@ -322,7 +337,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
@@ -354,7 +372,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** REMOVE WIDGET', { resp });
       if (resp.error) {
@@ -381,7 +402,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await jsonRequest(
+        buildUrl(deviceIP, W_CGI),
+        payload
+      );
       setWidgetLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {

@@ -3,7 +3,8 @@ import { useGlobalContext } from './GlobalContext';
 import { useParameters } from './ParametersContext';
 import { jsonRequest } from '../helpers/cgihelper';
 import { lightTheme, darkTheme } from '../theme';
-import { SR_CGI } from './constants';
+import { useAuth } from './AuthContext';
+import { SR_CGI, buildUrl } from './constants';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Box, CircularProgress, Fade, Typography } from '@mui/material';
@@ -24,6 +25,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
 
+  const { deviceIP } = useAuth();
+
   /* App mount calls */
   useEffect(() => {
     /* Check system state */
@@ -37,7 +40,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
         }
       };
       try {
-        const resp = await jsonRequest(SR_CGI, payload);
+        const resp = await jsonRequest(buildUrl(deviceIP, SR_CGI), payload);
         const systemReadyState = resp.data.systemready;
         /* If the system is not ready, wait a couple of seconds and retry */
         if (systemReadyState !== 'yes') {
