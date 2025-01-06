@@ -16,6 +16,7 @@ html
 tmp*
 slask
 credentials.json
+credentials2.json
 .eap-install.cfg
 .yarnrc
 .cache
