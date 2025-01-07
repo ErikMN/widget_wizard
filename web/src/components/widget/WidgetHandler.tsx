@@ -152,7 +152,18 @@ const WidgetHandler: React.FC = () => {
         id: activeWidgets[index].generalParams.id
       }));
       if (!IsBBoxClick) {
-        setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+        const newIndex = openDropdownIndex === index ? null : index;
+        setOpenDropdownIndex(newIndex);
+        /* If no widget is open reset activeDraggableWidget.id */
+        if (newIndex === null) {
+          setActiveDraggableWidget((prev) => ({
+            ...prev,
+            id: -1,
+            active: false,
+            highlight: false,
+            clickBBox: false
+          }));
+        }
       }
       if (appSettings.widgetAutoBringFront) {
         setDepth('front', activeWidgets[index]);
@@ -163,7 +174,9 @@ const WidgetHandler: React.FC = () => {
       IsBBoxClick,
       openDropdownIndex,
       setActiveDraggableWidget,
-      setOpenDropdownIndex
+      setOpenDropdownIndex,
+      appSettings.widgetAutoBringFront,
+      setDepth
     ]
   );
 
