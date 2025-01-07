@@ -430,6 +430,8 @@ const App: React.FC = () => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               overflow: isMobile && !drawerOpen ? 'hidden' : 'auto',
+              /* Prevent horizontal overflow */
+              overflowX: 'hidden',
               position: 'fixed',
               '&::-webkit-scrollbar': {
                 width: '8px',
