@@ -339,7 +339,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               sx={{
                 width: `${widget.width * scaleFactor}px`,
                 height: `${widget.height * scaleFactor}px`,
-                border: `${bboxThickness} solid ${bboxColor}`,
+                border:
+                  activeDraggableWidget?.id === widget.generalParams.id
+                    ? `${bboxThickness} solid ${bboxColor}`
+                    : `2px dashed rgba(200, 200, 200, 1)`,
                 borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
                 pointerEvents: 'auto',
