@@ -278,6 +278,26 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     value: number
   ) => {
     const val = value ?? paramConfig.minimum ?? 0;
+    /* If `maximum` is undefined, show a number input */
+    if (paramConfig.maximum === undefined) {
+      return (
+        <Box key={path} sx={{ mt: 2 }}>
+          <TextField
+            size="small"
+            type="number"
+            label={capitalizeFirstLetter(label)}
+            value={val}
+            onChange={(e) => {
+              const parsed = parseFloat(e.target.value);
+              handleNestedValueChange(path, isNaN(parsed) ? 0 : parsed);
+            }}
+            fullWidth
+            sx={smallTextFieldSx}
+          />
+        </Box>
+      );
+    }
+    /* Otherwise, show a slider */
     return (
       <Box key={path} sx={{ mt: 2 }}>
         <Typography>
