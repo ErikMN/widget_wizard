@@ -355,7 +355,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     const enumOptions = options ?? paramConfig.enum ?? [];
     return (
       <Box key={path} sx={{ mt: 2 }}>
-        <Typography>{capitalizeFirstLetter(label)}</Typography>
+        <Typography>{toNiceName(label)}</Typography>
         <Select
           size="small"
           value={value ?? ''}

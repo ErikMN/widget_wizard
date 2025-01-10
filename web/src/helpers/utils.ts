@@ -6,15 +6,47 @@ export function capitalizeFirstLetter(word: string): string {
 }
 
 /**
- * Convert somethingLikeThis or MaxAlarmThreshold into "Max alarm threshold"
+ * Converts CamelCase or PascalCase strings into a "nice name" with spaces,
+ * preserving chunks of consecutive uppercase letters at the start.
+ *
+ * Examples:
+ *   "MaxAlarmThreshold" --> "Max alarm threshold"
+ *   "BGTransparency"    --> "BG transparency"
+ *   "HTTPRequestId"     --> "HTTP request id"
  */
 export function toNiceName(word: string): string {
   if (!word) return word;
-  /* 1) Insert a space before each capital letter (except possibly the first).
-     e.g. "MaxAlarmThreshold" => "Max Alarm Threshold" */
-  const spaced = word.replace(/([A-Z])/g, ' $1').trim();
-  /* 2) Convert entire string to lowercase => "max alarm threshold" */
-  const lower = spaced.toLowerCase();
-  /* 3) Capitalize only the first letter => "Max alarm threshold" */
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
+
+  // 1) Split the word into tokens:
+  //    - One or more uppercase letters in a row (e.g. "BG", "HTTP")
+  //      if at the start or just before a lowercased letter,
+  //    - OR one uppercase letter optionally followed by lowercase letters,
+  //    - OR digits.
+  //
+  // Example: "BGTransparency" => ["BG", "Transparency"]
+  //          "MaxAlarmThreshold" => ["Max", "Alarm", "Threshold"]
+  //          "HTTPRequestId" => ["HTTP", "Request", "Id"]
+  const tokens = word.match(/[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+/g) || [word];
+
+  // 2) Convert the tokens so that:
+  //    - If a token is multiple uppercase letters (e.g. "BG", "HTTP") and it's the *first* token, keep it uppercase.
+  //    - Otherwise, lowercase it entirely.
+  // This yields e.g. ["BG", "transparency"], ["max", "alarm", "threshold"], ["HTTP", "request", "id"]
+  const processedTokens = tokens.map((token, index) => {
+    // Check if it's multiple uppercase letters
+    if (/^[A-Z]{2,}$/.test(token)) {
+      // If it's the *first* token, keep it uppercase (e.g. "BG")
+      return index === 0 ? token : token.toLowerCase();
+    }
+    // Otherwise, make the token all lowercase (e.g. "Transparency" => "transparency")
+    return token.toLowerCase();
+  });
+
+  // 3) Join them with a space: "BG transparency", "max alarm threshold", etc.
+  const joined = processedTokens.join(' ');
+
+  // 4) Capitalize the first letter of the entire phrase:
+  //    "BG transparency" -> "BG transparency" (first letter is 'B', uppercase)
+  //    "max alarm threshold" -> "Max alarm threshold"
+  return joined.charAt(0).toUpperCase() + joined.slice(1);
 }
