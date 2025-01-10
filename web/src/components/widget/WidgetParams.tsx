@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useGlobalContext } from '../GlobalContext';
 import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';
-import { capitalizeFirstLetter } from '../../helpers/utils';
+import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { CustomSwitch, CustomSlider } from '../CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -147,9 +147,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
             mt: 2
           })}
         >
-          <Typography variant="subtitle2">
-            {capitalizeFirstLetter(paramKey)}
-          </Typography>
+          <Typography variant="subtitle2">{toNiceName(paramKey)}</Typography>
           {Object.keys(paramConfig).map((subKey) => {
             /* skip if subKey is something like 'defaultValue' */
             if (
@@ -244,7 +242,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       <Box key={path} sx={{ mt: 2 }}>
         <TextField
           size="small"
-          label={capitalizeFirstLetter(label)}
+          label={toNiceName(label)}
           value={value ?? ''}
           onChange={(e) => handleNestedValueChange(path, e.target.value)}
           fullWidth
@@ -262,7 +260,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   ) => {
     return (
       <Box key={path} sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        <Typography sx={{ mr: 2 }}>{capitalizeFirstLetter(label)}</Typography>
+        <Typography sx={{ mr: 2 }}>{toNiceName(label)}</Typography>
         <CustomSwitch
           checked={value}
           onChange={(e) => handleNestedValueChange(path, e.target.checked)}
@@ -285,7 +283,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           <TextField
             size="small"
             type="number"
-            label={capitalizeFirstLetter(label)}
+            label={toNiceName(label)}
             value={val}
             onChange={(e) => {
               const parsed = parseFloat(e.target.value);
@@ -301,7 +299,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     return (
       <Box key={path} sx={{ mt: 2 }}>
         <Typography>
-          {capitalizeFirstLetter(label)}: {val}
+          {toNiceName(label)}: {val}
         </Typography>
         <CustomSlider
           value={val}
@@ -333,7 +331,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       <Box key={path} sx={{ mt: 2 }}>
         <TextField
           size="small"
-          label={capitalizeFirstLetter(label)}
+          label={toNiceName(label)}
           type="number"
           value={value ?? ''}
           onChange={(e) => {
