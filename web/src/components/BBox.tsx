@@ -314,6 +314,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
 
   const { x, y } = anchoredPosition;
 
+  const widgetIsActive = activeDraggableWidget?.id === widget.generalParams.id;
+
   return (
     /* Wrap Draggable in div to handle click events */
     <div
@@ -339,23 +341,18 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               sx={{
                 width: `${widget.width * scaleFactor}px`,
                 height: `${widget.height * scaleFactor}px`,
-                border:
-                  activeDraggableWidget?.id === widget.generalParams.id
-                    ? `${bboxThickness} solid ${bboxColor}`
-                    : `2px dashed rgba(200, 200, 200, 1)`,
+                border: widgetIsActive
+                  ? `${bboxThickness} solid ${bboxColor}`
+                  : `2px dashed rgba(200, 200, 200, 1)`,
                 borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
                 pointerEvents: 'auto',
                 cursor: 'move',
                 backgroundColor:
-                  activeDraggableWidget?.id === widget.generalParams.id &&
-                  activeDraggableWidget?.highlight
+                  widgetIsActive && activeDraggableWidget?.highlight
                     ? 'rgba(255, 255, 255, 0.3)'
                     : 'transparent',
-                zIndex:
-                  activeDraggableWidget?.id === widget.generalParams.id
-                    ? 1000
-                    : 1,
+                zIndex: widgetIsActive ? 1000 : 1,
                 opacity:
                   appSettings.bboxOnlyShowActive &&
                   activeDraggableWidget?.id !== widget.generalParams.id
@@ -367,7 +364,9 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               <AnchorIndicators
                 widget={widget}
                 scaleFactor={scaleFactor}
-                bboxColor={bboxColor}
+                bboxColor={
+                  widgetIsActive ? bboxColor : 'rgba(200, 200, 200, 1)'
+                }
                 bboxAnchorIndicator={appSettings.bboxAnchorIndicator}
               />
               {/* Widget info note above the bbox */}
