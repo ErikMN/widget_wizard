@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
 import { useGlobalContext } from '../GlobalContext';
-import { CustomContainer, CustomBox } from '../CustomComponents';
+import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';
 import ReactJson from 'react-json-view';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
@@ -218,23 +217,23 @@ const WidgetCapabilities: React.FC = () => {
             marginTop: 4
           }}
         >
-          {/* Toggle Collapse Button */}
-          <Button
+          {/* Toggle Collapse CustomButton */}
+          <CustomButton
             onClick={handleToggleCollapse}
             variant="outlined"
             disabled={!widgetSupported}
             sx={{ marginTop: 2, marginRight: 1 }}
           >
             {collapsed ? 'Uncollapse all' : 'Collapse all'}
-          </Button>
+          </CustomButton>
           {/* Back button */}
-          <Button
+          <CustomButton
             onClick={handleBack}
             sx={{ marginTop: 2 }}
             variant="contained"
           >
             Back
-          </Button>
+          </CustomButton>
         </Box>
       </CustomContainer>
     </ThemeProvider>

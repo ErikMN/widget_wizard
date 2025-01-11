@@ -6,6 +6,7 @@ import { defaultAppSettings, AppSettings } from './widget/widgetInterfaces.js';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import {
   CustomSwitch,
+  CustomButton,
   CustomStyledIconButton,
   CustomContainer
 } from './CustomComponents';
@@ -17,7 +18,6 @@ import WidgetsDisabled from './widget/WidgetsDisabled';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -341,7 +341,7 @@ const Settings: React.FC = () => {
               Application settings
             </Typography>
           </Box>
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle CustomButton */}
           <Tooltip title="Toggle theme" arrow>
             <div>
               <CustomStyledIconButton
@@ -628,12 +628,12 @@ const Settings: React.FC = () => {
             marginTop: 4
           }}
         >
-          <Button onClick={handleResetDefaults} variant="outlined">
+          <CustomButton onClick={handleResetDefaults} variant="outlined">
             Reset defaults
-          </Button>
-          <Button onClick={handleBack} variant="contained">
+          </CustomButton>
+          <CustomButton onClick={handleBack} variant="contained">
             Back
-          </Button>
+          </CustomButton>
         </Box>
 
         {/* Video preview */}

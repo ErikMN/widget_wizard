@@ -5,12 +5,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
+import { CustomButton } from './../CustomComponents';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetParams from './WidgetParams';
 import ReactJson from 'react-json-view';
 /* MUI */
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -154,7 +154,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   return (
     <Box key={widget.generalParams.id} sx={{ marginBottom: 1.4 }}>
-      <Button
+      <CustomButton
         variant="outlined"
         fullWidth
         onClick={() => toggleDropdown(index)}
@@ -205,7 +205,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             sx={{ fontWeight: 'bold' }}
           />
         </div>
-      </Button>
+      </CustomButton>
 
       {/* Dropdown for current widget settings */}
       <Collapse in={openDropdownIndex === index}>
@@ -228,7 +228,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           />
 
           {/* Widget Params */}
-          <Button
+          <CustomButton
             variant={widgetParamsVisible ? 'contained' : 'outlined'}
             fullWidth
             onClick={toggleWidgetParams}
@@ -252,14 +252,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             {widgetParamsVisible
               ? 'Hide widget parameters'
               : 'Show widget parameters'}
-          </Button>
+          </CustomButton>
           <Collapse in={widgetParamsVisible}>
             <WidgetParams widget={widget} />
           </Collapse>
           {/* Widget Params End */}
 
           {/* Toggle JSON editor button */}
-          <Button
+          <CustomButton
             variant={jsonVisible ? 'contained' : 'outlined'}
             fullWidth
             onClick={toggleJsonVisibility}
@@ -281,7 +281,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             }}
           >
             {jsonVisible ? 'Hide JSON editor' : 'Show JSON editor'}
-          </Button>
+          </CustomButton>
 
           {/* JSON editor */}
           <Collapse in={jsonVisible}>
@@ -338,16 +338,16 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               </Typography>
             )}
             {appSettings.debug && (
-              <Button
+              <CustomButton
                 onClick={toggleJsonEditor}
                 variant="contained"
                 startIcon={<ImageIcon />}
                 sx={{ marginTop: 1, width: '100%', height: '30px' }}
               >
                 {useJsonEditorPro ? 'JSON editor' : 'JSON editor PRO'}
-              </Button>
+              </CustomButton>
             )}
-            <Button
+            <CustomButton
               onClick={handleUpdateJSON}
               variant="outlined"
               startIcon={<DataObjectIcon />}
@@ -358,7 +358,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               }}
             >
               Update {capitalizeFirstLetter(widget.generalParams.type)}
-            </Button>
+            </CustomButton>
           </Collapse>
           {/* JSON viewer end */}
 
@@ -372,7 +372,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             }}
           >
             {/* Remove widget button */}
-            <Button
+            <CustomButton
               color="error"
               variant="contained"
               onClick={() => removeWidget(widget.generalParams.id)}
@@ -384,9 +384,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               }}
             >
               Remove
-            </Button>
+            </CustomButton>
             {/* Duplicate widget button */}
-            <Button
+            <CustomButton
               color="secondary"
               variant="contained"
               onClick={() => addCustomWidget({ ...widget })}
@@ -398,7 +398,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               }}
             >
               Duplicate
-            </Button>
+            </CustomButton>
           </Box>
           {/* Remove and Duplicate buttons end */}
         </Box>

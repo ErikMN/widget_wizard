@@ -6,6 +6,7 @@ import { Switch, SwitchProps } from '@mui/material';
 import { Box, BoxProps } from '@mui/material';
 import { Container, ContainerProps } from '@mui/material';
 import { Slider, SliderProps } from '@mui/material';
+import { Button, ButtonProps } from '@mui/material';
 
 /** Extended IconButtonProps to include width and height */
 interface CustomIconButtonProps extends IconButtonProps {
@@ -202,4 +203,17 @@ export interface CustomSliderProps extends SliderProps {}
 
 export const CustomSlider: React.FC<CustomSliderProps> = (props) => {
   return <CustomStyledSlider {...props} />;
+};
+
+/** Custom Button */
+const CustomStyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: '4px'
+  /* Add additional stylings here: */
+}));
+
+export interface CustomButtonProps extends ButtonProps {}
+
+/** Custom Button Component */
+export const CustomButton: React.FC<CustomButtonProps> = (props) => {
+  return <CustomStyledButton disableRipple {...props} />;
 };

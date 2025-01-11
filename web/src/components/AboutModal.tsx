@@ -2,10 +2,9 @@ import React from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
 import { useScreenSizes } from '../helpers/hooks.jsx';
-import { CustomBox } from './CustomComponents';
+import { CustomBox, CustomButton } from './CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Fade from '@mui/material/Fade';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
@@ -100,13 +99,13 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
 
           {/* Close button */}
           <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-            <Button
+            <CustomButton
               onClick={handleClose}
               sx={{ width: 'auto', paddingX: 3 }}
               variant="contained"
             >
               Close
-            </Button>
+            </CustomButton>
           </Box>
         </Box>
       </Fade>

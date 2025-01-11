@@ -8,12 +8,12 @@ import WidgetsDisabled from './WidgetsDisabled';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
+import { CustomButton } from './../CustomComponents';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -280,21 +280,21 @@ const WidgetHandler: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button
+          <CustomButton
             variant="outlined"
             onClick={handleDialogClose}
             color="primary"
           >
             No
-          </Button>
-          <Button
+          </CustomButton>
+          <CustomButton
             variant="contained"
             onClick={handleConfirmRemoveAll}
             color="error"
             autoFocus
           >
             Yes
-          </Button>
+          </CustomButton>
         </DialogActions>
       </Dialog>
 
@@ -328,7 +328,7 @@ const WidgetHandler: React.FC = () => {
       </Box>
 
       {/* Remove all widgets button */}
-      <Button
+      <CustomButton
         color="error"
         variant="contained"
         onClick={handleRemoveAllClick}
@@ -336,7 +336,7 @@ const WidgetHandler: React.FC = () => {
         startIcon={<DeleteIcon />}
       >
         Remove all widgets
-      </Button>
+      </CustomButton>
     </Box>
   );
 };
