@@ -24,6 +24,7 @@ import Typography from '@mui/material/Typography';
 /* One BBox with scaling logic and click handlers */
 
 const EPSILON = 1e-6;
+const MOVE_THRESHOLD = 5;
 
 interface BBoxProps {
   widget: Widget;
@@ -35,6 +36,12 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
   }
+
+  /* Local state */
+  const [dragStartPos, setDragStartPos] = React.useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   /* Global context */
   const {
@@ -152,6 +159,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       // console.log(
       //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
       // );
+      setDragStartPos({ x, y });
       setActiveDraggableWidget({
         id: widget.generalParams.id,
         active: true,
@@ -168,6 +176,29 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       // console.log(
       //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
       // );
+      if (!dragStartPos) {
+        console.warn('dragStartPos not set!');
+        return;
+      }
+      /* Calculate how far the user actually moved */
+      const dist = Math.sqrt(
+        (newX - dragStartPos.x) ** 2 + (newY - dragStartPos.y) ** 2
+      );
+      /* If movement < MOVE_THRESHOLD and anchored: don't move */
+      if (dist < MOVE_THRESHOLD && widget.generalParams.anchor !== 'none') {
+        if (appSettings.debug) {
+          console.warn('Did not move anchored widget enough! Dist:', dist);
+        }
+        /* Do not remove anchor */
+        setActiveDraggableWidget({
+          id: widget.generalParams.id,
+          active: false,
+          clickBBox: false,
+          highlight: false
+        });
+        setDragStartPos(null);
+        return;
+      }
       if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
         console.error('Invalid dimensions detected');
         return;
