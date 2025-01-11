@@ -24,7 +24,8 @@ import Typography from '@mui/material/Typography';
 /* One BBox with scaling logic and click handlers */
 
 const EPSILON = 1e-6;
-const MOVE_THRESHOLD = 5;
+const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
+const CORNER_THRESHOLD = 5; /* Increase for bigger snap zone */
 
 interface BBoxProps {
   widget: Widget;
@@ -209,6 +210,34 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         scaleFactor,
         dimensions
       );
+      /* Edges for auto-anchoring */
+      const minX = 0;
+      const minY = 0;
+      const maxX = dimensions.pixelWidth - widgetWidthPx;
+      const maxY = dimensions.pixelHeight - widgetHeightPx;
+
+      /* Check if final position is near any of the four corners */
+      const isNearTopLeft =
+        newX < minX + CORNER_THRESHOLD && newY < minY + CORNER_THRESHOLD;
+      const isNearTopRight =
+        newX > maxX - CORNER_THRESHOLD && newY < minY + CORNER_THRESHOLD;
+      const isNearBottomLeft =
+        newX < minX + CORNER_THRESHOLD && newY > maxY - CORNER_THRESHOLD;
+      const isNearBottomRight =
+        newX > maxX - CORNER_THRESHOLD && newY > maxY - CORNER_THRESHOLD;
+
+      /* Set anchor based on position */
+      let finalAnchor = 'none';
+      if (isNearTopLeft) {
+        finalAnchor = 'topLeft';
+      } else if (isNearTopRight) {
+        finalAnchor = 'topRight';
+      } else if (isNearBottomLeft) {
+        finalAnchor = 'bottomLeft';
+      } else if (isNearBottomRight) {
+        finalAnchor = 'bottomRight';
+      }
+
       const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
         widgetWidthPx,
         widgetHeightPx,
@@ -255,14 +284,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       /* Only update if the position has changed */
       if (
         Math.abs(posX - currentPosX) > EPSILON ||
-        Math.abs(posY - currentPosY) > EPSILON
+        Math.abs(posY - currentPosY) > EPSILON ||
+        finalAnchor !== widget.generalParams.anchor
       ) {
         const updatedWidget = {
           ...widget,
           generalParams: {
             ...widget.generalParams,
             position: { x: posX, y: posY },
-            anchor: 'none',
+            anchor: finalAnchor,
             ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
           }
         };
@@ -288,7 +318,9 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       scaleFactor,
       setActiveWidgets,
       setActiveDraggableWidget,
-      updateWidget
+      updateWidget,
+      dragStartPos,
+      appSettings.widgetAutoBringFront
     ]
   );
 
