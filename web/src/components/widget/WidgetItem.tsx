@@ -104,20 +104,20 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   }, []);
 
   /****************************************************************************/
-  /* JSON viewer handlers */
-  const [useJsonViewer, setUseJsonViewer] = useState(false);
+  /* JSON editor handlers */
+  const [useJsonEditorPro, setUseJsonEditorPro] = useState(false);
 
-  /* Toggle how to display JSON in JSON viewer */
-  const toggleJsonViewer = useCallback(() => {
-    setUseJsonViewer((prev) => !prev);
+  /* Toggle how to display JSON in JSON editor */
+  const toggleJsonEditor = useCallback(() => {
+    setUseJsonEditorPro((prev) => !prev);
   }, []);
 
-  /* Toggle JSON viewer */
+  /* Toggle JSON editor */
   const toggleJsonVisibility = useCallback(() => {
     setJsonVisible((prev) => !prev);
   }, []);
 
-  /* Handle edited JSON in the viewer */
+  /* Handle edited JSON in the editor */
   const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setJsonInput(event.target.value);
   };
@@ -258,7 +258,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </Collapse>
           {/* Widget Params End */}
 
-          {/* Toggle JSON viewer button */}
+          {/* Toggle JSON editor button */}
           <Button
             variant={jsonVisible ? 'contained' : 'outlined'}
             fullWidth
@@ -280,13 +280,13 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               overflow: 'hidden'
             }}
           >
-            {jsonVisible ? 'Hide JSON viewer' : 'Show JSON viewer'}
+            {jsonVisible ? 'Hide JSON editor' : 'Show JSON editor'}
           </Button>
 
-          {/* JSON viewer */}
+          {/* JSON editor */}
           <Collapse in={jsonVisible}>
             {/* Editable JSON field */}
-            {!useJsonViewer ? (
+            {!useJsonEditorPro ? (
               <TextField
                 label="JSON"
                 error={jsonError !== null}
@@ -304,8 +304,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                     fontSize: '14px'
                   }
                 }}
+                slotProps={{
+                  input: {
+                    spellCheck: false
+                  }
+                }}
               />
             ) : (
+              /* JSON editor PRO */
               <ReactJson
                 src={safeParseJson(jsonInput)}
                 onEdit={(edit) => {
@@ -333,12 +339,12 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             )}
             {appSettings.debug && (
               <Button
-                onClick={toggleJsonViewer}
+                onClick={toggleJsonEditor}
                 variant="contained"
                 startIcon={<ImageIcon />}
                 sx={{ marginTop: 1, width: '100%', height: '30px' }}
               >
-                {useJsonViewer ? 'Text Editor' : 'JSON Viewer'}
+                {useJsonEditorPro ? 'JSON editor' : 'JSON editor PRO'}
               </Button>
             )}
             <Button
