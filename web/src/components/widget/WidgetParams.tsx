@@ -142,8 +142,8 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
           /* Set a margin for nested types */
           sx={(theme) => ({
             borderLeft: `1px solid ${theme.palette.grey[600]}`,
-            ml: 1,
-            pl: 2,
+            ml: 0,
+            pl: 1.2,
             mt: 2
           })}
         >
