@@ -1,0 +1,65 @@
+name: Build Widget Wizard
+
+on:
+  push:
+    tags:
+      - "*" # Trigger for all tags.
+
+jobs:
+  build-acap:
+    name: Build Widget Wizard Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      # Build Docker image (equivalent to `make dockersetup`):
+      - name: Build Docker Image
+        run: |
+          docker build -f docker/Dockerfile ./docker -t widget_wizard_img_aarch64
+
+      # Run ACAP build inside Docker (equivalent to `make acap`):
+      - name: Build .eap inside Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            widget_wizard_img_aarch64 \
+            ./docker/build_aarch64.sh 1 widget_wizard "Widget Wizard" y
+
+      # Create (or update) GitHub Release for the current tag:
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Build for ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      # Detect the .eap file produced by the build:
+      - name: Find EAP file
+        id: find_eap
+        run: |
+          EAP_FILE=$(ls -1 *.eap | head -n1)
+          if [ -z "$EAP_FILE" ]; then
+            echo "No .eap file found!"
+            exit 1
+          fi
+          echo "Found EAP file: $EAP_FILE"
+          echo "EAP_FILE=$EAP_FILE" >> $GITHUB_OUTPUT
+
+      # Upload the detected .eap file as a Release asset:
+      - name: Upload EAP file to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_eap.outputs.EAP_FILE }}
+          asset_name: ${{ steps.find_eap.outputs.EAP_FILE }}
+          asset_content_type: application/octet-stream
