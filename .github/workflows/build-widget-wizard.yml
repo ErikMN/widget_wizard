@@ -47,19 +47,9 @@ jobs:
             exit 1
           fi
 
-      # Set up Docker Buildx for caching:
+      # Set up Docker Buildx:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
-      # Cache Docker layers to speed up subsequent builds:
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ env.TAG }}
-          restore-keys: |
-            ${{ runner.os }}-docker-
-            ${{ runner.os }}-
 
       # Build the Docker image (equivalent to `make dockersetup`):
       - name: Build Docker Image
@@ -67,8 +57,6 @@ jobs:
           docker buildx build \
             --load \
             --progress=plain \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache \
             -f docker/Dockerfile \
             ./docker -t widget_wizard_img_aarch64
 
