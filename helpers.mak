@@ -25,15 +25,6 @@ else
 	$(error Please source setuptarget.sh first)
 endif
 
-# Deploy sound server to target:
-.PHONY: deploysnd
-deploysnd: sndserv
-ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) scp ./sndserv/sndserver $(TARGET_USR)@$(TARGET_IP):$(TARGET_DIR)
-else
-	$(error Please source setuptarget.sh first)
-endif
-
 # Deploy shell profile to target:
 .PHONY: deployprofile
 deployprofile:
