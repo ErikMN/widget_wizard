@@ -1871,6 +1871,13 @@ debug@4.3.4:
   dependencies:
     ms "2.1.2"
 
+debug@4.3.6:
+  version "4.3.6"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.6.tgz#2ab2c38fbaffebf8aa95fdfe6d88438c7a13c52b"
+  integrity sha512-O/09Bd4Z1fBrU4VzkhFqVgpPzaGbw6Sm9FEkBT1A/YBXQFGuuSxa1dN2nxgxS34JmKXqYx8CZAwEVoJFImUXIg==
+  dependencies:
+    ms "2.1.2"
+
 debug@^3.1.0:
   version "3.2.7"
   resolved "https://registry.yarnpkg.com/debug/-/debug-3.2.7.tgz#72580b7e9145fb39b6676f9c5e5fb100b934179a"
@@ -3458,15 +3465,15 @@ mdn-data@2.12.1:
   resolved "https://registry.yarnpkg.com/mdn-data/-/mdn-data-2.12.1.tgz#10cb462215c13d95c92ff60d0fb3becac1bbb924"
   integrity sha512-rsfnCbOHjqrhWxwt5/wtSLzpoKTzW7OXdT5lLOIH1OTYhWu9rRJveGq0sKvDZODABH7RX+uoR+DYcpFnq4Tf6Q==
 
-media-stream-library@^13.1.1:
-  version "13.1.1"
-  resolved "https://registry.yarnpkg.com/media-stream-library/-/media-stream-library-13.1.1.tgz#b4683dc6fafdfb5c3124615085651c42ebf48f4e"
-  integrity sha512-geVpXQthYdR/tKWRQEPNnpIQz5JUSAv6R2HwoA9HRI6MUM5KS0du68lIUYBc0/5iAz0k75ccmS8c05upY52zgA==
+media-stream-library@^13.3.3:
+  version "13.3.3"
+  resolved "https://registry.yarnpkg.com/media-stream-library/-/media-stream-library-13.3.3.tgz#684c1dfce0bd2e912ed00255529df6c2b07892c6"
+  integrity sha512-ko59yN2zU5RqtanYaJPXFO7LsAQ+2vfNYTVY0OXHmOzLireeBoCsda0oKQM4cxl5BA14lMo+HXkmaDggtx4khQ==
   dependencies:
-    debug "4.3.4"
+    debug "4.3.6"
     process "0.11.10"
     ts-md5 "1.3.1"
-    ws "8.14.2"
+    ws "8.18.0"
 
 media-stream-player@^13.1.1:
   version "13.1.1"
@@ -5071,10 +5078,10 @@ write-file-atomic@^5.0.1:
     imurmurhash "^0.1.4"
     signal-exit "^4.0.1"
 
-ws@8.14.2:
-  version "8.14.2"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-8.14.2.tgz#6c249a806eb2db7a20d26d51e7709eab7b2e6c7f"
-  integrity sha512-wEBG1ftX4jcglPxgFCMJmZ2PLtSbJ2Peg6TmpJFTbe9GZYOQCDPdMYu/Tm0/bGZkw8paZnJY45J4K2PZrLYq8g==
+ws@8.18.0:
+  version "8.18.0"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.18.0.tgz#0d7505a6eafe2b0e712d232b42279f53bc289bbc"
+  integrity sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==
 
 xtend@^4.0.0:
   version "4.0.2"
