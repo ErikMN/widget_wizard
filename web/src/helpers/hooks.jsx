@@ -75,4 +75,22 @@ const useScreenSizes = () => {
   return { isMobile };
 };
 
-export { useLocalStorage, useDebouncedValue, useScreenSizes };
+/**
+ * Custom hook to handle tab visibility changes.
+ */
+const useTabVisibility = (callback) => {
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        await callback();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [callback]);
+};
+
+export { useLocalStorage, useDebouncedValue, useScreenSizes, useTabVisibility };

@@ -3,7 +3,7 @@
  * throughout the app.
  */
 import React, { createContext, useContext, useState } from 'react';
-import { useLocalStorage } from '../helpers/hooks.jsx';
+import { useLocalStorage, useTabVisibility } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
 import {
@@ -215,6 +215,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Error:', error);
     }
   };
+
+  /* List widgets on tab switch */
+  useTabVisibility(listWidgets);
 
   /* Lists all available widget types and their parameters */
   const listWidgetCapabilities = async () => {
