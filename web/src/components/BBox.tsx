@@ -25,7 +25,16 @@ import Typography from '@mui/material/Typography';
 
 const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
-const CORNER_THRESHOLD = 10; /* Increase for bigger snap zone */
+
+/* Anchor snap zones: */
+const CORNER_THRESHOLD = 5;
+const CENTER_DISTANCE_THRESHOLD = 10;
+
+const TOPBOTTOM_THRESHOLD_X = 20;
+const TOPBOTTOM_THRESHOLD_Y = 5;
+
+const LEFTRIGHT_THRESHOLD_X = 5;
+const LEFTRIGHT_THRESHOLD_Y = 20;
 
 interface BBoxProps {
   widget: Widget;
@@ -216,7 +225,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       const maxX = dimensions.pixelWidth - widgetWidthPx;
       const maxY = dimensions.pixelHeight - widgetHeightPx;
 
-      /* Check if final position is near any of the four corners */
+      /* Check corner-based positions */
       const isNearTopLeft =
         newX < minX + CORNER_THRESHOLD && newY < minY + CORNER_THRESHOLD;
       const isNearTopRight =
@@ -232,26 +241,24 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       const videoCenterX = dimensions.pixelWidth / 2;
       const videoCenterY = dimensions.pixelHeight / 2;
 
-      /* For topCenter and bottomCenter, we compare horizontal center with videoCenterX */
       const isNearTopCenter =
-        Math.abs(widgetCenterX - videoCenterX) < CORNER_THRESHOLD &&
-        newY < minY + CORNER_THRESHOLD;
+        Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
+        newY < minY + TOPBOTTOM_THRESHOLD_Y;
       const isNearBottomCenter =
-        Math.abs(widgetCenterX - videoCenterX) < CORNER_THRESHOLD &&
-        newY > maxY - CORNER_THRESHOLD;
-
-      /* For centerLeft and centerRight, compare vertical center with videoCenterY */
+        Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
+        newY > maxY - TOPBOTTOM_THRESHOLD_Y;
       const isNearCenterLeft =
-        Math.abs(widgetCenterY - videoCenterY) < CORNER_THRESHOLD &&
-        newX < minX + CORNER_THRESHOLD;
+        Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+        newX < minX + LEFTRIGHT_THRESHOLD_X;
       const isNearCenterRight =
-        Math.abs(widgetCenterY - videoCenterY) < CORNER_THRESHOLD &&
-        newX > maxX - CORNER_THRESHOLD;
-
-      /* For full center, check both X and Y near center */
-      const isNearCenter =
-        Math.abs(widgetCenterX - videoCenterX) < CORNER_THRESHOLD &&
-        Math.abs(widgetCenterY - videoCenterY) < CORNER_THRESHOLD;
+        Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+        newX > maxX - LEFTRIGHT_THRESHOLD_X;
+      /* Full center */
+      const centerDist = Math.sqrt(
+        (widgetCenterX - videoCenterX) ** 2 +
+          (widgetCenterY - videoCenterY) ** 2
+      );
+      const isNearCenter = centerDist < CENTER_DISTANCE_THRESHOLD;
 
       /* Set anchor based on position */
       let finalAnchor = 'none';
