@@ -324,6 +324,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     ]
   );
 
+  /* widgetAutoBringFront enabled will trigger an update call for every click on the widget */
   const setDepth = useCallback(
     (mode: string, widget: Widget) => {
       const updatedWidget = {
