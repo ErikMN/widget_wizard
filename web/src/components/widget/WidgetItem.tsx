@@ -177,8 +177,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             openDropdownIndex === index
               ? 'primary.main'
               : 'grey.600',
-          borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '8px',
-          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '8px',
+          borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '4px',
+          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '4px',
           transition: 'background-color 0.3s ease, border-color 0.3s ease',
           /* Text shadow */
           ...(theme.palette.mode === 'dark'
@@ -215,7 +215,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             padding: '10px',
             border: `1px solid ${theme.palette.grey[600]}`,
             borderTop: 'none',
-            borderRadius: '0 0 8px 8px',
+            borderRadius: '0 0 4px 4px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             marginTop: 0
           })}
