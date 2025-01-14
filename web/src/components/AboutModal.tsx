@@ -1,6 +1,7 @@
 import React from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
+import { useGlobalContext } from './GlobalContext';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
 /* MUI */
@@ -19,6 +20,9 @@ interface AboutModalProps {
 const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
   /* Screen size */
   const { isMobile } = useScreenSizes();
+
+  /* Global context */
+  const { appSettings } = useGlobalContext();
 
   return (
     <Modal
@@ -65,7 +69,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             sx={{ marginTop: 2, marginBottom: 2 }}
           >
             Version: {import.meta.env.VITE_VERSION}
-            <AppVersion />
+            {appSettings.debug ? <AppVersion /> : <br />}
             Copyright © {new Date().getFullYear()}
           </Typography>
 
