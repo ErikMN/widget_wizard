@@ -53,6 +53,22 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     y: number;
   } | null>(null);
 
+  const [alignmentGuides, setAlignmentGuides] = React.useState<{
+    showVerticalCenter: boolean;
+    showHorizontalCenter: boolean;
+    showTop: boolean;
+    showBottom: boolean;
+    showLeft: boolean;
+    showRight: boolean;
+  }>({
+    showVerticalCenter: false,
+    showHorizontalCenter: false,
+    showTop: false,
+    showBottom: false,
+    showLeft: false,
+    showRight: false
+  });
+
   /* Global context */
   const {
     appSettings,
@@ -180,6 +196,59 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     [setActiveDraggableWidget]
   );
 
+  /* Handle dragging */
+  const handleDrag = useCallback(
+    (widget: Widget, newX: number, newY: number) => {
+      if (!appSettings.alignmentGuide) {
+        setAlignmentGuides({
+          showVerticalCenter: false,
+          showHorizontalCenter: false,
+          showTop: false,
+          showBottom: false,
+          showLeft: false,
+          showRight: false
+        });
+        return;
+      }
+      const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
+        widget.width,
+        widget.height,
+        scaleFactor,
+        dimensions
+      );
+      const widgetCenterX = newX + widgetWidthPx / 2;
+      const widgetCenterY = newY + widgetHeightPx / 2;
+      const videoCenterX = dimensions.pixelWidth / 2;
+      const videoCenterY = dimensions.pixelHeight / 2;
+
+      /* Check alignment with video edges (top, bottom, left, right) */
+      const nearTop = Math.abs(newY - 0) < CORNER_THRESHOLD;
+      const nearBottom =
+        Math.abs(newY + widgetHeightPx - dimensions.pixelHeight) <
+        CORNER_THRESHOLD;
+      const nearLeft = Math.abs(newX - 0) < CORNER_THRESHOLD;
+      const nearRight =
+        Math.abs(newX + widgetWidthPx - dimensions.pixelWidth) <
+        CORNER_THRESHOLD;
+
+      /* Check alignment with horizontal center and vertical center */
+      const nearVerticalCenter =
+        Math.abs(widgetCenterX - videoCenterX) < CORNER_THRESHOLD;
+      const nearHorizontalCenter =
+        Math.abs(widgetCenterY - videoCenterY) < CORNER_THRESHOLD;
+
+      setAlignmentGuides({
+        showVerticalCenter: nearVerticalCenter,
+        showHorizontalCenter: nearHorizontalCenter,
+        showTop: nearTop,
+        showBottom: nearBottom,
+        showLeft: nearLeft,
+        showRight: nearRight
+      });
+    },
+    [appSettings.alignmentGuide, dimensions, scaleFactor]
+  );
+
   /* Handle drag stop */
   const handleDragStop = useCallback(
     (widget: Widget, newX: number, newY: number) => {
@@ -207,6 +276,14 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
           highlight: false
         });
         setDragStartPos(null);
+        setAlignmentGuides({
+          showVerticalCenter: false,
+          showHorizontalCenter: false,
+          showTop: false,
+          showBottom: false,
+          showLeft: false,
+          showRight: false
+        });
         return;
       }
       if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
@@ -356,6 +433,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         clickBBox: false,
         highlight: false
       });
+
+      setAlignmentGuides({
+        showVerticalCenter: false,
+        showHorizontalCenter: false,
+        showTop: false,
+        showBottom: false,
+        showLeft: false,
+        showRight: false
+      });
     },
     [
       dimensions,
@@ -443,6 +529,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               bottom: dimensions.pixelHeight - widget.height * scaleFactor
             }}
             onStart={(e, data) => handleDragStart(widget, data.x, data.y)}
+            onDrag={(e, data) => handleDrag(widget, data.x, data.y)}
             onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
           >
             <Box
@@ -499,6 +586,94 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
               )}
             </Box>
           </Draggable>
+          {/* Alignment guide */}
+          {appSettings.alignmentGuide && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: `${dimensions.pixelWidth}px`,
+                height: `${dimensions.pixelHeight}px`,
+                pointerEvents: 'none',
+                zIndex: 9999
+              }}
+            >
+              {alignmentGuides.showVerticalCenter && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: `${dimensions.pixelWidth / 2}px`,
+                    width: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+              {alignmentGuides.showHorizontalCenter && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: `${dimensions.pixelHeight / 2}px`,
+                    height: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+              {alignmentGuides.showTop && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+              {alignmentGuides.showBottom && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+              {alignmentGuides.showLeft && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    width: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+              {alignmentGuides.showRight && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    width: '1px',
+                    backgroundColor: 'red'
+                  }}
+                />
+              )}
+            </div>
+          )}
+          {/* Alignment guide end */}
         </div>
       </Fade>
     </div>

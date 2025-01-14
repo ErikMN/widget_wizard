@@ -170,6 +170,7 @@ export interface AppSettings {
   widgetDoubleClick: boolean;
   widgetAutoBringFront: boolean;
   wsDefault: boolean;
+  alignmentGuide: boolean;
 }
 
 /* Application settings default values */
@@ -185,7 +186,8 @@ export const defaultAppSettings: AppSettings = {
   sortAscending: true,
   widgetDoubleClick: false,
   widgetAutoBringFront: false,
-  wsDefault: false
+  wsDefault: false,
+  alignmentGuide: false
 };
 
 /* VideoBox dimensions interface */

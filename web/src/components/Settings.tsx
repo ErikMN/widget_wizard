@@ -240,6 +240,17 @@ const Settings: React.FC = () => {
     );
   };
 
+  const handleToggleAlignmentGuide = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      alignmentGuide: !prevSettings.alignmentGuide
+    }));
+    handleOpenAlert(
+      `Alignment guide enabled: ${!appSettings.alignmentGuide}`,
+      'success'
+    );
+  };
+
   const handleToggleWSDefault = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -563,6 +574,17 @@ const Settings: React.FC = () => {
               />
             }
             label="Widget auto bring to front"
+          />
+          {/* Switch setting alignment guide */}
+          <FormControlLabel
+            control={
+              <CustomSwitch
+                checked={appSettings.alignmentGuide}
+                onChange={handleToggleAlignmentGuide}
+                name="widgetAlignmentGuide"
+              />
+            }
+            label="Widget alignment guide"
           />
         </Box>
 
