@@ -48,6 +48,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   }
 
   /* Local state */
+  const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
   const [dragStartPos, setDragStartPos] = React.useState<{
     x: number;
     y: number;
@@ -199,6 +200,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   /* Handle dragging */
   const handleDrag = useCallback(
     (widget: Widget, newX: number, newY: number) => {
+      setShowIndicators(false);
+
       if (!appSettings.alignmentGuide) {
         setAlignmentGuides({
           showVerticalCenter: false,
@@ -246,12 +249,13 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         showRight: nearRight
       });
     },
-    [appSettings.alignmentGuide, dimensions, scaleFactor]
+    [appSettings.alignmentGuide, dimensions, scaleFactor, showIndicators]
   );
 
   /* Handle drag stop */
   const handleDragStop = useCallback(
     (widget: Widget, newX: number, newY: number) => {
+      setShowIndicators(true);
       // console.log(
       //   `handleDragStop called for widget ${widget.generalParams.id} at position (${newX}, ${newY})`
       // );
@@ -450,6 +454,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       setActiveDraggableWidget,
       updateWidget,
       dragStartPos,
+      showIndicators,
       appSettings.widgetAutoBringFront
     ]
   );
@@ -562,7 +567,9 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
                 bboxColor={
                   widgetIsActive ? bboxColor : 'rgba(200, 200, 200, 1)'
                 }
-                bboxAnchorIndicator={appSettings.bboxAnchorIndicator}
+                bboxAnchorIndicator={
+                  appSettings.bboxAnchorIndicator && showIndicators
+                }
               />
               {/* Widget info note above the bbox */}
               {appSettings.bboxLabel && (
