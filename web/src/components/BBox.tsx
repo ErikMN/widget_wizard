@@ -7,6 +7,7 @@ import AnchorIndicators from './AnchorIndicators';
 import { Widget } from './widget/widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { Dimensions } from './widget/widgetInterfaces';
+import lockSoundUrl from '../assets/audio/lock.mp3';
 import {
   HD_WIDTH,
   getWidgetPixelPosition,
@@ -398,7 +399,14 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       } else if (isNearCenter) {
         finalAnchor = 'center';
       }
-
+      /* Play sound if anchored */
+      if (finalAnchor !== 'none') {
+        const lockSound = new Audio(lockSoundUrl);
+        lockSound.volume = 0.5;
+        lockSound.play().catch((err) => {
+          console.warn('Failed to play lock audio:', err);
+        });
+      }
       const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
         widgetWidthPx,
         widgetHeightPx,
