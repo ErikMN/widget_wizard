@@ -26,15 +26,13 @@ import Typography from '@mui/material/Typography';
 const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
 
-/* Anchor snap zones: */
-const CORNER_THRESHOLD = 5;
-const CENTER_DISTANCE_THRESHOLD = 10;
-
-const TOPBOTTOM_THRESHOLD_X = 20;
-const TOPBOTTOM_THRESHOLD_Y = 5;
-
-const LEFTRIGHT_THRESHOLD_X = 5;
-const LEFTRIGHT_THRESHOLD_Y = 20;
+/* Anchor snap zones in percent: */
+const CORNER_THRESHOLD_PERCENT = 0.005;
+const CENTER_DISTANCE_THRESHOLD_PERCENT = 0.01;
+const TOPBOTTOM_THRESHOLD_X_PERCENT = 0.02;
+const TOPBOTTOM_THRESHOLD_Y_PERCENT = 0.005;
+const LEFTRIGHT_THRESHOLD_X_PERCENT = 0.005;
+const LEFTRIGHT_THRESHOLD_Y_PERCENT = 0.02;
 
 interface BBoxProps {
   widget: Widget;
@@ -46,6 +44,19 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
   }
+  /* Adjust thresholds based on pixel dimensions */
+  const CORNER_THRESHOLD = CORNER_THRESHOLD_PERCENT * dimensions.pixelWidth;
+  const CENTER_DISTANCE_THRESHOLD =
+    CENTER_DISTANCE_THRESHOLD_PERCENT *
+    Math.sqrt(dimensions.pixelWidth ** 2 + dimensions.pixelHeight ** 2);
+  const TOPBOTTOM_THRESHOLD_X =
+    TOPBOTTOM_THRESHOLD_X_PERCENT * dimensions.pixelWidth;
+  const TOPBOTTOM_THRESHOLD_Y =
+    TOPBOTTOM_THRESHOLD_Y_PERCENT * dimensions.pixelHeight;
+  const LEFTRIGHT_THRESHOLD_X =
+    LEFTRIGHT_THRESHOLD_X_PERCENT * dimensions.pixelWidth;
+  const LEFTRIGHT_THRESHOLD_Y =
+    LEFTRIGHT_THRESHOLD_Y_PERCENT * dimensions.pixelHeight;
 
   /* Local state */
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
@@ -225,31 +236,55 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       const videoCenterY = dimensions.pixelHeight / 2;
 
       /* Check alignment with video edges (top, bottom, left, right) */
-      const nearTop = Math.abs(newY - 0) < CORNER_THRESHOLD;
+      const nearTop = newY < CORNER_THRESHOLD;
       const nearBottom =
         Math.abs(newY + widgetHeightPx - dimensions.pixelHeight) <
         CORNER_THRESHOLD;
-      const nearLeft = Math.abs(newX - 0) < CORNER_THRESHOLD;
+      const nearLeft = newX < CORNER_THRESHOLD;
       const nearRight =
         Math.abs(newX + widgetWidthPx - dimensions.pixelWidth) <
         CORNER_THRESHOLD;
 
       /* Check alignment with horizontal center and vertical center */
       const nearVerticalCenter =
-        Math.abs(widgetCenterX - videoCenterX) < CORNER_THRESHOLD;
+        Math.abs(widgetCenterX - videoCenterX) < CENTER_DISTANCE_THRESHOLD;
       const nearHorizontalCenter =
-        Math.abs(widgetCenterY - videoCenterY) < CORNER_THRESHOLD;
+        Math.abs(widgetCenterY - videoCenterY) < CENTER_DISTANCE_THRESHOLD;
 
+      /* Additional checks for top/bottom center */
+      const nearTopCenter = nearTop && nearVerticalCenter;
+      const nearBottomCenter = nearBottom && nearVerticalCenter;
+
+      /* Additional checks for left/right center */
+      const nearCenterLeft =
+        Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+        Math.abs(newX - 0) < LEFTRIGHT_THRESHOLD_X;
+      const nearCenterRight =
+        Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+        Math.abs(newX + widgetWidthPx - dimensions.pixelWidth) <
+          LEFTRIGHT_THRESHOLD_X;
+
+      /* Update alignment guides */
       setAlignmentGuides({
         showVerticalCenter: nearVerticalCenter,
         showHorizontalCenter: nearHorizontalCenter,
-        showTop: nearTop,
-        showBottom: nearBottom,
-        showLeft: nearLeft,
-        showRight: nearRight
+        showTop: nearTop || nearTopCenter,
+        showBottom: nearBottom || nearBottomCenter,
+        showLeft: nearLeft || nearCenterLeft,
+        showRight: nearRight || nearCenterRight
       });
     },
-    [appSettings.alignmentGuide, dimensions, scaleFactor, showIndicators]
+    [
+      appSettings.alignmentGuide,
+      dimensions,
+      scaleFactor,
+      CORNER_THRESHOLD,
+      CENTER_DISTANCE_THRESHOLD,
+      TOPBOTTOM_THRESHOLD_X,
+      TOPBOTTOM_THRESHOLD_Y,
+      LEFTRIGHT_THRESHOLD_X,
+      LEFTRIGHT_THRESHOLD_Y
+    ]
   );
 
   /* Handle drag stop */
@@ -322,12 +357,13 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       const videoCenterX = dimensions.pixelWidth / 2;
       const videoCenterY = dimensions.pixelHeight / 2;
 
-      const isNearTopCenter =
-        Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
-        newY < minY + TOPBOTTOM_THRESHOLD_Y;
-      const isNearBottomCenter =
-        Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
-        newY > maxY - TOPBOTTOM_THRESHOLD_Y;
+      const nearTop = newY < minY + CORNER_THRESHOLD;
+      const nearBottom = newY > maxY - CORNER_THRESHOLD;
+      const nearVerticalCenter =
+        Math.abs(widgetCenterX - videoCenterX) < CENTER_DISTANCE_THRESHOLD;
+
+      const isNearTopCenter = nearTop && nearVerticalCenter;
+      const isNearBottomCenter = nearBottom && nearVerticalCenter;
       const isNearCenterLeft =
         Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
         newX < minX + LEFTRIGHT_THRESHOLD_X;
