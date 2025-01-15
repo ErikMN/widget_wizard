@@ -399,7 +399,11 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       } else if (isNearCenter) {
         finalAnchor = 'center';
       }
-      /* Play sound if anchored */
+      /* Don't use auto anchor if alignment guide is disabled */
+      if (!appSettings.alignmentGuide) {
+        finalAnchor = 'none';
+      }
+      /* Play sound if auto anchored */
       if (finalAnchor !== 'none') {
         const lockSound = new Audio(lockSoundUrl);
         lockSound.volume = 0.5;
