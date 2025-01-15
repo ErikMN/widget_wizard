@@ -187,7 +187,7 @@ export const defaultAppSettings: AppSettings = {
   widgetDoubleClick: false,
   widgetAutoBringFront: false,
   wsDefault: false,
-  alignmentGuide: false
+  alignmentGuide: true
 };
 
 /* VideoBox dimensions interface */
