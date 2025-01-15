@@ -4,8 +4,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
-import { capitalizeFirstLetter } from '../../helpers/utils';
+import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
+import lockSoundUrl from '../../assets/audio/lock.mp3';
 import {
   CustomSwitch,
   CustomStyledIconButton,
@@ -95,6 +96,12 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         }
       };
       updateWidget(updatedWidget);
+      /* Play sound if anchored */
+      const lockSound = new Audio(lockSoundUrl);
+      lockSound.volume = 0.5;
+      lockSound.play().catch((err) => {
+        console.warn('Failed to play lock audio:', err);
+      });
     },
     [widget, updateWidget]
   );
@@ -413,7 +420,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
               >
                 {widgetCapabilities.data.anchor.enum.map((anchor) => (
                   <MenuItem key={anchor} value={anchor}>
-                    {capitalizeFirstLetter(anchor)}
+                    {toNiceName(anchor)}
                   </MenuItem>
                 ))}
               </Select>
