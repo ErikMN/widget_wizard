@@ -41,6 +41,7 @@ export default defineConfig({
       }
     }
   },
+  assetsInclude: ['**/*.oga'],
   plugins: [
     react(),
     viteTsconfigPaths(),

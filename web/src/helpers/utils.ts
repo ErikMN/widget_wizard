@@ -50,3 +50,12 @@ export function toNiceName(word: string): string {
   //    "max alarm threshold" -> "Max alarm threshold"
   return joined.charAt(0).toUpperCase() + joined.slice(1);
 }
+
+/* Play a sound at volume */
+export const playSound = (url: string, volume: number = 0.5) => {
+  const lockSound = new Audio(url);
+  lockSound.volume = Math.min(Math.max(volume, 0), 1);
+  lockSound.play().catch((err) => {
+    console.warn('Failed to play sound:', err);
+  });
+};

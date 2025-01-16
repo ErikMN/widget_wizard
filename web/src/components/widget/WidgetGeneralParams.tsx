@@ -6,7 +6,8 @@ import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
-import lockSoundUrl from '../../assets/audio/lock.mp3';
+import { playSound } from '../../helpers/utils';
+import lockSoundUrl from '../../assets/audio/lock.oga';
 import {
   CustomSwitch,
   CustomStyledIconButton,
@@ -97,11 +98,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       };
       updateWidget(updatedWidget);
       /* Play sound if anchored */
-      const lockSound = new Audio(lockSoundUrl);
-      lockSound.volume = 0.5;
-      lockSound.play().catch((err) => {
-        console.warn('Failed to play lock audio:', err);
-      });
+      playSound(lockSoundUrl);
     },
     [widget, updateWidget]
   );

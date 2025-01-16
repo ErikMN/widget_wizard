@@ -6,6 +6,8 @@ import React, { createContext, useContext, useState } from 'react';
 import { useLocalStorage, useTabVisibility } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
+import { playSound } from '../helpers/utils';
+import warningSoundUrl from '../assets/audio/warning.oga';
 import {
   ApiResponse,
   Widget,
@@ -183,6 +185,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         'error'
       );
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -213,6 +216,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -249,6 +253,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -305,6 +310,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert(`Failed to add ${widgetType}`, 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -338,6 +344,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -370,6 +377,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
   };
 
@@ -393,6 +401,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       handleOpenAlert('Failed to remove all widgets', 'error');
       console.error('Error:', error);
+      playSound(warningSoundUrl);
     }
     /* Refresh the active widget list after removing all */
     listWidgets();

@@ -7,7 +7,8 @@ import AnchorIndicators from './AnchorIndicators';
 import { Widget } from './widget/widgetInterfaces';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { Dimensions } from './widget/widgetInterfaces';
-import lockSoundUrl from '../assets/audio/lock.mp3';
+import { playSound } from '../helpers/utils';
+import lockSoundUrl from '../assets/audio/lock.oga';
 import {
   HD_WIDTH,
   getWidgetPixelPosition,
@@ -405,11 +406,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       }
       /* Play sound if auto anchored */
       if (finalAnchor !== 'none') {
-        const lockSound = new Audio(lockSoundUrl);
-        lockSound.volume = 0.5;
-        lockSound.play().catch((err) => {
-          console.warn('Failed to play lock audio:', err);
-        });
+        playSound(lockSoundUrl);
       }
       const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
         widgetWidthPx,
