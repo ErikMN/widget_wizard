@@ -215,7 +215,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     (widget: Widget, newX: number, newY: number) => {
       setShowIndicators(false);
 
-      if (!appSettings.alignmentGuide) {
+      if (!appSettings.snapToAnchor) {
         setAlignmentGuides({
           showVerticalCenter: false,
           showHorizontalCenter: false,
@@ -277,7 +277,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       });
     },
     [
-      appSettings.alignmentGuide,
+      appSettings.snapToAnchor,
       dimensions,
       scaleFactor,
       CORNER_THRESHOLD,
@@ -401,7 +401,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         finalAnchor = 'center';
       }
       /* Don't use auto anchor if alignment guide is disabled */
-      if (!appSettings.alignmentGuide) {
+      if (!appSettings.snapToAnchor) {
         finalAnchor = 'none';
       }
       /* Play sound if auto anchored */
@@ -639,7 +639,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
             </Box>
           </Draggable>
           {/* Alignment guide */}
-          {appSettings.alignmentGuide && (
+          {appSettings.snapToAnchor && (
             <div
               style={{
                 position: 'absolute',

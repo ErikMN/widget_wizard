@@ -170,7 +170,7 @@ export interface AppSettings {
   widgetDoubleClick: boolean;
   widgetAutoBringFront: boolean;
   wsDefault: boolean;
-  alignmentGuide: boolean;
+  snapToAnchor: boolean;
 }
 
 /* Application settings default values */
@@ -187,7 +187,7 @@ export const defaultAppSettings: AppSettings = {
   widgetDoubleClick: false,
   widgetAutoBringFront: false,
   wsDefault: false,
-  alignmentGuide: true
+  snapToAnchor: true
 };
 
 /* VideoBox dimensions interface */

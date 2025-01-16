@@ -240,13 +240,13 @@ const Settings: React.FC = () => {
     );
   };
 
-  const handleToggleAlignmentGuide = () => {
+  const handleSnapToAnchor = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
-      alignmentGuide: !prevSettings.alignmentGuide
+      snapToAnchor: !prevSettings.snapToAnchor
     }));
     handleOpenAlert(
-      `Alignment guide enabled: ${!appSettings.alignmentGuide}`,
+      `Snap to anchor enabled: ${!appSettings.snapToAnchor}`,
       'success'
     );
   };
@@ -575,16 +575,16 @@ const Settings: React.FC = () => {
             }
             label="Widget auto bring to front"
           />
-          {/* Switch setting alignment guide */}
+          {/* Switch setting handle snap to anchor */}
           <FormControlLabel
             control={
               <CustomSwitch
-                checked={appSettings.alignmentGuide}
-                onChange={handleToggleAlignmentGuide}
-                name="widgetAlignmentGuide"
+                checked={appSettings.snapToAnchor}
+                onChange={handleSnapToAnchor}
+                name="snapToAnchor"
               />
             }
-            label="Widget alignment guide"
+            label="Widget snap to anchor"
           />
         </Box>
 
