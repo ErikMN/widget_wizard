@@ -263,7 +263,12 @@ const WidgetHandler: React.FC = () => {
       {/* Remove all widgets confirmation dialog */}
       <Dialog
         open={openDialog}
-        onClose={handleDialogClose}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleDialogClose();
+        }}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
