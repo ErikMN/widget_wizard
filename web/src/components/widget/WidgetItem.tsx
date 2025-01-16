@@ -16,11 +16,17 @@ import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
 interface WidgetItemProps {
@@ -148,6 +154,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       console.error(err);
       setJsonError('Invalid JSON format');
     }
+  };
+
+  /****************************************************************************/
+  /* Remove widget dialog handlers */
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+
+  const handleRemoveClick = () => {
+    setOpenDialog(true);
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+  };
+
+  const handleConfirmRemove = () => {
+    removeWidget(widget.generalParams.id);
+    setOpenDialog(false);
   };
 
   /****************************************************************************/
@@ -362,6 +385,50 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </Collapse>
           {/* JSON viewer end */}
 
+          {/* Remove this widget confirmation dialog */}
+          <Dialog
+            open={openDialog}
+            onClose={(event, reason) => {
+              if (reason === 'backdropClick') {
+                return;
+              }
+              handleDialogClose();
+            }}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogTitle id="alert-dialog-title">
+              <Box display="flex" alignItems="center">
+                <WarningAmberIcon style={{ marginRight: '8px' }} />
+                {`Remove ${capitalizeFirstLetter(widget.generalParams.type)}`}
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText id="alert-dialog-description">
+                Are you sure you want to remove{' '}
+                {capitalizeFirstLetter(widget.generalParams.type)}? This action
+                cannot be undone.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <CustomButton
+                variant="outlined"
+                onClick={handleDialogClose}
+                color="primary"
+              >
+                No
+              </CustomButton>
+              <CustomButton
+                variant="contained"
+                onClick={handleConfirmRemove}
+                color="error"
+                autoFocus
+              >
+                Yes
+              </CustomButton>
+            </DialogActions>
+          </Dialog>
+
           {/* Remove and Duplicate buttons*/}
           <Box
             sx={{
@@ -375,7 +442,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             <CustomButton
               color="error"
               variant="contained"
-              onClick={() => removeWidget(widget.generalParams.id)}
+              onClick={handleRemoveClick}
               startIcon={<DeleteIcon />}
               sx={{
                 whiteSpace: 'nowrap',
