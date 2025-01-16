@@ -9,6 +9,7 @@ import { capitalizeFirstLetter } from '../helpers/utils';
 import { Dimensions } from './widget/widgetInterfaces';
 import { playSound } from '../helpers/utils';
 import lockSoundUrl from '../assets/audio/lock.oga';
+import unlockSoundUrl from '../assets/audio/unlock.oga';
 import {
   HD_WIDTH,
   getWidgetPixelPosition,
@@ -405,8 +406,14 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         finalAnchor = 'none';
       }
       /* Play sound if auto anchored */
-      if (finalAnchor !== 'none') {
-        playSound(lockSoundUrl);
+      if (widget.generalParams.anchor !== finalAnchor) {
+        /* anchor to none: unlock */
+        if (widget.generalParams.anchor !== 'none' && finalAnchor === 'none') {
+          playSound(unlockSoundUrl);
+        } else {
+          /* none to anchored and anchored to anchored */
+          playSound(lockSoundUrl);
+        }
       }
       const { Xmin, Xmax, Ymin, Ymax } = getNormalizedCoordinateRanges(
         widgetWidthPx,

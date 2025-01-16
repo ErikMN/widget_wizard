@@ -8,6 +8,7 @@ import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import { playSound } from '../../helpers/utils';
 import lockSoundUrl from '../../assets/audio/lock.oga';
+import unlockSoundUrl from '../../assets/audio/unlock.oga';
 import {
   CustomSwitch,
   CustomStyledIconButton,
@@ -98,7 +99,11 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       };
       updateWidget(updatedWidget);
       /* Play sound if anchored */
-      playSound(lockSoundUrl);
+      if (newAnchor !== 'none') {
+        playSound(lockSoundUrl);
+      } else {
+        playSound(unlockSoundUrl);
+      }
     },
     [widget, updateWidget]
   );
