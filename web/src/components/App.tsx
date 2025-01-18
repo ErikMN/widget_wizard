@@ -5,6 +5,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
 import AboutModal from './AboutModal';
+import AlertSnackbar from './AlertSnackbar';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
@@ -20,7 +21,6 @@ import WidgetInfo from './widget/WidgetInfo';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -37,7 +37,6 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MenuIcon from '@mui/icons-material/Menu';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
-import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -575,24 +574,12 @@ const App: React.FC = () => {
         </Main>
 
         {/* Alert Snackbar */}
-        <Snackbar
-          open={openAlert}
-          autoHideDuration={2000}
-          onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert
-            onClose={handleCloseAlert}
-            severity={alertSeverity}
-            sx={{
-              width: '100%',
-              borderRadius: 0,
-              fontSize: '1.1rem'
-            }}
-          >
-            {alertContent}
-          </Alert>
-        </Snackbar>
+        <AlertSnackbar
+          openAlert={openAlert}
+          alertSeverity={alertSeverity}
+          alertContent={alertContent}
+          handleCloseAlert={handleCloseAlert}
+        />
 
         {/* About Modal */}
         <AboutModal open={aboutModalOpen} handleClose={handleCloseAboutModal} />
