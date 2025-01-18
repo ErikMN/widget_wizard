@@ -41,6 +41,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
 /******************************************************************************/
 
@@ -139,6 +141,7 @@ const App: React.FC = () => {
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
+  const [isMuted, setIsMuted] = useLocalStorage('mute', false);
 
   /* Global context */
   const {
@@ -209,6 +212,14 @@ const App: React.FC = () => {
       return;
     }
     setOpenAlert(false);
+  };
+
+  const handleToggleMute = () => {
+    setIsMuted((prevIsMuted: boolean) => {
+      const newMuteState = !prevIsMuted;
+      localStorage.setItem('mute', newMuteState.toString());
+      return newMuteState;
+    });
   };
 
   const contentMain = () => {
@@ -298,6 +309,37 @@ const App: React.FC = () => {
                 </Typography>
               </Fade>
             </Box>
+
+            {/* Mute button */}
+            <Tooltip title={isMuted ? 'Unmute audio' : 'Mute audio'} arrow>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="mute/unmute audio"
+                  onClick={handleToggleMute}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  {isMuted ? (
+                    <VolumeOffOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  ) : (
+                    <VolumeUpOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  )}
+                </CustomStyledIconButton>
+              </div>
+            </Tooltip>
 
             {/* Show Widget Capabilities JSON button */}
             <Tooltip title="Show widget capabilities JSON" arrow>
