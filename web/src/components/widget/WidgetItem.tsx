@@ -4,11 +4,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
-import { capitalizeFirstLetter } from '../../helpers/utils';
+import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetParams from './WidgetParams';
 import ReactJson from 'react-json-view';
+import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -162,6 +163,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const handleRemoveClick = () => {
     setOpenDialog(true);
+    playSound(messageSoundUrl);
   };
 
   const handleDialogClose = () => {

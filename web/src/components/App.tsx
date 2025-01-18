@@ -9,9 +9,11 @@ import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
+import { playSound } from '../helpers/utils';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
+import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
 import WidgetHandler from './widget/WidgetHandler';
 import WidgetInfo from './widget/WidgetInfo';
@@ -191,7 +193,10 @@ const App: React.FC = () => {
   }, [currentTheme, setCurrentTheme]);
 
   /* Modal open/close handlers */
-  const handleOpenAboutModal = () => setAboutModalOpen(true);
+  const handleOpenAboutModal = () => {
+    setAboutModalOpen(true);
+    playSound(messageSoundUrl);
+  };
   const handleCloseAboutModal = () => setAboutModalOpen(false);
 
   /* App routes navigation handlers */

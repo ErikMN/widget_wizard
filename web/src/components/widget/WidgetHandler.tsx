@@ -6,9 +6,10 @@ import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useGlobalContext } from '../GlobalContext';
-import { capitalizeFirstLetter } from '../../helpers/utils';
+import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
 import { CustomButton } from './../CustomComponents';
+import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
@@ -182,6 +183,7 @@ const WidgetHandler: React.FC = () => {
 
   const handleRemoveAllClick = () => {
     setOpenDialog(true);
+    playSound(messageSoundUrl);
   };
 
   const handleDialogClose = () => {

@@ -8,6 +8,8 @@ import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
 import { playSound } from '../helpers/utils';
 import warningSoundUrl from '../assets/audio/warning.oga';
+import trashSoundUrl from '../assets/audio/trash.oga';
+import newSoundUrl from '../assets/audio/new.oga';
 import {
   ApiResponse,
   Widget,
@@ -160,6 +162,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       const resp: ApiResponse = await jsonRequest(W_CGI, payload);
       setWidgetLoading(false);
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -180,12 +183,12 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     } catch (error) {
       setWidgetLoading(false);
+      playSound(warningSoundUrl);
       handleOpenAlert(
         `Widget ${widgetItem.generalParams.id} failed to update`,
         'error'
       );
       console.error('Error:', error);
-      playSound(warningSoundUrl);
     }
   };
 
@@ -203,6 +206,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -214,9 +218,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
       setWidgetLoading(false);
+      playSound(warningSoundUrl);
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
-      playSound(warningSoundUrl);
     }
   };
 
@@ -235,6 +239,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** WIDGET CAPABILITIES', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -251,9 +256,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
       setWidgetLoading(false);
+      playSound(warningSoundUrl);
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
-      playSound(warningSoundUrl);
     }
   };
 
@@ -298,6 +303,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -305,12 +311,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
       }
+      playSound(newSoundUrl);
       handleOpenAlert(`Added ${widgetType}`, 'success');
     } catch (error) {
       setWidgetLoading(false);
+      playSound(warningSoundUrl);
       handleOpenAlert(`Failed to add ${widgetType}`, 'error');
       console.error('Error:', error);
-      playSound(warningSoundUrl);
     }
   };
 
@@ -332,6 +339,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** ADD WIDGET', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -339,12 +347,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         /* After adding the widget, refresh the active widgets list */
         await listWidgets();
       }
+      playSound(newSoundUrl);
       handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
     } catch (error) {
       setWidgetLoading(false);
+      playSound(warningSoundUrl);
       handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
       console.error('Error:', error);
-      playSound(warningSoundUrl);
     }
   };
 
@@ -365,6 +374,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** REMOVE WIDGET', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
@@ -372,6 +382,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setActiveWidgets((prevWidgets) =>
         prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
       );
+      playSound(trashSoundUrl);
       handleOpenAlert(`Removed widget ${widgetID}`, 'success');
     } catch (error) {
       setWidgetLoading(false);
@@ -393,9 +404,11 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
+        playSound(warningSoundUrl);
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
+      playSound(trashSoundUrl);
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
       setWidgetLoading(false);
