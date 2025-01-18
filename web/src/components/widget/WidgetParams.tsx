@@ -275,19 +275,36 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
     paramConfig: ParamConfig,
     value: number
   ) => {
-    const val = value ?? paramConfig.minimum ?? 0;
     /* If `maximum` is undefined, show a number input */
     if (paramConfig.maximum === undefined) {
+      const rawVal = getNestedValue(localValues, path);
+      const displayVal =
+        typeof rawVal === 'number' ? String(rawVal) : (rawVal ?? '');
+
       return (
         <Box key={path} sx={{ mt: 2 }}>
           <TextField
             size="small"
             type="number"
             label={toNiceName(label)}
-            value={val}
+            value={displayVal}
             onChange={(e) => {
-              const parsed = parseFloat(e.target.value);
-              handleNestedValueChange(path, isNaN(parsed) ? 0 : parsed);
+              /* Update localValues with raw string, no backend call yet */
+              setLocalValues((prev) =>
+                setNestedValue(prev, path, e.target.value)
+              );
+            }}
+            onBlur={(e) => {
+              const valStr = e.target.value.trim();
+              /* Do nothing if field is empty or just '-' */
+              if (valStr === '' || valStr === '-') {
+                return;
+              }
+              /* Parse and send only when user finishes typing a valid number */
+              const parsed = parseFloat(valStr);
+              if (!isNaN(parsed)) {
+                handleNestedValueChange(path, parsed);
+              }
             }}
             fullWidth
             sx={smallTextFieldSx}
@@ -296,6 +313,7 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
       );
     }
     /* Otherwise, show a slider */
+    const val = value ?? paramConfig.minimum ?? 0;
     return (
       <Box key={path} sx={{ mt: 2 }}>
         <Typography>
