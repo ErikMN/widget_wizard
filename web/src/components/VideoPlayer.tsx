@@ -3,6 +3,7 @@ import { Player, Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
 import { WidgetBBox } from './BBox';
+import WebGLSpinningCube from './WebGLTest';
 
 interface VideoPlayerProps {
   showBoundingBoxes?: boolean;
@@ -215,6 +216,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         dimensions={dimensions}
         showBoundingBoxes={showBoundingBoxes}
       />
+      <WebGLSpinningCube dimensions={dimensions} render={appSettings.debug} />
     </div>
   );
 };
