@@ -198,6 +198,28 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
     }
   }, [debouncedDatasource, debouncedChannel, debouncedUpdateTime]);
 
+  const [updateTimeInput, setUpdateTimeInput] = useState(
+    String(widgetState.updateTime)
+  );
+
+  useEffect(() => {
+    setUpdateTimeInput(String(widgetState.updateTime));
+  }, [widgetState.updateTime]);
+
+  const debouncedUpdateTimeInput = useDebouncedValue(updateTimeInput, 500);
+
+  useEffect(() => {
+    if (debouncedUpdateTimeInput !== '') {
+      const parsed = parseFloat(debouncedUpdateTimeInput);
+      if (!isNaN(parsed) && parsed >= 0) {
+        setWidgetState((prevState) => ({
+          ...prevState,
+          updateTime: parsed
+        }));
+      }
+    }
+  }, [debouncedUpdateTimeInput]);
+
   const handleDatasourceChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -225,12 +247,18 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
   const handleUpdateTimeChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const newUpdateTime = parseFloat(event.target.value);
-    if (!isNaN(newUpdateTime) && newUpdateTime >= 0) {
+    setUpdateTimeInput(event.target.value);
+  };
+
+  const handleUpdateTimeBlur = () => {
+    const parsed = parseFloat(updateTimeInput);
+    if (!isNaN(parsed) && parsed >= 0) {
       setWidgetState((prevState) => ({
         ...prevState,
-        updateTime: newUpdateTime
+        updateTime: parsed
       }));
+    } else {
+      setUpdateTimeInput(String(widgetState.updateTime));
     }
   };
 
@@ -485,8 +513,9 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
           <Box sx={{ flex: 1 }}>
             <TextField
               label="Update interval"
-              value={widgetState.updateTime}
+              value={updateTimeInput}
               onChange={handleUpdateTimeChange}
+              onBlur={handleUpdateTimeBlur}
               fullWidth
               variant="outlined"
               placeholder="Update interval"
