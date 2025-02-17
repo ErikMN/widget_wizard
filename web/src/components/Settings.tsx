@@ -12,7 +12,6 @@ import {
 } from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
-import backgroundImage from '../assets/img/c1.jpeg';
 import WidgetsDisabled from './widget/WidgetsDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -307,21 +306,6 @@ const Settings: React.FC = () => {
   }, [currentTheme, setCurrentTheme]);
 
   /****************************************************************************/
-
-  useEffect(() => {
-    if (appSettings.debug) {
-      document.body.style.backgroundImage = `url(${backgroundImage})`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundRepeat = 'no-repeat';
-      return () => {
-        document.body.style.backgroundImage = '';
-        document.body.style.backgroundSize = '';
-        document.body.style.backgroundPosition = '';
-        document.body.style.backgroundRepeat = '';
-      };
-    }
-  }, [appSettings.debug]);
 
   return (
     <ThemeProvider theme={theme}>
