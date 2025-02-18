@@ -3,7 +3,9 @@
 Application for managing widgets on Axis devices. \
 Written in TypeScript and React.
 
-> **⚠️ Important:**  Requires a device with widgets capabilities available.
+> **⚠️ IMPORTANT** \
+> Requires a device with widgets capabilities available.\
+> Unofficial app: Requires "Allow unsigned apps" to be enabled.
 
 ## How to build 🛠️
 
