@@ -1,0 +1,28 @@
+/* JSON Syntax Highlighting */
+.custom-json-theme pre .token.property {
+  color: var(--json-key) !important;
+}
+
+.custom-json-theme pre .token.string {
+  color: var(--json-string) !important;
+}
+
+.custom-json-theme pre .token.number {
+  color: var(--json-number) !important;
+}
+
+.custom-json-theme pre .token.boolean {
+  color: var(--json-boolean) !important;
+}
+
+.custom-json-theme pre .token.null {
+  color: var(--json-null) !important;
+}
+
+.custom-json-theme pre .token.punctuation {
+  color: var(--json-punctuation) !important;
+}
+
+.custom-json-theme pre .token.operator {
+  color: var(--json-operator) !important;
+}

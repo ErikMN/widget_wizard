@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
 import { Widget } from './widgetInterfaces';
@@ -31,6 +31,8 @@ import ImageIcon from '@mui/icons-material/Image';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
+
+import '../../assets/css/prism-theme.css';
 
 interface WidgetItemProps {
   widget: Widget;
@@ -75,6 +77,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
+
+  /* Prism JSON syntax highligh theme https://github.com/PrismJS/prism-themes */
+  const codeStyles: Record<string, string> = useMemo(
+    () => ({
+      '--json-key': isDarkMode ? '#ffcb6b' : '#d35400',
+      '--json-string': isDarkMode ? '#c3e88d' : '#388e3c',
+      '--json-number': isDarkMode ? '#f78c6c' : '#d84315',
+      '--json-boolean': isDarkMode ? '#82aaff' : '#1565c0',
+      '--json-null': isDarkMode ? '#ff5370' : '#c62828',
+      '--json-punctuation': isDarkMode ? '#89ddff' : '#546e7a',
+      '--json-operator': isDarkMode ? '#ff9cac' : '#ff6f61',
+      '--background': theme.palette.background.paper,
+      '--text-color': theme.palette.text.primary,
+      '--border-color': jsonError ? '#d32f2f' : theme.palette.divider
+    }),
+    [isDarkMode, theme, jsonError]
+  );
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {
@@ -319,29 +338,32 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           <Collapse in={jsonVisible}>
             {/* Editable JSON field */}
             {!useJsonEditorPro ? (
-              <CodeEditor
-                value={jsonInput}
-                onChange={(e) => setJsonInput(e.target.value)}
-                language="json"
-                data-color-mode={isDarkMode ? 'dark' : 'light'}
-                style={{
-                  color: theme.palette.text.primary,
-                  backgroundColor: theme.palette.background.paper,
-                  marginTop: 8,
-                  width: '100%',
-                  fontSize: 14,
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
-                  borderRadius: 8,
-                  border: jsonError ? '1px solid red' : '1px solid #ccc'
-                }}
-                rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
-                placeholder="JSON"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-              />
+              <div style={codeStyles}>
+                <CodeEditor
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  language="json"
+                  data-color-mode={isDarkMode ? 'dark' : 'light'}
+                  className="custom-json-theme"
+                  style={{
+                    color: theme.palette.text.primary,
+                    backgroundColor: theme.palette.background.paper,
+                    marginTop: 8,
+                    width: '100%',
+                    fontSize: 14,
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
+                    borderRadius: 8,
+                    border: jsonError ? '1px solid red' : '1px solid #ccc'
+                  }}
+                  rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
+                  placeholder="JSON"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                />
+              </div>
             ) : (
               /* JSON editor PRO */
               <ReactJson
