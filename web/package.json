@@ -16,6 +16,7 @@
     "@types/lodash": "^4.17.14",
     "@types/react": "^18.3.13",
     "@types/react-dom": "^18.3.1",
+    "@uiw/react-textarea-code-editor": "^3.1.0",
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
     "media-stream-library": "^13.3.3",
@@ -26,6 +27,7 @@
     "react-json-view": "^1.21.3",
     "react-router-dom": "^6.28.0",
     "react-syntax-highlighter": "^15.6.1",
+    "rehype-prism-plus": "^2.0.0",
     "styled-components": "^6.1.14",
     "typescript": "^5.7.3"
   },

@@ -2,6 +2,8 @@
  * WidgetItem: Represent one widget.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import CodeEditor from '@uiw/react-textarea-code-editor';
+import rehypePrism from 'rehype-prism-plus';
 import { Widget } from './widgetInterfaces';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
@@ -11,6 +13,7 @@ import WidgetParams from './WidgetParams';
 import ReactJson from 'react-json-view';
 import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
@@ -25,7 +28,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
@@ -70,6 +72,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     openDropdownIndex,
     activeDraggableWidget
   } = useGlobalContext();
+
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {
@@ -309,31 +314,33 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </CustomButton>
 
           {/* JSON editor */}
+          {/* https://github.com/uiwjs/react-textarea-code-editor */}
+          {/* https://github.com/timlrx/rehype-prism-plus */}
           <Collapse in={jsonVisible}>
             {/* Editable JSON field */}
             {!useJsonEditorPro ? (
-              <TextField
-                label="JSON"
-                error={jsonError !== null}
-                multiline
-                minRows={8}
+              <CodeEditor
                 value={jsonInput}
-                onChange={handleJsonChange}
-                fullWidth
-                variant="outlined"
-                sx={{
-                  marginTop: 1,
-                  '& textarea': {
-                    resize: 'none',
-                    fontFamily: 'Monospace',
-                    fontSize: '14px'
-                  }
+                onChange={(e) => setJsonInput(e.target.value)}
+                language="json"
+                data-color-mode={isDarkMode ? 'dark' : 'light'}
+                style={{
+                  color: theme.palette.text.primary,
+                  backgroundColor: theme.palette.background.paper,
+                  marginTop: 8,
+                  width: '100%',
+                  fontSize: 14,
+                  fontFamily:
+                    'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
+                  borderRadius: 8,
+                  border: jsonError ? '1px solid red' : '1px solid #ccc'
                 }}
-                slotProps={{
-                  input: {
-                    spellCheck: false
-                  }
-                }}
+                rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
+                placeholder="JSON"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
               />
             ) : (
               /* JSON editor PRO */
