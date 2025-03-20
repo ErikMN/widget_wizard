@@ -1,6 +1,7 @@
 import React from 'react';
 import logo from '../assets/img/widgy2.png';
 import logo_xmas from '../assets/img/widgy_xmas.png';
+import logo_easter from '../assets/img/widgy_easter.png';
 
 interface LogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {}
 
@@ -15,7 +16,15 @@ const Logo: React.FC<LogoProps> = (props) => {
     (currentMonth === 11 && currentDay >= 1) || // December 1–31
     (currentMonth === 0 && currentDay <= 13); // January 1–13
 
-  const logoToDisplay = isXmasPeriod ? logo_xmas : logo;
+  /* Easter period: entire April (month 3) */
+  const isEasterPeriod = currentMonth === 3;
+
+  let logoToDisplay = logo;
+  if (isXmasPeriod) {
+    logoToDisplay = logo_xmas;
+  } else if (isEasterPeriod) {
+    logoToDisplay = logo_easter;
+  }
 
   return <img src={logoToDisplay} alt="Logo" {...props} />;
 };
