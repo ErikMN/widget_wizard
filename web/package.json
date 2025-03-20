@@ -25,7 +25,7 @@
     "react-dom": "^18.3.1",
     "react-draggable": "^4.4.6",
     "react-json-view": "^1.21.3",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.4.0",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-prism-plus": "^2.0.0",
     "styled-components": "^6.1.14",
