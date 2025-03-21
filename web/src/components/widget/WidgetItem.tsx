@@ -14,6 +14,7 @@ import ReactJson from 'react-json-view';
 import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
 import { useTheme } from '@mui/material/styles';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
@@ -83,7 +84,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     () => ({
       '--json-key': isDarkMode ? '#ffcb6b' : '#d35400',
       '--json-string': isDarkMode ? '#c3e88d' : '#388e3c',
-      '--json-number': isDarkMode ? '#f78c6c' : '#d84315',
+      '--json-number': isDarkMode ? '#f78c6c' : '#d80080',
       '--json-boolean': isDarkMode ? '#82aaff' : '#1565c0',
       '--json-null': isDarkMode ? '#ff5370' : '#c62828',
       '--json-punctuation': isDarkMode ? '#89ddff' : '#546e7a',
@@ -347,14 +348,18 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                   className="custom-json-theme"
                   style={{
                     color: theme.palette.text.primary,
-                    backgroundColor: theme.palette.background.paper,
+                    backgroundColor: isDarkMode
+                      ? theme.palette.background.paper
+                      : '#ffffe6',
                     marginTop: 8,
                     width: '100%',
                     fontSize: 14,
                     fontFamily:
                       'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
                     borderRadius: 8,
-                    border: jsonError ? '1px solid red' : '1px solid #ccc'
+                    border: jsonError
+                      ? '1px solid red'
+                      : `1px solid ${theme.palette.background.paper}`
                   }}
                   rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
                   placeholder="JSON"
@@ -387,9 +392,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             )}
             {/* Display error if invalid JSON */}
             {jsonError && (
-              <Typography color="error" variant="body2" sx={{ marginTop: 1 }}>
+              <Alert severity="error" sx={{ marginTop: 1 }}>
                 {jsonError}
-              </Typography>
+              </Alert>
             )}
             {appSettings.debug && (
               <CustomButton
