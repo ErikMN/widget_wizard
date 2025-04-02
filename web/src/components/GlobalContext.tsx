@@ -268,6 +268,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       apiVersion: '2.0',
       method: 'addWidget',
       params: {
+        /* Default general widget parameter settings */
         generalParams: {
           type: widgetType,
           datasource: '#D0',
@@ -275,7 +276,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
           channel: 1,
           isVisible: true,
           position: { x: 0, y: 0 },
-          size: 'small',
+          size: 'medium',
           transparency: 0,
           updateTime: 1
         },
