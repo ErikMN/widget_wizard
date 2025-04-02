@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { playSound } from '../helpers/utils';
+import lockSoundUrl from '../assets/audio/lock.oga';
+import unlockSoundUrl from '../assets/audio/unlock.oga';
 /* MUI */
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
@@ -62,7 +65,15 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
       onClose={handleCloseAlert}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
     >
-      <div onClick={() => setIsPersistent((prev) => !prev)}>
+      <div
+        onClick={() => {
+          setIsPersistent((prev) => {
+            const newState = !prev;
+            playSound(newState ? lockSoundUrl : unlockSoundUrl);
+            return newState;
+          });
+        }}
+      >
         <Alert
           onClose={handleCloseAlert}
           severity={alertSeverity}
