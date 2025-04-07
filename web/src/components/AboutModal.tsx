@@ -56,10 +56,11 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             height: isMobile ? '100%' : 'auto',
             maxWidth: '800px',
             minWidth: '300px',
+            maxHeight: isMobile ? '100%' : '90vh',
+            overflowY: 'auto',
             bgcolor: 'background.paper',
             boxShadow: 24,
-            borderRadius: isMobile ? 0 : 1,
-            overflowY: isMobile ? 'auto' : 'unset'
+            borderRadius: isMobile ? 0 : 1
           }}
         >
           <img
