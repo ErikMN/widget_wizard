@@ -9,7 +9,7 @@ import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import WidgetGeneralParams from './WidgetGeneralParams';
-import WidgetParams from './WidgetParams';
+import WidgetSpecificParams from './WidgetSpecificParams';
 import ReactJson from 'react-json-view';
 import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
@@ -304,7 +304,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               : 'Show widget parameters'}
           </CustomButton>
           <Collapse in={widgetParamsVisible}>
-            <WidgetParams widget={widget} />
+            <WidgetSpecificParams widget={widget} />
           </Collapse>
           {/* Widget Params End */}
 

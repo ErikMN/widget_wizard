@@ -1,4 +1,4 @@
-/* WidgetParams: Auto generate widget specific parameter UI elements. (WIP) */
+/* WidgetSpecificParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
 import { useGlobalContext } from '../GlobalContext';
 import { Widget } from './widgetInterfaces';
@@ -22,11 +22,13 @@ interface ParamConfig {
   [key: string]: any;
 }
 
-interface WidgetParamsProps {
+interface WidgetSpecificParamsProps {
   widget: Widget;
 }
 
-const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
+const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
+  widget
+}) => {
   /* Global context */
   const { widgetCapabilities, updateWidget, appSettings } = useGlobalContext();
 
@@ -415,4 +417,4 @@ const WidgetParams: React.FC<WidgetParamsProps> = ({ widget }) => {
   );
 };
 
-export default WidgetParams;
+export default WidgetSpecificParams;
