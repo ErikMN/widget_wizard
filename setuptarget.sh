@@ -19,11 +19,20 @@ FMT_RESET=$(printf '\033[0m')
 SCRIPT_DIR="$(pwd)"
 
 # HACK: trim web from end of path if sourcing from that dir:
-SCRIPT_DIR=$(echo "$SCRIPT_DIR" | sed 's|/web$||')
+SCRIPT_DIR=${SCRIPT_DIR%/web}
 
-# HACK: Don't polute git status with modified .vscode stuff (disable: --no-skip-worktree)
+# Don't polute git status with modified .vscode stuff (disable: --no-skip-worktree)
 # https://stackoverflow.com/questions/1274057/how-do-i-make-git-forget-about-a-file-that-was-tracked-but-is-now-in-gitignore
-git update-index --skip-worktree "$SCRIPT_DIR"/.vscode/*
+# Safely mark .vscode files as skip-worktree (only if they are tracked)
+if [ -d "$SCRIPT_DIR/.vscode" ]; then
+  for file in "$SCRIPT_DIR"/.vscode/*; do
+    if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+      git update-index --skip-worktree "$file" || echo "${FMT_RED}Warning: Failed to mark $file as skip-worktree${FMT_RESET}"
+    else
+      echo "${FMT_WHITE}Info: Skipping untracked file $file${FMT_RESET}"
+    fi
+  done
+fi
 
 # Set the git hooks path:
 git config core.hooksPath "$SCRIPT_DIR/hooks"
