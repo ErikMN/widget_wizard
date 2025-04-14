@@ -62,6 +62,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
     LEFTRIGHT_THRESHOLD_Y_PERCENT * dimensions.pixelHeight;
 
   /* Local state */
+  const [wasDragged, setWasDragged] = React.useState(false);
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
   const [dragStartPos, setDragStartPos] = React.useState<{
     x: number;
@@ -200,6 +201,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       // console.log(
       //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
       // );
+      setWasDragged(false);
       setDragStartPos({ x, y });
       setActiveDraggableWidget({
         id: widget.generalParams.id,
@@ -214,6 +216,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
   /* Handle dragging */
   const handleDrag = useCallback(
     (widget: Widget, newX: number, newY: number) => {
+      setWasDragged(true);
       setShowIndicators(false);
 
       if (!appSettings.snapToAnchor) {
@@ -534,6 +537,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
         (w) => w.generalParams.id === widget.generalParams.id
       );
       if (index !== -1) {
+        /* Don't toggle dropdown if dragged */
+        if (wasDragged) {
+          return;
+        }
         const isCurrentlyOpen = openDropdownIndex === index;
         setActiveDraggableWidget({
           id: widget.generalParams.id,
