@@ -602,7 +602,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
                 cursor: 'move',
                 backgroundColor:
                   widgetIsActive && activeDraggableWidget?.highlight
-                    ? 'rgba(255, 255, 255, 0.3)'
+                    ? `${bboxColor}4D`
                     : 'transparent',
                 zIndex: widgetIsActive ? 1000 : 1,
                 opacity:
