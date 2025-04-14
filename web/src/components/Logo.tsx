@@ -20,13 +20,24 @@ const Logo: React.FC<LogoProps> = (props) => {
   const isEasterPeriod = currentMonth === 3;
 
   let logoToDisplay = logo;
+  let hoverMessage = '';
+
   if (isXmasPeriod) {
     logoToDisplay = logo_xmas;
+    hoverMessage = 'Merry Christmas!';
   } else if (isEasterPeriod) {
     logoToDisplay = logo_easter;
+    hoverMessage = 'Happy Easter!';
   }
 
-  return <img src={logoToDisplay} alt="Logo" {...props} />;
+  return (
+    <img
+      src={logoToDisplay}
+      alt="Logo"
+      title={hoverMessage || 'Welcome!'}
+      {...props}
+    />
+  );
 };
 
 export default Logo;
