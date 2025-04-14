@@ -95,6 +95,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
       open={open}
       onClose={handleClose}
       closeAfterTransition
+      sx={{ zIndex: 2000 }}
     >
       <Fade in={open}>
         <Box
