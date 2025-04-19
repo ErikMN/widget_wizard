@@ -103,8 +103,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       blue: '#00aaff',
       red: '#ff4444',
       green: '#00cc00',
-      purple: '#d633ff',
-      none: 'none'
+      purple: '#d633ff'
     };
     return colorMappings[appSettings.bboxColor] || '#ffcc33';
   }, [appSettings.bboxColor]);

@@ -29,7 +29,7 @@ import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
-const availableColors = ['yellow', 'blue', 'red', 'green', 'purple', 'none'];
+const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
 const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
   'small',
   'medium',
