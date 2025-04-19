@@ -1,6 +1,6 @@
 import version from '../assets/etc/version_info?raw';
 
-function AppVersion(): JSX.Element | null {
+function AppVersion() {
   const commitHash: string | undefined = import.meta.env.VITE_COMMIT_HASH;
 
   /* If no static version info: try dynamic version info */

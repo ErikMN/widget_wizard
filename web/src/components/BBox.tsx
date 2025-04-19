@@ -567,6 +567,14 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
 
   const widgetIsActive = activeDraggableWidget?.id === widget.generalParams.id;
 
+  /* NOTE: React 19: ReactDOM.findDOMNode() is removed.
+   * react-draggable still tries to use findDOMNode unless a `nodeRef` is provided.
+   * In order for <Draggable> to work properly, we need raw access to the underlying DOM node.
+   * https://www.npmjs.com/package/react-draggable
+   * https://github.com/react-dnd/react-dnd/issues/3655
+   */
+  const nodeRef = React.useRef<HTMLElement | null>(null);
+
   return (
     /* Wrap Draggable in div to handle click events */
     <div
@@ -577,6 +585,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
       <Fade in={true} timeout={500}>
         <div>
           <Draggable
+            nodeRef={nodeRef as React.RefObject<HTMLElement>}
             key={`${widget.generalParams.id}-${x}-${y}`}
             position={{ x, y }}
             bounds={{
@@ -590,6 +599,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
             onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
           >
             <Box
+              ref={nodeRef}
               sx={{
                 width: `${widget.width * scaleFactor}px`,
                 height: `${widget.height * scaleFactor}px`,
