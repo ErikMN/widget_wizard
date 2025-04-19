@@ -240,7 +240,18 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
         }
       >
-        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flex: 1,
+            /* Don't break line, don't show scrollbar */
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           {/* Widget title and info */}
           <Typography
             variant="subtitle2"
