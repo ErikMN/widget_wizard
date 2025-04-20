@@ -195,12 +195,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
     widget.height
   ]);
 
+  const suppressClickRef = React.useRef(false);
+
   /* Handle drag start */
   const handleDragStart = useCallback(
     (widget: Widget, x: number, y: number) => {
       // console.log(
       //   `Dragging started for widget ${widget.generalParams.id} at position (${x}, ${y})`
       // );
+      suppressClickRef.current = false;
       setDragStartPos({ x, y });
       setActiveDraggableWidget({
         id: widget.generalParams.id,
@@ -306,6 +309,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
       const dist = Math.sqrt(
         (newX - dragStartPos.x) ** 2 + (newY - dragStartPos.y) ** 2
       );
+      /* If it actually moved, ignore the next click that follows mouse‑up */
+      if (dist >= MOVE_THRESHOLD) {
+        suppressClickRef.current = true;
+      }
       /* If movement < MOVE_THRESHOLD and anchored: don't move */
       if (dist < MOVE_THRESHOLD && widget.generalParams.anchor !== 'none') {
         if (appSettings.debug) {
@@ -531,6 +538,11 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
   const handleBBoxClick = useCallback(
     (widget: Widget) => {
       // console.log(`clicked widget ${widget.generalParams.id}`);
+      /* Skip the synthetic click that immediately follows a drag */
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       const index = activeWidgets.findIndex(
         (w) => w.generalParams.id === widget.generalParams.id
       );
