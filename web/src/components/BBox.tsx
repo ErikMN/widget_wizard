@@ -1,7 +1,7 @@
 /**
  * Draggable bounding boxes to be overlaid on a video surface
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import AnchorIndicators from './AnchorIndicators';
 import { Widget } from './widget/widgetInterfaces';
@@ -40,9 +40,11 @@ const LEFTRIGHT_THRESHOLD_Y_PERCENT = 0.02;
 interface BBoxProps {
   widget: Widget;
   dimensions: Dimensions;
+  registerRef?: (el: HTMLElement | null) => void;
 }
 
-const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
+// prettier-ignore
+const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef }) => {
   /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
@@ -598,7 +600,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions }) => {
             onStop={(e, data) => handleDragStop(widget, data.x, data.y)}
           >
             <Box
-              ref={nodeRef}
+              ref={(el) => {
+                nodeRef.current = el as HTMLElement | null;
+                registerRef?.(el as HTMLElement | null);
+              }}
               sx={{
                 width: `${widget.width * scaleFactor}px`,
                 height: `${widget.height * scaleFactor}px`,
@@ -761,7 +766,45 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
   showBoundingBoxes = true
 }) => {
   /* Global context */
-  const { activeWidgets } = useGlobalContext();
+  const {
+    activeWidgets,
+    activeDraggableWidget,
+    setActiveDraggableWidget,
+    setOpenDropdownIndex
+  } = useGlobalContext();
+
+  /* Refs: keep live refs to all BBox elements */
+  const bboxRefs = useRef<Set<HTMLElement>>(new Set());
+
+  /* Effect to handle bbox refs */
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      /* Ignore while dragging */
+      if (activeDraggableWidget?.active) {
+        return;
+      }
+      for (const el of bboxRefs.current) {
+        /* Click inside a bbox */
+        if (el.contains(e.target as Node)) {
+          return;
+        }
+      }
+      setActiveDraggableWidget({
+        id: null,
+        active: false,
+        clickBBox: false,
+        highlight: false
+      });
+      setOpenDropdownIndex(null);
+    };
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    return () =>
+      window.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [
+    activeDraggableWidget?.active,
+    setActiveDraggableWidget,
+    setOpenDropdownIndex
+  ]);
 
   return (
     <div>
@@ -772,6 +815,9 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
           style={{
             // backgroundColor: 'blue',
             position: 'absolute',
+            /* NOTE: This is important since without it we will block the video players
+             * click surface. Handle click outside bbox with individual bbox refs instead.
+             */
             pointerEvents: 'none',
             top: `${dimensions.offsetY}px`,
             left: `${dimensions.offsetX}px`,
@@ -793,6 +839,19 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
                   key={widget.generalParams.id}
                   widget={widget}
                   dimensions={dimensions}
+                  /* Each bbox have its own ref */
+                  registerRef={(el) => {
+                    if (el) {
+                      bboxRefs.current.add(el);
+                    } else {
+                      /* Remove refs that were just unmounted */
+                      bboxRefs.current.forEach((ref) => {
+                        if (!ref.isConnected) {
+                          bboxRefs.current.delete(ref);
+                        }
+                      });
+                    }
+                  }}
                 />
               );
             }
