@@ -587,7 +587,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
         <div>
           <Draggable
             nodeRef={nodeRef as React.RefObject<HTMLElement>}
-            key={widget.generalParams.id}
+            key={`${widget.generalParams.id}-${x}-${y}`}
             position={{ x, y }}
             bounds={{
               left: 0,
@@ -774,14 +774,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
   } = useGlobalContext();
 
   /* Refs: keep live refs to all BBox elements */
-  const bboxRefs = useRef<WeakSet<HTMLElement>>(new WeakSet());
-
-  /* Callback reused across renders to keep <BBox> memo‑friendly */
-  const addBBoxRef = useCallback((el: HTMLElement | null) => {
-    if (el) {
-      bboxRefs.current.add(el);
-    }
-  }, []);
+  const bboxRefs = useRef<Set<HTMLElement>>(new Set());
 
   /* Effect to handle bbox refs */
   useEffect(() => {
@@ -790,7 +783,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
       if (activeDraggableWidget?.active) {
         return;
       }
-      for (const el of bboxRefs.current as any as Set<HTMLElement>) {
+      for (const el of bboxRefs.current) {
         /* Click inside a bbox */
         if (el.contains(e.target as Node)) {
           return;
@@ -807,7 +800,11 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
     window.addEventListener('pointerdown', handlePointerDown, true);
     return () =>
       window.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [activeDraggableWidget?.active]);
+  }, [
+    activeDraggableWidget?.active,
+    setActiveDraggableWidget,
+    setOpenDropdownIndex
+  ]);
 
   return (
     <div>
@@ -843,7 +840,18 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
                   widget={widget}
                   dimensions={dimensions}
                   /* Each bbox have its own ref */
-                  registerRef={addBBoxRef}
+                  registerRef={(el) => {
+                    if (el) {
+                      bboxRefs.current.add(el);
+                    } else {
+                      /* Remove refs that were just unmounted */
+                      bboxRefs.current.forEach((ref) => {
+                        if (!ref.isConnected) {
+                          bboxRefs.current.delete(ref);
+                        }
+                      });
+                    }
+                  }}
                 />
               );
             }
