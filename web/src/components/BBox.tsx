@@ -782,7 +782,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   } = useGlobalContext();
 
   /* Refs: keep live refs to all BBox elements */
-  const bboxRefs = useRef<Set<HTMLElement>>(new Set());
+  const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());
   /* Refs: Reference to the video-player-overlay */
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -803,16 +803,18 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
         e.clientX <= rect.right &&
         e.clientY >= rect.top &&
         e.clientY <= rect.bottom;
-      /* Not clicked in the video-player-overlay */
+      /* Not clicked in the video-player-overlay: return */
       if (!insideOverlay) {
         return;
       }
-      for (const el of bboxRefs.current) {
-        /* Click inside a bbox */
+      /* Check all bbox refs */
+      for (const [, el] of bboxRefs.current) {
+        /* Click inside a bbox: return */
         if (el.contains(e.target as Node)) {
           return;
         }
       }
+      /* Click outside a bbox but inside the video-player-overlay: deactivate widget */
       setActiveDraggableWidget({
         id: null,
         active: false,
@@ -855,6 +857,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
           (widget.generalParams.channel === -1 ||
             widget.generalParams.channel === 1)
         ) {
+          const widgetId = widget.generalParams.id;
           return (
             /* One BBox per active widget */
             <BBox
@@ -864,14 +867,11 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
               /* Each bbox have its own ref */
               registerRef={(el) => {
                 if (el) {
-                  bboxRefs.current.add(el);
+                  /* Mount: store the bbox element reference using widget ID */
+                  bboxRefs.current.set(widgetId, el);
                 } else {
-                  /* Remove refs that were just unmounted */
-                  bboxRefs.current.forEach((ref) => {
-                    if (!ref.isConnected) {
-                      bboxRefs.current.delete(ref);
-                    }
-                  });
+                  /* Unmount: remove the bbox reference by widget ID */
+                  bboxRefs.current.delete(widgetId);
                 }
               }}
             />
