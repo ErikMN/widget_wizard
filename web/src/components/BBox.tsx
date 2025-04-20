@@ -783,12 +783,28 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
 
   /* Refs: keep live refs to all BBox elements */
   const bboxRefs = useRef<Set<HTMLElement>>(new Set());
+  /* Refs: Reference to the video-player-overlay */
+  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   /* Effect to handle bbox refs */
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
       /* Ignore while dragging */
       if (activeDraggableWidget?.active) {
+        return;
+      }
+      if (!overlayRef.current) {
+        return;
+      }
+      /* Was the click inside the video-player-overlay? */
+      const rect = overlayRef.current.getBoundingClientRect();
+      const insideOverlay =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+      /* Not clicked in the video-player-overlay */
+      if (!insideOverlay) {
         return;
       }
       for (const el of bboxRefs.current) {
@@ -817,6 +833,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   return (
     /* Widget bounding boxes */
     <div
+      ref={overlayRef}
       style={{
         // backgroundColor: 'blue',
         position: 'absolute',
