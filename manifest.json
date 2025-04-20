@@ -12,7 +12,7 @@
                 "group": "sdk"
             },
             "runMode": "never",
-            "version": "1.2.3"
+            "version": "1.2.4"
         },
         "configuration": {
             "paramConfig": [
