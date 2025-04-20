@@ -4,10 +4,6 @@ import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
 import { WidgetBBox } from './BBox';
 
-interface VideoPlayerProps {
-  showBoundingBoxes?: boolean;
-}
-
 interface VapixConfig {
   compression: string;
   resolution: string;
@@ -46,9 +42,7 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  showBoundingBoxes = true
-}) => {
+const VideoPlayer: React.FC = () => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
@@ -211,10 +205,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         vapixParams={vapixParams}
       />
       {/* Widget bounding boxes */}
-      <WidgetBBox
-        dimensions={dimensions}
-        showBoundingBoxes={showBoundingBoxes}
-      />
+      <WidgetBBox dimensions={dimensions} />
     </div>
   );
 };

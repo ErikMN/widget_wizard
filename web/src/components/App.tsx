@@ -40,8 +40,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
 import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
@@ -137,7 +135,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const App: React.FC = () => {
   /* Local state */
-  const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
 
   /* Local storage state */
@@ -366,44 +363,6 @@ const App: React.FC = () => {
               </div>
             </Tooltip>
 
-            {/* Toggle Bounding Boxes Button */}
-            <Tooltip
-              title={
-                showBoundingBoxes
-                  ? 'Hide bounding boxes'
-                  : 'Show bounding boxes'
-              }
-              arrow
-            >
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="toggle bounding boxes"
-                  onClick={() => setShowBoundingBoxes((prev) => !prev)}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  {showBoundingBoxes ? (
-                    <VisibilityOutlinedIcon
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        color: 'text.secondary'
-                      }}
-                    />
-                  ) : (
-                    <VisibilityOffOutlinedIcon
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        color: 'text.secondary'
-                      }}
-                    />
-                  )}
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-
             {/* Info Button (left of theme icon) */}
             <Tooltip title="About info" arrow>
               <div>
@@ -570,7 +529,7 @@ const App: React.FC = () => {
         <Main open={drawerOpen} isMobile={isMobile}>
           <DrawerHeader />
           {/* Video Player */}
-          <VideoPlayer showBoundingBoxes={showBoundingBoxes} />
+          <VideoPlayer />
         </Main>
 
         {/* Alert Snackbar */}

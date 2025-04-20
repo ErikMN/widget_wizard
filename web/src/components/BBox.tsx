@@ -770,13 +770,9 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
 
 interface WidgetBBoxProps {
   dimensions: Dimensions;
-  showBoundingBoxes?: boolean;
 }
 
-const WidgetBBox: React.FC<WidgetBBoxProps> = ({
-  dimensions,
-  showBoundingBoxes = true
-}) => {
+const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const {
     activeWidgets,
@@ -819,58 +815,53 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({
   ]);
 
   return (
-    <div>
-      {/* Widget bounding boxes */}
-      {showBoundingBoxes && (
-        /* BBox surface */
-        <div
-          style={{
-            // backgroundColor: 'blue',
-            position: 'absolute',
-            /* NOTE: This is important since without it we will block the video players
-             * click surface. Handle click outside bbox with individual bbox refs instead.
-             */
-            pointerEvents: 'none',
-            top: `${dimensions.offsetY}px`,
-            left: `${dimensions.offsetX}px`,
-            width: `${dimensions.pixelWidth}px`,
-            height: `${dimensions.pixelHeight}px`,
-            zIndex: 1
-          }}
-        >
-          {activeWidgets.map((widget: Widget) => {
-            if (
-              /* HACK: Until channel can be selected in videoplayer don't show BBox on other channels than -1 and 1 */
-              widget.generalParams.isVisible &&
-              (widget.generalParams.channel === -1 ||
-                widget.generalParams.channel === 1)
-            ) {
-              return (
-                /* One BBox per active widget */
-                <BBox
-                  key={widget.generalParams.id}
-                  widget={widget}
-                  dimensions={dimensions}
-                  /* Each bbox have its own ref */
-                  registerRef={(el) => {
-                    if (el) {
-                      bboxRefs.current.add(el);
-                    } else {
-                      /* Remove refs that were just unmounted */
-                      bboxRefs.current.forEach((ref) => {
-                        if (!ref.isConnected) {
-                          bboxRefs.current.delete(ref);
-                        }
-                      });
+    /* Widget bounding boxes */
+    <div
+      style={{
+        // backgroundColor: 'blue',
+        position: 'absolute',
+        /* NOTE: This is important since without it we will block the video players
+         * click surface. Handle click outside bbox with individual bbox refs instead.
+         */
+        pointerEvents: 'none',
+        top: `${dimensions.offsetY}px`,
+        left: `${dimensions.offsetX}px`,
+        width: `${dimensions.pixelWidth}px`,
+        height: `${dimensions.pixelHeight}px`,
+        zIndex: 1
+      }}
+    >
+      {activeWidgets.map((widget: Widget) => {
+        if (
+          /* HACK: Until channel can be selected in videoplayer don't show BBox on other channels than -1 and 1 */
+          widget.generalParams.isVisible &&
+          (widget.generalParams.channel === -1 ||
+            widget.generalParams.channel === 1)
+        ) {
+          return (
+            /* One BBox per active widget */
+            <BBox
+              key={widget.generalParams.id}
+              widget={widget}
+              dimensions={dimensions}
+              /* Each bbox have its own ref */
+              registerRef={(el) => {
+                if (el) {
+                  bboxRefs.current.add(el);
+                } else {
+                  /* Remove refs that were just unmounted */
+                  bboxRefs.current.forEach((ref) => {
+                    if (!ref.isConnected) {
+                      bboxRefs.current.delete(ref);
                     }
-                  }}
-                />
-              );
-            }
-            return null;
-          })}
-        </div>
-      )}
+                  });
+                }
+              }}
+            />
+          );
+        }
+        return null;
+      })}
     </div>
   );
 };
