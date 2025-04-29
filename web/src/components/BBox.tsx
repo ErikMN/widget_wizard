@@ -373,6 +373,10 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
       const nearVerticalCenter =
         Math.abs(widgetCenterX - videoCenterX) < CENTER_DISTANCE_THRESHOLD;
 
+      /* Compute horizontal centre proximity */
+      const nearHorizontalCenter =
+        Math.abs(widgetCenterY - videoCenterY) < CENTER_DISTANCE_THRESHOLD;
+
       const isNearTopCenter = nearTop && nearVerticalCenter;
       const isNearBottomCenter = nearBottom && nearVerticalCenter;
       const isNearCenterLeft =
@@ -382,11 +386,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
         Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
         newX > maxX - LEFTRIGHT_THRESHOLD_X;
       /* Full center */
-      const centerDist = Math.sqrt(
-        (widgetCenterX - videoCenterX) ** 2 +
-          (widgetCenterY - videoCenterY) ** 2
-      );
-      const isNearCenter = centerDist < CENTER_DISTANCE_THRESHOLD;
+      const isNearCenter = nearVerticalCenter && nearHorizontalCenter;
 
       /* Set anchor based on position */
       let finalAnchor = 'none';
