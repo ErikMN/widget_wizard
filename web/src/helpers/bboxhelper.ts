@@ -128,3 +128,99 @@ export const getWidgetPixelPosition = (
     Ymax
   );
 };
+
+export interface AlignmentFlags {
+  nearTop: boolean;
+  nearBottom: boolean;
+  nearLeft: boolean;
+  nearRight: boolean;
+  nearVerticalCenter: boolean;
+  nearHorizontalCenter: boolean;
+  nearTopCenter: boolean;
+  nearBottomCenter: boolean;
+  nearCenterLeft: boolean;
+  nearCenterRight: boolean;
+  isNearCenter: boolean;
+}
+
+/* Computes all proximity/guide flags for the current drag position */
+export const getAlignmentFlags = (
+  newX: number,
+  newY: number,
+  widgetWidthPx: number,
+  widgetHeightPx: number,
+  dimensions: Dimensions,
+  thresholds: {
+    CORNER_THRESHOLD: number;
+    CENTER_DISTANCE_THRESHOLD: number;
+    TOPBOTTOM_THRESHOLD_X: number;
+    TOPBOTTOM_THRESHOLD_Y: number;
+    LEFTRIGHT_THRESHOLD_X: number;
+    LEFTRIGHT_THRESHOLD_Y: number;
+  }
+): AlignmentFlags => {
+  const {
+    CORNER_THRESHOLD,
+    CENTER_DISTANCE_THRESHOLD,
+    TOPBOTTOM_THRESHOLD_X,
+    TOPBOTTOM_THRESHOLD_Y,
+    LEFTRIGHT_THRESHOLD_X,
+    LEFTRIGHT_THRESHOLD_Y
+  } = thresholds;
+
+  /* Widget and video centres */
+  const widgetCenterX = newX + widgetWidthPx / 2;
+  const widgetCenterY = newY + widgetHeightPx / 2;
+  const videoCenterX = dimensions.pixelWidth / 2;
+  const videoCenterY = dimensions.pixelHeight / 2;
+
+  /* Edges */
+  const nearTop = newY < CORNER_THRESHOLD;
+  const nearBottom =
+    Math.abs(newY + widgetHeightPx - dimensions.pixelHeight) < CORNER_THRESHOLD;
+  const nearLeft = newX < CORNER_THRESHOLD;
+  const nearRight =
+    Math.abs(newX + widgetWidthPx - dimensions.pixelWidth) < CORNER_THRESHOLD;
+
+  /* Centres */
+  const nearVerticalCenter =
+    Math.abs(widgetCenterX - videoCenterX) < CENTER_DISTANCE_THRESHOLD;
+  const nearHorizontalCenter =
+    Math.abs(widgetCenterY - videoCenterY) < CENTER_DISTANCE_THRESHOLD;
+
+  /* Combinations */
+  const nearTopCenter =
+    nearTop &&
+    Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
+    Math.abs(widgetCenterY - videoCenterY) < TOPBOTTOM_THRESHOLD_Y;
+
+  const nearBottomCenter =
+    nearBottom &&
+    Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
+    Math.abs(widgetCenterY - videoCenterY) < TOPBOTTOM_THRESHOLD_Y;
+
+  const nearCenterLeft =
+    Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+    Math.abs(newX - 0) < LEFTRIGHT_THRESHOLD_X;
+
+  const nearCenterRight =
+    Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
+    Math.abs(newX + widgetWidthPx - dimensions.pixelWidth) <
+      LEFTRIGHT_THRESHOLD_X;
+
+  const isNearCenter = nearVerticalCenter && nearHorizontalCenter;
+
+  return {
+    nearTop,
+    nearBottom,
+    nearLeft,
+    nearRight,
+    nearVerticalCenter,
+    nearHorizontalCenter,
+    nearTopCenter,
+    nearBottomCenter,
+    nearCenterLeft,
+    nearCenterRight,
+    isNearCenter
+  };
+};
