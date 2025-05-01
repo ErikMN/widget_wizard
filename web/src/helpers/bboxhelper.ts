@@ -190,14 +190,11 @@ export const getAlignmentFlags = (
 
   /* Combinations */
   const nearTopCenter =
-    nearTop &&
-    Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
-    Math.abs(widgetCenterY - videoCenterY) < TOPBOTTOM_THRESHOLD_Y;
+    nearTop && Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X;
 
   const nearBottomCenter =
     nearBottom &&
-    Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X &&
-    Math.abs(widgetCenterY - videoCenterY) < TOPBOTTOM_THRESHOLD_Y;
+    Math.abs(widgetCenterX - videoCenterX) < TOPBOTTOM_THRESHOLD_X;
 
   const nearCenterLeft =
     Math.abs(widgetCenterY - videoCenterY) < LEFTRIGHT_THRESHOLD_Y &&
