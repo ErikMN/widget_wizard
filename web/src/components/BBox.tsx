@@ -342,14 +342,8 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
 
       /* Set anchor based on position */
       let finalAnchor = 'none';
-      if (flags.nearTop && flags.nearLeft) {
-        finalAnchor = 'topLeft';
-      } else if (flags.nearTop && flags.nearRight) {
-        finalAnchor = 'topRight';
-      } else if (flags.nearBottom && flags.nearLeft) {
-        finalAnchor = 'bottomLeft';
-      } else if (flags.nearBottom && flags.nearRight) {
-        finalAnchor = 'bottomRight';
+      if (flags.isNearCenter) {
+        finalAnchor = 'center';
       } else if (flags.nearTopCenter) {
         finalAnchor = 'topCenter';
       } else if (flags.nearBottomCenter) {
@@ -358,8 +352,14 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
         finalAnchor = 'centerLeft';
       } else if (flags.nearCenterRight) {
         finalAnchor = 'centerRight';
-      } else if (flags.isNearCenter) {
-        finalAnchor = 'center';
+      } else if (flags.nearTop && flags.nearLeft) {
+        finalAnchor = 'topLeft';
+      } else if (flags.nearTop && flags.nearRight) {
+        finalAnchor = 'topRight';
+      } else if (flags.nearBottom && flags.nearLeft) {
+        finalAnchor = 'bottomLeft';
+      } else if (flags.nearBottom && flags.nearRight) {
+        finalAnchor = 'bottomRight';
       }
       /* Don't use auto anchor if alignment guide is disabled */
       if (!appSettings.snapToAnchor) {
