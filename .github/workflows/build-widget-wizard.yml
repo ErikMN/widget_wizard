@@ -32,15 +32,16 @@ jobs:
             echo "TAG=$SHORT_REF" >> $GITHUB_ENV
           fi
 
-      # Decide which release/tag to update:
-      # - Automatic builds always write to the rolling "latest" release
-      # - Manual builds write to the specific tag requested (pinned/LTS)
-      - name: Set RELEASE_TAG variable
+      # Decide how the release should be published:
+      # - Always publish under the real version tag (env.TAG)
+      # - If this job was triggered by a tag push, mark that tag as "Latest"
+      - name: Set RELEASE_META variables
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "RELEASE_TAG=${{ env.TAG }}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${{ env.TAG }}" >> $GITHUB_ENV
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "MAKE_LATEST=true" >> $GITHUB_ENV
           else
-            echo "RELEASE_TAG=latest" >> $GITHUB_ENV
+            echo "MAKE_LATEST=false" >> $GITHUB_ENV
           fi
 
       # Check out the repository at the correct tag:
@@ -100,7 +101,7 @@ jobs:
           tag: ${{ env.RELEASE_TAG }}
           name: Build for ${{ env.RELEASE_TAG }}
           allowUpdates: true
-          makeLatest: ${{ github.event_name == 'push' }}
+          makeLatest: ${{ env.MAKE_LATEST }}
           draft: false
           prerelease: false
           artifacts: ${{ steps.find_eap.outputs.EAP_FILE }}
