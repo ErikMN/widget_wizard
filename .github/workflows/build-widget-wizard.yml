@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Existing tag to build"
+        description: "Existing tag to build (creates/updates a pinned LTS/stable release)"
         required: true
 
 jobs:
@@ -30,6 +30,17 @@ jobs:
             # 'refs/tags/x.y.z' -> 'x.y.z'
             SHORT_REF="${GITHUB_REF#refs/tags/}"
             echo "TAG=$SHORT_REF" >> $GITHUB_ENV
+          fi
+
+      # Decide which release/tag to update:
+      # - Automatic builds always write to the rolling "latest" release
+      # - Manual builds write to the specific tag requested (pinned/LTS)
+      - name: Set RELEASE_TAG variable
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_TAG=${{ env.TAG }}" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=latest" >> $GITHUB_ENV
           fi
 
       # Check out the repository at the correct tag:
@@ -69,18 +80,6 @@ jobs:
             widget_wizard_img_aarch64 \
             ./docker/build_aarch64.sh 1 widget_wizard "Widget Wizard" y
 
-      # Create (or update) GitHub Release for the tag in env.TAG:
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.TAG }}
-          release_name: Build for ${{ env.TAG }}
-          draft: false
-          prerelease: false
-
       # Detect the .eap file produced by the build:
       - name: Find EAP file
         id: find_eap
@@ -93,13 +92,17 @@ jobs:
           echo "Found EAP file: $EAP_FILE"
           echo "EAP_FILE=$EAP_FILE" >> $GITHUB_OUTPUT
 
-      # Upload the .eap file as a Release asset:
-      - name: Upload EAP file to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Create or update the rolling "latest" release (auto)
+      # or the requested pinned release (manual), and upload the EAP asset:
+      - name: Create or Update GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_eap.outputs.EAP_FILE }}
-          asset_name: ${{ steps.find_eap.outputs.EAP_FILE }}
-          asset_content_type: application/octet-stream
+          tag: ${{ env.RELEASE_TAG }}
+          name: Build for ${{ env.RELEASE_TAG }}
+          allowUpdates: true
+          makeLatest: ${{ github.event_name == 'push' }}
+          draft: false
+          prerelease: false
+          artifacts: ${{ steps.find_eap.outputs.EAP_FILE }}
+          artifactContentType: application/octet-stream
+          token: ${{ secrets.GITHUB_TOKEN }}
