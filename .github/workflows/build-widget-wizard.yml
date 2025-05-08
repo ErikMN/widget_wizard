@@ -41,11 +41,21 @@ jobs:
       # - Mark as "Latest" on tag-push builds or when make_latest=true is chosen manually
       - name: Set RELEASE_META variables
         run: |
-          echo "RELEASE_TAG=${{ env.TAG }}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${{ env.TAG }}" >> "$GITHUB_ENV"
+
+          # Decide whether this build is the public "Latest":
           if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event.inputs.make_latest }}" = "true" ]; then
-            echo "MAKE_LATEST=true"  >> $GITHUB_ENV
+            MAKE_LATEST=true
           else
-            echo "MAKE_LATEST=false" >> $GITHUB_ENV
+            MAKE_LATEST=false
+          fi
+          echo "MAKE_LATEST=$MAKE_LATEST" >> "$GITHUB_ENV"
+
+          # Distinct release names:
+          if [ "$MAKE_LATEST" = "true" ]; then
+            echo "RELEASE_NAME=Build for ${{ env.TAG }}" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_NAME=Pinned LTS for ${{ env.TAG }}" >> "$GITHUB_ENV"
           fi
 
       # Check out the repository at the correct tag:
@@ -97,13 +107,13 @@ jobs:
           echo "Found EAP file: $EAP_FILE"
           echo "EAP_FILE=$EAP_FILE" >> $GITHUB_OUTPUT
 
-      # Create or update the rolling "latest" release (auto)
-      # or the requested pinned release (manual), and upload the EAP asset:
+      # Create or update the public "Latest" release (auto or manual with make_latest=true)
+      # or a pinned/LTS release (manual with make_latest=false), and upload the EAP asset:
       - name: Create or Update GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.RELEASE_TAG }}
-          name: Build for ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
           allowUpdates: true
           makeLatest: ${{ env.MAKE_LATEST }}
           draft: false
