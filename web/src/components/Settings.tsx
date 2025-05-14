@@ -4,6 +4,7 @@ import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
 import { defaultAppSettings, AppSettings } from './widget/widgetInterfaces.js';
 import { capitalizeFirstLetter } from '../helpers/utils';
+import { P_CGI } from './constants';
 import {
   CustomSwitch,
   CustomButton,
@@ -609,22 +610,39 @@ const Settings: React.FC = () => {
           </Typography>
         )}
 
-        {/* Switch to enable debug mode */}
-        <FormControlLabel
-          control={
-            <CustomSwitch
-              checked={appSettings.debug}
-              onChange={handleDebugMode}
-              name="debugMode"
-            />
-          }
-          label={
-            <span style={{ display: 'flex', alignItems: 'center' }}>
-              Enable debug mode
-              <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
-            </span>
-          }
-        />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between'
+          }}
+        >
+          {/* Switch to enable debug mode */}
+          <FormControlLabel
+            control={
+              <CustomSwitch
+                checked={appSettings.debug}
+                onChange={handleDebugMode}
+                name="debugMode"
+              />
+            }
+            label={
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                Enable debug mode
+                <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
+              </span>
+            }
+          />
+          {/* Open parameter list */}
+          <CustomButton
+            variant="outlined"
+            onClick={() => {
+              const url = `${window.location.protocol}//${window.location.host}${P_CGI}`;
+              window.open(url, '_blank');
+            }}
+          >
+            Parameters list
+          </CustomButton>
+        </Box>
 
         {/* Back and Reset Defaults buttons */}
         <Box
