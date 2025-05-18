@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Player, Format } from 'media-stream-player';
+import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
 import { WidgetBBox } from './BBox';
+import { CustomPlayer } from './player/CustomPlayer';
 
 interface VapixConfig {
   compression: string;
@@ -195,7 +196,7 @@ const VideoPlayer: React.FC = () => {
         overflow: 'hidden'
       }}
     >
-      <Player
+      <CustomPlayer
         hostname={window.location.host}
         initialFormat={
           appSettings.wsDefault ? Format.RTP_H264 : Format.MP4_H264

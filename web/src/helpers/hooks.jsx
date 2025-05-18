@@ -2,7 +2,7 @@
  * A collection of custom hooks.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, RefObject } from 'react';
 /* MUI */
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -93,4 +93,74 @@ const useTabVisibility = (callback) => {
   }, [callback]);
 };
 
-export { useLocalStorage, useDebouncedValue, useScreenSizes, useTabVisibility };
+const useSwitch = (initialValue = false) => {
+  const [value, setValue] = useState(initialValue);
+
+  const toggleValue = useCallback(
+    (state) => {
+      if (state !== undefined) {
+        setValue(state);
+      } else {
+        setValue((oldValue) => !oldValue);
+      }
+    },
+    [setValue]
+  );
+
+  return [value, toggleValue];
+};
+
+const DEFAULT_TIMEOUT = 3000;
+
+/**
+ * Listen to activity on an element by the user.
+ *
+ * @param {Object} ref A React ref for the element
+ * @param {Number} duration The duration of inactivity
+ * @return {Boolean} The current user activity state
+ */
+const useUserActive = (ref = null, duration = DEFAULT_TIMEOUT) => {
+  const [userActive, setUserActive] = useState(false);
+  const startUserActive = () => setUserActive(true);
+  const stopUserActive = () => setUserActive(false);
+
+  useEffect(() => {
+    if (userActive) {
+      const timer = setTimeout(stopUserActive, duration);
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  });
+
+  useEffect(() => {
+    const el = ref.current;
+
+    if (el === null) {
+      return;
+    }
+
+    el.addEventListener('pointermove', startUserActive);
+    if (userActive) {
+      el.addEventListener('pointerleave', stopUserActive);
+    }
+
+    return () => {
+      el.removeEventListener('pointermove', startUserActive);
+      if (userActive) {
+        el.removeEventListener('pointerleave', stopUserActive);
+      }
+    };
+  }, [userActive, ref]);
+
+  return userActive;
+};
+
+export {
+  useLocalStorage,
+  useDebouncedValue,
+  useScreenSizes,
+  useTabVisibility,
+  useSwitch,
+  useUserActive
+};
