@@ -386,7 +386,7 @@ export const Controls: React.FC<ControlsProps> = ({
       </div>
       {settings && (
         <PlayerSettings
-          parameters={parameters}
+          vapixParameters={parameters}
           format={format}
           onFormat={onFormat}
           onVapix={onVapix}

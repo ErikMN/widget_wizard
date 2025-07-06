@@ -1,9 +1,10 @@
 import React, { ChangeEventHandler, useCallback } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
+import { useParameters } from '../ParametersContext';
 
 interface PlayerSettingsProps {
-  readonly parameters: VapixParameters;
+  readonly vapixParameters: VapixParameters;
   readonly format: Format;
   readonly onFormat: (format: Format) => void;
   readonly onVapix: (key: string, value: string) => void;
@@ -12,13 +13,21 @@ interface PlayerSettingsProps {
 }
 
 export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
-  parameters,
+  vapixParameters,
   format,
   onFormat,
   onVapix,
   showStatsOverlay,
   toggleStats
 }) => {
+  /* Global parameter list */
+  const { parameters } = useParameters();
+  const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
+  const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
+  const cameraOptions = isNaN(NbrOfSources)
+    ? [1]
+    : Array.from({ length: NbrOfSources }, (_, i) => i + 1);
+
   const changeStatsOverlay = useCallback(
     (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) =>
       toggleStats(checked),
@@ -70,10 +79,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         width: '320px'
       }}
     >
-      {/* TODO: Make dynamic */}
       <div>Camera</div>
-      <select value={parameters['camera'] ?? '1'} onChange={changeCamera}>
-        {[1, 2, 3, 4].map((num) => (
+      <select value={vapixParameters['camera'] ?? '1'} onChange={changeCamera}>
+        {cameraOptions.map((num) => (
           <option key={num} value={String(num)}>
             Camera {num}
           </option>
@@ -89,7 +97,7 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
       </select>
 
       <div>Resolution</div>
-      <select value={parameters['resolution']} onChange={changeResolution}>
+      <select value={vapixParameters['resolution']} onChange={changeResolution}>
         <option value="">default</option>
         <option value="1920x1080">1920 x 1080 (FHD)</option>
         <option value="1280x720">1280 x 720 (HD)</option>
@@ -97,7 +105,10 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
       </select>
 
       <div>Compression</div>
-      <select value={parameters['compression']} onChange={changeCompression}>
+      <select
+        value={vapixParameters['compression']}
+        onChange={changeCompression}
+      >
         <option value="">default</option>
         {Array.from({ length: 11 }, (_, i) => i * 10).map((val) => (
           <option key={val} value={String(val)}>
