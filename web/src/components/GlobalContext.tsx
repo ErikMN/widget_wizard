@@ -272,11 +272,14 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       apiVersion: '2.0',
       method: 'addWidget',
       params: {
-        /* Default general widget parameter settings */
+        /* Default general widget parameter settings
+         * NOTE: We might not want defaults for _every_ general params here
+         * because they would overwrite custom per widget defaults.
+         */
         generalParams: {
           type: widgetType,
           datasource: '#D0',
-          anchor: 'none',
+          /* anchor: 'none', */
           channel: 1,
           isVisible: true,
           position: { x: 0, y: 0 },
