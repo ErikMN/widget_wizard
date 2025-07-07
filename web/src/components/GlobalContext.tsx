@@ -88,6 +88,8 @@ interface GlobalContextProps {
   setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   jsonTheme: undefined;
   setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
+  currentChannel: string;
+  setCurrentChannel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /* Creating the Widget context */
@@ -142,6 +144,8 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     setAlertSeverity(severity);
     setOpenAlert(true);
   };
+  /* Selected videoplayer channel */
+  const [currentChannel, setCurrentChannel] = useState<string>('1');
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -460,7 +464,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         appSettings,
         setAppSettings,
         jsonTheme,
-        setJsonTheme
+        setJsonTheme,
+        currentChannel,
+        setCurrentChannel
       }}
     >
       {children}

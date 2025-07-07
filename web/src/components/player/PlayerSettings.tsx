@@ -2,6 +2,7 @@ import React, { ChangeEventHandler, useCallback } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
+import { useGlobalContext } from '../GlobalContext';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
@@ -20,6 +21,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   showStatsOverlay,
   toggleStats
 }) => {
+  /* Global state */
+  const { setCurrentChannel } = useGlobalContext();
+
   /* Global parameter list */
   const { parameters } = useParameters();
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
@@ -55,8 +59,12 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   );
 
   const changeCamera: ChangeEventHandler<HTMLSelectElement> = useCallback(
-    (e) => onVapix('camera', e.target.value),
-    [onVapix]
+    (e) => {
+      const value = e.target.value;
+      onVapix('camera', value);
+      setCurrentChannel(value);
+    },
+    [onVapix, setCurrentChannel]
   );
 
   return (

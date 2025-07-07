@@ -733,7 +733,8 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
     activeWidgets,
     activeDraggableWidget,
     setActiveDraggableWidget,
-    setOpenDropdownIndex
+    setOpenDropdownIndex,
+    currentChannel
   } = useGlobalContext();
 
   /* Refs: keep live refs to all BBox elements */
@@ -807,10 +808,10 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
     >
       {activeWidgets.map((widget: Widget) => {
         if (
-          /* HACK: Until channel can be selected in videoplayer don't show BBox on other channels than -1 and 1 */
+          /* NOTE: Show current BBox if widget channel is equal to current selected videoplayer channel or -1 */
           widget.generalParams.isVisible &&
           (widget.generalParams.channel === -1 ||
-            widget.generalParams.channel === 1)
+            String(widget.generalParams.channel) === currentChannel)
         ) {
           const widgetId = widget.generalParams.id;
           return (
