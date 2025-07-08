@@ -144,8 +144,28 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     setAlertSeverity(severity);
     setOpenAlert(true);
   };
+
+  /* Function to init channel from local storage */
+  const initChannel = () => {
+    try {
+      const vapix = localStorage.getItem('vapix');
+      if (vapix) {
+        const parsed = JSON.parse(vapix);
+        if (parsed?.camera) {
+          return String(parsed.camera);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse vapix from localStorage:', e);
+    }
+    return '1';
+  };
+
   /* Selected videoplayer channel */
-  const [currentChannel, setCurrentChannel] = useState<string>('1');
+  const [currentChannel, setCurrentChannel] = useLocalStorage(
+    'currentChannel',
+    initChannel()
+  );
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -280,7 +300,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
           type: widgetType,
           datasource: '#D0',
           /* anchor: 'none', */
-          channel: 1,
+          channel: parseInt(initChannel(), 10),
           isVisible: true,
           position: { x: 0, y: 0 },
           size: 'medium',
