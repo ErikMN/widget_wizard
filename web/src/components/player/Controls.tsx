@@ -11,8 +11,6 @@ import { Refresh } from './icons/Refresh';
 import { Screenshot } from './icons/Screenshot';
 import { Stop } from './icons/Stop';
 
-import { useUserActive } from '../../helpers/hooks';
-
 function isHTMLMediaElement(el: HTMLElement): el is HTMLMediaElement {
   return (el as HTMLMediaElement).buffered !== undefined;
 }
@@ -21,16 +19,13 @@ const controlAreaStyle = {
   display: 'flex',
   flexDirection: 'column',
   fontFamily: 'sans',
-  height: '100%',
-  justifyContent: 'flex-end',
-  transition: 'opacity 0.3s ease-in-out',
   width: '100%'
 } as const;
 
 const controlBarStyle = {
   width: '100%',
-  height: '32px',
-  background: 'rgb(0, 0, 0, 0.66)',
+  height: '42px',
+  background: 'rgb(0, 0, 0, 0.8)',
   display: 'flex',
   alignItems: 'center',
   padding: '0 16px',
@@ -56,13 +51,13 @@ const progressBarContainerStyle = {
 
 const progressBarStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  height: '1px',
+  height: '2px',
   position: 'relative',
   width: '100%'
 } as const;
 
-const progressBarPlayedStyle = (fraction = 0) => {
-  return {
+const progressBarPlayedStyle = (fraction = 0) =>
+  ({
     transform: `scaleX(${fraction})`,
     backgroundColor: 'rgb(240, 180, 0)',
     height: '100%',
@@ -70,11 +65,10 @@ const progressBarPlayedStyle = (fraction = 0) => {
     top: '0',
     transformOrigin: '0 0',
     width: '100%'
-  } as const;
-};
+  }) as const;
 
-const progressBarBufferedStyle = (fraction = 0) => {
-  return {
+const progressBarBufferedStyle = (fraction = 0) =>
+  ({
     transform: `scaleX(${fraction})`,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     height: '100%',
@@ -82,11 +76,10 @@ const progressBarBufferedStyle = (fraction = 0) => {
     top: '0',
     transformOrigin: '0 0',
     width: '100%'
-  } as const;
-};
+  }) as const;
 
-const progressBarTimestampStyle = (left = 0) => {
-  return {
+const progressBarTimestampStyle = (left = 0) =>
+  ({
     left: `${left}px`,
     backgroundColor: 'rgb(56, 55, 51)',
     borderRadius: '3px',
@@ -96,8 +89,7 @@ const progressBarTimestampStyle = (left = 0) => {
     padding: '5px',
     position: 'absolute',
     textAlign: 'center'
-  } as const;
-};
+  }) as const;
 
 const progressIndicatorStyle = {
   color: 'rgb(240, 180, 0)',
@@ -158,27 +150,20 @@ export const Controls: React.FC<ControlsProps> = ({
   setVolume
 }) => {
   const controlArea = useRef(null);
-  const userActive = useUserActive(controlArea);
 
   const [settings, setSettings] = useState(false);
-  const toggleSettings = useCallback(
-    () => setSettings((currentSettings) => !currentSettings),
-    [setSettings]
-  );
+  const toggleSettings = useCallback(() => setSettings((s) => !s), []);
 
   const onVolumeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (setVolume !== undefined) {
-        setVolume(parseFloat(e.target.value));
-      }
+      if (setVolume) setVolume(parseFloat(e.target.value));
     },
     [setVolume]
   );
 
   const [totalDuration, setTotalDuration] = useState(duration);
   const __mediaTimeline = useRef({
-    startDateTime:
-      startTime !== undefined ? DateTime.fromISO(startTime) : undefined
+    startDateTime: startTime ? DateTime.fromISO(startTime) : undefined
   });
 
   /**
@@ -264,11 +249,9 @@ export const Controls: React.FC<ControlsProps> = ({
     }
 
     // Use polling when not a media element
-    const progressInterval = setInterval(updateProgress, 1000);
-    return () => {
-      clearInterval(progressInterval);
-    };
-  }, [videoProperties, duration, startTime, setTotalDuration]);
+    const id = setInterval(updateProgress, 1000);
+    return () => clearInterval(id);
+  }, [videoProperties, duration, startTime]);
 
   const seek = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -285,36 +268,30 @@ export const Controls: React.FC<ControlsProps> = ({
   );
 
   const [timestamp, setTimestamp] = useState({ left: 0, label: '' });
-  const __progressBarContainerRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (startTime !== undefined) {
+    if (startTime) {
       __mediaTimeline.current.startDateTime = DateTime.fromISO(startTime);
     }
-
-    const el = __progressBarContainerRef.current;
-    if (el === null || totalDuration === undefined) {
-      return;
-    }
+    const el = barRef.current;
+    if (!el || totalDuration === undefined) return;
 
     const { left, width } = el.getBoundingClientRect();
-    const showTimestamp = (e: Event) => {
-      const offset = (e as PointerEvent).pageX - left;
+    const showTimestamp = (e: PointerEvent) => {
+      const offset = e.pageX - left;
       const offsetMillis = (offset / width) * totalDuration * 1000;
 
       setTimestamp({
         left: offset,
-        label:
-          __mediaTimeline.current.startDateTime !== undefined
-            ? __mediaTimeline.current.startDateTime
-                .plus(offsetMillis)
-                .toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
-            : Duration.fromMillis(offsetMillis).toFormat('h:mm:ss')
+        label: __mediaTimeline.current.startDateTime
+          ? __mediaTimeline.current.startDateTime
+              .plus(offsetMillis)
+              .toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
+          : Duration.fromMillis(offsetMillis).toFormat('h:mm:ss')
       });
     };
-
-    const start = () => {
-      el.addEventListener('pointermove', showTimestamp);
-    };
+    const start = () => el.addEventListener('pointermove', showTimestamp);
     const stop = () => {
       setTimestamp({ left: 0, label: '' });
       el.removeEventListener('pointermove', showTimestamp);
@@ -328,27 +305,20 @@ export const Controls: React.FC<ControlsProps> = ({
     };
   }, [startTime, totalDuration]);
 
-  const visible = play !== true || settings || userActive;
-
   return (
-    <div
-      style={{ ...controlAreaStyle, opacity: visible ? 1 : 0 }}
-      ref={controlArea}
-    >
+    <div style={controlAreaStyle} ref={controlArea}>
       <div style={controlBarStyle}>
-        {play === true ? (
+        {play ? (
           <Pause onClick={onPlay} title={labels?.pause} />
         ) : (
           <Play onClick={onPlay} title={labels?.play} />
         )}
-        {src !== undefined && <Stop onClick={onStop} title={labels?.stop} />}
-        {src !== undefined && (
-          <Refresh onClick={onRefresh} title={labels?.refresh} />
-        )}
-        {src !== undefined && (
+        {src && <Stop onClick={onStop} title={labels?.stop} />}
+        {src && <Refresh onClick={onRefresh} title={labels?.refresh} />}
+        {src && (
           <Screenshot onClick={onScreenshot} title={labels?.screenshot} />
         )}
-        {volume !== undefined ? (
+        {volume !== undefined && (
           <div style={{ marginLeft: '8px' }} title={labels?.volume}>
             <input
               type="range"
@@ -359,23 +329,19 @@ export const Controls: React.FC<ControlsProps> = ({
               value={volume ?? 0}
             />
           </div>
-        ) : null}
+        )}
         <div style={progressStyle}>
-          <div
-            style={progressBarContainerStyle}
-            onClick={seek}
-            ref={__progressBarContainerRef}
-          >
+          <div style={progressBarContainerStyle} onClick={seek} ref={barRef}>
             <div style={progressBarStyle}>
               <div style={progressBarPlayedStyle(progress.playedFraction)} />
               <div
                 style={progressBarBufferedStyle(progress.bufferedFraction)}
               />
-              {timestamp.left !== 0 ? (
+              {timestamp.left !== 0 && (
                 <div style={progressBarTimestampStyle(timestamp.left)}>
                   {timestamp.label}
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
           <div style={progressIndicatorStyle}>

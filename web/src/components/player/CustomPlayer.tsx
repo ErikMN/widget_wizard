@@ -22,7 +22,7 @@ import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
 
-import { useSwitch } from '../../helpers/hooks';
+import { useSwitch, useScreenSizes } from '../../helpers/hooks';
 
 const DEFAULT_FORMAT = Format.JPEG;
 
@@ -122,6 +122,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
      * Controls
      */
     const [videoProperties, setVideoProperties] = useState<VideoProperties>();
+
+    /* Screen size */
+    const { isMobile } = useScreenSizes();
 
     const onPlaying = useCallback(
       (props: VideoProperties) => {
@@ -231,13 +234,18 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
       const observer = new window.ResizeObserver(([entry]) => {
         const element = entry.target as HTMLElement;
-        const maxWidth = element.clientHeight * naturalAspectRatio;
-        element.style.maxWidth = `${maxWidth}px`;
+        if (!isMobile) {
+          const maxWidth = element.clientHeight * naturalAspectRatio;
+          element.style.maxWidth = `${maxWidth}px`;
+        } else {
+          /* Mobile mode: no width limit */
+          element.style.maxWidth = '100%';
+        }
       });
       observer.observe(limiterRef.current);
 
       return () => observer.disconnect();
-    }, [naturalAspectRatio]);
+    }, [naturalAspectRatio, isMobile]);
 
     /**
      * Volume control on the VideoElement (h264 only)
@@ -278,74 +286,81 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
      */
     return (
       <div
-        style={{ position: 'relative', width: '100%', height: '100%' }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
         className={className}
       >
-        <Limiter ref={limiterRef}>
-          <Container aspectRatio={naturalAspectRatio}>
-            <Layer>
-              <PlaybackArea
-                forwardedRef={ref}
-                refresh={refresh}
-                play={play}
-                offset={offset}
-                host={host}
-                format={format}
-                parameters={parameters}
-                onPlaying={onPlaying}
-                onEnded={onEnded}
-                // onSdp={onSdp}
-                // metadataHandler={metadataHandler}
-                secure={secure}
-                autoRetry={autoRetry}
-              />
-            </Layer>
-            <Layer>
-              <Feedback waiting={waiting} />
-            </Layer>
-            <Layer>
-              <Controls
-                play={play}
-                videoProperties={videoProperties}
-                src={host}
-                parameters={parameters}
-                onPlay={onPlayPause}
-                onStop={onStop}
-                onRefresh={onRefresh}
-                onScreenshot={onScreenshot}
-                onFormat={setFormat}
-                onVapix={onVapix}
-                onSeek={setOffset}
-                labels={{
-                  play: 'Play',
-                  pause: 'Pause',
-                  stop: 'Stop',
-                  refresh: 'Refresh',
-                  settings: 'Settings',
-                  screenshot: 'Take a snapshot',
-                  volume: 'Volume'
-                }}
-                showStatsOverlay={showStatsOverlay}
-                toggleStats={toggleStatsOverlay}
-                format={format}
-                volume={volume}
-                setVolume={setVolume}
-                startTime={startTime}
-                duration={duration}
-              />
-            </Layer>
-            {showStatsOverlay && videoProperties !== undefined ? (
-              <Stats
-                format={format}
-                videoProperties={videoProperties}
-                refresh={refresh}
-                volume={volume}
-                expanded={expanded}
-                onToggleExpanded={handleExpandStats}
-              />
-            ) : null}
-          </Container>
-        </Limiter>
+        <div style={{ flex: '1 1 auto', position: 'relative' }}>
+          <Limiter ref={limiterRef}>
+            <Container aspectRatio={naturalAspectRatio}>
+              <Layer>
+                <PlaybackArea
+                  forwardedRef={ref}
+                  refresh={refresh}
+                  play={play}
+                  offset={offset}
+                  host={host}
+                  format={format}
+                  parameters={parameters}
+                  onPlaying={onPlaying}
+                  onEnded={onEnded}
+                  // onSdp={onSdp}
+                  // metadataHandler={metadataHandler}
+                  secure={secure}
+                  autoRetry={autoRetry}
+                />
+              </Layer>
+              <Layer>
+                <Feedback waiting={waiting} />
+              </Layer>
+              {showStatsOverlay && videoProperties ? (
+                <Stats
+                  format={format}
+                  videoProperties={videoProperties}
+                  refresh={refresh}
+                  volume={volume}
+                  expanded={expanded}
+                  onToggleExpanded={handleExpandStats}
+                />
+              ) : null}
+            </Container>
+          </Limiter>
+        </div>
+
+        <Controls
+          play={play}
+          videoProperties={videoProperties}
+          src={host}
+          parameters={parameters}
+          onPlay={onPlayPause}
+          onStop={onStop}
+          onRefresh={onRefresh}
+          onScreenshot={onScreenshot}
+          onFormat={setFormat}
+          onVapix={onVapix}
+          onSeek={setOffset}
+          labels={{
+            play: 'Play',
+            pause: 'Pause',
+            stop: 'Stop',
+            refresh: 'Refresh',
+            settings: 'Settings',
+            screenshot: 'Take a snapshot',
+            volume: 'Volume'
+          }}
+          showStatsOverlay={showStatsOverlay}
+          toggleStats={toggleStatsOverlay}
+          format={format}
+          volume={volume}
+          setVolume={setVolume}
+          startTime={startTime}
+          duration={duration}
+        />
       </div>
     );
   }
