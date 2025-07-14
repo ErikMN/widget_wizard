@@ -22,7 +22,7 @@ import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
 
-import { useSwitch, useScreenSizes } from '../../helpers/hooks';
+import { useSwitch } from '../../helpers/hooks';
 
 const DEFAULT_FORMAT = Format.JPEG;
 
@@ -66,8 +66,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       vapixParams = {},
       initialFormat = DEFAULT_FORMAT,
       autoPlay = false,
-      // onSdp,
-      // metadataHandler,
       secure,
       className,
       startTime,
@@ -122,9 +120,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
      * Controls
      */
     const [videoProperties, setVideoProperties] = useState<VideoProperties>();
-
-    /* Screen size */
-    const { isMobile } = useScreenSizes();
 
     const onPlaying = useCallback(
       (props: VideoProperties) => {
@@ -234,18 +229,13 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
       const observer = new window.ResizeObserver(([entry]) => {
         const element = entry.target as HTMLElement;
-        if (!isMobile) {
-          const maxWidth = element.clientHeight * naturalAspectRatio;
-          element.style.maxWidth = `${maxWidth}px`;
-        } else {
-          /* Mobile mode: no width limit */
-          element.style.maxWidth = '100%';
-        }
+        const maxWidth = element.clientHeight * naturalAspectRatio;
+        element.style.maxWidth = `${maxWidth}px`;
       });
       observer.observe(limiterRef.current);
 
       return () => observer.disconnect();
-    }, [naturalAspectRatio, isMobile]);
+    }, [naturalAspectRatio]);
 
     /**
      * Volume control on the VideoElement (h264 only)
@@ -309,8 +299,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                   parameters={parameters}
                   onPlaying={onPlaying}
                   onEnded={onEnded}
-                  // onSdp={onSdp}
-                  // metadataHandler={metadataHandler}
                   secure={secure}
                   autoRetry={autoRetry}
                 />
