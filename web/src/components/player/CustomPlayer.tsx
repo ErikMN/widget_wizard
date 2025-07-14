@@ -9,7 +9,6 @@ import React, {
 } from 'react';
 import {
   Stats,
-  Container,
   Layer,
   PlaybackArea,
   PlayerNativeElement,
@@ -18,6 +17,7 @@ import {
   VapixParameters
 } from 'media-stream-player';
 import { Feedback } from './Feedback';
+import { Container } from './Container';
 import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
