@@ -31,8 +31,6 @@ interface CustomPlayerProps {
   readonly vapixParams?: VapixParameters;
   readonly initialFormat?: Format;
   readonly autoPlay?: boolean;
-  // readonly onSdp?: (msg: Sdp) => void;
-  // readonly metadataHandler?: MetadataHandler;
   /**
    * Set to true if the camera requires a secure
    * connection, "https" and "wss" protocols.
@@ -66,8 +64,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       vapixParams = {},
       initialFormat = DEFAULT_FORMAT,
       autoPlay = false,
-      // onSdp,
-      // metadataHandler,
       secure,
       className,
       startTime,
@@ -309,8 +305,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                   parameters={parameters}
                   onPlaying={onPlaying}
                   onEnded={onEnded}
-                  // onSdp={onSdp}
-                  // metadataHandler={metadataHandler}
                   secure={secure}
                   autoRetry={autoRetry}
                 />
