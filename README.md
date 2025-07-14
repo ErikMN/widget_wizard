@@ -11,6 +11,10 @@ Written in TypeScript and React.
 
 ## How to build 🛠️
 
+Make sure you have Docker and Make installed.
+
+Then run:
+
 ```shell
-make dockersetup && make acap
+make ww
 ```

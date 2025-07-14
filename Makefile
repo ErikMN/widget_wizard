@@ -179,6 +179,10 @@ else
 	@exit 1
 endif
 
+# Fasy target to setup Docker image and build the ACAP:
+.PHONY: ww
+ww: dockersetup acap
+
 # Install ACAP using Docker:
 .PHONY: install
 install: checkdocker acap
