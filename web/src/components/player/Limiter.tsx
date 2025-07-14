@@ -1,4 +1,5 @@
 import React, { forwardRef, PropsWithChildren } from 'react';
+import { useScreenSizes } from '../../helpers/hooks.jsx';
 
 /**
  * The limiter prevents the video element to use up all of the available width.
@@ -7,20 +8,23 @@ import React, { forwardRef, PropsWithChildren } from 'react';
  */
 export const Limiter = forwardRef<HTMLDivElement, PropsWithChildren>(
   ({ children }, ref) => {
+    /* Screen size */
+    const { isMobile } = useScreenSizes();
+
     return (
       <div
         ref={ref}
         style={{
-          position: 'relative',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          position: isMobile ? 'relative' : 'absolute',
+          left: isMobile ? undefined : '50%',
+          transform: isMobile ? undefined : 'translateX(-50%)',
           width: '100%',
-          top: 0,
-          bottom: 0,
+          top: isMobile ? undefined : 0,
+          bottom: isMobile ? undefined : 0,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: isMobile ? 'stretch' : 'center',
           height: '100%'
         }}
       >
