@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-
 import { DateTime, Duration } from 'luxon';
 import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
-
 import { PlayerSettings } from './PlayerSettings';
-import { CogWheel } from './icons/CogWheel';
-import { Pause } from './icons/Pause';
-import { Play } from './icons/Play';
-import { Refresh } from './icons/Refresh';
-import { Screenshot } from './icons/Screenshot';
-import { Stop } from './icons/Stop';
+import { CustomStyledIconButton } from './../CustomComponents';
+import { darkTheme } from '../../theme';
+/* MUI */
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
+import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
+import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 
 function isHTMLMediaElement(el: HTMLElement): el is HTMLMediaElement {
   return (el as HTMLMediaElement).buffered !== undefined;
@@ -309,14 +310,58 @@ export const Controls: React.FC<ControlsProps> = ({
     <div style={controlAreaStyle} ref={controlArea}>
       <div style={controlBarStyle}>
         {play ? (
-          <Pause onClick={onPlay} title={labels?.pause} />
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.pause}
+            onClick={onPlay}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <PauseCircleOutlineOutlinedIcon />
+          </CustomStyledIconButton>
         ) : (
-          <Play onClick={onPlay} title={labels?.play} />
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.play}
+            onClick={onPlay}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <PlayCircleOutlineOutlinedIcon />
+          </CustomStyledIconButton>
         )}
-        {src && <Stop onClick={onStop} title={labels?.stop} />}
-        {src && <Refresh onClick={onRefresh} title={labels?.refresh} />}
         {src && (
-          <Screenshot onClick={onScreenshot} title={labels?.screenshot} />
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.stop}
+            onClick={onStop}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <StopCircleOutlinedIcon />
+          </CustomStyledIconButton>
+        )}
+        {src && (
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.refresh}
+            onClick={onRefresh}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <RefreshOutlinedIcon />
+          </CustomStyledIconButton>
+        )}
+        {src && (
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.screenshot}
+            onClick={onScreenshot}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <CameraAltOutlinedIcon />
+          </CustomStyledIconButton>
         )}
         {volume !== undefined && (
           <div style={{ marginLeft: '8px' }} title={labels?.volume}>
@@ -348,7 +393,15 @@ export const Controls: React.FC<ControlsProps> = ({
             {totalDuration === Infinity ? '∙ LIVE' : progress.counter}
           </div>
         </div>
-        <CogWheel onClick={toggleSettings} title={labels?.settings} />
+        <CustomStyledIconButton
+          color="inherit"
+          aria-label={labels?.settings}
+          onClick={toggleSettings}
+          edge="end"
+          sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+        >
+          <SettingsOutlinedIcon />
+        </CustomStyledIconButton>
       </div>
       {settings && (
         <PlayerSettings

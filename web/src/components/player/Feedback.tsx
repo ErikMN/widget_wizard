@@ -1,6 +1,5 @@
 import React from 'react';
-
-import { Spinner } from './icons/Spinner';
+import CircularProgress from '@mui/material/CircularProgress';
 
 interface FeedbackProps {
   readonly waiting?: boolean;
@@ -17,6 +16,9 @@ export const Feedback: React.FC<FeedbackProps> = ({ waiting = false }) => (
       alignItems: 'center'
     }}
   >
-    {waiting && <Spinner />}
+    <CircularProgress
+      size={30}
+      sx={{ visibility: waiting ? 'visible' : 'hidden' }}
+    />
   </div>
 );
