@@ -291,7 +291,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         }}
         className={className}
       >
-        <div style={{ flex: '1 1 auto', position: 'relative' }}>
+        <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
