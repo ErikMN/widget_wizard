@@ -6,11 +6,12 @@ import { CustomStyledIconButton } from './../CustomComponents';
 import { darkTheme } from '../../theme';
 /* MUI */
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
-import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
-import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 function isHTMLMediaElement(el: HTMLElement): el is HTMLMediaElement {
   return (el as HTMLMediaElement).buffered !== undefined;
@@ -26,7 +27,7 @@ const controlAreaStyle = {
 const controlBarStyle = {
   width: '100%',
   height: '42px',
-  background: 'rgb(0, 0, 0, 0.8)',
+  background: 'rgb(0, 0, 0, 0.7)',
   display: 'flex',
   alignItems: 'center',
   padding: '0 16px',
@@ -310,58 +311,68 @@ export const Controls: React.FC<ControlsProps> = ({
     <div style={controlAreaStyle} ref={controlArea}>
       <div style={controlBarStyle}>
         {play ? (
-          <CustomStyledIconButton
-            color="inherit"
-            aria-label={labels?.pause}
-            onClick={onPlay}
-            edge="end"
-            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-          >
-            <PauseCircleOutlineOutlinedIcon />
-          </CustomStyledIconButton>
+          <Tooltip title={labels?.pause} arrow placement="top">
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label={labels?.pause}
+              onClick={onPlay}
+              edge="end"
+              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+            >
+              <PauseCircleOutlineOutlinedIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
         ) : (
-          <CustomStyledIconButton
-            color="inherit"
-            aria-label={labels?.play}
-            onClick={onPlay}
-            edge="end"
-            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-          >
-            <PlayCircleOutlineOutlinedIcon />
-          </CustomStyledIconButton>
+          <Tooltip title={labels?.play} arrow placement="top">
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label={labels?.play}
+              onClick={onPlay}
+              edge="end"
+              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+            >
+              <PlayCircleOutlineOutlinedIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
         )}
         {src && (
-          <CustomStyledIconButton
-            color="inherit"
-            aria-label={labels?.stop}
-            onClick={onStop}
-            edge="end"
-            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-          >
-            <StopCircleOutlinedIcon />
-          </CustomStyledIconButton>
+          <Tooltip title={labels?.stop} arrow placement="top">
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label={labels?.stop}
+              onClick={onStop}
+              edge="end"
+              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+            >
+              <StopCircleOutlinedIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
         )}
         {src && (
-          <CustomStyledIconButton
-            color="inherit"
-            aria-label={labels?.refresh}
-            onClick={onRefresh}
-            edge="end"
-            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-          >
-            <RefreshOutlinedIcon />
-          </CustomStyledIconButton>
+          <Tooltip title={labels?.refresh} arrow placement="top">
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label={labels?.refresh}
+              onClick={onRefresh}
+              edge="end"
+              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+            >
+              <RefreshOutlinedIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
         )}
         {src && (
-          <CustomStyledIconButton
-            color="inherit"
-            aria-label={labels?.screenshot}
-            onClick={onScreenshot}
-            edge="end"
-            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-          >
-            <CameraAltOutlinedIcon />
-          </CustomStyledIconButton>
+          <Tooltip title={labels?.screenshot} arrow placement="top">
+            <CustomStyledIconButton
+              color="inherit"
+              aria-label={labels?.screenshot}
+              onClick={onScreenshot}
+              edge="end"
+              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+            >
+              <CameraAltOutlinedIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
         )}
         {volume !== undefined && (
           <div style={{ marginLeft: '8px' }} title={labels?.volume}>
@@ -393,15 +404,17 @@ export const Controls: React.FC<ControlsProps> = ({
             {totalDuration === Infinity ? '∙ LIVE' : progress.counter}
           </div>
         </div>
-        <CustomStyledIconButton
-          color="inherit"
-          aria-label={labels?.settings}
-          onClick={toggleSettings}
-          edge="end"
-          sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-        >
-          <SettingsOutlinedIcon />
-        </CustomStyledIconButton>
+        <Tooltip title={labels?.settings} arrow placement="top">
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label={labels?.settings}
+            onClick={toggleSettings}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            <SettingsOutlinedIcon />
+          </CustomStyledIconButton>
+        </Tooltip>
       </div>
       {settings && (
         <PlayerSettings
