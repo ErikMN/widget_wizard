@@ -291,6 +291,18 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         }}
         className={className}
       >
+        {showStatsOverlay && videoProperties && (
+          <div style={{ position: 'static', zIndex: 10 }}>
+            <Stats
+              format={format}
+              videoProperties={videoProperties}
+              refresh={refresh}
+              volume={volume}
+              expanded={expanded}
+              onToggleExpanded={handleExpandStats}
+            />
+          </div>
+        )}
         <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
@@ -312,20 +324,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
               <Layer>
                 <Feedback waiting={waiting} />
               </Layer>
-              {showStatsOverlay && videoProperties ? (
-                <Stats
-                  format={format}
-                  videoProperties={videoProperties}
-                  refresh={refresh}
-                  volume={volume}
-                  expanded={expanded}
-                  onToggleExpanded={handleExpandStats}
-                />
-              ) : null}
             </Container>
           </Limiter>
         </div>
-
         <div style={{ position: 'relative', zIndex: 10 }}>
           <Controls
             play={play}
