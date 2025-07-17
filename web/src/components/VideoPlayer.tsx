@@ -189,6 +189,7 @@ const VideoPlayer: React.FC = () => {
         flexGrow: 1,
         backgroundColor:
           currentTheme === 'dark' ? 'rgb(61, 61, 61)' : 'rgb(0, 0, 0)',
+        // padding: '3px',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -203,10 +204,9 @@ const VideoPlayer: React.FC = () => {
         autoPlay
         autoRetry
         vapixParams={vapixParams}
-      >
-        {/* Widget bounding boxes */}
-        <WidgetBBox dimensions={dimensions} />
-      </CustomPlayer>
+      />
+      {/* Widget bounding boxes */}
+      <WidgetBBox dimensions={dimensions} />
     </div>
   );
 };

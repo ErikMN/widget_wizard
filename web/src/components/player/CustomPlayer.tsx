@@ -25,10 +25,8 @@ import { getImageURL } from './GetImageURL';
 import { useSwitch, useScreenSizes } from '../../helpers/hooks';
 
 const DEFAULT_FORMAT = Format.JPEG;
-const VIDEO_MARGIN = 3;
 
 interface CustomPlayerProps {
-  readonly children?: React.ReactNode;
   readonly hostname: string;
   readonly vapixParams?: VapixParameters;
   readonly initialFormat?: Format;
@@ -62,7 +60,6 @@ interface CustomPlayerProps {
 export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
   (
     {
-      children,
       hostname,
       vapixParams = {},
       initialFormat = DEFAULT_FORMAT,
@@ -294,13 +291,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         }}
         className={className}
       >
-        <div
-          style={{
-            flex: '1 1 auto',
-            position: 'relative',
-            margin: `${VIDEO_MARGIN}px`
-          }}
-        >
+        <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
@@ -332,53 +323,38 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                 />
               ) : null}
             </Container>
-            <div
-              style={{
-                position: 'absolute',
-                top: `-${VIDEO_MARGIN}px`,
-                left: `-${VIDEO_MARGIN}px`,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
-                zIndex: 5
-              }}
-            >
-              {children}
-            </div>
           </Limiter>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <Controls
-            play={play}
-            videoProperties={videoProperties}
-            src={host}
-            parameters={parameters}
-            onPlay={onPlayPause}
-            onStop={onStop}
-            onRefresh={onRefresh}
-            onScreenshot={onScreenshot}
-            onFormat={setFormat}
-            onVapix={onVapix}
-            onSeek={setOffset}
-            labels={{
-              play: 'Play',
-              pause: 'Pause',
-              stop: 'Stop',
-              refresh: 'Refresh',
-              settings: 'Settings',
-              screenshot: 'Take a snapshot',
-              volume: 'Volume'
-            }}
-            showStatsOverlay={showStatsOverlay}
-            toggleStats={toggleStatsOverlay}
-            format={format}
-            volume={volume}
-            setVolume={setVolume}
-            startTime={startTime}
-            duration={duration}
-          />
-        </div>
+        <Controls
+          play={play}
+          videoProperties={videoProperties}
+          src={host}
+          parameters={parameters}
+          onPlay={onPlayPause}
+          onStop={onStop}
+          onRefresh={onRefresh}
+          onScreenshot={onScreenshot}
+          onFormat={setFormat}
+          onVapix={onVapix}
+          onSeek={setOffset}
+          labels={{
+            play: 'Play',
+            pause: 'Pause',
+            stop: 'Stop',
+            refresh: 'Refresh',
+            settings: 'Settings',
+            screenshot: 'Take a snapshot',
+            volume: 'Volume'
+          }}
+          showStatsOverlay={showStatsOverlay}
+          toggleStats={toggleStatsOverlay}
+          format={format}
+          volume={volume}
+          setVolume={setVolume}
+          startTime={startTime}
+          duration={duration}
+        />
       </div>
     );
   }
