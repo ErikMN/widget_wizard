@@ -326,35 +326,37 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           </Limiter>
         </div>
 
-        <Controls
-          play={play}
-          videoProperties={videoProperties}
-          src={host}
-          parameters={parameters}
-          onPlay={onPlayPause}
-          onStop={onStop}
-          onRefresh={onRefresh}
-          onScreenshot={onScreenshot}
-          onFormat={setFormat}
-          onVapix={onVapix}
-          onSeek={setOffset}
-          labels={{
-            play: 'Play',
-            pause: 'Pause',
-            stop: 'Stop',
-            refresh: 'Refresh',
-            settings: 'Settings',
-            screenshot: 'Take a snapshot',
-            volume: 'Volume'
-          }}
-          showStatsOverlay={showStatsOverlay}
-          toggleStats={toggleStatsOverlay}
-          format={format}
-          volume={volume}
-          setVolume={setVolume}
-          startTime={startTime}
-          duration={duration}
-        />
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <Controls
+            play={play}
+            videoProperties={videoProperties}
+            src={host}
+            parameters={parameters}
+            onPlay={onPlayPause}
+            onStop={onStop}
+            onRefresh={onRefresh}
+            onScreenshot={onScreenshot}
+            onFormat={setFormat}
+            onVapix={onVapix}
+            onSeek={setOffset}
+            labels={{
+              play: 'Play',
+              pause: 'Pause',
+              stop: 'Stop',
+              refresh: 'Refresh',
+              settings: 'Settings',
+              screenshot: 'Take a snapshot',
+              volume: 'Volume'
+            }}
+            showStatsOverlay={showStatsOverlay}
+            toggleStats={toggleStatsOverlay}
+            format={format}
+            volume={volume}
+            setVolume={setVolume}
+            startTime={startTime}
+            duration={duration}
+          />
+        </div>
       </div>
     );
   }
