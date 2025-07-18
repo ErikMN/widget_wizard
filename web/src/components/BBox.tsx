@@ -739,66 +739,38 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
 
   /* Refs: keep live refs to all BBox elements */
   const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());
-  /* Refs: Reference to the video-player-overlay */
-  const overlayRef = useRef<HTMLDivElement | null>(null);
 
-  /* Effect to handle bbox refs */
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      /* Ignore while dragging */
-      if (activeDraggableWidget?.active) {
+  /* Pointer-down handler: deactivate the widget if the click is not inside any BBox */
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    /* Ignore while dragging */
+    if (activeDraggableWidget?.active) {
+      return;
+    }
+    /* Check all bbox refs */
+    for (const [, el] of bboxRefs.current) {
+      /* Click inside a bbox: return */
+      if (el.contains(e.target as Node)) {
         return;
       }
-      if (!overlayRef.current) {
-        return;
-      }
-      /* Was the click inside the video-player-overlay? */
-      const rect = overlayRef.current.getBoundingClientRect();
-      const insideOverlay =
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom;
-      /* Not clicked in the video-player-overlay: return */
-      if (!insideOverlay) {
-        return;
-      }
-      /* Check all bbox refs */
-      for (const [, el] of bboxRefs.current) {
-        /* Click inside a bbox: return */
-        if (el.contains(e.target as Node)) {
-          return;
-        }
-      }
-      /* Click outside a bbox but inside the video-player-overlay: deactivate widget */
-      setActiveDraggableWidget({
-        id: null,
-        active: false,
-        clickBBox: false,
-        highlight: false
-      });
-      setOpenDropdownIndex(null);
-    };
-    window.addEventListener('pointerdown', handlePointerDown, true);
-    return () =>
-      window.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [
-    activeDraggableWidget?.active,
-    setActiveDraggableWidget,
-    setOpenDropdownIndex
-  ]);
+    }
+    /* Click outside a bbox but inside the video-player-overlay: deactivate widget */
+    setActiveDraggableWidget({
+      id: null,
+      active: false,
+      clickBBox: false,
+      highlight: false
+    });
+    setOpenDropdownIndex(null);
+  };
 
   return (
     /* Widget bounding boxes */
     <div
-      ref={overlayRef}
+      /* Handle clicks directly on this BBox */
+      onPointerDown={handlePointerDown}
       style={{
         // backgroundColor: 'blue',
         position: 'absolute',
-        /* NOTE: This is important since without it we will block the video players
-         * click surface. Handle click outside bbox with individual bbox refs instead.
-         */
-        pointerEvents: 'none',
         top: `${dimensions.offsetY}px`,
         left: `${dimensions.offsetX}px`,
         width: `${dimensions.pixelWidth}px`,
@@ -820,7 +792,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
               key={widget.generalParams.id}
               widget={widget}
               dimensions={dimensions}
-              /* Each bbox have its own ref */
+              /* Each bbox has its own ref */
               registerRef={(el) => {
                 if (el) {
                   /* Mount: store the bbox element reference using widget ID */
