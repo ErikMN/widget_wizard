@@ -80,6 +80,8 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<AppBarProps>(({ theme, open, isMobile }) => ({
   overflowX: 'auto',
+  WebkitOverflowScrolling: 'touch',
+  scrollbarWidth: 'none',
   backgroundColor: theme.palette.background.paper,
   backgroundImage: 'none',
   whiteSpace: 'nowrap',
