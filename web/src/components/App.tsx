@@ -216,11 +216,7 @@ const App: React.FC = () => {
   };
 
   const handleToggleMute = () => {
-    setIsMuted((prevIsMuted: boolean) => {
-      const newMuteState = !prevIsMuted;
-      localStorage.setItem('mute', newMuteState.toString());
-      return newMuteState;
-    });
+    setIsMuted((prev: boolean) => !prev);
   };
 
   const contentMain = () => {
