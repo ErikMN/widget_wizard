@@ -14,7 +14,7 @@
     "@mui/material": "^7.2.0",
     "@mui/styles": "^6.4.8",
     "@types/lodash": "^4.17.20",
-    "@types/react": "^19.1.8",
+    "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "lodash": "^4.17.21",
