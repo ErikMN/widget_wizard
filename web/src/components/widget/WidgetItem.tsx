@@ -251,6 +251,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'
           }}
+          title={`${capitalizeFirstLetter(widget.generalParams.type)} (${widget.width}x${widget.height}) ID: ${widget.generalParams.id}`}
         >
           {/* Widget title and info */}
           <Typography
