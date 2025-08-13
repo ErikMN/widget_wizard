@@ -16,5 +16,5 @@ Make sure you have Docker and Make installed.
 Then run:
 
 ```shell
-make ww
+make app
 ```

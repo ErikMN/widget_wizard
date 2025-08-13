@@ -92,6 +92,7 @@ all: $(PROGS)
 .PHONY: help
 help:
 	@echo "Available targets:"
+	@echo "  app            : Setup Docker image $(DOCKER_X64_IMG) and build the app"
 	@echo "  dockersetup    : Create the Docker image $(DOCKER_X64_IMG)"
 	@echo "  dockerlist     : List all Docker images"
 	@echo "  dockerrun      : Log in to the Docker image for current arch"
@@ -180,8 +181,8 @@ else
 endif
 
 # Fasy target to setup Docker image and build the ACAP:
-.PHONY: ww
-ww: dockersetup acap
+.PHONY: app
+app: dockersetup acap
 
 # Install ACAP using Docker:
 .PHONY: install
