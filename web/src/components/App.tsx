@@ -5,6 +5,8 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
 import DrawMode from './DrawMode';
 import VideoStage from './VideoStage';
+import DrawControls from './DrawControls';
+import { useDrawController } from './useDrawController';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
@@ -140,7 +142,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 const App: React.FC = () => {
   /* Local state */
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [drawActive, setDrawActive] = useState<boolean>(false);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -228,43 +229,15 @@ const App: React.FC = () => {
   /****************************************************************************/
   /* Draw mode */
 
-  /* Parse the chosen overlay resolution from localStorage 'vapix' (e.g. "1920x1080") */
-  function getOverlayCoordSize(): { width: number; height: number } {
-    try {
-      const raw = window.localStorage.getItem('vapix');
-      if (raw) {
-        const obj = JSON.parse(raw);
-        const res: string | undefined = obj?.resolution;
-        if (res && /^[0-9]+x[0-9]+$/i.test(res)) {
-          const [w, h] = res
-            .toLowerCase()
-            .split('x')
-            .map((n: string) => parseInt(n, 10));
-          if (w > 0 && h > 0) {
-            return { width: w, height: h };
-          }
-        }
-      }
-    } catch {
-      /* ignore parse errors */
-    }
-    /* Fallback to default overlay size */
-    return { width: 1920, height: 1080 };
-  }
-
-  const overlayCoord = getOverlayCoordSize();
-
-  /* Draw handlers */
-  const handleToggleDraw = useCallback(() => {
-    setDrawActive((v) => !v);
-    overlayRef.current?.toggle?.();
-  }, []);
-  const handleUndo = useCallback(() => overlayRef.current?.undo?.(), []);
-  const handleClear = useCallback(() => overlayRef.current?.clear?.(), []);
-  const handleSave = useCallback(
-    () => overlayRef.current?.saveSVG?.('annotation.svg'),
-    []
-  );
+  const {
+    drawActive,
+    setDrawActive,
+    toggleDraw: handleToggleDraw,
+    undo: handleUndo,
+    clear: handleClear,
+    save: handleSave,
+    overlayCoord
+  } = useDrawController(overlayRef);
 
   /****************************************************************************/
 
@@ -575,7 +548,17 @@ const App: React.FC = () => {
           <Divider />
           {/* Drawer content here */}
           <Box sx={{ paddingBottom: 1 }}>
-            <WidgetHandler />
+            {drawActive ? (
+              <DrawControls
+                overlayRef={overlayRef}
+                onExit={() => {
+                  setDrawActive(false);
+                  overlayRef.current?.stop?.();
+                }}
+              />
+            ) : (
+              <WidgetHandler />
+            )}
           </Box>
         </Drawer>
 
