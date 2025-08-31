@@ -1,6 +1,7 @@
 import React from 'react';
+import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
-import { Stack, Tooltip, IconButton } from '@mui/material';
+import { Stack, Tooltip } from '@mui/material';
 import GestureIcon from '@mui/icons-material/Gesture';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 
@@ -16,13 +17,13 @@ const DrawMode: React.FC<DrawModeProps> = ({ active, onToggle }) => {
   return (
     <Stack direction="row" spacing={1} alignItems="center">
       <Tooltip title={active ? 'Stop drawing' : 'Start drawing'} arrow>
-        <IconButton
-          color={active ? 'secondary' : 'default'}
+        <CustomStyledIconButton
+          color={active ? 'error' : 'default'}
           onClick={onToggle}
           aria-label="toggle draw"
         >
           {active ? <StopCircleIcon /> : <GestureIcon />}
-        </IconButton>
+        </CustomStyledIconButton>
       </Tooltip>
     </Stack>
   );

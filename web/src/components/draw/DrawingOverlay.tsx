@@ -123,7 +123,7 @@ export const DrawingOverlay = forwardRef<
       strokeWidth: number;
     } | null>(null);
 
-    // Convert pointer to SVG user space (fixed coord system).
+    /* Convert pointer to SVG user space (fixed coord system). */
     const toLocal = useCallback(
       (evt: PointerEvent): { x: number; y: number } => {
         const svg = svgRef.current;
@@ -238,7 +238,8 @@ export const DrawingOverlay = forwardRef<
           height: styleRect.height,
           zIndex: styleRect.zIndex ?? 9999,
           pointerEvents: active ? 'auto' : 'none',
-          touchAction: 'none'
+          touchAction: 'none',
+          cursor: active ? 'crosshair' : 'default'
         }}
       >
         <svg

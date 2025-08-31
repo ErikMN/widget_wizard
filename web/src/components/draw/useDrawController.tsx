@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
 
-/** Read coord size from localStorage 'vapix.resolution' => "WxH", fallback 1920x1080 */
+/* Read coord size from localStorage 'vapix.resolution' => "WxH", fallback 1920x1080 */
 function readVapixCoord(): { width: number; height: number } {
   try {
     const raw = window.localStorage.getItem('vapix');

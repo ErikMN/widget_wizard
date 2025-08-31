@@ -7,7 +7,7 @@
 
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
 import VideoPlayer from './VideoPlayer';
-import DrawingOverlay, { DrawingOverlayHandle } from './DrawingOverlay';
+import DrawingOverlay, { DrawingOverlayHandle } from './draw/DrawingOverlay';
 
 interface VideoStageProps {
   drawActive: boolean;

@@ -3,11 +3,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
-import DrawMode from './DrawMode';
 import VideoStage from './VideoStage';
-import DrawControls from './DrawControls';
-import { useDrawController } from './useDrawController';
-import type { DrawingOverlayHandle } from './DrawingOverlay';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
 import { useParameters } from './ParametersContext';
@@ -22,6 +18,11 @@ import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
 import WidgetHandler from './widget/WidgetHandler';
 import WidgetInfo from './widget/WidgetInfo';
+/* Draw mode */
+import DrawMode from './draw/DrawMode.js';
+import DrawControls from './draw/DrawControls.js';
+import { useDrawController } from './draw/useDrawController.js';
+import type { DrawingOverlayHandle } from './draw/DrawingOverlay.js';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';

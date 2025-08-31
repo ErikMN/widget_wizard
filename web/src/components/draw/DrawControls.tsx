@@ -1,14 +1,8 @@
 import React from 'react';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
-import {
-  Box,
-  Stack,
-  Tooltip,
-  IconButton,
-  Divider,
-  Typography
-} from '@mui/material';
+import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
+import { Box, Stack, Tooltip, Divider, Typography } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
@@ -34,13 +28,13 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       >
         <Typography variant="h6">Draw Controls</Typography>
         <Tooltip title="Stop drawing" arrow>
-          <IconButton
+          <CustomStyledIconButton
             color="secondary"
             onClick={onExit}
             aria-label="stop drawing"
           >
             <StopCircleIcon />
-          </IconButton>
+          </CustomStyledIconButton>
         </Tooltip>
       </Stack>
 
@@ -49,25 +43,25 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       <Stack direction="row" spacing={1} alignItems="center">
         <Tooltip title="Undo last stroke" arrow>
           <span>
-            <IconButton onClick={handleUndo} aria-label="undo">
+            <CustomStyledIconButton onClick={handleUndo} aria-label="undo">
               <UndoIcon />
-            </IconButton>
+            </CustomStyledIconButton>
           </span>
         </Tooltip>
 
         <Tooltip title="Clear all" arrow>
           <span>
-            <IconButton onClick={handleClear} aria-label="clear">
+            <CustomStyledIconButton onClick={handleClear} aria-label="clear">
               <DeleteOutlineIcon />
-            </IconButton>
+            </CustomStyledIconButton>
           </span>
         </Tooltip>
 
         <Tooltip title="Save drawing as SVG" arrow>
           <span>
-            <IconButton onClick={handleSave} aria-label="save">
+            <CustomStyledIconButton onClick={handleSave} aria-label="save">
               <SaveAltIcon />
-            </IconButton>
+            </CustomStyledIconButton>
           </span>
         </Tooltip>
       </Stack>
