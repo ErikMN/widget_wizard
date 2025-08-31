@@ -77,7 +77,7 @@ function pointsToPath(points: Array<{ x: number; y: number }>): string {
   }
   if (points.length === 1) {
     const p = points[0];
-    return `M ${p.x} ${p.y} L ${p.x} ${p.y}`; // dot
+    return `M ${p.x} ${p.y} L ${p.x} ${p.y}`;
   }
   let d = `M ${points[0].x} ${points[0].y}`;
   for (let i = 1; i < points.length - 1; i++) {
@@ -90,6 +90,21 @@ function pointsToPath(points: Array<{ x: number; y: number }>): string {
   const last = points[points.length - 1];
   d += ` T ${last.x} ${last.y}`;
   return d;
+}
+
+/* Read current brush from CSS vars, fallback to props/defaults */
+function getCurrentBrush(
+  fallbackColor: string,
+  fallbackWidth: number
+): { color: string; width: number } {
+  const cs = getComputedStyle(document.documentElement);
+  const color =
+    (cs.getPropertyValue('--draw-stroke') || '').trim() || fallbackColor;
+  const widthStr = (cs.getPropertyValue('--draw-width') || '').trim();
+  const width = Number.isFinite(parseFloat(widthStr))
+    ? Math.max(1, parseFloat(widthStr))
+    : fallbackWidth;
+  return { color, width };
 }
 
 export const DrawingOverlay = forwardRef<
@@ -149,11 +164,14 @@ export const DrawingOverlay = forwardRef<
           return;
         }
         (e.target as Element).setPointerCapture?.(e.pointerId);
+
+        /* Pick up live brush from CSS vars at the moment drawing starts */
+        const { color, width } = getCurrentBrush(strokeColor, strokeWidth);
         const loc = toLocal(e.nativeEvent);
         drawing.current = {
           points: [loc],
-          stroke: strokeColor,
-          strokeWidth
+          stroke: color,
+          strokeWidth: width
         };
       },
       [active, strokeColor, strokeWidth, toLocal]
@@ -228,6 +246,11 @@ export const DrawingOverlay = forwardRef<
       [active, onActiveChange, coordWidth, coordHeight]
     );
 
+    /* Use the in-progress brush for the live preview (matches what will be committed) */
+    const previewBrush = drawing.current
+      ? { color: drawing.current.stroke, width: drawing.current.strokeWidth }
+      : getCurrentBrush(strokeColor, strokeWidth);
+
     return (
       <div
         style={{
@@ -248,7 +271,7 @@ export const DrawingOverlay = forwardRef<
           width="100%"
           height="100%"
           viewBox={`0 0 ${coordWidth} ${coordHeight}`}
-          style={{ display: 'block' }}
+          style={{ display: 'block', cursor: active ? 'crosshair' : 'default' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={finishStroke}
@@ -266,8 +289,8 @@ export const DrawingOverlay = forwardRef<
             {previewPath && (
               <path
                 d={previewPath}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
+                stroke={previewBrush.color}
+                strokeWidth={previewBrush.width}
               />
             )}
           </g>

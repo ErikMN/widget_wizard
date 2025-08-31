@@ -1,25 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
-import { CustomStyledIconButton } from '../CustomComponents';
+import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 /* MUI */
-import { Box, Stack, Tooltip, Divider, Typography } from '@mui/material';
+import {
+  Box,
+  Stack,
+  Tooltip,
+  Divider,
+  Typography,
+  IconButton
+} from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import UndoIcon from '@mui/icons-material/Undo';
 
+/**
+ * All brush state (color, width) lives here.
+ * We push values to CSS vars so DrawingOverlay can read them dynamically.
+ */
 interface DrawControlsProps {
   overlayRef: React.RefObject<DrawingOverlayHandle | null>;
   onExit: () => void;
 }
 
+const COLORS = [
+  '#00E5FF',
+  '#FF5252',
+  '#4CAF50',
+  '#FFD600',
+  '#FFFFFF',
+  '#000000'
+];
+
 const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
+  const [strokeColor, setStrokeColor] = useState<string>('#00E5FF');
+  const [strokeWidth, setStrokeWidth] = useState<number>(3);
+
+  /* Push brush settings to CSS variables so the overlay can read them. */
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--draw-stroke', strokeColor);
+    root.style.setProperty('--draw-width', String(strokeWidth));
+  }, [strokeColor, strokeWidth]);
+
   const handleUndo = () => overlayRef.current?.undo?.();
   const handleClear = () => overlayRef.current?.clear?.();
   const handleSave = () => overlayRef.current?.saveSVG?.('annotation.svg');
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Header */}
       <Stack
         direction="row"
         alignItems="center"
@@ -29,7 +60,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
         <Typography variant="h6">Draw Controls</Typography>
         <Tooltip title="Stop drawing" arrow>
           <CustomStyledIconButton
-            color="secondary"
+            color="error"
             onClick={onExit}
             aria-label="stop drawing"
           >
@@ -40,6 +71,40 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
 
       <Divider sx={{ mb: 2 }} />
 
+      {/* Colors */}
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        Colors
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+        {COLORS.map((c) => (
+          <IconButton
+            key={c}
+            onClick={() => setStrokeColor(c)}
+            sx={{
+              bgcolor: c,
+              border: strokeColor === c ? '2px solid #000' : '1px solid #888',
+              width: 32,
+              height: 32,
+              '&:hover': { opacity: 0.85 }
+            }}
+            aria-label={`set color ${c}`}
+          />
+        ))}
+      </Stack>
+
+      {/* Brush size */}
+      <Typography variant="subtitle2">Brush Size</Typography>
+      <CustomSlider
+        min={1}
+        max={20}
+        step={1}
+        value={strokeWidth}
+        onChange={(_, v) => setStrokeWidth(v as number)}
+        sx={{ mb: 2 }}
+        aria-label="brush size"
+      />
+
+      {/* Actions */}
       <Stack direction="row" spacing={1} alignItems="center">
         <Tooltip title="Undo last stroke" arrow>
           <span>
