@@ -10,6 +10,7 @@ import {
   Typography,
   IconButton
 } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
@@ -36,6 +37,7 @@ const COLORS = [
 const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
   const [strokeColor, setStrokeColor] = useState<string>('#00E5FF');
   const [strokeWidth, setStrokeWidth] = useState<number>(3);
+  const [uploading, setUploading] = useState<boolean>(false);
 
   /* Push brush settings to CSS variables so the overlay can read them. */
   useEffect(() => {
@@ -47,6 +49,63 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
   const handleUndo = () => overlayRef.current?.undo?.();
   const handleClear = () => overlayRef.current?.clear?.();
   const handleSave = () => overlayRef.current?.saveSVG?.('annotation.svg');
+
+  const handleUpload = async () => {
+    const anyRef = overlayRef.current as
+      | (DrawingOverlayHandle & {
+          exportPNG?: () => Promise<Blob | null>;
+        })
+      | null;
+
+    if (!anyRef?.exportPNG) {
+      console.warn(
+        'exportPNG() not available on overlay. Ensure DrawingOverlay exposes this method.'
+      );
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      /* Get PNG from overlay */
+      const pngBlob = await anyRef.exportPNG();
+      if (!pngBlob) {
+        console.warn('Failed to render overlay PNG.');
+        return;
+      }
+
+      /* Build form-data parts */
+      const payload = {
+        apiVersion: '1.0',
+        method: 'uploadOverlayImage',
+        params: { scaleToResolution: false }
+      };
+      const form = new FormData();
+      form.append(
+        'json',
+        new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+        'request.json'
+      );
+      form.append('image', pngBlob, 'overlay.png');
+
+      /* POST to device-local CGI */
+      const res = await fetch('/axis-cgi/uploadoverlayimage.cgi', {
+        method: 'POST',
+        body: form,
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error('Upload failed:', res.status, text);
+        return;
+      }
+    } catch (e) {
+      console.error('Upload error', e);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -126,6 +185,19 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
           <span>
             <CustomStyledIconButton onClick={handleSave} aria-label="save">
               <SaveAltIcon />
+            </CustomStyledIconButton>
+          </span>
+        </Tooltip>
+
+        {/* Upload as overlay */}
+        <Tooltip title="Upload as overlay" arrow>
+          <span>
+            <CustomStyledIconButton
+              onClick={handleUpload}
+              aria-label="upload as overlay"
+              disabled={uploading}
+            >
+              <CloudUploadIcon />
             </CustomStyledIconButton>
           </span>
         </Tooltip>

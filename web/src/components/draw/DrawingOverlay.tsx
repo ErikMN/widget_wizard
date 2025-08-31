@@ -29,14 +29,16 @@ export interface DrawingOverlayHandle {
   clear: () => void;
   saveSVG: (filename?: string) => void;
   isActive: () => boolean;
+  /* Optional: returns a PNG blob of the current overlay at coord size */
+  exportPNG?: () => Promise<Blob | null>;
 }
 
 interface DrawingOverlayProps {
   /* Whether drawing mode is active. While inactive, overlay is click-through. */
   active?: boolean;
-  /* Stroke color for new paths */
+  /* Fallback stroke color for new paths (used if CSS var is missing) */
   strokeColor?: string;
-  /* Stroke width for new paths (in SVG user units, i.e., coord px) */
+  /* Fallback stroke width for new paths (used if CSS var is missing) */
   strokeWidth?: number;
   /* Callback on active change (only used when using imperative API) */
   onActiveChange?: (active: boolean) => void;
@@ -92,19 +94,23 @@ function pointsToPath(points: Array<{ x: number; y: number }>): string {
   return d;
 }
 
-/* Read current brush from CSS vars, fallback to props/defaults */
-function getCurrentBrush(
+/* Read live brush values from CSS variables with sensible fallbacks. */
+function readBrushFromCSS(
   fallbackColor: string,
   fallbackWidth: number
 ): { color: string; width: number } {
-  const cs = getComputedStyle(document.documentElement);
-  const color =
-    (cs.getPropertyValue('--draw-stroke') || '').trim() || fallbackColor;
-  const widthStr = (cs.getPropertyValue('--draw-width') || '').trim();
-  const width = Number.isFinite(parseFloat(widthStr))
-    ? Math.max(1, parseFloat(widthStr))
-    : fallbackWidth;
-  return { color, width };
+  try {
+    const styles = getComputedStyle(document.documentElement);
+    const color =
+      (styles.getPropertyValue('--draw-stroke') || '').trim() || fallbackColor;
+    const widthStr = (styles.getPropertyValue('--draw-width') || '').trim();
+    const wParsed = parseFloat(widthStr);
+    const width =
+      Number.isFinite(wParsed) && wParsed > 0 ? wParsed : fallbackWidth;
+    return { color, width };
+  } catch {
+    return { color: fallbackColor, width: fallbackWidth };
+  }
 }
 
 export const DrawingOverlay = forwardRef<
@@ -165,8 +171,9 @@ export const DrawingOverlay = forwardRef<
         }
         (e.target as Element).setPointerCapture?.(e.pointerId);
 
-        /* Pick up live brush from CSS vars at the moment drawing starts */
-        const { color, width } = getCurrentBrush(strokeColor, strokeWidth);
+        /* Read current brush straight from CSS vars at stroke start */
+        const { color, width } = readBrushFromCSS(strokeColor, strokeWidth);
+
         const loc = toLocal(e.nativeEvent);
         drawing.current = {
           points: [loc],
@@ -204,6 +211,63 @@ export const DrawingOverlay = forwardRef<
       setPreviewPath('');
     }, [active]);
 
+    /* Serialize current SVG content (used by saveSVG and exportPNG) */
+    const serializeSVG = useCallback((): string | null => {
+      const svg = svgRef.current;
+      if (!svg) {
+        return null;
+      }
+      const serializer = new XMLSerializer();
+      const cloned = svg.cloneNode(true) as SVGSVGElement;
+      cloned.style.pointerEvents = '';
+      cloned.setAttribute('width', String(coordWidth));
+      cloned.setAttribute('height', String(coordHeight));
+      cloned.setAttribute('viewBox', `0 0 ${coordWidth} ${coordHeight}`);
+      const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n';
+
+      return xmlHeader + serializer.serializeToString(cloned);
+    }, [coordWidth, coordHeight]);
+
+    /* Rasterize serialized SVG to PNG blob */
+    const svgToPNG = useCallback(
+      async (svgXml: string): Promise<Blob | null> => {
+        const svgBlob = new Blob([svgXml], {
+          type: 'image/svg+xml;charset=utf-8'
+        });
+        const url = URL.createObjectURL(svgBlob);
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          const load = () =>
+            new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = (e) => reject(e);
+            });
+          img.src = url;
+          await load();
+
+          const canvas = document.createElement('canvas');
+          canvas.width = coordWidth;
+          canvas.height = coordHeight;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            return null;
+          }
+          ctx.clearRect(0, 0, coordWidth, coordHeight);
+          ctx.drawImage(img, 0, 0, coordWidth, coordHeight);
+
+          const png: Blob | null = await new Promise((resolve) =>
+            canvas.toBlob((b) => resolve(b), 'image/png')
+          );
+
+          return png;
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      },
+      [coordWidth, coordHeight]
+    );
+
     useImperativeHandle(
       ref,
       (): DrawingOverlayHandle => ({
@@ -224,32 +288,26 @@ export const DrawingOverlay = forwardRef<
         undo: () => setPaths((prev) => prev.slice(0, -1)),
         clear: () => setPaths([]),
         saveSVG: (filename = 'drawing.svg') => {
-          const svg = svgRef.current;
-          if (!svg) {
+          const xml = serializeSVG();
+          if (!xml) {
             return;
           }
-          const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n';
-          const serializer = new XMLSerializer();
-          const cloned = svg.cloneNode(true) as SVGSVGElement;
-          cloned.style.pointerEvents = '';
-          cloned.setAttribute('width', String(coordWidth));
-          cloned.setAttribute('height', String(coordHeight));
-          cloned.setAttribute('viewBox', `0 0 ${coordWidth} ${coordHeight}`);
-          const svgContent = serializer.serializeToString(cloned);
-          const blob = new Blob([xmlHeader + svgContent], {
+          const blob = new Blob([xml], {
             type: 'image/svg+xml;charset=utf-8'
           });
           triggerDownload(filename, blob);
         },
-        isActive: () => active
+        isActive: () => active,
+        exportPNG: async () => {
+          const xml = serializeSVG();
+          if (!xml) {
+            return null;
+          }
+          return await svgToPNG(xml);
+        }
       }),
-      [active, onActiveChange, coordWidth, coordHeight]
+      [active, onActiveChange, serializeSVG, svgToPNG]
     );
-
-    /* Use the in-progress brush for the live preview (matches what will be committed) */
-    const previewBrush = drawing.current
-      ? { color: drawing.current.stroke, width: drawing.current.strokeWidth }
-      : getCurrentBrush(strokeColor, strokeWidth);
 
     return (
       <div
@@ -289,8 +347,8 @@ export const DrawingOverlay = forwardRef<
             {previewPath && (
               <path
                 d={previewPath}
-                stroke={previewBrush.color}
-                strokeWidth={previewBrush.width}
+                stroke={drawing.current?.stroke ?? strokeColor}
+                strokeWidth={drawing.current?.strokeWidth ?? strokeWidth}
               />
             )}
           </g>
