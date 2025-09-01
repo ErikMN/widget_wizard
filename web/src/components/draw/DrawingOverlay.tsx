@@ -11,6 +11,7 @@ import React, {
   useImperativeHandle,
   useRef,
   useState,
+  useEffect,
   forwardRef
 } from 'react';
 
@@ -129,10 +130,7 @@ function readBrushAndToolFromCSS(
   }
 }
 
-export const DrawingOverlay = forwardRef<
-  DrawingOverlayHandle,
-  DrawingOverlayProps
->(
+const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
   (
     {
       active: controlledActive,
@@ -252,10 +250,25 @@ export const DrawingOverlay = forwardRef<
 
         if (curr.mode === 'rect') {
           curr.last = loc;
-          const x = Math.min(curr.start.x, curr.last.x);
-          const y = Math.min(curr.start.y, curr.last.y);
-          const w = Math.abs(curr.last.x - curr.start.x);
-          const h = Math.abs(curr.last.y - curr.start.y);
+
+          /* Normal rectangle */
+          let x = Math.min(curr.start.x, curr.last.x);
+          let y = Math.min(curr.start.y, curr.last.y);
+          let w = Math.abs(curr.last.x - curr.start.x);
+          let h = Math.abs(curr.last.y - curr.start.y);
+
+          /* Hold Shift to constrain to perfect square */
+          if ((e.nativeEvent as PointerEvent).shiftKey) {
+            const s = Math.max(w, h);
+            const dx = curr.last.x - curr.start.x;
+            const dy = curr.last.y - curr.start.y;
+            const sx = dx >= 0 ? 1 : -1;
+            const sy = dy >= 0 ? 1 : -1;
+            w = h = s;
+            x = curr.start.x + (sx < 0 ? -s : 0);
+            y = curr.start.y + (sy < 0 ? -s : 0);
+          }
+
           setPreviewRect({
             x,
             y,
@@ -283,7 +296,7 @@ export const DrawingOverlay = forwardRef<
         const y = Math.min(curr.start.y, curr.last.y);
         const w = Math.abs(curr.last.x - curr.start.x);
         const h = Math.abs(curr.last.y - curr.start.y);
-        if (w > 0 || h > 0) {
+        if (w > 0 && h > 0) {
           setShapes((prev) => [
             ...prev,
             {
@@ -313,6 +326,19 @@ export const DrawingOverlay = forwardRef<
       }
       drawing.current = null;
     }, [active]);
+
+    /* Cancel current in-progress stroke with Esc */
+    useEffect(() => {
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          drawing.current = null;
+          setPreviewPath('');
+          setPreviewRect(null);
+        }
+      };
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, []);
 
     /* Serialize current SVG content (used by saveSVG and exportPNG) */
     const serializeSVG = useCallback((): string | null => {
@@ -470,6 +496,8 @@ export const DrawingOverlay = forwardRef<
           onPointerMove={onPointerMove}
           onPointerUp={finishStroke}
           onPointerCancel={finishStroke}
+          onPointerLeave={finishStroke}
+          onPointerOut={finishStroke}
         >
           <g fill="none" strokeLinecap="round" strokeLinejoin="round">
             {shapes.map((s, i) =>

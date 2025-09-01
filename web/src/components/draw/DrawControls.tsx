@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
 import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 import { useGlobalContext } from '../GlobalContext';
+import { UO_CGI } from '../constants';
 /* MUI */
 import {
   Box,
@@ -100,8 +101,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       );
       form.append('image', pngBlob, 'overlay.png');
 
-      /* POST to device-local CGI */
-      const res = await fetch('/axis-cgi/uploadoverlayimage.cgi', {
+      const res = await fetch(UO_CGI, {
         method: 'POST',
         body: form,
         credentials: 'include'
@@ -110,7 +110,10 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         console.error('Upload failed:', res.status, text);
-        handleOpenAlert(`Upload failed (${res.status})`, 'error');
+        handleOpenAlert(
+          `Upload failed (${res.status}) ${text}`.trim(),
+          'error'
+        );
         return;
       }
       handleOpenAlert('Overlay uploaded successfully', 'success');
@@ -149,7 +152,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
               </CustomStyledIconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Rectangle" arrow>
+          <Tooltip title="Rectangle (hold Shift for square)" arrow>
             <span>
               <CustomStyledIconButton
                 onClick={() => setTool('rect')}
