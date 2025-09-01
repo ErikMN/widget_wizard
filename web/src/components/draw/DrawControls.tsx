@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { DrawingOverlayHandle } from './DrawingOverlay';
 import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
+import { useGlobalContext } from '../GlobalContext';
 /* MUI */
 import {
   Box,
@@ -8,10 +9,12 @@ import {
   Tooltip,
   Divider,
   Typography,
-  IconButton
+  IconButton,
+  CircularProgress
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import UndoIcon from '@mui/icons-material/Undo';
@@ -39,6 +42,9 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
   const [strokeWidth, setStrokeWidth] = useState<number>(3);
   const [uploading, setUploading] = useState<boolean>(false);
 
+  /* Global context */
+  const { handleOpenAlert } = useGlobalContext();
+
   /* Push brush settings to CSS variables so the overlay can read them. */
   useEffect(() => {
     const root = document.documentElement;
@@ -61,6 +67,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       console.warn(
         'exportPNG() not available on overlay. Ensure DrawingOverlay exposes this method.'
       );
+      handleOpenAlert('Export not supported by overlay', 'error');
       return;
     }
 
@@ -70,7 +77,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       /* Get PNG from overlay */
       const pngBlob = await anyRef.exportPNG();
       if (!pngBlob) {
-        console.warn('Failed to render overlay PNG.');
+        handleOpenAlert('Failed to render overlay PNG', 'error');
         return;
       }
 
@@ -98,13 +105,20 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         console.error('Upload failed:', res.status, text);
+        handleOpenAlert(`Upload failed (${res.status})`, 'error');
         return;
       }
+      handleOpenAlert('Overlay uploaded successfully', 'success');
     } catch (e) {
       console.error('Upload error', e);
+      handleOpenAlert('Upload error', 'error');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleReload = () => {
+    window.location.reload();
   };
 
   return (
@@ -197,7 +211,23 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
               aria-label="upload as overlay"
               disabled={uploading}
             >
-              <CloudUploadIcon />
+              {uploading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <CloudUploadIcon />
+              )}
+            </CustomStyledIconButton>
+          </span>
+        </Tooltip>
+
+        {/* Reload app */}
+        <Tooltip title="Reload app" arrow>
+          <span>
+            <CustomStyledIconButton
+              onClick={handleReload}
+              aria-label="reload app"
+            >
+              <RefreshIcon />
             </CustomStyledIconButton>
           </span>
         </Tooltip>
