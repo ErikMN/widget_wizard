@@ -14,12 +14,26 @@ import React, {
   forwardRef
 } from 'react';
 
-export type SVGPath = {
-  d: string;
-  stroke: string;
-  strokeWidth: number; // in SVG units (coord space), not CSS px
-  opacity?: number;
-};
+type Tool = 'freehand' | 'rect';
+
+export type SVGShape =
+  | {
+      kind: 'path';
+      d: string;
+      stroke: string;
+      strokeWidth: number;
+      opacity?: number;
+    }
+  | {
+      kind: 'rect';
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      stroke: string;
+      strokeWidth: number;
+      opacity?: number;
+    };
 
 export interface DrawingOverlayHandle {
   start: () => void;
@@ -36,9 +50,9 @@ export interface DrawingOverlayHandle {
 interface DrawingOverlayProps {
   /* Whether drawing mode is active. While inactive, overlay is click-through. */
   active?: boolean;
-  /* Fallback stroke color for new paths (used if CSS var is missing) */
+  /* Fallback stroke color for new shapes (used if CSS var is missing) */
   strokeColor?: string;
-  /* Fallback stroke width for new paths (used if CSS var is missing) */
+  /* Fallback stroke width for new shapes (used if CSS var is missing) */
   strokeWidth?: number;
   /* Callback on active change (only used when using imperative API) */
   onActiveChange?: (active: boolean) => void;
@@ -94,11 +108,11 @@ function pointsToPath(points: Array<{ x: number; y: number }>): string {
   return d;
 }
 
-/* Read live brush values from CSS variables with sensible fallbacks. */
-function readBrushFromCSS(
+/* Read live brush + tool from CSS variables with sensible fallbacks. */
+function readBrushAndToolFromCSS(
   fallbackColor: string,
   fallbackWidth: number
-): { color: string; width: number } {
+): { color: string; width: number; tool: Tool } {
   try {
     const styles = getComputedStyle(document.documentElement);
     const color =
@@ -107,9 +121,11 @@ function readBrushFromCSS(
     const wParsed = parseFloat(widthStr);
     const width =
       Number.isFinite(wParsed) && wParsed > 0 ? wParsed : fallbackWidth;
-    return { color, width };
+    const toolStr = (styles.getPropertyValue('--draw-tool') || '').trim();
+    const tool: Tool = toolStr === 'rect' ? 'rect' : 'freehand';
+    return { color, width, tool };
   } catch {
-    return { color: fallbackColor, width: fallbackWidth };
+    return { color: fallbackColor, width: fallbackWidth, tool: 'freehand' };
   }
 }
 
@@ -135,14 +151,33 @@ export const DrawingOverlay = forwardRef<
     const active =
       controlledActive !== undefined ? !!controlledActive : internalActive;
 
-    const [paths, setPaths] = useState<SVGPath[]>([]);
+    const [shapes, setShapes] = useState<SVGShape[]>([]);
     const [previewPath, setPreviewPath] = useState<string>('');
-
-    const drawing = useRef<{
-      points: Array<{ x: number; y: number }>;
+    const [previewRect, setPreviewRect] = useState<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
       stroke: string;
       strokeWidth: number;
     } | null>(null);
+
+    const drawing = useRef<
+      | {
+          mode: 'freehand';
+          points: Array<{ x: number; y: number }>;
+          stroke: string;
+          strokeWidth: number;
+        }
+      | {
+          mode: 'rect';
+          start: { x: number; y: number };
+          last: { x: number; y: number };
+          stroke: string;
+          strokeWidth: number;
+        }
+      | null
+    >(null);
 
     /* Convert pointer to SVG user space (fixed coord system). */
     const toLocal = useCallback(
@@ -171,15 +206,38 @@ export const DrawingOverlay = forwardRef<
         }
         (e.target as Element).setPointerCapture?.(e.pointerId);
 
-        /* Read current brush straight from CSS vars at stroke start */
-        const { color, width } = readBrushFromCSS(strokeColor, strokeWidth);
-
+        const { color, width, tool } = readBrushAndToolFromCSS(
+          strokeColor,
+          strokeWidth
+        );
         const loc = toLocal(e.nativeEvent);
-        drawing.current = {
-          points: [loc],
-          stroke: color,
-          strokeWidth: width
-        };
+
+        if (tool === 'rect') {
+          drawing.current = {
+            mode: 'rect',
+            start: loc,
+            last: loc,
+            stroke: color,
+            strokeWidth: width
+          };
+          setPreviewPath('');
+          setPreviewRect({
+            x: loc.x,
+            y: loc.y,
+            width: 0,
+            height: 0,
+            stroke: color,
+            strokeWidth: width
+          });
+        } else {
+          drawing.current = {
+            mode: 'freehand',
+            points: [loc],
+            stroke: color,
+            strokeWidth: width
+          };
+          setPreviewRect(null);
+        }
       },
       [active, strokeColor, strokeWidth, toLocal]
     );
@@ -191,8 +249,25 @@ export const DrawingOverlay = forwardRef<
         }
         const loc = toLocal(e.nativeEvent);
         const curr = drawing.current;
-        curr.points.push(loc);
-        setPreviewPath(pointsToPath(curr.points));
+
+        if (curr.mode === 'rect') {
+          curr.last = loc;
+          const x = Math.min(curr.start.x, curr.last.x);
+          const y = Math.min(curr.start.y, curr.last.y);
+          const w = Math.abs(curr.last.x - curr.start.x);
+          const h = Math.abs(curr.last.y - curr.start.y);
+          setPreviewRect({
+            x,
+            y,
+            width: w,
+            height: h,
+            stroke: curr.stroke,
+            strokeWidth: curr.strokeWidth
+          });
+        } else {
+          curr.points.push(loc);
+          setPreviewPath(pointsToPath(curr.points));
+        }
       },
       [active, toLocal]
     );
@@ -202,13 +277,41 @@ export const DrawingOverlay = forwardRef<
         return;
       }
       const curr = drawing.current;
-      const d = pointsToPath(curr.points);
-      setPaths((prev) => [
-        ...prev,
-        { d, stroke: curr.stroke, strokeWidth: curr.strokeWidth }
-      ]);
+
+      if (curr.mode === 'rect') {
+        const x = Math.min(curr.start.x, curr.last.x);
+        const y = Math.min(curr.start.y, curr.last.y);
+        const w = Math.abs(curr.last.x - curr.start.x);
+        const h = Math.abs(curr.last.y - curr.start.y);
+        if (w > 0 || h > 0) {
+          setShapes((prev) => [
+            ...prev,
+            {
+              kind: 'rect',
+              x,
+              y,
+              width: w,
+              height: h,
+              stroke: curr.stroke,
+              strokeWidth: curr.strokeWidth
+            }
+          ]);
+        }
+        setPreviewRect(null);
+      } else {
+        const d = pointsToPath(curr.points);
+        setShapes((prev) => [
+          ...prev,
+          {
+            kind: 'path',
+            d,
+            stroke: curr.stroke,
+            strokeWidth: curr.strokeWidth
+          }
+        ]);
+        setPreviewPath('');
+      }
       drawing.current = null;
-      setPreviewPath('');
     }, [active]);
 
     /* Serialize current SVG content (used by saveSVG and exportPNG) */
@@ -217,16 +320,49 @@ export const DrawingOverlay = forwardRef<
       if (!svg) {
         return null;
       }
-      const serializer = new XMLSerializer();
-      const cloned = svg.cloneNode(true) as SVGSVGElement;
-      cloned.style.pointerEvents = '';
-      cloned.setAttribute('width', String(coordWidth));
-      cloned.setAttribute('height', String(coordHeight));
-      cloned.setAttribute('viewBox', `0 0 ${coordWidth} ${coordHeight}`);
-      const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n';
 
-      return xmlHeader + serializer.serializeToString(cloned);
-    }, [coordWidth, coordHeight]);
+      /* Create a fresh SVG with current shapes (no preview) */
+      const doc = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      doc.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      doc.setAttribute('width', String(coordWidth));
+      doc.setAttribute('height', String(coordHeight));
+      doc.setAttribute('viewBox', `0 0 ${coordWidth} ${coordHeight}`);
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('fill', 'none');
+      g.setAttribute('stroke-linecap', 'round');
+      g.setAttribute('stroke-linejoin', 'round');
+
+      shapes.forEach((s) => {
+        if (s.kind === 'path') {
+          const p = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'path'
+          );
+          p.setAttribute('d', s.d);
+          p.setAttribute('stroke', s.stroke);
+          p.setAttribute('stroke-width', String(s.strokeWidth));
+          g.appendChild(p);
+        } else {
+          const r = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'rect'
+          );
+          r.setAttribute('x', String(s.x));
+          r.setAttribute('y', String(s.y));
+          r.setAttribute('width', String(s.width));
+          r.setAttribute('height', String(s.height));
+          r.setAttribute('fill', 'none');
+          r.setAttribute('stroke', s.stroke);
+          r.setAttribute('stroke-width', String(s.strokeWidth));
+          g.appendChild(r);
+        }
+      });
+      doc.appendChild(g);
+      const serializer = new XMLSerializer();
+      const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      return xmlHeader + serializer.serializeToString(doc);
+    }, [coordWidth, coordHeight, shapes]);
 
     /* Rasterize serialized SVG to PNG blob */
     const svgToPNG = useCallback(
@@ -285,8 +421,8 @@ export const DrawingOverlay = forwardRef<
             return !v;
           });
         },
-        undo: () => setPaths((prev) => prev.slice(0, -1)),
-        clear: () => setPaths([]),
+        undo: () => setShapes((prev) => prev.slice(0, -1)),
+        clear: () => setShapes([]),
         saveSVG: (filename = 'drawing.svg') => {
           const xml = serializeSVG();
           if (!xml) {
@@ -336,19 +472,47 @@ export const DrawingOverlay = forwardRef<
           onPointerCancel={finishStroke}
         >
           <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {paths.map((p, i) => (
-              <path
-                key={i}
-                d={p.d}
-                stroke={p.stroke}
-                strokeWidth={p.strokeWidth}
-              />
-            ))}
+            {shapes.map((s, i) =>
+              s.kind === 'path' ? (
+                <path
+                  key={i}
+                  d={s.d}
+                  stroke={s.stroke}
+                  strokeWidth={s.strokeWidth}
+                />
+              ) : (
+                <rect
+                  key={i}
+                  x={s.x}
+                  y={s.y}
+                  width={s.width}
+                  height={s.height}
+                  fill="none"
+                  stroke={s.stroke}
+                  strokeWidth={s.strokeWidth}
+                />
+              )
+            )}
+
+            {/* Live previews */}
             {previewPath && (
               <path
                 d={previewPath}
-                stroke={drawing.current?.stroke ?? strokeColor}
-                strokeWidth={drawing.current?.strokeWidth ?? strokeWidth}
+                stroke={(drawing.current as any)?.stroke ?? strokeColor}
+                strokeWidth={
+                  (drawing.current as any)?.strokeWidth ?? strokeWidth
+                }
+              />
+            )}
+            {previewRect && (
+              <rect
+                x={previewRect.x}
+                y={previewRect.y}
+                width={previewRect.width}
+                height={previewRect.height}
+                fill="none"
+                stroke={previewRect.stroke}
+                strokeWidth={previewRect.strokeWidth}
               />
             )}
           </g>

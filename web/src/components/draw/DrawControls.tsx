@@ -13,15 +13,17 @@ import {
   CircularProgress
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CropSquareIcon from '@mui/icons-material/CropSquare';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import GestureIcon from '@mui/icons-material/Gesture';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import UndoIcon from '@mui/icons-material/Undo';
 
 /**
- * All brush state (color, width) lives here.
- * We push values to CSS vars so DrawingOverlay can read them dynamically.
+ * All brush/tool state lives here.
+ * We push values to CSS variables so DrawingOverlay can read them dynamically.
  */
 interface DrawControlsProps {
   overlayRef: React.RefObject<DrawingOverlayHandle | null>;
@@ -37,20 +39,25 @@ const COLORS = [
   '#000000'
 ];
 
+type Tool = 'freehand' | 'rect';
+
 const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
+  /* Local state */
   const [strokeColor, setStrokeColor] = useState<string>('#00E5FF');
   const [strokeWidth, setStrokeWidth] = useState<number>(3);
+  const [tool, setTool] = useState<Tool>('freehand');
   const [uploading, setUploading] = useState<boolean>(false);
 
   /* Global context */
   const { handleOpenAlert } = useGlobalContext();
 
-  /* Push brush settings to CSS variables so the overlay can read them. */
+  /* Push brush & tool settings to CSS variables so the overlay can read them. */
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--draw-stroke', strokeColor);
     root.style.setProperty('--draw-width', String(strokeWidth));
-  }, [strokeColor, strokeWidth]);
+    root.style.setProperty('--draw-tool', tool);
+  }, [strokeColor, strokeWidth, tool]);
 
   const handleUndo = () => overlayRef.current?.undo?.();
   const handleClear = () => overlayRef.current?.clear?.();
@@ -64,9 +71,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       | null;
 
     if (!anyRef?.exportPNG) {
-      console.warn(
-        'exportPNG() not available on overlay. Ensure DrawingOverlay exposes this method.'
-      );
+      console.warn('exportPNG() not available on overlay.');
       handleOpenAlert('Export not supported by overlay', 'error');
       return;
     }
@@ -131,15 +136,41 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
         sx={{ mb: 1 }}
       >
         <Typography variant="h6">Draw Controls</Typography>
-        <Tooltip title="Stop drawing" arrow>
-          <CustomStyledIconButton
-            color="error"
-            onClick={onExit}
-            aria-label="stop drawing"
-          >
-            <StopCircleIcon />
-          </CustomStyledIconButton>
-        </Tooltip>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {/* Tool switch: freehand or rectangle */}
+          <Tooltip title="Freehand" arrow>
+            <span>
+              <CustomStyledIconButton
+                onClick={() => setTool('freehand')}
+                aria-label="tool freehand"
+                color={tool === 'freehand' ? 'primary' : 'default'}
+              >
+                <GestureIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Rectangle" arrow>
+            <span>
+              <CustomStyledIconButton
+                onClick={() => setTool('rect')}
+                aria-label="tool rectangle"
+                color={tool === 'rect' ? 'primary' : 'default'}
+              >
+                <CropSquareIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Stop drawing" arrow>
+            <CustomStyledIconButton
+              color="error"
+              onClick={onExit}
+              aria-label="stop drawing"
+            >
+              <StopCircleIcon />
+            </CustomStyledIconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
 
       <Divider sx={{ mb: 2 }} />
