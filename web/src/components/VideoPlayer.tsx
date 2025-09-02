@@ -10,6 +10,16 @@ interface VapixConfig {
   resolution: string;
 }
 
+/* Optional prop for reporting on-screen video rect to parent */
+interface VideoPlayerProps {
+  onVideoRect?: (rect: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  }) => void;
+}
+
 /* Force a login by fetching usergroup */
 const authorize = async (): Promise<void> => {
   try {
@@ -43,7 +53,7 @@ const setDefaultParams = (): void => {
   }
 };
 
-const VideoPlayer: React.FC = () => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ onVideoRect }) => {
   /* Local state */
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
@@ -113,6 +123,14 @@ const VideoPlayer: React.FC = () => {
         pixelHeight: videoRect.height, // Pixel height
         offsetX, // Offset X (left margin of the video in the container)
         offsetY // Offset Y (top margin of the video in the container)
+      });
+
+      /* Notify parent with a rect relative to the container */
+      onVideoRect?.({
+        left: offsetX,
+        top: offsetY,
+        width: videoRect.width,
+        height: videoRect.height
       });
     }
   };
