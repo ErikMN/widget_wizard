@@ -1,13 +1,13 @@
 import React from 'react';
 import { CustomStyledIconButton } from '../CustomComponents';
-import { useDraw } from './DrawContext';
+import { useGlobalContext } from '../GlobalContext';
 /* MUI */
 import { Stack, Tooltip } from '@mui/material';
 import GestureIcon from '@mui/icons-material/Gesture';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 
 const DrawMode: React.FC = () => {
-  const { drawActive, toggle } = useDraw();
+  const { drawActive, toggle } = useGlobalContext();
 
   return (
     <Stack direction="row" spacing={1} alignItems="center">

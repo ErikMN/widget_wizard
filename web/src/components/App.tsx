@@ -20,7 +20,6 @@ import messageSoundUrl from '../assets/audio/message.oga';
 import WidgetInfo from './widget/WidgetInfo';
 /* Draw mode */
 import DrawMode from './draw/DrawMode';
-import { DrawProvider } from './draw/DrawContext';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -578,12 +577,10 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <DrawProvider>
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-          <CssBaseline />
-          {contentMain()}
-        </Box>
-      </DrawProvider>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <CssBaseline />
+        {contentMain()}
+      </Box>
     </ThemeProvider>
   );
 };

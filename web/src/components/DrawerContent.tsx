@@ -1,11 +1,11 @@
 /* Decides what to show in the app drawer */
 import React from 'react';
-import { useDraw } from './draw/DrawContext';
+import { useGlobalContext } from './GlobalContext';
 import DrawControls from './draw/DrawControls';
 import WidgetHandler from './widget/WidgetHandler';
 
 const DrawerContent: React.FC = () => {
-  const { drawActive, setDrawActive, overlayRef } = useDraw();
+  const { drawActive, setDrawActive, overlayRef } = useGlobalContext();
 
   if (!drawActive) {
     return <WidgetHandler />;

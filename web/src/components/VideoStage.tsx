@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import VideoPlayer from './VideoPlayer';
 import DrawingOverlay from './draw/DrawingOverlay';
-import { useDraw } from './draw/DrawContext';
+import { useGlobalContext } from './GlobalContext';
 
 interface VideoStageProps {
   strokeColor?: string;
@@ -23,7 +23,7 @@ const VideoStage: React.FC<VideoStageProps> = ({
   strokeWidth
 }) => {
   /* Pull draw state + overlay ref + coord size from context */
-  const { drawActive, overlayRef, coord } = useDraw();
+  const { drawActive, overlayRef, coord } = useGlobalContext();
 
   const [videoRect, setVideoRect] = useState<Rect>({
     left: 0,
