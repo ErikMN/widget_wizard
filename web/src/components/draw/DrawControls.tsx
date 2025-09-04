@@ -42,6 +42,15 @@ const COLORS = [
 
 type Tool = 'freehand' | 'rect';
 
+/* Slider markers for brush size */
+const BRUSH_MARKS = [
+  { value: 1, label: '1' },
+  { value: 5, label: '5' },
+  { value: 10, label: '10' },
+  { value: 15, label: '15' },
+  { value: 20, label: '20' }
+];
+
 const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
   /* Local state */
   const [strokeColor, setStrokeColor] = useState<string>('#00E5FF');
@@ -200,7 +209,7 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       </Stack>
 
       {/* Brush size */}
-      <Typography variant="subtitle2">Brush Size</Typography>
+      <Typography variant="subtitle2">Brush Size: {strokeWidth}px</Typography>
       <CustomSlider
         min={1}
         max={20}
@@ -209,6 +218,8 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
         onChange={(_, v) => setStrokeWidth(v as number)}
         sx={{ mb: 2 }}
         aria-label="brush size"
+        marks={BRUSH_MARKS}
+        valueLabelDisplay="auto"
       />
 
       {/* Actions */}
