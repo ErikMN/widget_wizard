@@ -7,17 +7,17 @@ import GestureIcon from '@mui/icons-material/Gesture';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 
 const DrawMode: React.FC = () => {
-  const { drawActive, toggle } = useGlobalContext();
+  const { drawModeActive, toggleDrawMode } = useGlobalContext();
 
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      <Tooltip title={drawActive ? 'Stop drawing' : 'Start drawing'} arrow>
+      <Tooltip title={drawModeActive ? 'Stop drawing' : 'Start drawing'} arrow>
         <CustomStyledIconButton
-          color={drawActive ? 'error' : 'default'}
-          onClick={toggle}
+          color={drawModeActive ? 'error' : 'default'}
+          onClick={toggleDrawMode}
           aria-label="toggle draw"
         >
-          {drawActive ? <StopCircleIcon /> : <GestureIcon />}
+          {drawModeActive ? <StopCircleIcon /> : <GestureIcon />}
         </CustomStyledIconButton>
       </Tooltip>
     </Stack>

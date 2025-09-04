@@ -23,7 +23,8 @@ const VideoStage: React.FC<VideoStageProps> = ({
   strokeWidth
 }) => {
   /* Pull draw state + overlay ref + coord size from context */
-  const { drawActive, overlayRef, coord } = useGlobalContext();
+  const { drawModeActive, drawModeOverlayRef, drawModeCoord } =
+    useGlobalContext();
 
   const [videoRect, setVideoRect] = useState<Rect>({
     left: 0,
@@ -43,12 +44,12 @@ const VideoStage: React.FC<VideoStageProps> = ({
         }}
       />
       <DrawingOverlay
-        ref={overlayRef}
-        active={drawActive}
+        ref={drawModeOverlayRef}
+        active={drawModeActive}
         strokeColor={strokeColor}
         strokeWidth={strokeWidth}
-        coordWidth={coord.width}
-        coordHeight={coord.height}
+        coordWidth={drawModeCoord.width}
+        coordHeight={drawModeCoord.height}
         styleRect={videoRect}
       />
     </div>

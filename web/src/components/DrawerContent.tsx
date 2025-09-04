@@ -5,18 +5,19 @@ import DrawControls from './draw/DrawControls';
 import WidgetHandler from './widget/WidgetHandler';
 
 const DrawerContent: React.FC = () => {
-  const { drawActive, setDrawActive, overlayRef } = useGlobalContext();
+  const { drawModeActive, setDrawModeActive, drawModeOverlayRef } =
+    useGlobalContext();
 
-  if (!drawActive) {
+  if (!drawModeActive) {
     return <WidgetHandler />;
   }
 
   return (
     <DrawControls
-      overlayRef={overlayRef}
+      overlayRef={drawModeOverlayRef}
       onExit={() => {
-        setDrawActive(false);
-        overlayRef.current?.stop?.();
+        setDrawModeActive(false);
+        drawModeOverlayRef.current?.stop?.();
       }}
     />
   );

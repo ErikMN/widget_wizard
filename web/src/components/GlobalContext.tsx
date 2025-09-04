@@ -7,6 +7,7 @@ import { useLocalStorage, useTabVisibility } from '../helpers/hooks.jsx';
 import { jsonRequest } from '../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../helpers/logger.js';
 import { playSound } from '../helpers/utils';
+import { readVapixCoord } from '../helpers/vapix';
 import warningSoundUrl from '../assets/audio/warning.oga';
 import trashSoundUrl from '../assets/audio/trash.oga';
 import newSoundUrl from '../assets/audio/new.oga';
@@ -92,18 +93,18 @@ interface GlobalContextProps {
   setCurrentChannel: React.Dispatch<React.SetStateAction<string>>;
 
   /* Draw mode state */
-  drawActive: boolean;
-  setDrawActive: React.Dispatch<React.SetStateAction<boolean>>;
-  coord: { width: number; height: number };
-  overlayRef: React.RefObject<
+  drawModeActive: boolean;
+  setDrawModeActive: React.Dispatch<React.SetStateAction<boolean>>;
+  drawModeCoord: { width: number; height: number };
+  drawModeOverlayRef: React.RefObject<
     import('./draw/DrawingOverlay').DrawingOverlayHandle | null
   >;
-  start: () => void;
-  stop: () => void;
-  toggle: () => void;
-  undo: () => void;
-  clear: () => void;
-  save: () => void;
+  startDrawMode: () => void;
+  stopDrawMode: () => void;
+  toggleDrawMode: () => void;
+  undoDrawMode: () => void;
+  clearDrawMode: () => void;
+  saveDrawMode: () => void;
 }
 
 /* Creating the Widget context */
@@ -470,51 +471,37 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   type DrawingOverlayHandle =
     import('./draw/DrawingOverlay').DrawingOverlayHandle;
 
-  function readVapixCoord(): { width: number; height: number } {
-    try {
-      const raw = window.localStorage.getItem('vapix');
-      if (raw) {
-        const obj = JSON.parse(raw);
-        const res: string | undefined = obj?.resolution;
-        if (res && /^[0-9]+x[0-9]+$/i.test(res)) {
-          const [w, h] = res
-            .toLowerCase()
-            .split('x')
-            .map((n: string) => parseInt(n, 10));
-          if (w > 0 && h > 0) return { width: w, height: h };
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-    return { width: 1920, height: 1080 };
-  }
+  const drawModeOverlayRef = React.useRef<DrawingOverlayHandle | null>(null);
+  const [drawModeActive, setDrawModeActive] = useState(false);
+  const drawModeCoord = React.useMemo(readVapixCoord, []);
 
-  const overlayRef = React.useRef<DrawingOverlayHandle | null>(null);
-  const [drawActive, setDrawActive] = useState(false);
-  const coord = React.useMemo(readVapixCoord, []);
-
-  const start = React.useCallback(() => {
-    overlayRef.current?.start?.();
-    setDrawActive(true);
+  const startDrawMode = React.useCallback(() => {
+    drawModeOverlayRef.current?.start?.();
+    setDrawModeActive(true);
   }, []);
 
-  const stop = React.useCallback(() => {
-    overlayRef.current?.stop?.();
-    setDrawActive(false);
+  const stopDrawMode = React.useCallback(() => {
+    drawModeOverlayRef.current?.stop?.();
+    setDrawModeActive(false);
   }, []);
 
-  const toggle = React.useCallback(() => {
-    overlayRef.current?.toggle?.();
-    setDrawActive((v) => !v);
+  const toggleDrawMode = React.useCallback(() => {
+    drawModeOverlayRef.current?.toggle?.();
+    setDrawModeActive((v) => !v);
   }, []);
 
-  const undo = React.useCallback(() => overlayRef.current?.undo?.(), []);
+  const undoDrawMode = React.useCallback(
+    () => drawModeOverlayRef.current?.undo?.(),
+    []
+  );
 
-  const clear = React.useCallback(() => overlayRef.current?.clear?.(), []);
+  const clearDrawMode = React.useCallback(
+    () => drawModeOverlayRef.current?.clear?.(),
+    []
+  );
 
-  const save = React.useCallback(
-    () => overlayRef.current?.saveSVG?.('annotation.svg'),
+  const saveDrawMode = React.useCallback(
+    () => drawModeOverlayRef.current?.saveSVG?.('annotation.svg'),
     []
   );
 
@@ -560,16 +547,16 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentChannel,
 
         /* Draw mode state */
-        drawActive,
-        setDrawActive,
-        coord,
-        overlayRef,
-        start,
-        stop,
-        toggle,
-        undo,
-        clear,
-        save
+        drawModeActive,
+        setDrawModeActive,
+        drawModeCoord,
+        drawModeOverlayRef,
+        startDrawMode,
+        stopDrawMode,
+        toggleDrawMode,
+        undoDrawMode,
+        clearDrawMode,
+        saveDrawMode
       }}
     >
       {children}
