@@ -6,6 +6,7 @@ import Logo from './Logo';
 import VideoStage from './VideoStage';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
+import DrawerContent from './DrawerContent';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
@@ -16,13 +17,10 @@ import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
 import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
-import WidgetHandler from './widget/WidgetHandler';
 import WidgetInfo from './widget/WidgetInfo';
 /* Draw mode */
-import DrawMode from './draw/DrawMode.js';
-import DrawControls from './draw/DrawControls.js';
-import { useDrawController } from './draw/useDrawController.js';
-import type { DrawingOverlayHandle } from './draw/DrawingOverlay.js';
+import DrawMode from './draw/DrawMode';
+import { DrawProvider } from './draw/DrawContext';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -162,7 +160,6 @@ const App: React.FC = () => {
 
   /* Refs */
   const drawerRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<DrawingOverlayHandle | null>(null);
 
   /* Global parameter list */
   const { parameters } = useParameters();
@@ -226,19 +223,6 @@ const App: React.FC = () => {
   const handleToggleMute = () => {
     setIsMuted((prev: boolean) => !prev);
   };
-
-  /****************************************************************************/
-  /* Draw mode */
-
-  const {
-    drawActive,
-    setDrawActive,
-    toggleDraw: handleToggleDraw,
-    undo: handleUndo,
-    clear: handleClear,
-    save: handleSave,
-    overlayCoord
-  } = useDrawController(overlayRef);
 
   /****************************************************************************/
 
@@ -403,14 +387,8 @@ const App: React.FC = () => {
               </div>
             </Tooltip>
 
-            {/* Draw toolbar */}
-            <DrawMode
-              active={drawActive}
-              onToggle={handleToggleDraw}
-              onUndo={handleUndo}
-              onClear={handleClear}
-              onSave={handleSave}
-            />
+            {/* Draw toolbar (context-driven, no props) */}
+            <DrawMode />
 
             {/* Theme Toggle Button */}
             <Tooltip title="Toggle theme" arrow>
@@ -549,31 +527,17 @@ const App: React.FC = () => {
           <Divider />
           {/* Drawer content here */}
           <Box sx={{ paddingBottom: 1 }}>
-            {drawActive ? (
-              <DrawControls
-                overlayRef={overlayRef}
-                onExit={() => {
-                  setDrawActive(false);
-                  overlayRef.current?.stop?.();
-                }}
-              />
-            ) : (
-              <WidgetHandler />
-            )}
+            <DrawerContent />
           </Box>
         </Drawer>
 
         {/* Main content */}
         <Main open={drawerOpen} isMobile={isMobile}>
           <DrawerHeader />
-          {/* Video Stage (Video + Drawing Overlay) */}
+          {/* Video Stage (Video + Drawing Overlay) via context */}
           <VideoStage
-            ref={overlayRef}
-            drawActive={drawActive}
             strokeColor={theme.palette.primary.main}
-            strokeWidth={3} // SVG units (coord space), e.g. 3@1920x1080
-            coordWidth={overlayCoord.width}
-            coordHeight={overlayCoord.height}
+            strokeWidth={3}
           />
         </Main>
 
@@ -614,10 +578,12 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <CssBaseline />
-        {contentMain()}
-      </Box>
+      <DrawProvider>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          <CssBaseline />
+          {contentMain()}
+        </Box>
+      </DrawProvider>
     </ThemeProvider>
   );
 };
