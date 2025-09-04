@@ -20,6 +20,7 @@ import GestureIcon from '@mui/icons-material/Gesture';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import UndoIcon from '@mui/icons-material/Undo';
 
 /**
@@ -40,7 +41,7 @@ const COLORS = [
   '#000000'
 ];
 
-type Tool = 'freehand' | 'rect';
+type Tool = 'freehand' | 'rect' | 'line';
 
 /* Slider markers for brush size */
 const BRUSH_MARKS = [
@@ -169,6 +170,17 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
                 color={tool === 'rect' ? 'primary' : 'default'}
               >
                 <CropSquareIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Line (hold Shift to snap 45°)" arrow>
+            <span>
+              <CustomStyledIconButton
+                onClick={() => setTool('line')}
+                aria-label="tool line"
+                color={tool === 'line' ? 'primary' : 'default'}
+              >
+                <TimelineIcon />
               </CustomStyledIconButton>
             </span>
           </Tooltip>

@@ -15,7 +15,7 @@ import React, {
   forwardRef
 } from 'react';
 
-type Tool = 'freehand' | 'rect';
+type Tool = 'freehand' | 'rect' | 'line';
 
 export type SVGShape =
   | {
@@ -31,6 +31,16 @@ export type SVGShape =
       y: number;
       width: number;
       height: number;
+      stroke: string;
+      strokeWidth: number;
+      opacity?: number;
+    }
+  | {
+      kind: 'line';
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
       stroke: string;
       strokeWidth: number;
       opacity?: number;
@@ -123,7 +133,8 @@ function readBrushAndToolFromCSS(
     const width =
       Number.isFinite(wParsed) && wParsed > 0 ? wParsed : fallbackWidth;
     const toolStr = (styles.getPropertyValue('--draw-tool') || '').trim();
-    const tool: Tool = toolStr === 'rect' ? 'rect' : 'freehand';
+    const tool: Tool =
+      toolStr === 'rect' ? 'rect' : toolStr === 'line' ? 'line' : 'freehand';
     return { color, width, tool };
   } catch {
     return { color: fallbackColor, width: fallbackWidth, tool: 'freehand' };
@@ -159,6 +170,14 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
       stroke: string;
       strokeWidth: number;
     } | null>(null);
+    const [previewLine, setPreviewLine] = useState<{
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      stroke: string;
+      strokeWidth: number;
+    } | null>(null);
 
     const drawing = useRef<
       | {
@@ -169,6 +188,13 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
         }
       | {
           mode: 'rect';
+          start: { x: number; y: number };
+          last: { x: number; y: number };
+          stroke: string;
+          strokeWidth: number;
+        }
+      | {
+          mode: 'line';
           start: { x: number; y: number };
           last: { x: number; y: number };
           stroke: string;
@@ -227,6 +253,25 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
             stroke: color,
             strokeWidth: width
           });
+          setPreviewLine(null);
+        } else if (tool === 'line') {
+          drawing.current = {
+            mode: 'line',
+            start: loc,
+            last: loc,
+            stroke: color,
+            strokeWidth: width
+          };
+          setPreviewRect(null);
+          setPreviewPath('');
+          setPreviewLine({
+            x1: loc.x,
+            y1: loc.y,
+            x2: loc.x,
+            y2: loc.y,
+            stroke: color,
+            strokeWidth: width
+          });
         } else {
           drawing.current = {
             mode: 'freehand',
@@ -235,6 +280,7 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
             strokeWidth: width
           };
           setPreviewRect(null);
+          setPreviewLine(null);
         }
       },
       [active, strokeColor, strokeWidth, toLocal]
@@ -277,6 +323,31 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
             stroke: curr.stroke,
             strokeWidth: curr.strokeWidth
           });
+        } else if (curr.mode === 'line') {
+          let x2 = loc.x;
+          let y2 = loc.y;
+
+          /* Hold Shift to snap to 45° increments (like Paint) */
+          if ((e.nativeEvent as PointerEvent).shiftKey) {
+            const dx = x2 - curr.start.x;
+            const dy = y2 - curr.start.y;
+            const angle = Math.atan2(dy, dx);
+            const step = Math.PI / 4; // 45°
+            const snapped = Math.round(angle / step) * step;
+            const len = Math.hypot(dx, dy);
+            x2 = curr.start.x + len * Math.cos(snapped);
+            y2 = curr.start.y + len * Math.sin(snapped);
+          }
+
+          curr.last = { x: x2, y: y2 };
+          setPreviewLine({
+            x1: curr.start.x,
+            y1: curr.start.y,
+            x2,
+            y2,
+            stroke: curr.stroke,
+            strokeWidth: curr.strokeWidth
+          });
         } else {
           curr.points.push(loc);
           setPreviewPath(pointsToPath(curr.points));
@@ -311,6 +382,23 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
           ]);
         }
         setPreviewRect(null);
+      } else if (curr.mode === 'line') {
+        const { start, last } = curr;
+        if (start.x !== last.x || start.y !== last.y) {
+          setShapes((prev) => [
+            ...prev,
+            {
+              kind: 'line',
+              x1: start.x,
+              y1: start.y,
+              x2: last.x,
+              y2: last.y,
+              stroke: curr.stroke,
+              strokeWidth: curr.strokeWidth
+            }
+          ]);
+        }
+        setPreviewLine(null);
       } else {
         const d = pointsToPath(curr.points);
         setShapes((prev) => [
@@ -334,6 +422,7 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
           drawing.current = null;
           setPreviewPath('');
           setPreviewRect(null);
+          setPreviewLine(null);
         }
       };
       window.addEventListener('keydown', onKey);
@@ -369,7 +458,7 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
           p.setAttribute('stroke', s.stroke);
           p.setAttribute('stroke-width', String(s.strokeWidth));
           g.appendChild(p);
-        } else {
+        } else if (s.kind === 'rect') {
           const r = document.createElementNS(
             'http://www.w3.org/2000/svg',
             'rect'
@@ -382,6 +471,18 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
           r.setAttribute('stroke', s.stroke);
           r.setAttribute('stroke-width', String(s.strokeWidth));
           g.appendChild(r);
+        } else {
+          const l = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'line'
+          );
+          l.setAttribute('x1', String(s.x1));
+          l.setAttribute('y1', String(s.y1));
+          l.setAttribute('x2', String(s.x2));
+          l.setAttribute('y2', String(s.y2));
+          l.setAttribute('stroke', s.stroke);
+          l.setAttribute('stroke-width', String(s.strokeWidth));
+          g.appendChild(l);
         }
       });
       doc.appendChild(g);
@@ -508,7 +609,7 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
                   stroke={s.stroke}
                   strokeWidth={s.strokeWidth}
                 />
-              ) : (
+              ) : s.kind === 'rect' ? (
                 <rect
                   key={i}
                   x={s.x}
@@ -516,6 +617,16 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
                   width={s.width}
                   height={s.height}
                   fill="none"
+                  stroke={s.stroke}
+                  strokeWidth={s.strokeWidth}
+                />
+              ) : (
+                <line
+                  key={i}
+                  x1={s.x1}
+                  y1={s.y1}
+                  x2={s.x2}
+                  y2={s.y2}
                   stroke={s.stroke}
                   strokeWidth={s.strokeWidth}
                 />
@@ -541,6 +652,16 @@ const DrawingOverlay = forwardRef<DrawingOverlayHandle, DrawingOverlayProps>(
                 fill="none"
                 stroke={previewRect.stroke}
                 strokeWidth={previewRect.strokeWidth}
+              />
+            )}
+            {previewLine && (
+              <line
+                x1={previewLine.x1}
+                y1={previewLine.y1}
+                x2={previewLine.x2}
+                y2={previewLine.y2}
+                stroke={previewLine.stroke}
+                strokeWidth={previewLine.strokeWidth}
               />
             )}
           </g>
