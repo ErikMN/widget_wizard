@@ -37,6 +37,7 @@ const COLORS = [
   '#FF5252',
   '#4CAF50',
   '#FFD600',
+  '#9C27B0',
   '#FFFFFF',
   '#000000'
 ];
@@ -203,22 +204,42 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
         Colors
       </Typography>
-      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
-        {COLORS.map((c) => (
-          <IconButton
-            key={c}
-            onClick={() => setStrokeColor(c)}
-            sx={{
-              bgcolor: c,
-              border: strokeColor === c ? '2px solid #000' : '1px solid #888',
-              width: 32,
-              height: 32,
-              '&:hover': { opacity: 0.85 }
-            }}
-            aria-label={`set color ${c}`}
-          />
-        ))}
-      </Stack>
+      <Box
+        sx={(theme) => ({
+          p: 1,
+          marginBottom: 2,
+          borderRadius: 1,
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? theme.palette.grey[900]
+              : theme.palette.grey[100],
+          border: 1,
+          borderColor: theme.palette.divider,
+          display: 'flex'
+        })}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          justifyContent="center"
+        >
+          {COLORS.map((c) => (
+            <IconButton
+              key={c}
+              onClick={() => setStrokeColor(c)}
+              sx={{
+                bgcolor: c,
+                border: strokeColor === c ? '2px solid #000' : '1px solid #888',
+                width: 32,
+                height: 32,
+                '&:hover': { opacity: 0.85 }
+              }}
+              aria-label={`set color ${c}`}
+            />
+          ))}
+        </Stack>
+      </Box>
 
       {/* Brush size */}
       <Typography variant="subtitle2">Brush Size: {strokeWidth}px</Typography>
@@ -235,60 +256,73 @@ const DrawControls: React.FC<DrawControlsProps> = ({ overlayRef, onExit }) => {
       />
 
       {/* Actions */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Tooltip title="Undo last stroke" arrow>
-          <span>
-            <CustomStyledIconButton onClick={handleUndo} aria-label="undo">
-              <UndoIcon />
-            </CustomStyledIconButton>
-          </span>
-        </Tooltip>
+      <Box
+        sx={(theme) => ({
+          marginTop: 2,
+          borderRadius: 1,
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? theme.palette.grey[900]
+              : theme.palette.grey[100],
+          border: 1,
+          borderColor: theme.palette.divider
+        })}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Tooltip title="Undo last stroke" arrow>
+            <span>
+              <CustomStyledIconButton onClick={handleUndo} aria-label="undo">
+                <UndoIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
 
-        <Tooltip title="Clear all" arrow>
-          <span>
-            <CustomStyledIconButton onClick={handleClear} aria-label="clear">
-              <DeleteOutlineIcon />
-            </CustomStyledIconButton>
-          </span>
-        </Tooltip>
+          <Tooltip title="Clear all" arrow>
+            <span>
+              <CustomStyledIconButton onClick={handleClear} aria-label="clear">
+                <DeleteOutlineIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
 
-        <Tooltip title="Save drawing as SVG" arrow>
-          <span>
-            <CustomStyledIconButton onClick={handleSave} aria-label="save">
-              <SaveAltIcon />
-            </CustomStyledIconButton>
-          </span>
-        </Tooltip>
+          <Tooltip title="Save drawing as SVG" arrow>
+            <span>
+              <CustomStyledIconButton onClick={handleSave} aria-label="save">
+                <SaveAltIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
 
-        {/* Upload as overlay */}
-        <Tooltip title="Upload as overlay" arrow>
-          <span>
-            <CustomStyledIconButton
-              onClick={handleUpload}
-              aria-label="upload as overlay"
-              disabled={uploading}
-            >
-              {uploading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <CloudUploadIcon />
-              )}
-            </CustomStyledIconButton>
-          </span>
-        </Tooltip>
+          {/* Upload as overlay */}
+          <Tooltip title="Upload as overlay" arrow>
+            <span>
+              <CustomStyledIconButton
+                onClick={handleUpload}
+                aria-label="upload as overlay"
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <CloudUploadIcon />
+                )}
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
 
-        {/* Reload app */}
-        <Tooltip title="Reload app" arrow>
-          <span>
-            <CustomStyledIconButton
-              onClick={handleReload}
-              aria-label="reload app"
-            >
-              <RefreshIcon />
-            </CustomStyledIconButton>
-          </span>
-        </Tooltip>
-      </Stack>
+          {/* Reload app */}
+          <Tooltip title="Reload app" arrow>
+            <span>
+              <CustomStyledIconButton
+                onClick={handleReload}
+                aria-label="reload app"
+              >
+                <RefreshIcon />
+              </CustomStyledIconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+      </Box>
     </Box>
   );
 };
