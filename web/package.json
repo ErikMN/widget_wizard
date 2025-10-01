@@ -29,7 +29,7 @@
     "react-syntax-highlighter": "^15.6.6",
     "rehype-prism-plus": "^2.0.1",
     "styled-components": "^6.1.19",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
