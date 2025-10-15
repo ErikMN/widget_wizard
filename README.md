@@ -18,3 +18,6 @@ Then run:
 ```shell
 make app
 ```
+
+<br/>
+<img src="files/images/latest_screenshot.png" width="800" alt="screenshot"/>
