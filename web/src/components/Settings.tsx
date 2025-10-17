@@ -17,6 +17,7 @@ import WidgetsDisabled from './widget/WidgetsDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Alert from '@mui/material/Alert';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import FormControl from '@mui/material/FormControl';
@@ -655,7 +656,11 @@ const Settings: React.FC = () => {
           <CustomButton onClick={handleResetDefaults} variant="outlined">
             Reset defaults
           </CustomButton>
-          <CustomButton onClick={handleBack} variant="contained">
+          <CustomButton
+            onClick={handleBack}
+            variant="contained"
+            startIcon={<ArrowBackIcon />}
+          >
             Back
           </CustomButton>
         </Box>
