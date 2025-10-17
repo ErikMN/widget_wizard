@@ -9,6 +9,9 @@ import { CustomSwitch, CustomSlider, CustomButton } from '../CustomComponents';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import CloseIcon from '@mui/icons-material/Close';
+import Collapse from '@mui/material/Collapse';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MenuItem from '@mui/material/MenuItem';
 import SaveIcon from '@mui/icons-material/Save';
 import Select from '@mui/material/Select';
@@ -445,6 +448,9 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
       Array.isArray(value) ? value : []
     );
 
+    /* Collapsed state for better UX when lists are long */
+    const [collapsed, setCollapsed] = useState(false);
+
     useEffect(() => {
       if (Array.isArray(value)) {
         setLocalItems(value);
@@ -494,175 +500,197 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
           mt: 2
         })}
       >
-        <Typography variant="subtitle2">{toNiceName(label)}</Typography>
-
-        {localItems.length === 0 ? (
-          <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
-            No items yet.
-          </Typography>
-        ) : (
-          <Box sx={{ mt: 1 }} />
-        )}
-
-        {localItems.map((item, index) => (
-          <Box
-            key={index}
-            sx={(theme) => ({
-              position: 'relative',
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 1,
-              p: 1.2,
-              mt: 1
-            })}
-          >
-            {/* Top bar with label and X button */}
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}
-            >
-              <Typography variant="body2">{`Item ${index + 1}`}</Typography>
-
-              <CustomButton
-                size="small"
-                onClick={() => handleRemove(index)}
-                sx={{
-                  minWidth: '28px',
-                  lineHeight: '16px',
-                  p: 0.4,
-                  minHeight: '28px'
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </CustomButton>
-            </Box>
-
-            {/* Render editable subfields */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {Object.keys(paramConfig.value || {}).map((subKey) => {
-                const fieldConfig = paramConfig.value[subKey];
-                const fieldValue = item[subKey];
-
-                /* Support nested arrays by calling renderArrayInput recursively */
-                if (fieldConfig.type === 'array') {
-                  return (
-                    <Box
-                      key={subKey}
-                      sx={(theme) => ({
-                        flex: '1 1 100%',
-                        minWidth: '100%',
-                        mt: 1,
-                        pl: 2,
-                        borderLeft: `1px dashed ${theme.palette.divider}`
-                      })}
-                    >
-                      {renderArrayInput(
-                        `${path}.${index}.${subKey}`,
-                        subKey,
-                        fieldConfig,
-                        fieldValue
-                      )}
-                    </Box>
-                  );
-                }
-
-                /* Render a proper input for this field type */
-                switch (fieldConfig.type) {
-                  case 'float':
-                  case 'integer':
-                    return (
-                      <Box
-                        key={subKey}
-                        sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                      >
-                        <TextField
-                          size="small"
-                          label={toNiceName(subKey)}
-                          type="number"
-                          value={fieldValue ?? ''}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            handleFieldChange(
-                              index,
-                              subKey,
-                              isNaN(val) ? '' : val
-                            );
-                          }}
-                          fullWidth
-                        />
-                      </Box>
-                    );
-                  case 'string':
-                    return (
-                      <Box
-                        key={subKey}
-                        sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                      >
-                        <TextField
-                          size="small"
-                          label={toNiceName(subKey)}
-                          value={fieldValue ?? ''}
-                          onChange={(e) =>
-                            handleFieldChange(index, subKey, e.target.value)
-                          }
-                          fullWidth
-                        />
-                      </Box>
-                    );
-                  case 'bool':
-                    return (
-                      <Box
-                        key={subKey}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          flex: '1 1 120px',
-                          minWidth: '120px'
-                        }}
-                      >
-                        <Typography sx={{ mr: 1 }}>
-                          {toNiceName(subKey)}
-                        </Typography>
-                        <CustomSwitch
-                          checked={!!fieldValue}
-                          onChange={(e) =>
-                            handleFieldChange(index, subKey, e.target.checked)
-                          }
-                        />
-                      </Box>
-                    );
-                  default:
-                    return (
-                      <Box
-                        key={subKey}
-                        sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                      >
-                        <Typography variant="body2" sx={{ color: 'grey.500' }}>
-                          Unsupported type: {fieldConfig.type}
-                        </Typography>
-                      </Box>
-                    );
-                }
-              })}
-            </Box>
-          </Box>
-        ))}
-
-        {/* Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-          <CustomButton
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-          >
-            Add item
-          </CustomButton>
-          <CustomButton
-            variant="outlined"
-            startIcon={<SaveIcon />}
-            onClick={handleUpdateBackend}
-          >
-            Update
-          </CustomButton>
+        {/* Header with collapse toggle */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer'
+          }}
+          onClick={() => setCollapsed((prev) => !prev)}
+        >
+          <Typography variant="subtitle2">{toNiceName(label)}</Typography>
+          {collapsed ? (
+            <ExpandMoreIcon fontSize="small" />
+          ) : (
+            <ExpandLessIcon fontSize="small" />
+          )}
         </Box>
+
+        {/* Collapsible content */}
+        <Collapse in={!collapsed} timeout="auto" unmountOnExit>
+          {localItems.length === 0 ? (
+            <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
+              No items yet.
+            </Typography>
+          ) : (
+            <Box sx={{ mt: 1 }} />
+          )}
+
+          {localItems.map((item, index) => (
+            <Box
+              key={index}
+              sx={(theme) => ({
+                position: 'relative',
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                p: 1.2,
+                mt: 1
+              })}
+            >
+              {/* Top bar with label and X button */}
+              <Box
+                sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}
+              >
+                <Typography variant="body2">{`Item ${index + 1}`}</Typography>
+
+                <CustomButton
+                  size="small"
+                  onClick={() => handleRemove(index)}
+                  sx={{
+                    minWidth: '28px',
+                    lineHeight: '16px',
+                    p: 0.4,
+                    minHeight: '28px'
+                  }}
+                >
+                  <CloseIcon fontSize="small" />
+                </CustomButton>
+              </Box>
+
+              {/* Render editable subfields */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {Object.keys(paramConfig.value || {}).map((subKey) => {
+                  const fieldConfig = paramConfig.value[subKey];
+                  const fieldValue = item[subKey];
+
+                  /* Support nested arrays by calling renderArrayInput recursively */
+                  if (fieldConfig.type === 'array') {
+                    return (
+                      <Box
+                        key={subKey}
+                        sx={(theme) => ({
+                          flex: '1 1 100%',
+                          minWidth: '100%',
+                          mt: 1,
+                          pl: 2,
+                          borderLeft: `1px dashed ${theme.palette.divider}`
+                        })}
+                      >
+                        {renderArrayInput(
+                          `${path}.${index}.${subKey}`,
+                          subKey,
+                          fieldConfig,
+                          fieldValue
+                        )}
+                      </Box>
+                    );
+                  }
+
+                  /* Render a proper input for this field type */
+                  switch (fieldConfig.type) {
+                    case 'float':
+                    case 'integer':
+                      return (
+                        <Box
+                          key={subKey}
+                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                        >
+                          <TextField
+                            size="small"
+                            label={toNiceName(subKey)}
+                            type="number"
+                            value={fieldValue ?? ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              handleFieldChange(
+                                index,
+                                subKey,
+                                isNaN(val) ? '' : val
+                              );
+                            }}
+                            fullWidth
+                          />
+                        </Box>
+                      );
+                    case 'string':
+                      return (
+                        <Box
+                          key={subKey}
+                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                        >
+                          <TextField
+                            size="small"
+                            label={toNiceName(subKey)}
+                            value={fieldValue ?? ''}
+                            onChange={(e) =>
+                              handleFieldChange(index, subKey, e.target.value)
+                            }
+                            fullWidth
+                          />
+                        </Box>
+                      );
+                    case 'bool':
+                      return (
+                        <Box
+                          key={subKey}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flex: '1 1 120px',
+                            minWidth: '120px'
+                          }}
+                        >
+                          <Typography sx={{ mr: 1 }}>
+                            {toNiceName(subKey)}
+                          </Typography>
+                          <CustomSwitch
+                            checked={!!fieldValue}
+                            onChange={(e) =>
+                              handleFieldChange(index, subKey, e.target.checked)
+                            }
+                          />
+                        </Box>
+                      );
+                    default:
+                      return (
+                        <Box
+                          key={subKey}
+                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ color: 'grey.500' }}
+                          >
+                            Unsupported type: {fieldConfig.type}
+                          </Typography>
+                        </Box>
+                      );
+                  }
+                })}
+              </Box>
+            </Box>
+          ))}
+
+          {/* Buttons */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+            <CustomButton
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+            >
+              Add item
+            </CustomButton>
+            <CustomButton
+              variant="outlined"
+              startIcon={<SaveIcon />}
+              onClick={handleUpdateBackend}
+            >
+              Update
+            </CustomButton>
+          </Box>
+        </Collapse>
       </Box>
     );
   };
