@@ -44,6 +44,7 @@ interface GlobalContextProps {
     React.SetStateAction<WidgetCapabilities | null>
   >;
   widgetLoading: boolean;
+  setWidgetLoading: React.Dispatch<React.SetStateAction<boolean>>;
   widgetSupported: boolean;
   setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -462,6 +463,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
         widgetCapabilities,
         setWidgetCapabilities,
         widgetLoading,
+        setWidgetLoading,
         widgetSupported,
         setWidgetSupported,
         selectedWidget,

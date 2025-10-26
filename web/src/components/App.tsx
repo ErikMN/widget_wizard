@@ -18,6 +18,8 @@ import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
 import WidgetHandler from './widget/WidgetHandler';
 import WidgetInfo from './widget/WidgetInfo';
+/* Overlays */
+import OverlayHandler from './overlay/OverlayHandler';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -37,6 +39,8 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MenuIcon from '@mui/icons-material/Menu';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -138,6 +142,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 const App: React.FC = () => {
   /* Local state */
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
+  const [drawerTab, setDrawerTab] = useState<number>(0);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -517,9 +522,32 @@ const App: React.FC = () => {
             </Tooltip>
           </DrawerHeader>
           <Divider />
+
           {/* Drawer content here */}
+          <Divider />
           <Box sx={{ paddingBottom: 1 }}>
-            <WidgetHandler />
+            <Tabs
+              value={drawerTab}
+              onChange={(_, newValue) => setDrawerTab(newValue)}
+              variant="fullWidth"
+              textColor="primary"
+              indicatorColor="primary"
+              sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                minHeight: 40,
+                '& .MuiTab-root': {
+                  minHeight: 40,
+                  fontSize: '0.875rem'
+                }
+              }}
+            >
+              <Tab disableRipple label="Widgets" />
+              <Tab disableRipple label="Overlays" />
+            </Tabs>
+
+            {/* Switch content */}
+            {drawerTab === 0 ? <WidgetHandler /> : <OverlayHandler />}
           </Box>
         </Drawer>
 
