@@ -3,6 +3,7 @@ import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
 import { WidgetBBox } from './BBox';
+import OverlayBBox from './overlay/OverlayBBox';
 import { CustomPlayer } from './player/CustomPlayer';
 
 interface VapixConfig {
@@ -206,6 +207,9 @@ const VideoPlayer: React.FC = () => {
       />
       {/* Widget bounding boxes */}
       <WidgetBBox dimensions={dimensions} />
+
+      {/* Overlay bounding boxes */}
+      <OverlayBBox dimensions={dimensions} />
     </div>
   );
 };

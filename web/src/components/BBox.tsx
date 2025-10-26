@@ -1,5 +1,8 @@
 /**
- * Draggable bounding boxes to be overlaid on a video surface
+ * WidgetBBox:
+ * Draggable bounding boxes for Widget overlays.
+ * Uses a fixed 1920×1080 virtual HD coordinate system as the reference space.
+ * Actual on-screen positions and sizes are scaled according to the current video dimensions.
  */
 import React, { useCallback, useMemo, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
