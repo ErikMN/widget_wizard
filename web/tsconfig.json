@@ -3,7 +3,7 @@
     "target": "esnext",
     "useDefineForClassFields": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["vite/client", "vite-plugin-svgr/client"],
+    "types": ["vite/client", "vite-plugin-svgr/client", "vitest/globals"],
     "module": "esnext",
     "skipLibCheck": true,
     "esModuleInterop": false,
@@ -26,5 +26,6 @@
     "allowJs": true
   },
   "include": ["src"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

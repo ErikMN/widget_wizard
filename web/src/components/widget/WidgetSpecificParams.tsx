@@ -111,8 +111,8 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
   };
 
   /**
-   * Helper: set nested value immutably
-   * e.g. setNestedValue(localValues, "yInterval.yMax", 42)
+   * Helper: set nested value immutably.
+   * Preserves arrays when path segments are numeric (e.g. "curves.0.2.x").
    */
   const setNestedValue = (
     object: Record<string, any>,
@@ -120,18 +120,53 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
     newValue: any
   ): Record<string, any> => {
     const keys = path.split('.');
-    const newObj = { ...object };
-    let current: any = newObj;
+    const isIndex = (k: string) => /^\d+$/.test(k);
+
+    /* Clone root preserving its type */
+    const root: any = Array.isArray(object) ? [...object] : { ...object };
+    let curr: any = root;
+
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
-      if (i === keys.length - 1) {
-        current[k] = newValue;
-      } else {
-        current[k] = { ...current[k] };
-        current = current[k];
+      const last = i === keys.length - 1;
+
+      if (last) {
+        if (Array.isArray(curr) && isIndex(k)) {
+          curr[Number(k)] = newValue;
+        } else {
+          curr[k] = newValue;
+        }
+        break;
       }
+
+      const nextKey = keys[i + 1];
+      const nextShouldBeArray = nextKey !== undefined && isIndex(nextKey);
+
+      /* Get existing child */
+      let child = Array.isArray(curr) && isIndex(k) ? curr[Number(k)] : curr[k];
+
+      /* Create/clone child preserving container type */
+      if (child == null) {
+        child = nextShouldBeArray ? [] : {};
+      } else if (Array.isArray(child)) {
+        child = [...child];
+      } else if (typeof child === 'object') {
+        child = { ...child };
+      } else {
+        child = nextShouldBeArray ? [] : {};
+      }
+
+      /* Write back cloned child */
+      if (Array.isArray(curr) && isIndex(k)) {
+        curr[Number(k)] = child;
+      } else {
+        curr[k] = child;
+      }
+
+      curr = child;
     }
-    return newObj;
+
+    return root;
   };
 
   /****************************************************************************/
@@ -415,36 +450,58 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
   };
 
   /**
-   * Render array-type parameters.
-   * Used when a parameter has type: "array" and defines a nested object schema in paramConfig.value.
-   * Example:
-   *   "points": {
-   *     "type": "array",
-   *     "value": { "x": { "type": "float" }, "y": { "type": "float" } }
-   *   }
+   * Render array-type parameters (supports nested arrays).
    *
-   * Displays a list of structured objects (one per array element), each editable in local state.
-   * Supports nested arrays recursively (arrays containing arrays).
+   * Used when a parameter has type: "array" and defines a nested object or array schema
+   * in `paramConfig.value`.
    *
-   * Changes to fields are kept locally until the user presses the "Update" button,
-   * which then sends the entire array structure to the backend via handleNestedValueChange().
+   * Examples:
+   * 1. Simple array of objects:
+   *    "points": {
+   *      "type": "array",
+   *      "value": { "x": { "type": "float" }, "y": { "type": "float" } }
+   *    }
    *
-   * The user can:
-   * - Add new items using "+ Add item"
-   * - Remove specific items using the X button
-   * - Modify any field (float, integer, string, bool, or nested arrays)
-   * - Apply all local edits with the "Update" button
+   *    Renders a list of editable point objects with x/y fields.
    *
-   * Each nested array level maintains its own local editable state and update control.
+   * 2. Nested arrays:
+   *    "curves": {
+   *      "type": "array",
+   *      "value": {
+   *        "type": "array",
+   *        "value": { "x": { "type": "float" }, "y": { "type": "float" } }
+   *      }
+   *    }
+   *
+   *    Renders a list of curves, each of which is an editable array of (x, y) points.
+   *
+   * Behavior:
+   * - Each array level has its own local editable state and collapsible section.
+   * - The user can:
+   *    - Add new items ("Add item")
+   *    - Remove specific items
+   *    - Modify fields (float, integer, string, bool, or nested arrays)
+   *    - Apply all edits to backend with the "Update" button.
+   * - Nested arrays are handled recursively using the same renderer.
    */
   const renderArrayInput = (
     path: string,
     label: string,
     paramConfig: ParamConfig,
-    value: Record<string, any>[] | undefined
+    value: any[] | undefined
   ) => {
-    /* Local editable copy */
-    const [localItems, setLocalItems] = useState<Record<string, any>[]>(() =>
+    /** Wrapper so React hooks remain consistent during recursion */
+    const ArrayInputRenderer: React.FC<{
+      path: string;
+      label: string;
+      paramConfig: ParamConfig;
+      value: any[];
+    }> = ({ path, label, paramConfig, value }) => {
+      return renderArrayInput(path, label, paramConfig, value);
+    };
+
+    /* Local editable copy of array */
+    const [localItems, setLocalItems] = useState<any[]>(() =>
       Array.isArray(value) ? value : []
     );
 
@@ -457,13 +514,52 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
       }
     }, [value]);
 
+    /**
+     * Add new array item.
+     * - If schema describes objects, add a new object with default values.
+     * - If schema describes nested arrays, add a new empty array (or with default element if defined).
+     */
     const handleAdd = () => {
-      const newItem: Record<string, any> = {};
-      for (const subKey of Object.keys(paramConfig.value || {})) {
-        const def = paramConfig.value[subKey];
-        newItem[subKey] = def.defaultValue ?? '';
+      const schema = paramConfig.value;
+
+      if (!schema) {
+        console.warn('Missing schema for array param', label);
+        setLocalItems((prev) => [...prev, {}]);
+        return;
       }
-      setLocalItems((prev) => [...prev, newItem]);
+
+      /* Case 1: nested array (array of arrays) */
+      if (schema?.type === 'array') {
+        const innerSchema = schema.value;
+        let newInnerItem: any = [];
+
+        /* If inner schema is object type (like array of points), prefill one object */
+        if (
+          innerSchema &&
+          typeof innerSchema === 'object' &&
+          !Array.isArray(innerSchema)
+        ) {
+          const defObj: Record<string, any> = {};
+          for (const subKey of Object.keys(innerSchema)) {
+            const def = innerSchema[subKey];
+            defObj[subKey] = def?.defaultValue ?? '';
+          }
+          newInnerItem = [defObj];
+        }
+
+        setLocalItems((prev) => [...prev, newInnerItem]);
+        return;
+      }
+
+      /* Case 2: regular array of objects */
+      if (schema && typeof schema === 'object') {
+        const newItem: Record<string, any> = {};
+        for (const subKey of Object.keys(schema)) {
+          const def = schema[subKey];
+          newItem[subKey] = def?.defaultValue ?? '';
+        }
+        setLocalItems((prev) => [...prev, newItem]);
+      }
     };
 
     const handleRemove = (index: number) => {
@@ -528,150 +624,182 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
             <Box sx={{ mt: 1 }} />
           )}
 
-          {localItems.map((item, index) => (
-            <Box
-              key={index}
-              sx={(theme) => ({
-                position: 'relative',
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                p: 1.2,
-                mt: 1
-              })}
-            >
-              {/* Top bar with label and X button */}
-              <Box
-                sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}
-              >
-                <Typography variant="body2">{`Item ${index + 1}`}</Typography>
+          {localItems.map((item, index) => {
+            const isNestedArray = Array.isArray(item);
 
-                <CustomButton
-                  size="small"
-                  onClick={() => handleRemove(index)}
+            return (
+              <Box
+                key={index}
+                sx={(theme) => ({
+                  position: 'relative',
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  p: 1.2,
+                  mt: 1
+                })}
+              >
+                {/* Top bar with label and X button */}
+                <Box
                   sx={{
-                    minWidth: '28px',
-                    lineHeight: '16px',
-                    p: 0.4,
-                    minHeight: '28px'
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 1
                   }}
                 >
-                  <CloseIcon fontSize="small" />
-                </CustomButton>
-              </Box>
+                  <Typography variant="body2">{`Item ${index + 1}`}</Typography>
 
-              {/* Render editable subfields */}
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {Object.keys(paramConfig.value || {}).map((subKey) => {
-                  const fieldConfig = paramConfig.value[subKey];
-                  const fieldValue = item[subKey];
+                  <CustomButton
+                    size="small"
+                    onClick={() => handleRemove(index)}
+                    sx={{
+                      minWidth: '28px',
+                      lineHeight: '16px',
+                      p: 0.4,
+                      minHeight: '28px'
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </CustomButton>
+                </Box>
 
-                  /* Support nested arrays by calling renderArrayInput recursively */
-                  if (fieldConfig.type === 'array') {
-                    return (
-                      <Box
-                        key={subKey}
-                        sx={(theme) => ({
-                          flex: '1 1 100%',
-                          minWidth: '100%',
-                          mt: 1,
-                          pl: 2,
-                          borderLeft: `1px dashed ${theme.palette.divider}`
-                        })}
-                      >
-                        {renderArrayInput(
-                          `${path}.${index}.${subKey}`,
-                          subKey,
-                          fieldConfig,
-                          fieldValue
-                        )}
-                      </Box>
-                    );
-                  }
+                {isNestedArray ? (
+                  /* Nested array: recurse into renderArrayInput */
+                  <Box
+                    sx={(theme) => ({
+                      pl: 2,
+                      borderLeft: `1px dashed ${theme.palette.divider}`
+                    })}
+                  >
+                    <ArrayInputRenderer
+                      path={`${path}.${index}`}
+                      label={`${label} ${index + 1}`}
+                      paramConfig={paramConfig.value || {}}
+                      value={item}
+                    />
+                  </Box>
+                ) : (
+                  /* Regular array of objects: render fields */
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {Object.keys(paramConfig.value || {}).map((subKey) => {
+                      const fieldConfig = paramConfig.value[subKey];
+                      const fieldValue = item[subKey];
 
-                  /* Render a proper input for this field type */
-                  switch (fieldConfig.type) {
-                    case 'float':
-                    case 'integer':
-                      return (
-                        <Box
-                          key={subKey}
-                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                        >
-                          <TextField
-                            size="small"
-                            label={toNiceName(subKey)}
-                            type="number"
-                            value={fieldValue ?? ''}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value);
-                              handleFieldChange(
-                                index,
-                                subKey,
-                                isNaN(val) ? '' : val
-                              );
-                            }}
-                            fullWidth
-                          />
-                        </Box>
-                      );
-                    case 'string':
-                      return (
-                        <Box
-                          key={subKey}
-                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                        >
-                          <TextField
-                            size="small"
-                            label={toNiceName(subKey)}
-                            value={fieldValue ?? ''}
-                            onChange={(e) =>
-                              handleFieldChange(index, subKey, e.target.value)
-                            }
-                            fullWidth
-                          />
-                        </Box>
-                      );
-                    case 'bool':
-                      return (
-                        <Box
-                          key={subKey}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            flex: '1 1 120px',
-                            minWidth: '120px'
-                          }}
-                        >
-                          <Typography sx={{ mr: 1 }}>
-                            {toNiceName(subKey)}
-                          </Typography>
-                          <CustomSwitch
-                            checked={!!fieldValue}
-                            onChange={(e) =>
-                              handleFieldChange(index, subKey, e.target.checked)
-                            }
-                          />
-                        </Box>
-                      );
-                    default:
-                      return (
-                        <Box
-                          key={subKey}
-                          sx={{ flex: '1 1 120px', minWidth: '120px' }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ color: 'grey.500' }}
+                      if (fieldConfig.type === 'array') {
+                        return (
+                          <Box
+                            key={subKey}
+                            sx={(theme) => ({
+                              flex: '1 1 100%',
+                              minWidth: '100%',
+                              mt: 1,
+                              pl: 2,
+                              borderLeft: `1px dashed ${theme.palette.divider}`
+                            })}
                           >
-                            Unsupported type: {fieldConfig.type}
-                          </Typography>
-                        </Box>
-                      );
-                  }
-                })}
+                            <ArrayInputRenderer
+                              path={`${path}.${index}.${subKey}`}
+                              label={subKey}
+                              paramConfig={fieldConfig}
+                              value={fieldValue}
+                            />
+                          </Box>
+                        );
+                      }
+
+                      /* Render primitive field types */
+                      switch (fieldConfig.type) {
+                        case 'float':
+                        case 'integer':
+                          return (
+                            <Box
+                              key={subKey}
+                              sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                            >
+                              <TextField
+                                size="small"
+                                label={toNiceName(subKey)}
+                                type="number"
+                                value={fieldValue ?? ''}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  handleFieldChange(
+                                    index,
+                                    subKey,
+                                    isNaN(val) ? '' : val
+                                  );
+                                }}
+                                fullWidth
+                              />
+                            </Box>
+                          );
+                        case 'string':
+                          return (
+                            <Box
+                              key={subKey}
+                              sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                            >
+                              <TextField
+                                size="small"
+                                label={toNiceName(subKey)}
+                                value={fieldValue ?? ''}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    index,
+                                    subKey,
+                                    e.target.value
+                                  )
+                                }
+                                fullWidth
+                              />
+                            </Box>
+                          );
+                        case 'bool':
+                          return (
+                            <Box
+                              key={subKey}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                flex: '1 1 120px',
+                                minWidth: '120px'
+                              }}
+                            >
+                              <Typography sx={{ mr: 1 }}>
+                                {toNiceName(subKey)}
+                              </Typography>
+                              <CustomSwitch
+                                checked={!!fieldValue}
+                                onChange={(e) =>
+                                  handleFieldChange(
+                                    index,
+                                    subKey,
+                                    e.target.checked
+                                  )
+                                }
+                              />
+                            </Box>
+                          );
+                        default:
+                          return (
+                            <Box
+                              key={subKey}
+                              sx={{ flex: '1 1 120px', minWidth: '120px' }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ color: 'grey.500' }}
+                              >
+                                Unsupported type: {fieldConfig.type}
+                              </Typography>
+                            </Box>
+                          );
+                      }
+                    })}
+                  </Box>
+                )}
               </Box>
-            </Box>
-          ))}
+            );
+          })}
 
           {/* Buttons */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
