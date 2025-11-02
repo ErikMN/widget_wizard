@@ -11,6 +11,7 @@ import React, {
 import { O_CGI } from '../constants';
 import { log } from '../../helpers/logger';
 import { jsonRequest } from '../../helpers/cgihelper.jsx';
+import { useTabVisibility } from '../../helpers/hooks.jsx';
 import {
   ImageOverlay,
   TextOverlay,
@@ -155,6 +156,9 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       handleOpenAlert('Failed to list overlays', 'error');
     }
   }, [handleOpenAlert]);
+
+  /* List overlays on tab switch */
+  useTabVisibility(listOverlays);
 
   /* Add an image overlay */
   const addImageOverlay = useCallback(
