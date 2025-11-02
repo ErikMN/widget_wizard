@@ -1,6 +1,6 @@
 /* Widget Wizard main component */
 import React, { useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
 import VideoPlayer from './VideoPlayer';
@@ -175,6 +175,7 @@ const App: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   enableLogging(true);
 
@@ -527,8 +528,10 @@ const App: React.FC = () => {
           <Divider />
           <Box sx={{ paddingBottom: 1 }}>
             <Tabs
-              value={drawerTab}
-              onChange={(_, newValue) => setDrawerTab(newValue)}
+              value={location.pathname.endsWith('/overlays') ? 1 : 0}
+              onChange={(_, newValue) => {
+                navigate(newValue === 0 ? 'widgets' : 'overlays');
+              }}
               variant="fullWidth"
               textColor="primary"
               indicatorColor="primary"
@@ -546,8 +549,8 @@ const App: React.FC = () => {
               <Tab disableRipple label="Overlays" />
             </Tabs>
 
-            {/* Switch content */}
-            {drawerTab === 0 ? <WidgetHandler /> : <OverlayHandler />}
+            {/* Render the active tab route */}
+            <Outlet />
           </Box>
         </Drawer>
 

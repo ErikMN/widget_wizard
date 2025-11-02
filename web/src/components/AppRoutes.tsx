@@ -1,16 +1,26 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoadingScreen from './LoadingScreen';
 
 /* Components */
 import App from './App';
 import Settings from './Settings';
 import WidgetCapabilities from './widget/WidgetCapabilities';
+import WidgetHandler from './widget/WidgetHandler';
+import OverlayHandler from './overlay/OverlayHandler';
 
 const AppRoutes = () => {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<LoadingScreen Component={App} />} />
+        {/* Main application */}
+        <Route path="/" element={<LoadingScreen Component={App} />}>
+          {/* Default to widgets */}
+          <Route index element={<Navigate to="widgets" replace />} />
+          <Route path="widgets" element={<WidgetHandler />} />
+          <Route path="overlays" element={<OverlayHandler />} />
+        </Route>
+
+        {/* Other standalone pages */}
         <Route
           path="/settings"
           element={<LoadingScreen Component={Settings} />}
@@ -19,7 +29,9 @@ const AppRoutes = () => {
           path="/capabilities"
           element={<LoadingScreen Component={WidgetCapabilities} />}
         />
-        <Route path="*" element={<LoadingScreen Component={App} />} />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>
   );
