@@ -6,13 +6,13 @@
  */
 import React, { useCallback, useMemo, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
-import AnchorIndicators from './AnchorIndicators';
-import { Widget } from './widget/widgetInterfaces';
-import { capitalizeFirstLetter } from '../helpers/utils';
-import { Dimensions } from './widget/widgetInterfaces';
-import { playSound } from '../helpers/utils';
-import lockSoundUrl from '../assets/audio/lock.oga';
-import unlockSoundUrl from '../assets/audio/unlock.oga';
+import AnchorIndicators from '../AnchorIndicators';
+import { Widget } from './widgetInterfaces';
+import { capitalizeFirstLetter } from '../../helpers/utils';
+import { Dimensions } from './widgetInterfaces';
+import { playSound } from '../../helpers/utils';
+import lockSoundUrl from '../../assets/audio/lock.oga';
+import unlockSoundUrl from '../../assets/audio/unlock.oga';
 import {
   HD_WIDTH,
   getWidgetPixelPosition,
@@ -20,8 +20,8 @@ import {
   calculateNormalizedPosition,
   getNormalizedCoordinateRanges,
   getAlignmentFlags
-} from '../helpers/bboxhelper';
-import { useGlobalContext } from './GlobalContext';
+} from '../../helpers/bboxhelper';
+import { useGlobalContext } from '../GlobalContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -817,4 +817,4 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
 /******************************************************************************/
 /* Exports */
 
-export { BBox, WidgetBBox };
+export default WidgetBBox;

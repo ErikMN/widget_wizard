@@ -2,9 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
-import { WidgetBBox } from './BBox';
-import OverlayBBox from './overlay/OverlayBBox';
 import { CustomPlayer } from './player/CustomPlayer';
+/* BBox systems */
+import WidgetBBox from './widget/WidgetBBox';
+import OverlayBBox from './overlay/OverlayBBox';
 
 interface VapixConfig {
   compression: string;
