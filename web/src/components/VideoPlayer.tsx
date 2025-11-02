@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './widget/widgetInterfaces';
@@ -65,6 +66,12 @@ const VideoPlayer: React.FC = () => {
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  /* Navigation */
+  const location = useLocation();
+  const inWidgetsRoute = location.pathname.endsWith('/widgets');
+  const inOverlaysRoute = location.pathname.endsWith('/overlays');
+  const inSettingsRoute = location.pathname.endsWith('/settings');
 
   let vapixParams: Partial<VapixConfig> = {};
   const vapixData = window.localStorage.getItem('vapix');
@@ -207,10 +214,14 @@ const VideoPlayer: React.FC = () => {
         vapixParams={vapixParams}
       />
       {/* Widget bounding boxes */}
-      <WidgetBBox dimensions={dimensions} />
+      {(inWidgetsRoute || inSettingsRoute) && (
+        <WidgetBBox dimensions={dimensions} />
+      )}
 
       {/* Overlay bounding boxes */}
-      {appSettings.debug && <OverlayBBox dimensions={dimensions} />}
+      {(inOverlaysRoute || inSettingsRoute) && (
+        <OverlayBBox dimensions={dimensions} />
+      )}
     </div>
   );
 };

@@ -174,6 +174,7 @@ const App: React.FC = () => {
   /* Screen size */
   const { isMobile } = useScreenSizes();
 
+  /* Navigation */
   const navigate = useNavigate();
   const location = useLocation();
 
