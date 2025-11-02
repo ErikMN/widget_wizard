@@ -7,6 +7,7 @@ import { useGlobalContext } from '../GlobalContext';
 import { TextOverlay } from './overlayInterfaces';
 import { CustomButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
+import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
@@ -33,7 +34,6 @@ import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import Typography from '@mui/material/Typography';
-import UpdateIcon from '@mui/icons-material/Update';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import '../../assets/css/prism-theme.css';
@@ -89,12 +89,36 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     Array.isArray(overlay.position) ? overlay.position : null
   );
 
+  /* HACK: Prevent update loop on mount */
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  /* Sync position from context safely */
   useEffect(() => {
     if (Array.isArray(overlay.position)) {
+      const pos = overlay.position as [number, number];
       setPosition('custom');
-      setCustomPosition(overlay.position);
+      setCustomPosition((prev) => {
+        if (!prev || prev[0] !== pos[0] || prev[1] !== pos[1]) {
+          return pos;
+        }
+        return prev;
+      });
     }
   }, [overlay.position]);
+
+  /* Debounced overlay updates */
+  const debouncedText = useDebouncedValue(text, 300);
+  const debouncedTextColor = useDebouncedValue(textColor, 500);
+  const debouncedTextBGColor = useDebouncedValue(textBGColor, 500);
+  const debouncedTextOLColor = useDebouncedValue(textOLColor, 500);
+  const debouncedFontSize = useDebouncedValue(fontSize, 300);
+  const debouncedRotation = useDebouncedValue(rotation, 300);
+  const debouncedReference = useDebouncedValue(reference, 300);
+  const debouncedPosition = useDebouncedValue(position, 300);
+  const debouncedCustomPosition = useDebouncedValue(customPosition, 300);
 
   const label = useMemo(() => `Text #${overlay.identity}`, [overlay.identity]);
 
@@ -133,6 +157,49 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     position,
     customPosition,
     updateTextOverlay
+  ]);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    let positionToUse: any =
+      debouncedPosition === 'custom'
+        ? (debouncedCustomPosition ?? overlay.position)
+        : debouncedPosition;
+
+    const updated: TextOverlay = {
+      ...overlay,
+      text: debouncedText,
+      textColor: debouncedTextColor,
+      textBGColor: debouncedTextBGColor,
+      textOLColor: debouncedTextOLColor,
+      fontSize: Number(debouncedFontSize),
+      reference: debouncedReference,
+      position: positionToUse
+    };
+
+    if ('rotation' in overlay) {
+      updated.rotation = Number(debouncedRotation);
+    }
+
+    /* Prevent infinite spam if values didn’t change */
+    if (JSON.stringify(updated) !== JSON.stringify(overlay)) {
+      updateTextOverlay(updated);
+    }
+  }, [
+    isReady,
+    debouncedText,
+    debouncedTextColor,
+    debouncedTextBGColor,
+    debouncedTextOLColor,
+    debouncedFontSize,
+    debouncedRotation,
+    debouncedReference,
+    debouncedPosition,
+    debouncedCustomPosition,
+    overlay.identity
   ]);
 
   const handleRemoveClick = useCallback(() => {
@@ -545,19 +612,6 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
               }}
             >
               Remove
-            </CustomButton>
-            <CustomButton
-              color="primary"
-              variant="contained"
-              onClick={handleUpdate}
-              startIcon={<UpdateIcon />}
-              sx={{
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-              }}
-            >
-              Update
             </CustomButton>
           </Box>
 

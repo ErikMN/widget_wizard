@@ -7,6 +7,7 @@ import { useGlobalContext } from '../GlobalContext';
 import { ImageOverlay } from './overlayInterfaces';
 import { CustomButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
+import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
@@ -31,7 +32,6 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
-import UpdateIcon from '@mui/icons-material/Update';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import '../../assets/css/prism-theme.css';
@@ -74,12 +74,30 @@ const OverlayItemImage: React.FC<{
     Array.isArray(overlay.position) ? overlay.position : null
   );
 
+  /* HACK: Prevent update loop on mount */
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  /* Sync position from context safely */
   useEffect(() => {
     if (Array.isArray(overlay.position)) {
+      const pos = overlay.position as [number, number];
       setPosition('custom');
-      setCustomPosition(overlay.position);
+      setCustomPosition((prev) => {
+        if (!prev || prev[0] !== pos[0] || prev[1] !== pos[1]) {
+          return pos;
+        }
+        return prev;
+      });
     }
   }, [overlay.position]);
+
+  /* Debounced overlay updates */
+  const debouncedSelectedImage = useDebouncedValue(selectedImage, 400);
+  const debouncedPosition = useDebouncedValue(position, 300);
+  const debouncedCustomPosition = useDebouncedValue(customPosition, 300);
 
   const label = useMemo(
     () => overlay.overlayPath.split('/').pop() ?? 'Image',
@@ -99,6 +117,32 @@ const OverlayItemImage: React.FC<{
       position: positionToUse
     });
   }, [overlay, position, selectedImage, updateImageOverlay, customPosition]);
+
+  useEffect(() => {
+    if (!isReady) return;
+
+    let positionToUse: any =
+      debouncedPosition === 'custom'
+        ? (debouncedCustomPosition ?? overlay.position)
+        : debouncedPosition;
+
+    const updated: ImageOverlay = {
+      ...overlay,
+      overlayPath: debouncedSelectedImage,
+      position: positionToUse
+    };
+
+    /* Prevent infinite spam if values didn’t change */
+    if (JSON.stringify(updated) !== JSON.stringify(overlay)) {
+      updateImageOverlay(updated);
+    }
+  }, [
+    isReady,
+    debouncedSelectedImage,
+    debouncedPosition,
+    debouncedCustomPosition,
+    overlay.identity
+  ]);
 
   const handleRemoveClick = useCallback(() => {
     setOpenDialog(true);
@@ -428,14 +472,6 @@ const OverlayItemImage: React.FC<{
               startIcon={<DeleteIcon />}
             >
               Remove
-            </CustomButton>
-            <CustomButton
-              color="primary"
-              variant="contained"
-              onClick={handleUpdate}
-              startIcon={<UpdateIcon />}
-            >
-              Update
             </CustomButton>
           </Box>
 
