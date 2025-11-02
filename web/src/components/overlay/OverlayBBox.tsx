@@ -20,6 +20,7 @@ import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useParameters } from '../ParametersContext';
 /* MUI */
 import Box from '@mui/material/Box';
+import Fade from '@mui/material/Fade';
 import Typography from '@mui/material/Typography';
 
 /**
@@ -416,72 +417,76 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 
   return (
     <>
-      <Draggable
-        nodeRef={nodeRef as React.RefObject<HTMLElement>}
-        position={dragPos}
-        bounds={{
-          left: 0,
-          top: 0,
-          right: Math.max(0, dimensions.pixelWidth - wPx),
-          bottom: Math.max(0, dimensions.pixelHeight - hPx)
-        }}
-        onStart={handleStart}
-        onDrag={(e, data) => {
-          setDragPos({ x: data.x, y: data.y });
-          handleDrag(e, data);
-        }}
-        onStop={(e, data) => {
-          handleStop(e, data);
-          setDragPos({ x: data.x, y: data.y });
-        }}
-      >
-        <Box
-          ref={nodeRef}
-          onClick={handleClick}
-          sx={{
-            width: `${wPx}px`,
-            height: `${hPx}px`,
-            border: activeDraggableOverlay?.active
-              ? activeDraggableOverlay.id === overlay.identity
-                ? `${bboxThickness} solid ${bboxColor}` /* only the dragged one solid */
-                : `2px dashed rgba(200, 200, 200, 1)` /* everyone else dashed during drag */
-              : isActive
-                ? `${bboxThickness} solid ${bboxColor}` /* normal: selected solid */
-                : `2px dashed rgba(200, 200, 200, 1)` /* others dashed */,
-
-            borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
-            position: 'absolute',
-            pointerEvents: 'auto',
-            cursor: 'move',
-            backgroundColor:
-              isActive && activeDraggableWidget?.highlight
-                ? `${bboxColor}4D`
-                : 'transparent',
-            zIndex: isActive ? 1000 : 1,
-            opacity: appSettings.bboxOnlyShowActive && !isActive ? 0 : 1
-          }}
-        >
-          {/* Overlay info note above the bbox */}
-          {appSettings.bboxLabel && (
-            <Typography
+      <Fade in={true} timeout={500}>
+        <div>
+          <Draggable
+            nodeRef={nodeRef as React.RefObject<HTMLElement>}
+            position={dragPos}
+            bounds={{
+              left: 0,
+              top: 0,
+              right: Math.max(0, dimensions.pixelWidth - wPx),
+              bottom: Math.max(0, dimensions.pixelHeight - hPx)
+            }}
+            onStart={handleStart}
+            onDrag={(e, data) => {
+              setDragPos({ x: data.x, y: data.y });
+              handleDrag(e, data);
+            }}
+            onStop={(e, data) => {
+              handleStop(e, data);
+              setDragPos({ x: data.x, y: data.y });
+            }}
+          >
+            <Box
+              ref={nodeRef}
+              onClick={handleClick}
               sx={{
+                width: `${wPx}px`,
+                height: `${hPx}px`,
+                border: activeDraggableOverlay?.active
+                  ? activeDraggableOverlay.id === overlay.identity
+                    ? `${bboxThickness} solid ${bboxColor}` /* only the dragged one solid */
+                    : `2px dashed rgba(200, 200, 200, 1)` /* everyone else dashed during drag */
+                  : isActive
+                    ? `${bboxThickness} solid ${bboxColor}` /* normal: selected solid */
+                    : `2px dashed rgba(200, 200, 200, 1)` /* others dashed */,
+
+                borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
-                top: '-20px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                padding: '2px 4px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                color: '#333',
-                pointerEvents: 'none'
+                pointerEvents: 'auto',
+                cursor: 'move',
+                backgroundColor:
+                  isActive && activeDraggableWidget?.highlight
+                    ? `${bboxColor}4D`
+                    : 'transparent',
+                zIndex: isActive ? 1000 : 1,
+                opacity: appSettings.bboxOnlyShowActive && !isActive ? 0 : 1
               }}
             >
-              {capitalizeFirstLetter(overlayType)} ID: {overlay.identity}
-            </Typography>
-          )}
-        </Box>
-      </Draggable>
+              {/* Overlay info note above the bbox */}
+              {appSettings.bboxLabel && (
+                <Typography
+                  sx={{
+                    position: 'absolute',
+                    top: '-20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    color: '#333',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {capitalizeFirstLetter(overlayType)} ID: {overlay.identity}
+                </Typography>
+              )}
+            </Box>
+          </Draggable>
+        </div>
+      </Fade>
 
       {/* Alignment guide */}
       {appSettings.snapToAnchor && (
