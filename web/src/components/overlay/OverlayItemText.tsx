@@ -3,13 +3,20 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
+import { useGlobalContext } from '../GlobalContext';
 import { TextOverlay } from './overlayInterfaces';
 import { CustomButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import messageSoundUrl from '../../assets/audio/message.oga';
+import CodeEditor from '@uiw/react-textarea-code-editor';
+import rehypePrism from 'rehype-prism-plus';
+import ReactJson from 'react-json-view';
 /* MUI */
+import { useTheme } from '@mui/material/styles';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -19,6 +26,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FormControl from '@mui/material/FormControl';
+import ImageIcon from '@mui/icons-material/Image';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -27,6 +35,8 @@ import TextFieldsIcon from '@mui/icons-material/TextFields';
 import Typography from '@mui/material/Typography';
 import UpdateIcon from '@mui/icons-material/Update';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+
+import '../../assets/css/prism-theme.css';
 
 interface OverlayItemTextProps {
   overlay: TextOverlay;
@@ -44,6 +54,10 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   /* Global state */
   const { removeOverlay, updateTextOverlay, activeDraggableOverlay } =
     useOverlayContext();
+
+  const { jsonTheme, appSettings } = useGlobalContext();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
 
   /* Local state */
   const [text, setText] = useState(overlay.text ?? '');
@@ -134,6 +148,89 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     removeOverlay(overlay.identity);
     setOpenDialog(false);
   }, [overlay.identity, removeOverlay]);
+
+  /* JSON editor */
+  const [jsonVisible, setJsonVisible] = useState<boolean>(false);
+  const [useJsonEditorPro, setUseJsonEditorPro] = useState(false);
+  const [jsonInput, setJsonInput] = useState<string>(
+    JSON.stringify(overlay, null, 2)
+  );
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setJsonInput(JSON.stringify(overlay, null, 2));
+    setJsonError(null);
+  }, [overlay]);
+
+  const codeStyles: Record<string, string> = useMemo(
+    () => ({
+      '--json-key': isDarkMode ? '#ffcb6b' : '#d35400',
+      '--json-string': isDarkMode ? '#c3e88d' : '#388e3c',
+      '--json-number': isDarkMode ? '#f78c6c' : '#d80080',
+      '--json-boolean': isDarkMode ? '#82aaff' : '#1565c0',
+      '--json-null': isDarkMode ? '#ff5370' : '#c62828',
+      '--json-punctuation': isDarkMode ? '#89ddff' : '#546e7a',
+      '--json-operator': isDarkMode ? '#ff9cac' : '#ff6f61',
+      '--background': theme.palette.background.paper,
+      '--text-color': theme.palette.text.primary,
+      '--border-color': jsonError ? '#d32f2f' : theme.palette.divider
+    }),
+    [isDarkMode, theme, jsonError]
+  );
+
+  const safeParseJson = (json: string) => {
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  };
+
+  const toggleJsonVisibility = useCallback(() => {
+    setJsonVisible((prev) => !prev);
+  }, []);
+
+  const toggleJsonEditor = useCallback(() => {
+    setUseJsonEditorPro((prev) => !prev);
+  }, []);
+
+  const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonInput(event.target.value);
+  };
+
+  const handleUpdateJSON = useCallback(() => {
+    const parsed = safeParseJson(jsonInput);
+    if (parsed == null) {
+      setJsonError('Invalid JSON format');
+      return;
+    }
+    if (parsed.identity == null) {
+      parsed.identity = overlay.identity;
+    }
+    setJsonError(null);
+    updateTextOverlay(parsed as TextOverlay);
+
+    /* Keep UI state in sync with JSON */
+    setText(parsed.text ?? '');
+    setTextColor(parsed.textColor ?? 'white');
+    setTextBGColor(parsed.textBGColor ?? 'transparent');
+    setTextOLColor(parsed.textOLColor ?? 'black');
+    setFontSize(parsed.fontSize ?? 100);
+    if ('rotation' in parsed) setRotation(parsed.rotation ?? 0);
+    setReference(parsed.reference ?? 'channel');
+
+    if (Array.isArray(parsed.position)) {
+      setPosition('custom');
+      setCustomPosition(parsed.position);
+    } else if (
+      typeof parsed.position === 'string' &&
+      ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'].includes(
+        parsed.position
+      )
+    ) {
+      setPosition(parsed.position);
+    }
+  }, [jsonInput, overlay.identity, updateTextOverlay]);
 
   return (
     <Box key={overlay.identity} sx={{ marginBottom: 1.8 }}>
@@ -326,6 +423,105 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
               <MenuItem value="date">Date</MenuItem>
             </Select>
           </FormControl>
+
+          {/* JSON editor */}
+          <CustomButton
+            variant={jsonVisible ? 'contained' : 'outlined'}
+            fullWidth
+            onClick={toggleJsonVisibility}
+            startIcon={<DataObjectIcon />}
+            endIcon={jsonVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            sx={{
+              color: 'text.secondary',
+              backgroundColor: 'background.default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 1,
+              marginTop: 2,
+              marginBottom: 1,
+              height: '32px',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden'
+            }}
+          >
+            {jsonVisible ? 'Hide JSON editor' : 'Show JSON editor'}
+          </CustomButton>
+
+          <Collapse in={jsonVisible}>
+            {!useJsonEditorPro ? (
+              <div style={codeStyles}>
+                <CodeEditor
+                  value={jsonInput}
+                  onChange={handleJsonChange}
+                  language="json"
+                  data-color-mode={isDarkMode ? 'dark' : 'light'}
+                  className="custom-json-theme"
+                  style={{
+                    color: theme.palette.text.primary,
+                    backgroundColor: isDarkMode
+                      ? theme.palette.background.paper
+                      : '#ffffe6',
+                    marginTop: 8,
+                    width: '100%',
+                    fontSize: 14,
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
+                    borderRadius: 8,
+                    border: jsonError
+                      ? '1px solid red'
+                      : `1px solid ${theme.palette.background.paper}`
+                  }}
+                  rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
+                  placeholder="JSON"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                />
+              </div>
+            ) : (
+              <ReactJson
+                src={safeParseJson(jsonInput)}
+                onEdit={(edit) =>
+                  setJsonInput(JSON.stringify(edit.updated_src, null, 2))
+                }
+                onAdd={(add) =>
+                  setJsonInput(JSON.stringify(add.updated_src, null, 2))
+                }
+                onDelete={(del) =>
+                  setJsonInput(JSON.stringify(del.updated_src, null, 2))
+                }
+                enableClipboard={false}
+                displayDataTypes={false}
+                theme={jsonTheme}
+              />
+            )}
+            {jsonError && (
+              <Alert severity="error" sx={{ marginTop: 1 }}>
+                {jsonError}
+              </Alert>
+            )}
+            {appSettings.debug && (
+              <CustomButton
+                onClick={toggleJsonEditor}
+                variant="contained"
+                startIcon={<ImageIcon />}
+                sx={{ marginTop: 1, width: '100%', height: '30px' }}
+              >
+                {useJsonEditorPro ? 'JSON editor' : 'JSON editor PRO'}
+              </CustomButton>
+            )}
+            <CustomButton
+              onClick={handleUpdateJSON}
+              variant="outlined"
+              startIcon={<DataObjectIcon />}
+              sx={{ marginTop: 1, marginRight: 1, width: '100%' }}
+            >
+              Update Overlay
+            </CustomButton>
+          </Collapse>
 
           {/* Action buttons */}
           <Box
