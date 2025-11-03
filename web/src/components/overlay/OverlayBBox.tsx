@@ -190,15 +190,24 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     let wPx = 0;
     let hPx = 0;
 
-    // HACK: filter out image overlays
+    /* HACK: filter out image overlays */
     const isImageOverlay = 'overlayPath' in overlay;
+    const isTextOverlay = !isImageOverlay;
 
-    // FIXME: only works for text overlays at 1920x1080
     if (isImageOverlay && overlay.scalable) {
+      /* Scalable image overlays */
       const scaleFactor = dimensions.pixelWidth / baseWidth;
       wPx = wStream * scaleFactor;
       hPx = hStream * scaleFactor;
+    } else if (isTextOverlay) {
+      /* Text overlays scale better when tied to the vertical resolution
+       * FIXME: This is not 100% correct but quite close, it will work on common resolutions.
+       */
+      const scaleFactor = dimensions.pixelHeight / 1080;
+      wPx = wStream * scaleFactor;
+      hPx = hStream * scaleFactor;
     } else {
+      /* Non-scalable image overlays */
       wPx = wStream * scaleX;
       hPx = hStream * scaleY;
     }
