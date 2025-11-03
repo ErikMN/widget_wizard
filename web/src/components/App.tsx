@@ -16,10 +16,9 @@ import { log, enableLogging } from '../helpers/logger';
 import { useGlobalContext } from './GlobalContext';
 import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
-import WidgetHandler from './widget/WidgetHandler';
 import WidgetInfo from './widget/WidgetInfo';
 /* Overlays */
-import OverlayHandler from './overlay/OverlayHandler';
+import OverlayInfo from './overlay/OverlayInfo';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -140,9 +139,15 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 /******************************************************************************/
 
 const App: React.FC = () => {
+  /* Navigation */
+  const navigate = useNavigate();
+  const location = useLocation();
+
   /* Local state */
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [drawerTab, setDrawerTab] = useState<number>(0);
+  const [drawerTab, setDrawerTab] = useState<number>(
+    location.pathname.endsWith('/overlays') ? 1 : 0
+  );
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -173,10 +178,6 @@ const App: React.FC = () => {
 
   /* Screen size */
   const { isMobile } = useScreenSizes();
-
-  /* Navigation */
-  const navigate = useNavigate();
-  const location = useLocation();
 
   enableLogging(true);
 
@@ -496,7 +497,7 @@ const App: React.FC = () => {
                 flexGrow: 1
               }}
             >
-              <WidgetInfo />
+              {drawerTab === 1 ? <OverlayInfo /> : <WidgetInfo />}
             </Box>
             {/* Menu toggle button */}
             <Tooltip
@@ -529,8 +530,9 @@ const App: React.FC = () => {
           <Divider />
           <Box sx={{ paddingBottom: 1 }}>
             <Tabs
-              value={location.pathname.endsWith('/overlays') ? 1 : 0}
+              value={drawerTab}
               onChange={(_, newValue) => {
+                setDrawerTab(newValue);
                 navigate(newValue === 0 ? 'widgets' : 'overlays');
               }}
               variant="fullWidth"
