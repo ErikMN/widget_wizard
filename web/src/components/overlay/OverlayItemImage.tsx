@@ -16,6 +16,7 @@ import ReactJson from 'react-json-view';
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -272,12 +273,40 @@ const OverlayItemImage: React.FC<{
         startIcon={<ImageIcon color="primary" />}
         endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Overlay #{overlay.identity}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" noWrap>
-          {label}
-        </Typography>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flex: 1,
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+          title={`Image Overlay (ID: ${overlay.identity}) ${label}`}
+        >
+          {/* Title and ID chip */}
+          <Typography
+            variant="subtitle2"
+            sx={{ marginRight: '12px', fontWeight: 'bold' }}
+          >
+            Image Overlay
+          </Typography>
+          <Chip
+            label={`ID: ${overlay.identity}`}
+            size="small"
+            sx={{ fontWeight: 'bold', marginRight: '12px' }}
+          />
+          {/* File name */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            noWrap
+            sx={{ flexShrink: 0 }}
+          >
+            {label}
+          </Typography>
+        </div>
       </CustomButton>
 
       <Collapse in={isOpen}>
