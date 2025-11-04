@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
-import { Dimensions } from './widget/widgetInterfaces';
+import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 /* BBox systems */
 import WidgetBBox from './widget/WidgetBBox';

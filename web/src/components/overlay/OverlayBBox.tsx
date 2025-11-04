@@ -14,7 +14,7 @@ import React, {
 import Draggable from 'react-draggable';
 import { useOverlayContext } from './OverlayContext';
 import { ImageOverlay, TextOverlay } from './overlayInterfaces';
-import { Dimensions } from '../widget/widgetInterfaces';
+import { Dimensions } from '../appInterface';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useParameters } from '../ParametersContext';

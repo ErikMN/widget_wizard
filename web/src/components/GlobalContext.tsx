@@ -10,12 +10,11 @@ import { playSound } from '../helpers/utils';
 import warningSoundUrl from '../assets/audio/warning.oga';
 import trashSoundUrl from '../assets/audio/trash.oga';
 import newSoundUrl from '../assets/audio/new.oga';
+import { AppSettings, defaultAppSettings } from './appInterface.js';
 import {
   ApiResponse,
   Widget,
-  WidgetCapabilities,
-  AppSettings,
-  defaultAppSettings
+  WidgetCapabilities
 } from './widget/widgetInterfaces.js';
 import { W_CGI } from './constants.js';
 

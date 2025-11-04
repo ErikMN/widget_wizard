@@ -9,7 +9,7 @@ import Draggable from 'react-draggable';
 import AnchorIndicators from '../AnchorIndicators';
 import { Widget } from './widgetInterfaces';
 import { capitalizeFirstLetter } from '../../helpers/utils';
-import { Dimensions } from './widgetInterfaces';
+import { Dimensions } from '../appInterface';
 import { playSound } from '../../helpers/utils';
 import lockSoundUrl from '../../assets/audio/lock.oga';
 import unlockSoundUrl from '../../assets/audio/unlock.oga';
