@@ -23,6 +23,8 @@ import newSoundUrl from '../../assets/audio/new.oga';
 import warningSoundUrl from '../../assets/audio/warning.oga';
 import trashSoundUrl from '../../assets/audio/trash.oga';
 
+const API_VERSION = '1.8';
+
 /* Interface defining the structure of the context */
 interface OverlayContextProps {
   overlaySupported: boolean;
@@ -98,7 +100,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     try {
       setWidgetLoading(true);
       const payload = {
-        apiVersion: '1.8',
+        apiVersion: API_VERSION,
         method: 'getOverlayCapabilities'
       };
       const resp = await jsonRequest(O_CGI, payload);
@@ -116,12 +118,12 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       } else {
         setOverlaySupported(false);
       }
-    } catch (err) {
+    } catch (error) {
+      setOverlaySupported(false);
       setWidgetLoading(false);
-      console.error('Overlay capabilities fetch failed:', err);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to fetch overlay capabilities', 'error');
-      setOverlaySupported(false);
+      console.error('Error:', error);
     }
   }, [handleOpenAlert]);
 
@@ -130,7 +132,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     try {
       setWidgetLoading(true);
       const payload = {
-        apiVersion: '1.8',
+        apiVersion: API_VERSION,
         method: 'list',
         params: {}
       };
@@ -166,7 +168,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setWidgetLoading(true);
         const payload = {
-          apiVersion: '1.8',
+          apiVersion: API_VERSION,
           method: 'addImage',
           params: {
             camera: params?.camera ?? 1,
@@ -208,7 +210,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setWidgetLoading(true);
         const payload = {
-          apiVersion: '1.8',
+          apiVersion: API_VERSION,
           method: 'addText',
           params: {
             camera: params?.camera ?? 1,
@@ -246,7 +248,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setWidgetLoading(true);
         const payload = {
-          apiVersion: '1.8',
+          apiVersion: API_VERSION,
           method: 'remove',
           params: { identity: id }
         };
@@ -301,7 +303,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setWidgetLoading(true);
         const payload = {
-          apiVersion: '1.8',
+          apiVersion: API_VERSION,
           method: 'setImage',
           params: {
             identity: overlay.identity,
@@ -340,7 +342,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setWidgetLoading(true);
         const payload = {
-          apiVersion: '1.8',
+          apiVersion: API_VERSION,
           method: 'setText',
           params: {
             identity: overlay.identity,

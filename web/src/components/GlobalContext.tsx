@@ -18,6 +18,8 @@ import {
 } from './widget/widgetInterfaces.js';
 import { W_CGI } from './constants.js';
 
+const API_VERSION = '2.0';
+
 /* Interface defining the structure of the context */
 interface GlobalContextProps {
   /* Widget operations */
@@ -174,7 +176,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateWidget = async (widgetItem: Widget) => {
     const { type, ...updatedGeneralParams } = widgetItem.generalParams;
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'updateWidget',
       params: {
         generalParams: updatedGeneralParams,
@@ -221,7 +223,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   const listWidgets = async () => {
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'listWidgets'
     };
     try {
@@ -254,7 +256,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Lists all available widget types and their parameters */
   const listWidgetCapabilities = async () => {
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'listCapabilities'
     };
     try {
@@ -289,7 +291,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Adds a new widget and refreshes the widget list */
   const addWidget = async (widgetType: string) => {
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'addWidget',
       params: {
         /* Default general widget parameter settings
@@ -354,7 +356,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     const { height, width, generalParams, ...restParams } = params;
     const { id, ...restGeneralParams } = generalParams || {};
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'addWidget',
       params: {
         ...restParams,
@@ -388,7 +390,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Removes a specified widget */
   const removeWidget = async (widgetID: number) => {
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'removeWidget',
       params: {
         generalParams: {
@@ -423,7 +425,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Removes all currently active widgets */
   const removeAllWidgets = async () => {
     const payload = {
-      apiVersion: '2.0',
+      apiVersion: API_VERSION,
       method: 'removeAllWidgets'
     };
     try {
