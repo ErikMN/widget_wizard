@@ -45,7 +45,19 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Set the device IP and credentials from the following file:
-CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
+if [ -n "$1" ]; then
+  if [ -f "$1" ]; then
+    CREDENTIALS_FILE="$1"
+  elif [ -f "$SCRIPT_DIR/$1" ]; then
+    CREDENTIALS_FILE="$SCRIPT_DIR/$1"
+  else
+    echo "${FMT_RED}Warning: Credentials file '$1' not found. Falling back to default.${FMT_RESET}"
+    CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
+  fi
+else
+  CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
+fi
+
 DEFAULT_IP="192.168.0.90"
 DEFAULT_USR="root"
 DEFAULT_PWD="pass"
