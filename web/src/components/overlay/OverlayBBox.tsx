@@ -108,13 +108,15 @@ interface OverlayBoxProps {
   dimensions: Dimensions;
   isActive: boolean;
   onSelect: (id: number) => void;
+  registerRef?: (el: HTMLElement | null) => void;
 }
 
 const OverlayBox: React.FC<OverlayBoxProps> = ({
   overlay,
   dimensions,
   isActive,
-  onSelect
+  onSelect,
+  registerRef
 }) => {
   /* Global context */
   const {
@@ -132,7 +134,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   // console.log(Resolution);
 
   /* Refs */
-  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const nodeRef = useRef<HTMLElement | null>(null);
   const suppressClickRef = useRef(false);
 
   const [dragStartPos, setDragStartPos] = useState<{
@@ -448,7 +450,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
             }}
           >
             <Box
-              ref={nodeRef}
+              ref={(el) => {
+                nodeRef.current = el as HTMLElement | null;
+                registerRef?.(el as HTMLElement | null);
+              }}
               onClick={handleClick}
               sx={{
                 width: `${wPx}px`,
@@ -597,9 +602,35 @@ interface OverlayBBoxInnerProps {
 
 const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
   /* Global context */
-  const { activeOverlays, activeOverlayId, onSelectOverlay } =
-    useOverlayContext();
   const { currentChannel } = useGlobalContext();
+  const {
+    activeOverlays,
+    activeOverlayId,
+    onSelectOverlay,
+    activeDraggableOverlay,
+    setActiveDraggableOverlay
+  } = useOverlayContext();
+
+  /* Refs: keep live refs to all overlay bbox elements */
+  const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());
+
+  /* Pointer-down handler: deactivate overlay if click is not inside any bbox */
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    /* Ignore while dragging */
+    if (activeDraggableOverlay?.active) {
+      return;
+    }
+    /* Check all bbox refs */
+    for (const [, el] of bboxRefs.current) {
+      if (el.contains(e.target as Node)) {
+        /* Click inside a bbox: return */
+        return;
+      }
+    }
+    /* Click outside any bbox: deactivate overlay */
+    setActiveDraggableOverlay({ id: null, active: false });
+    onSelectOverlay(null);
+  };
 
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
@@ -608,6 +639,7 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
   return (
     /* Overlay bounding boxes */
     <div
+      onPointerDown={handlePointerDown}
       style={{
         // backgroundColor: 'purple',
         position: 'absolute',
@@ -615,7 +647,6 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
         left: `${dimensions.offsetX}px`,
         width: `${dimensions.pixelWidth}px`,
         height: `${dimensions.pixelHeight}px`,
-        pointerEvents: 'none',
         zIndex: 3
       }}
     >
@@ -627,12 +658,23 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
             String(overlay.camera) === currentChannel
         )
         .map((overlay) => (
+          /* One BBox per active overlay */
           <OverlayBox
             key={overlay.identity}
             overlay={overlay}
             dimensions={dimensions}
             isActive={overlay.identity === activeOverlayId}
             onSelect={onSelectOverlay}
+            /* Each bbox has its own ref */
+            registerRef={(el) => {
+              if (el) {
+                /* Mount: store the bbox element reference using overlay ID */
+                bboxRefs.current.set(overlay.identity, el);
+              } else {
+                /* Unmount: remove the bbox reference by overlay ID */
+                bboxRefs.current.delete(overlay.identity);
+              }
+            }}
           />
         ))}
     </div>
