@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useGlobalContext } from './GlobalContext';
+import { useOverlayContext } from './overlay/OverlayContext';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { P_CGI } from './constants';
@@ -58,6 +59,8 @@ const Settings: React.FC = () => {
     widgetSupported
   } = useGlobalContext();
 
+  const { listOverlays } = useOverlayContext();
+
   /* Refs */
   const timerRef = useRef<number | null>(null);
 
@@ -70,10 +73,11 @@ const Settings: React.FC = () => {
   /* Screen size */
   const { isMobile } = useScreenSizes();
 
-  /* List widgets on mount */
+  /* List widgets and overlays on mount */
   useEffect(() => {
     const fetchData = async () => {
       await listWidgets();
+      await listOverlays();
     };
     fetchData();
   }, []);

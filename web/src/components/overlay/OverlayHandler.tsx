@@ -36,6 +36,8 @@ const OverlayHandler: React.FC = () => {
     addImageOverlay,
     addTextOverlay,
     removeAllOverlays,
+    listOverlayCapabilities,
+    listOverlays,
     imageFiles
   } = useOverlayContext();
 
@@ -44,6 +46,15 @@ const OverlayHandler: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<'image' | 'text'>('image');
   const [selectedImageFile, setSelectedImageFile] = useState<string>('');
+
+  /* Component mount: Calls listWidgetCapabilities and listWidgets */
+  useEffect(() => {
+    const fetchData = async () => {
+      await listOverlayCapabilities();
+      await listOverlays();
+    };
+    fetchData();
+  }, []);
 
   /* Sync openIndex with selected overlay */
   useEffect(() => {

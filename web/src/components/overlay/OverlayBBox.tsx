@@ -597,14 +597,9 @@ interface OverlayBBoxInnerProps {
 
 const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
   /* Global context */
-  const { activeOverlays, activeOverlayId, onSelectOverlay, listOverlays } =
+  const { activeOverlays, activeOverlayId, onSelectOverlay } =
     useOverlayContext();
   const { currentChannel } = useGlobalContext();
-
-  /* List overlays once on mount */
-  useEffect(() => {
-    listOverlays();
-  }, []);
 
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
