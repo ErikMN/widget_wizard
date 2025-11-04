@@ -321,11 +321,14 @@ const OverlayItemImage: React.FC<{
             marginTop: 0
           })}
         >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Image parameters
+          </Typography>
           {/* Image selector */}
           <FormControl fullWidth sx={{ mb: 1.5 }}>
             <InputLabel
               id={`image-select-${overlay.identity}`}
-              sx={{ top: '-4px' }}
+              sx={{ top: '-4x' }}
             >
               Image
             </InputLabel>

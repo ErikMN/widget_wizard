@@ -384,6 +384,9 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             marginTop: 0
           })}
         >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Text parameters
+          </Typography>
           <TextField
             fullWidth
             label="Text"
@@ -458,36 +461,81 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
-            <TextField
-              fullWidth
-              label="Text color"
-              value={textColor}
-              onChange={(e) => setTextColor(e.target.value)}
-              sx={{
-                '& .MuiInputBase-root': { height: '40px' }
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Outline color"
-              value={textOLColor}
-              onChange={(e) => setTextOLColor(e.target.value)}
-              sx={{
-                '& .MuiInputBase-root': { height: '40px' }
-              }}
-            />
+            <FormControl fullWidth>
+              <InputLabel
+                id={`text-color-${overlay.identity}`}
+                sx={{ top: '-4px' }}
+              >
+                Text color
+              </InputLabel>
+              <Select
+                labelId={`text-color-${overlay.identity}`}
+                value={textColor}
+                label="Text color"
+                onChange={(e) => setTextColor(e.target.value)}
+                sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': { height: '100%' }
+                }}
+              >
+                <MenuItem value="black">Black</MenuItem>
+                <MenuItem value="white">White</MenuItem>
+                <MenuItem value="red">Red</MenuItem>
+                <MenuItem value="transparent">Transparent</MenuItem>
+                <MenuItem value="semiTransparent">Semi transparent</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel
+                id={`outline-color-${overlay.identity}`}
+                sx={{ top: '-4px' }}
+              >
+                Outline color
+              </InputLabel>
+              <Select
+                labelId={`outline-color-${overlay.identity}`}
+                value={textOLColor}
+                label="Outline color"
+                onChange={(e) => setTextOLColor(e.target.value)}
+                sx={{
+                  height: '40px',
+                  '& .MuiOutlinedInput-root': { height: '100%' }
+                }}
+              >
+                <MenuItem value="black">Black</MenuItem>
+                <MenuItem value="white">White</MenuItem>
+                <MenuItem value="red">Red</MenuItem>
+                <MenuItem value="transparent">Transparent</MenuItem>
+                <MenuItem value="semiTransparent">Semi transparent</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
 
-          <TextField
-            fullWidth
-            label="Background color"
-            value={textBGColor}
-            onChange={(e) => setTextBGColor(e.target.value)}
-            sx={{
-              mb: 1.5,
-              '& .MuiInputBase-root': { height: '40px' }
-            }}
-          />
+          <FormControl fullWidth sx={{ mb: 1.5 }}>
+            <InputLabel
+              id={`background-color-${overlay.identity}`}
+              sx={{ top: '-4px' }}
+            >
+              Background color
+            </InputLabel>
+            <Select
+              labelId={`background-color-${overlay.identity}`}
+              value={textBGColor}
+              label="Background color"
+              onChange={(e) => setTextBGColor(e.target.value)}
+              sx={{
+                height: '40px',
+                '& .MuiOutlinedInput-root': { height: '100%' }
+              }}
+            >
+              <MenuItem value="black">Black</MenuItem>
+              <MenuItem value="white">White</MenuItem>
+              <MenuItem value="red">Red</MenuItem>
+              <MenuItem value="transparent">Transparent</MenuItem>
+              <MenuItem value="semiTransparent">Semi transparent</MenuItem>
+            </Select>
+          </FormControl>
 
           <FormControl fullWidth sx={{ mb: 1.5 }}>
             <InputLabel
