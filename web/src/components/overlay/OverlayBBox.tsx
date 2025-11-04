@@ -458,14 +458,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
               sx={{
                 width: `${wPx}px`,
                 height: `${hPx}px`,
-                border: activeDraggableOverlay?.active
-                  ? activeDraggableOverlay.id === overlay.identity
-                    ? `${bboxThickness} solid ${bboxColor}` /* only the dragged one solid */
-                    : `2px dashed rgba(200, 200, 200, 1)` /* everyone else dashed during drag */
-                  : isActive
-                    ? `${bboxThickness} solid ${bboxColor}` /* normal: selected solid */
-                    : `2px dashed rgba(200, 200, 200, 1)` /* others dashed */,
-
+                border:
+                  activeDraggableOverlay?.id === overlay.identity
+                    ? `${bboxThickness} solid ${bboxColor}`
+                    : `2px dashed rgba(200, 200, 200, 1)`,
                 borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
                 pointerEvents: 'auto',
