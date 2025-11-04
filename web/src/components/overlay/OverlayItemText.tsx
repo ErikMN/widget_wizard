@@ -5,7 +5,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
 import { useGlobalContext } from '../GlobalContext';
 import { TextOverlay } from './overlayInterfaces';
-import { CustomButton } from '../CustomComponents';
+import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
@@ -30,10 +30,13 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FormControl from '@mui/material/FormControl';
 import ImageIcon from '@mui/icons-material/Image';
 import InputLabel from '@mui/material/InputLabel';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
@@ -53,8 +56,12 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   toggleDropdown
 }) => {
   /* Global state */
-  const { removeOverlay, updateTextOverlay, activeDraggableOverlay } =
-    useOverlayContext();
+  const {
+    removeOverlay,
+    updateTextOverlay,
+    activeDraggableOverlay,
+    setActiveDraggableOverlay
+  } = useOverlayContext();
 
   const { jsonTheme, appSettings } = useGlobalContext();
   const theme = useTheme();
@@ -384,9 +391,65 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             marginTop: 0
           })}
         >
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            Text parameters
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mb: 1
+            }}
+          >
+            <Typography variant="h6">Text parameters</Typography>
+            <Tooltip title="Highlight Text" arrow placement="top">
+              <div>
+                <CustomStyledIconButton
+                  width="32px"
+                  height="32px"
+                  aria-label="highlight-text"
+                  onMouseDown={() =>
+                    setActiveDraggableOverlay({
+                      id: overlay.identity,
+                      active: false,
+                      highlight: true
+                    })
+                  }
+                  onMouseUp={() =>
+                    setActiveDraggableOverlay((prev) => ({
+                      ...prev,
+                      highlight: false
+                    }))
+                  }
+                  onMouseLeave={() =>
+                    setActiveDraggableOverlay((prev) => ({
+                      ...prev,
+                      highlight: false
+                    }))
+                  }
+                  onTouchStart={() =>
+                    setActiveDraggableOverlay({
+                      id: overlay.identity,
+                      active: false,
+                      highlight: true
+                    })
+                  }
+                  onTouchEnd={() =>
+                    setActiveDraggableOverlay((prev) => ({
+                      ...prev,
+                      highlight: false
+                    }))
+                  }
+                >
+                  {activeDraggableOverlay?.id === overlay.identity &&
+                  activeDraggableOverlay?.highlight ? (
+                    <LightbulbIcon />
+                  ) : (
+                    <LightbulbOutlinedIcon />
+                  )}
+                </CustomStyledIconButton>
+              </div>
+            </Tooltip>
+          </Box>
+
           <TextField
             fullWidth
             label="Text"

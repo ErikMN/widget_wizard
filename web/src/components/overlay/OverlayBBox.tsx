@@ -305,7 +305,11 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     (_: any, data: any) => {
       suppressClickRef.current = false;
       setDragStartPos({ x: data.x, y: data.y });
-      setActiveDraggableOverlay({ id: overlay.identity, active: true });
+      setActiveDraggableOverlay({
+        id: overlay.identity,
+        active: true,
+        highlight: false
+      });
     },
     [overlay.identity, setActiveDraggableOverlay]
   );
@@ -351,7 +355,11 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
       }
 
       /* Reset draggable state */
-      setActiveDraggableOverlay({ id: overlay.identity, active: false });
+      setActiveDraggableOverlay({
+        id: overlay.identity,
+        active: false,
+        highlight: false
+      });
     },
     [
       overlay,
@@ -467,7 +475,9 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 pointerEvents: 'auto',
                 cursor: 'move',
                 backgroundColor:
-                  isActive && activeDraggableWidget?.highlight
+                  (isActive && activeDraggableWidget?.highlight) ||
+                  (activeDraggableOverlay?.highlight &&
+                    activeDraggableOverlay?.id === overlay.identity)
                     ? `${bboxColor}4D`
                     : 'transparent',
                 zIndex: isActive ? 1000 : 1,
@@ -624,7 +634,7 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
       }
     }
     /* Click outside any bbox: deactivate overlay */
-    setActiveDraggableOverlay({ id: null, active: false });
+    setActiveDraggableOverlay({ id: null, active: false, highlight: false });
     onSelectOverlay(null);
   };
 

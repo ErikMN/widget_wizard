@@ -41,9 +41,17 @@ interface OverlayContextProps {
   removeAllOverlays: () => Promise<void>;
   updateImageOverlay: (overlay: ImageOverlay) => Promise<void>;
   updateTextOverlay: (overlay: TextOverlay) => Promise<void>;
-  activeDraggableOverlay: { id: number | null; active: boolean };
+  activeDraggableOverlay: {
+    id: number | null;
+    active: boolean;
+    highlight: boolean;
+  };
   setActiveDraggableOverlay: React.Dispatch<
-    React.SetStateAction<{ id: number | null; active: boolean }>
+    React.SetStateAction<{
+      id: number | null;
+      active: boolean;
+      highlight: boolean;
+    }>
   >;
 }
 
@@ -70,7 +78,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   const [activeDraggableOverlay, setActiveDraggableOverlay] = useState<{
     id: number | null;
     active: boolean;
-  }>({ id: null, active: false });
+    highlight: boolean;
+  }>({ id: null, active: false, highlight: false });
 
   const onSelectOverlay = useCallback((id: number | null) => {
     setActiveOverlayId(id);
