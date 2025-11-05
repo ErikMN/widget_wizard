@@ -18,6 +18,10 @@ import { Dimensions } from '../appInterface';
 import { useGlobalContext } from '../GlobalContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useParameters } from '../ParametersContext';
+import { playSound } from '../../helpers/utils';
+import lockSoundUrl from '../../assets/audio/lock.oga';
+import unlockSoundUrl from '../../assets/audio/unlock.oga';
+import OverlayAnchorIndicators from './OverlayAnchorIndicators';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -101,7 +105,12 @@ function pixelToNormalized(
 /******************************************************************************/
 /* One draggable overlay box */
 
+const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5;
+
+/* Anchor snap zones in percent: */
+const TOPBOTTOM_THRESHOLD_Y_PERCENT = 0.005;
+const LEFTRIGHT_THRESHOLD_X_PERCENT = 0.005;
 
 interface OverlayBoxProps {
   overlay: ImageOverlay | TextOverlay;
@@ -126,6 +135,9 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     setActiveDraggableOverlay
   } = useOverlayContext();
   const { appSettings, activeDraggableWidget } = useGlobalContext();
+
+  /* Local state */
+  const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
 
   /* Global parameter list */
   const { parameters } = useParameters();
@@ -301,7 +313,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   });
 
   /* On drag start: make this overlay the active draggable */
-  const handleStart = useCallback(
+  const handleDragStart = useCallback(
     (_: any, data: any) => {
       suppressClickRef.current = false;
       setDragStartPos({ x: data.x, y: data.y });
@@ -314,44 +326,145 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     [overlay.identity, setActiveDraggableOverlay]
   );
 
-  /* On drag stop: update backend position */
-  const handleStop = useCallback(
+  /* Handle drag stop */
+  const handleDragStop = useCallback(
     (_: any, data: any) => {
-      setAlignmentGuides({
-        showVerticalCenter: false,
-        showHorizontalCenter: false,
-        showTop: false,
-        showBottom: false,
-        showLeft: false,
-        showRight: false
-      });
+      setShowIndicators(true);
+      // console.log(
+      //   `handleDragStop called for overlay ${overlay.identity} at position (${data.x}, ${data.y})`
+      // );
+      if (!dragStartPos) {
+        console.warn('dragStartPos not set!');
+        return;
+      }
 
-      if (dragStartPos) {
-        const dist = Math.hypot(
-          data.x - dragStartPos.x,
-          data.y - dragStartPos.y
-        );
-        if (dist >= MOVE_THRESHOLD) {
-          /* ignore the click following this drag */
-          suppressClickRef.current = true;
+      /* Calculate how far the user actually moved */
+      const dist = Math.hypot(data.x - dragStartPos.x, data.y - dragStartPos.y);
+      /* If it actually moved, ignore the next click that follows mouse-up */
+      if (dist >= MOVE_THRESHOLD) {
+        suppressClickRef.current = true;
+      }
+      /* If movement < MOVE_THRESHOLD and anchored: don't move */
+      if (dist < MOVE_THRESHOLD) {
+        if (appSettings.debug) {
+          console.warn(
+            `Overlay ${overlay.identity}: movement below threshold (${dist.toFixed(
+              2
+            )})`
+          );
+        }
+
+        /* Do not remove anchor */
+        setActiveDraggableOverlay({
+          id: overlay.identity,
+          active: false,
+          highlight: false
+        });
+
+        setDragStartPos(null);
+        setAlignmentGuides({
+          showVerticalCenter: false,
+          showHorizontalCenter: false,
+          showTop: false,
+          showBottom: false,
+          showLeft: false,
+          showRight: false
+        });
+        return;
+      }
+      if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
+        console.error('Invalid dimensions detected');
+        return;
+      }
+      /* Compute snapping thresholds */
+      const thresholdX = LEFTRIGHT_THRESHOLD_X_PERCENT * dimensions.pixelWidth;
+      const thresholdY = TOPBOTTOM_THRESHOLD_Y_PERCENT * dimensions.pixelHeight;
+
+      /* Determine proximity to corners */
+      const nearLeft = data.x < thresholdX;
+      const nearRight =
+        Math.abs(data.x + wPx - dimensions.pixelWidth) < thresholdX;
+      const nearTop = data.y < thresholdY;
+      const nearBottom =
+        Math.abs(data.y + hPx - dimensions.pixelHeight) < thresholdY;
+
+      /* Set anchor based on position */
+      let finalAnchor = 'none';
+      if (nearTop && nearLeft) {
+        finalAnchor = 'topLeft';
+      } else if (nearTop && nearRight) {
+        finalAnchor = 'topRight';
+      } else if (nearBottom && nearLeft) {
+        finalAnchor = 'bottomLeft';
+      } else if (nearBottom && nearRight) {
+        finalAnchor = 'bottomRight';
+      }
+      /* Don't use auto anchor if alignment guide is disabled */
+      if (!appSettings.snapToAnchor) {
+        finalAnchor = 'none';
+      }
+      /* Play sound if auto anchored */
+      const prevAnchor =
+        typeof overlay.position === 'string' ? overlay.position : 'none';
+
+      if (prevAnchor !== finalAnchor) {
+        if (prevAnchor !== 'none' && finalAnchor === 'none') {
+          playSound(unlockSoundUrl);
+        } else {
+          playSound(lockSoundUrl);
         }
       }
-      setDragStartPos(null);
+      /* Snap to anchor coordinates */
+      let snappedX = data.x;
+      let snappedY = data.y;
+      if (finalAnchor === 'topLeft') {
+        snappedX = 0;
+        snappedY = 0;
+      } else if (finalAnchor === 'topRight') {
+        snappedX = dimensions.pixelWidth - wPx;
+        snappedY = 0;
+      } else if (finalAnchor === 'bottomLeft') {
+        snappedX = 0;
+        snappedY = dimensions.pixelHeight - hPx;
+      } else if (finalAnchor === 'bottomRight') {
+        snappedX = dimensions.pixelWidth - wPx;
+        snappedY = dimensions.pixelHeight - hPx;
+      }
 
+      /* Convert to normalized coordinates */
       const { nx, ny } = pixelToNormalized(
-        data.x,
-        data.y,
+        snappedX,
+        snappedY,
         dimensions,
         wPx,
         hPx
       );
 
-      const updated = { ...overlay, position: [nx, ny] as [number, number] };
+      /* Build updated overlay object */
+      const updated =
+        finalAnchor !== 'none'
+          ? { ...overlay, position: finalAnchor }
+          : { ...overlay, position: [nx, ny] as [number, number] };
 
-      if ('overlayPath' in overlay) {
-        updateImageOverlay(updated as ImageOverlay);
-      } else {
-        updateTextOverlay(updated as TextOverlay);
+      /* Only update if the position has changed */
+      const oldPos =
+        Array.isArray(overlay.position) && overlay.position.length === 2
+          ? overlay.position
+          : [0, 0];
+
+      const [oldX, oldY] = oldPos;
+
+      const changed =
+        finalAnchor !== 'none' ||
+        Math.abs(nx - oldX) > EPSILON ||
+        Math.abs(ny - oldY) > EPSILON;
+
+      if (changed) {
+        if ('overlayPath' in overlay) {
+          updateImageOverlay(updated as ImageOverlay);
+        } else {
+          updateTextOverlay(updated as TextOverlay);
+        }
       }
 
       /* Reset draggable state */
@@ -360,6 +473,17 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
         active: false,
         highlight: false
       });
+
+      setAlignmentGuides({
+        showVerticalCenter: false,
+        showHorizontalCenter: false,
+        showTop: false,
+        showBottom: false,
+        showLeft: false,
+        showRight: false
+      });
+      /* Reset drag start */
+      setDragStartPos(null);
     },
     [
       overlay,
@@ -369,7 +493,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
       updateImageOverlay,
       updateTextOverlay,
       setActiveDraggableOverlay,
-      dragStartPos
+      dragStartPos,
+      showIndicators,
+      appSettings.snapToAnchor,
+      appSettings.debug
     ]
   );
 
@@ -393,6 +520,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   /* Handle dragging: show guides */
   const handleDrag = useCallback(
     (_: any, data: any) => {
+      setShowIndicators(false);
+
       if (!appSettings.snapToAnchor) {
         setAlignmentGuides({
           showVerticalCenter: false,
@@ -447,13 +576,13 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
               right: Math.max(0, dimensions.pixelWidth - wPx),
               bottom: Math.max(0, dimensions.pixelHeight - hPx)
             }}
-            onStart={handleStart}
+            onStart={handleDragStart}
             onDrag={(e, data) => {
               setDragPos({ x: data.x, y: data.y });
               handleDrag(e, data);
             }}
             onStop={(e, data) => {
-              handleStop(e, data);
+              handleDragStop(e, data);
               setDragPos({ x: data.x, y: data.y });
             }}
           >
@@ -484,6 +613,21 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 opacity: appSettings.bboxOnlyShowActive && !isActive ? 0 : 1
               }}
             >
+              {/* FIXME: Overlay anchor indicators (only for image overlays) */}
+              {/* {'overlayPath' in overlay && (
+                <OverlayAnchorIndicators
+                  overlayAnchor={
+                    typeof overlay.position === 'string'
+                      ? overlay.position
+                      : 'none'
+                  }
+                  wPx={wPx}
+                  hPx={hPx}
+                  bboxColor={bboxColor}
+                  enabled={!!appSettings.bboxAnchorIndicator && showIndicators}
+                  dashed={activeDraggableOverlay?.id !== overlay.identity}
+                />
+              )} */}
               {/* Overlay info note above the bbox */}
               {appSettings.bboxLabel && (
                 <Typography
