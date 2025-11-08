@@ -96,6 +96,18 @@ const OverlayItemImage: React.FC<{
         }
         return prev;
       });
+    } else if (
+      typeof overlay.position === 'string' &&
+      ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'].includes(
+        overlay.position
+      )
+    ) {
+      setPosition(overlay.position as any);
+      setCustomPosition(null);
+    } else if (typeof overlay.position === 'string') {
+      /* Any other string is treated as "custom" */
+      setPosition('custom');
+      setCustomPosition(null);
     }
   }, [overlay.position]);
 
