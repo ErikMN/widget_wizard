@@ -121,11 +121,9 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
       )
     ) {
       setPosition(overlay.position as any);
-      setCustomPosition(null);
     } else if (typeof overlay.position === 'string') {
       /* Any other string is treated as "custom" */
       setPosition('custom');
-      setCustomPosition(null);
     }
   }, [overlay.position]);
 
