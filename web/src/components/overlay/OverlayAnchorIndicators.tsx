@@ -27,6 +27,7 @@ const OverlayAnchorIndicators: React.FC<OverlayAnchorIndicatorsProps> = ({
   }
 
   const squareSize = useMemo(() => 0.05 * Math.min(wPx, hPx), [wPx, hPx]);
+
   const opacity = 1;
 
   const color = dashed ? 'rgba(200, 200, 200, 1)' : bboxColor;

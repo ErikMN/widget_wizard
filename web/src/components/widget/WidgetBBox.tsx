@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useMemo, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
-import AnchorIndicators from '../AnchorIndicators';
+import WidgetAnchorIndicators from './WidgetAnchorIndicators';
 import { Widget } from './widgetInterfaces';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { Dimensions } from '../appInterface';
@@ -597,7 +597,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
               }}
             >
               {/* Anchor point indicators */}
-              <AnchorIndicators
+              <WidgetAnchorIndicators
                 widget={widget}
                 scaleFactor={scaleFactor}
                 bboxColor={

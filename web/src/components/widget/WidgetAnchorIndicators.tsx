@@ -1,20 +1,20 @@
 /**
- * AnchorIndicators
+ * WidgetAnchorIndicators
  * Renders corner squares on the bounding box based on the widget's anchor position.
  */
 import React, { useMemo } from 'react';
-import { Widget } from './widget/widgetInterfaces';
+import { Widget } from './widgetInterfaces';
 /* MUI */
 import Box from '@mui/material/Box';
 
-interface AnchorIndicatorProps {
+interface WidgetAnchorIndicatorProps {
   widget: Widget;
   scaleFactor: number;
   bboxColor: string;
   bboxAnchorIndicator: boolean;
 }
 
-const AnchorIndicators: React.FC<AnchorIndicatorProps> = ({
+const WidgetAnchorIndicators: React.FC<WidgetAnchorIndicatorProps> = ({
   widget,
   scaleFactor,
   bboxColor,
@@ -176,4 +176,4 @@ const AnchorIndicators: React.FC<AnchorIndicatorProps> = ({
   );
 };
 
-export default AnchorIndicators;
+export default WidgetAnchorIndicators;
