@@ -121,20 +121,6 @@ const OverlayItemImage: React.FC<{
     [overlay]
   );
 
-  const handleUpdate = useCallback(() => {
-    let positionToUse: any = position;
-
-    if (position === 'custom') {
-      positionToUse = customPosition ?? overlay.position;
-    }
-
-    updateImageOverlay({
-      ...overlay,
-      overlayPath: selectedImage,
-      position: positionToUse
-    });
-  }, [overlay, position, selectedImage, updateImageOverlay, customPosition]);
-
   useEffect(() => {
     if (!isReady) return;
 

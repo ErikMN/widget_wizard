@@ -140,45 +140,6 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   const debouncedPosition = useDebouncedValue(position, 300);
   const debouncedCustomPosition = useDebouncedValue(customPosition, 300);
 
-  const label = useMemo(() => `Text #${overlay.identity}`, [overlay.identity]);
-
-  const handleUpdate = useCallback(() => {
-    let positionToUse: any = position;
-    if (position === 'custom') {
-      positionToUse = customPosition ?? overlay.position;
-    }
-
-    const updated: TextOverlay = {
-      ...overlay,
-      text,
-      textColor,
-      textBGColor,
-      textOLColor,
-      fontSize: Number(fontSize),
-      reference,
-      position: positionToUse
-    };
-
-    /* NOTE: Only include rotation if backend supports it */
-    if ('rotation' in overlay) {
-      updated.rotation = Number(rotation);
-    }
-
-    updateTextOverlay(updated);
-  }, [
-    overlay,
-    text,
-    textColor,
-    textBGColor,
-    textOLColor,
-    fontSize,
-    rotation,
-    reference,
-    position,
-    customPosition,
-    updateTextOverlay
-  ]);
-
   useEffect(() => {
     if (!isReady) {
       return;
