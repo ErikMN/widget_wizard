@@ -131,14 +131,8 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
 
   /* Debounced overlay updates */
   const debouncedText = useDebouncedValue(text, 300);
-  const debouncedTextColor = useDebouncedValue(textColor, 500);
-  const debouncedTextBGColor = useDebouncedValue(textBGColor, 500);
-  const debouncedTextOLColor = useDebouncedValue(textOLColor, 500);
   const debouncedFontSize = useDebouncedValue(fontSize, 300);
   const debouncedRotation = useDebouncedValue(rotation, 300);
-  const debouncedReference = useDebouncedValue(reference, 300);
-  const debouncedPosition = useDebouncedValue(position, 300);
-  const debouncedCustomPosition = useDebouncedValue(customPosition, 300);
 
   useEffect(() => {
     if (!isReady) {
@@ -146,18 +140,16 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     }
 
     let positionToUse: any =
-      debouncedPosition === 'custom'
-        ? (debouncedCustomPosition ?? overlay.position)
-        : debouncedPosition;
+      position === 'custom' ? (customPosition ?? overlay.position) : position;
 
     const updated: TextOverlay = {
       ...overlay,
       text: debouncedText,
-      textColor: debouncedTextColor,
-      textBGColor: debouncedTextBGColor,
-      textOLColor: debouncedTextOLColor,
+      textColor: textColor,
+      textBGColor: textBGColor,
+      textOLColor: textOLColor,
       fontSize: Number(debouncedFontSize),
-      reference: debouncedReference,
+      reference: reference,
       position: positionToUse
     };
 
@@ -172,14 +164,14 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   }, [
     isReady,
     debouncedText,
-    debouncedTextColor,
-    debouncedTextBGColor,
-    debouncedTextOLColor,
+    textColor,
+    textBGColor,
+    textOLColor,
     debouncedFontSize,
     debouncedRotation,
-    debouncedReference,
-    debouncedPosition,
-    debouncedCustomPosition,
+    reference,
+    position,
+    customPosition,
     overlay.identity
   ]);
 

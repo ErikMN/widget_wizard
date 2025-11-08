@@ -7,7 +7,6 @@ import { useGlobalContext } from '../GlobalContext';
 import { ImageOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
-import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
@@ -111,27 +110,22 @@ const OverlayItemImage: React.FC<{
     }
   }, [overlay.position]);
 
-  /* Debounced overlay updates */
-  const debouncedSelectedImage = useDebouncedValue(selectedImage, 400);
-  const debouncedPosition = useDebouncedValue(position, 300);
-  const debouncedCustomPosition = useDebouncedValue(customPosition, 300);
-
   const label = useMemo(
     () => overlay.overlayPath.split('/').pop() ?? 'Image',
     [overlay]
   );
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady) {
+      return;
+    }
 
     let positionToUse: any =
-      debouncedPosition === 'custom'
-        ? (debouncedCustomPosition ?? overlay.position)
-        : debouncedPosition;
+      position === 'custom' ? (customPosition ?? overlay.position) : position;
 
     const updated: ImageOverlay = {
       ...overlay,
-      overlayPath: debouncedSelectedImage,
+      overlayPath: selectedImage,
       position: positionToUse
     };
 
@@ -139,13 +133,7 @@ const OverlayItemImage: React.FC<{
     if (JSON.stringify(updated) !== JSON.stringify(overlay)) {
       updateImageOverlay(updated);
     }
-  }, [
-    isReady,
-    debouncedSelectedImage,
-    debouncedPosition,
-    debouncedCustomPosition,
-    overlay.identity
-  ]);
+  }, [isReady, selectedImage, position, customPosition, overlay.identity]);
 
   const handleRemoveClick = useCallback(() => {
     setOpenDialog(true);
