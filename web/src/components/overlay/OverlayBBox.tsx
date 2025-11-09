@@ -138,6 +138,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 
   /* Local state */
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
+  const [rotation, setRotation] = useState<number>(
+    'rotation' in overlay ? (overlay.rotation ?? 0) : 0
+  );
+  const [isRotating, setIsRotating] = useState(false);
 
   /* Global parameter list */
   const { parameters } = useParameters();
@@ -148,6 +152,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   /* Refs */
   const nodeRef = useRef<HTMLElement | null>(null);
   const suppressClickRef = useRef(false);
+  const rotationStartRef = useRef<{
+    angleStart: number;
+    mouseStart: { x: number; y: number };
+  } | null>(null);
 
   const [dragStartPos, setDragStartPos] = useState<{
     x: number;
@@ -561,6 +569,63 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     [appSettings.snapToAnchor, dimensions, wPx, hPx]
   );
 
+  /* Sync rotation from context when overlay.rotation changes */
+  useEffect(() => {
+    if ('rotation' in overlay && typeof overlay.rotation === 'number') {
+      setRotation(overlay.rotation);
+    }
+  }, [overlay]);
+
+  /* Rotation handler */
+  useEffect(() => {
+    /* Exit if no rotation is in progress */
+    if (!isRotating) {
+      return;
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      /* Skip unless a rotation is in progress and the bbox element is mounted */
+      if (!rotationStartRef.current || !nodeRef.current) {
+        return;
+      }
+
+      const rect = nodeRef.current.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      /* Compute mouse angles in screen space */
+      const start = rotationStartRef.current.mouseStart;
+      const startAngle = Math.atan2(start.y - cy, start.x - cx);
+      const currentAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+
+      /* Positive delta means clockwise rotation */
+      const deltaDeg = ((currentAngle - startAngle) * 180) / Math.PI;
+      const newRotation = rotationStartRef.current.angleStart + deltaDeg;
+
+      setRotation(newRotation);
+    };
+
+    const handleMouseUp = () => {
+      setIsRotating(false);
+      rotationStartRef.current = null;
+
+      /* Apply final rotation when the mouse is released */
+      if ('rotation' in overlay) {
+        const rounded = Math.round(rotation);
+        const updated: TextOverlay = { ...overlay, rotation: rounded };
+        updateTextOverlay(updated);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isRotating, rotation, overlay, updateTextOverlay]);
+
   /****************************************************************************/
 
   return (
@@ -595,26 +660,36 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
               sx={{
                 width: `${wPx}px`,
                 height: `${hPx}px`,
-                border:
-                  activeDraggableOverlay?.id === overlay.identity
-                    ? `${bboxThickness} solid ${bboxColor}`
-                    : `2px dashed rgba(200, 200, 200, 1)`,
-                borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                 position: 'absolute',
                 pointerEvents: 'auto',
-                cursor: 'move',
-                backgroundColor:
-                  (isActive && activeDraggableWidget?.highlight) ||
-                  (activeDraggableOverlay?.highlight &&
-                    activeDraggableOverlay?.id === overlay.identity)
-                    ? `${bboxColor}4D`
-                    : 'transparent',
+                cursor: isRotating ? 'grabbing' : 'move',
                 zIndex: isActive ? 1000 : 1,
                 opacity: appSettings.bboxOnlyShowActive && !isActive ? 0 : 1
               }}
             >
-              {/* FIXME: Overlay anchor indicators (only for image overlays) */}
-              {/* {'overlayPath' in overlay && (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  border:
+                    activeDraggableOverlay?.id === overlay.identity
+                      ? `${bboxThickness} solid ${bboxColor}`
+                      : `2px dashed rgba(200, 200, 200, 1)`,
+                  borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
+                  backgroundColor:
+                    (isActive && activeDraggableWidget?.highlight) ||
+                    (activeDraggableOverlay?.highlight &&
+                      activeDraggableOverlay?.id === overlay.identity)
+                      ? `${bboxColor}4D`
+                      : 'transparent',
+                  transform: `rotate(${rotation}deg)`,
+                  transformOrigin: 'center center',
+                  transition: isRotating ? 'none' : 'transform 0.05s linear',
+                  position: 'relative'
+                }}
+              >
+                {/* FIXME: Overlay anchor indicators (only for image overlays) */}
+                {/* {'overlayPath' in overlay && (
                 <OverlayAnchorIndicators
                   overlayAnchor={
                     typeof overlay.position === 'string'
@@ -628,25 +703,52 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                   dashed={activeDraggableOverlay?.id !== overlay.identity}
                 />
               )} */}
-              {/* Overlay info note above the bbox */}
-              {appSettings.bboxLabel && (
-                <Typography
-                  sx={{
-                    position: 'absolute',
-                    top: '-20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    color: '#333',
-                    pointerEvents: 'none'
-                  }}
-                >
-                  {capitalizeFirstLetter(overlayType)} ID: {overlay.identity}
-                </Typography>
-              )}
+                {/* Overlay info note above the bbox */}
+                {appSettings.bboxLabel && (
+                  <Typography
+                    sx={{
+                      position: 'absolute',
+                      top: '-20px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      color: '#333',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    {capitalizeFirstLetter(overlayType)} ID: {overlay.identity}
+                  </Typography>
+                )}
+                {/* Show rotation handle if rotation is supported */}
+                {'rotation' in overlay && (
+                  <div
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setIsRotating(true);
+                      rotationStartRef.current = {
+                        angleStart: rotation,
+                        mouseStart: { x: e.clientX, y: e.clientY }
+                      };
+                    }}
+                    /* Rotation handle style */
+                    style={{
+                      position: 'absolute',
+                      bottom: '-10px',
+                      right: '-10px',
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%',
+                      backgroundColor: bboxColor,
+                      cursor: 'grab',
+                      border: '1px solid #fff'
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
           </Draggable>
         </div>

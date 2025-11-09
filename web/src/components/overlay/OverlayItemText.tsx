@@ -103,7 +103,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setIsReady(true);
   }, []);
 
-  /* Sync position from context safely */
+  /* Sync position from context when overlay.position changes */
   useEffect(() => {
     if (Array.isArray(overlay.position)) {
       const pos = overlay.position as [number, number];
@@ -126,6 +126,13 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
       setPosition('custom');
     }
   }, [overlay.position]);
+
+  /* Sync rotation from context when overlay.rotation changes */
+  useEffect(() => {
+    if ('rotation' in overlay && typeof overlay.rotation === 'number') {
+      setRotation(overlay.rotation);
+    }
+  }, [overlay.rotation]);
 
   /* Debounced overlay updates */
   const debouncedText = useDebouncedValue(text, 300);
@@ -254,8 +261,10 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setTextBGColor(parsed.textBGColor ?? 'transparent');
     setTextOLColor(parsed.textOLColor ?? 'black');
     setFontSize(parsed.fontSize ?? 100);
-    if ('rotation' in parsed) setRotation(parsed.rotation ?? 0);
     setReference(parsed.reference ?? 'channel');
+    if ('rotation' in parsed) {
+      setRotation(parsed.rotation ?? 0);
+    }
 
     if (Array.isArray(parsed.position)) {
       setPosition('custom');
@@ -714,7 +723,9 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
           <Dialog
             open={openDialog}
             onClose={(event, reason) => {
-              if (reason === 'backdropClick') return;
+              if (reason === 'backdropClick') {
+                return;
+              }
               handleDialogClose();
             }}
             aria-labelledby="alert-dialog-title"
