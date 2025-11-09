@@ -748,6 +748,28 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                     }}
                   />
                 )}
+                {/* Show live rotation angle while rotating */}
+                {isRotating && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: '-30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                      color: '#fff',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      zIndex: 2000
+                    }}
+                  >
+                    {`${Math.round(rotation)}°`}
+                  </Box>
+                )}
               </Box>
             </Box>
           </Draggable>
