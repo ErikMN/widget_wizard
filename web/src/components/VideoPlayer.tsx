@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
@@ -48,6 +48,7 @@ const setDefaultParams = (): void => {
 
 const VideoPlayer: React.FC = () => {
   /* Local state */
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
   const [dimensions, setDimensions] = useState<Dimensions>({
@@ -83,6 +84,46 @@ const VideoPlayer: React.FC = () => {
       window.localStorage.removeItem('vapix');
     }
   }
+
+  /* Toggle fullscreen
+   *
+   * Requests fullscreen on the player container when not already in fullscreen,
+   * otherwise exits fullscreen. Uses the standard Fullscreen API and guards for
+   * missing methods (older browsers) with optional chaining "?.()".
+   */
+  const toggleFullscreen = useCallback(() => {
+    const element = playerContainerRef.current;
+    if (!element) return;
+
+    if (!document.fullscreenElement) {
+      /* Enter fullscreen on the container element */
+      element.requestFullscreen?.().catch((err) => {
+        console.error('Failed to enter fullscreen:', err);
+      });
+    } else {
+      /* Exit fullscreen */
+      document.exitFullscreen?.().catch((err) => {
+        console.error('Failed to exit fullscreen:', err);
+      });
+    }
+  }, []);
+
+  /* Listen for fullscreen changes
+   *
+   * Updates local state (isFullscreen) whenever the document enters or exits
+   * fullscreen. The state is driven by the presence of document.fullscreenElement.
+   * Cleanup removes the event listener on unmount.
+   */
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   /* Function to log and send video element's dimensions */
   const logVideoDimensions = () => {
@@ -212,6 +253,8 @@ const VideoPlayer: React.FC = () => {
         autoPlay
         autoRetry
         vapixParams={vapixParams}
+        onToggleFullscreen={toggleFullscreen}
+        isFullscreen={isFullscreen}
       />
       {/* Widget bounding boxes */}
       {(inWidgetsRoute || inSettingsRoute) && (

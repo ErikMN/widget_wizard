@@ -6,6 +6,8 @@ import { CustomStyledIconButton } from './../CustomComponents';
 import { darkTheme } from '../../theme';
 /* MUI */
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
+import FullscreenExitOutlinedIcon from '@mui/icons-material/FullscreenExitOutlined';
+import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined';
 import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
@@ -128,6 +130,8 @@ interface ControlsProps {
   readonly format: Format;
   readonly volume?: number;
   readonly setVolume?: (v: number) => void;
+  readonly onToggleFullscreen?: () => void;
+  readonly isFullscreen?: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -149,7 +153,9 @@ export const Controls: React.FC<ControlsProps> = ({
   toggleStats,
   format,
   volume,
-  setVolume
+  setVolume,
+  onToggleFullscreen,
+  isFullscreen
 }) => {
   const controlArea = useRef(null);
 
@@ -413,6 +419,25 @@ export const Controls: React.FC<ControlsProps> = ({
             sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
           >
             <SettingsOutlinedIcon />
+          </CustomStyledIconButton>
+        </Tooltip>
+        <Tooltip
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          arrow
+          placement="top"
+        >
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label="fullscreen"
+            onClick={onToggleFullscreen}
+            edge="end"
+            sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+          >
+            {isFullscreen ? (
+              <FullscreenExitOutlinedIcon />
+            ) : (
+              <FullscreenOutlinedIcon />
+            )}
           </CustomStyledIconButton>
         </Tooltip>
       </div>

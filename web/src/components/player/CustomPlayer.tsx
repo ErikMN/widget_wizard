@@ -27,6 +27,19 @@ import { useSwitch, useScreenSizes } from '../../helpers/hooks';
 const DEFAULT_FORMAT = Format.JPEG;
 
 interface CustomPlayerProps {
+  /**
+   * Callback from Controls to toggle fullscreen mode on the outer player container.
+   * Expected to call requestFullscreen() or exitFullscreen on the container element.
+   * If omitted, the fullscreen button should be hidden/disabled by the parent.
+   */
+  readonly onToggleFullscreen?: () => void;
+  /**
+   * True when the outer player container is currently in fullscreen.
+   * Derived by the parent from !!document.fullscreenElement via the
+   * 'fullscreenchange' event and passed down for UI state (icon/text).
+   */
+  readonly isFullscreen?: boolean;
+
   readonly hostname: string;
   readonly vapixParams?: VapixParameters;
   readonly initialFormat?: Format;
@@ -68,7 +81,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       className,
       startTime,
       duration,
-      autoRetry = false
+      autoRetry = false,
+      onToggleFullscreen,
+      isFullscreen
     },
     ref
   ) => {
@@ -356,6 +371,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             setVolume={setVolume}
             startTime={startTime}
             duration={duration}
+            onToggleFullscreen={onToggleFullscreen}
+            isFullscreen={isFullscreen}
           />
         </div>
       </div>
