@@ -579,7 +579,7 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Misc. settings */}
-        <Box
+        {/* <Box
           sx={(theme) => ({
             border: `1px solid ${theme.palette.grey[600]}`,
             padding: 2,
@@ -590,10 +590,10 @@ const Settings: React.FC = () => {
         >
           <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
             Misc. settings
-          </Typography>
+          </Typography> */}
 
-          {/* Switch for using WS stream as default */}
-          <FormControlLabel
+        {/* Switch for using WS stream as default */}
+        {/* <FormControlLabel
             control={
               <CustomSwitch
                 checked={appSettings.wsDefault}
@@ -602,8 +602,8 @@ const Settings: React.FC = () => {
               />
             }
             label="Use WebSocket stream by default (faster, but may be less reliable)"
-          />
-        </Box>
+          /> */}
+        {/* </Box> */}
 
         {/* Display the countdown if it's active */}
         {countdown !== null && (

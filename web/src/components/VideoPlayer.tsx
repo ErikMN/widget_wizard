@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Format } from 'media-stream-player';
+// import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
@@ -61,7 +61,7 @@ const VideoPlayer: React.FC = () => {
   });
 
   /* Global context */
-  const { appSettings, currentTheme, activeWidgets } = useGlobalContext();
+  const { appSettings, currentTheme } = useGlobalContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -247,9 +247,9 @@ const VideoPlayer: React.FC = () => {
     >
       <CustomPlayer
         hostname={window.location.host}
-        initialFormat={
-          appSettings.wsDefault ? Format.RTP_H264 : Format.MP4_H264
-        }
+        // initialFormat={
+        //   appSettings.wsDefault ? Format.RTP_H264 : Format.MP4_H264
+        // }
         autoPlay
         autoRetry
         vapixParams={vapixParams}

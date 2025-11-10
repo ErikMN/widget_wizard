@@ -22,9 +22,13 @@ import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
 
-import { useSwitch, useScreenSizes } from '../../helpers/hooks';
+import {
+  useSwitch,
+  useScreenSizes,
+  useLocalStorage
+} from '../../helpers/hooks';
 
-const DEFAULT_FORMAT = Format.JPEG;
+const DEFAULT_FORMAT = Format.MP4_H264;
 
 interface CustomPlayerProps {
   /**
@@ -93,8 +97,13 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [host, setHost] = useState(hostname);
     const [waiting, setWaiting] = useState(autoPlay);
     const [volume, setVolume] = useState<number>();
-    const [format, setFormat] = useState<Format>(initialFormat);
     const [expanded, setExpanded] = useState(true);
+
+    const [format, setFormat] = useLocalStorage(
+      'streamFormat',
+      initialFormat,
+      false
+    ) as [Format, (v: Format) => void];
 
     /**
      * VAPIX parameters
