@@ -346,7 +346,7 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
           value={val}
           min={paramConfig.minimum ?? 0}
           max={paramConfig.maximum ?? 100}
-          step={paramConfig.step || 1}
+          step={paramConfig.step ?? 0.1}
           onChange={(e, newVal) => {
             /* immediate UI update */
             setLocalValues((prev) =>
