@@ -65,7 +65,7 @@ const VideoPlayer: React.FC = () => {
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<PlayerNativeElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   /* Navigation */
@@ -128,10 +128,24 @@ const VideoPlayer: React.FC = () => {
   /* Function to log and send video element's dimensions */
   const logVideoDimensions = () => {
     if (videoRef.current && playerContainerRef.current) {
-      const { videoWidth, videoHeight } = videoRef.current;
+      const el = videoRef.current as HTMLElement;
+      let videoWidth = 0;
+      let videoHeight = 0;
+
+      /* Determine stream dimensions depending on element type */
+      if (el instanceof HTMLVideoElement) {
+        videoWidth = el.videoWidth;
+        videoHeight = el.videoHeight;
+      } else if (el instanceof HTMLImageElement) {
+        videoWidth = el.naturalWidth;
+        videoHeight = el.naturalHeight;
+      } else if (el instanceof HTMLCanvasElement) {
+        videoWidth = el.width;
+        videoHeight = el.height;
+      }
 
       /* Video element pixel dimensions */
-      const videoRect = videoRef.current.getBoundingClientRect();
+      const videoRect = el.getBoundingClientRect();
       const containerRect = playerContainerRef.current.getBoundingClientRect();
 
       const offsetX = videoRect.left - containerRect.left;
