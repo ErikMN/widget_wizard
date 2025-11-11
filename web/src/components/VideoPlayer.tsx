@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-// import { Format } from 'media-stream-player';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 /* BBox systems */
-import WidgetBBox from './widget/WidgetBBox';
 import OverlayBBox from './overlay/OverlayBBox';
+import WidgetBBox from './widget/WidgetBBox';
 
 interface VapixConfig {
   compression: string;
@@ -65,7 +64,7 @@ const VideoPlayer: React.FC = () => {
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
-  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   /* Navigation */
@@ -127,11 +126,11 @@ const VideoPlayer: React.FC = () => {
 
   /* Function to log and send video element's dimensions */
   const logVideoDimensions = () => {
-    if (videoElementRef.current && playerContainerRef.current) {
-      const { videoWidth, videoHeight } = videoElementRef.current;
+    if (videoRef.current && playerContainerRef.current) {
+      const { videoWidth, videoHeight } = videoRef.current;
 
       /* Video element pixel dimensions */
-      const videoRect = videoElementRef.current.getBoundingClientRect();
+      const videoRect = videoRef.current.getBoundingClientRect();
       const containerRect = playerContainerRef.current.getBoundingClientRect();
 
       const offsetX = videoRect.left - containerRect.left;
@@ -192,39 +191,30 @@ const VideoPlayer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (authorized && playerContainerRef.current) {
-      const videoElement = playerContainerRef.current.querySelector(
-        'video'
-      ) as HTMLVideoElement | null;
-      videoElementRef.current = videoElement;
+    if (authorized && playerContainerRef.current && videoRef.current) {
+      logVideoDimensions();
 
-      if (videoElement) {
-        /* Log initial dimensions */
+      /* React to size changes of video */
+      resizeObserverRef.current = new ResizeObserver(() => {
         logVideoDimensions();
+      });
 
-        /* Set up ResizeObserver to monitor changes in video container or video element size */
-        resizeObserverRef.current = new ResizeObserver(() => {
-          logVideoDimensions();
-        });
+      /* Watch container box and video */
+      resizeObserverRef.current.observe(playerContainerRef.current);
+      resizeObserverRef.current.observe(videoRef.current);
 
-        /* Observe both the player container and the video element */
-        resizeObserverRef.current.observe(playerContainerRef.current);
-        resizeObserverRef.current.observe(videoElement);
+      videoRef.current.addEventListener('loadedmetadata', logVideoDimensions);
 
-        /* Log video dimensions once metadata (e.g., width/height) is loaded */
-        videoElement.addEventListener('loadedmetadata', logVideoDimensions);
-
-        return () => {
-          /* Cleanup ResizeObserver and event listeners */
-          if (resizeObserverRef.current) {
-            resizeObserverRef.current.disconnect();
-          }
-          videoElement.removeEventListener(
-            'loadedmetadata',
-            logVideoDimensions
-          );
-        };
-      }
+      return () => {
+        /* Cleanup ResizeObserver and event listeners */
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+        }
+        videoRef.current?.removeEventListener(
+          'loadedmetadata',
+          logVideoDimensions
+        );
+      };
     }
   }, [authorized, retryCount]);
 
@@ -246,10 +236,8 @@ const VideoPlayer: React.FC = () => {
       }}
     >
       <CustomPlayer
+        ref={videoRef}
         hostname={window.location.host}
-        // initialFormat={
-        //   appSettings.wsDefault ? Format.RTP_H264 : Format.MP4_H264
-        // }
         autoPlay
         autoRetry
         vapixParams={vapixParams}
