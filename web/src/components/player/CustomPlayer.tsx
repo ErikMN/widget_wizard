@@ -44,6 +44,9 @@ interface CustomPlayerProps {
    */
   readonly isFullscreen?: boolean;
 
+  /* Notify parent to update dimensions */
+  readonly onStreamChange?: () => void;
+
   readonly hostname: string;
   readonly vapixParams?: VapixParameters;
   readonly initialFormat?: Format;
@@ -87,7 +90,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       duration,
       autoRetry = false,
       onToggleFullscreen,
-      isFullscreen
+      isFullscreen,
+      onStreamChange
     },
     ref
   ) => {
@@ -192,16 +196,20 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       setWaiting(false);
     }, []);
 
-    const onVapix = useCallback((key: string, value: string) => {
-      setParameters((p: typeof vapixParams) => {
-        const newParams = { ...p, [key]: value };
-        if (value === '') {
-          delete newParams[key];
-        }
-        return newParams;
-      });
-      setRefresh((refreshCount) => refreshCount + 1);
-    }, []);
+    const onVapix = useCallback(
+      (key: string, value: string) => {
+        setParameters((p: typeof vapixParams) => {
+          const newParams = { ...p, [key]: value };
+          if (value === '') {
+            delete newParams[key];
+          }
+          return newParams;
+        });
+        setRefresh((refreshCount) => refreshCount + 1);
+        onStreamChange?.();
+      },
+      [onStreamChange]
+    );
 
     /**
      * Refresh when changing visibility (e.g. when you leave a tab the
@@ -361,7 +369,10 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             onStop={onStop}
             onRefresh={onRefresh}
             onScreenshot={onScreenshot}
-            onFormat={setFormat}
+            onFormat={(fmt) => {
+              setFormat(fmt);
+              onStreamChange?.();
+            }}
             onVapix={onVapix}
             onSeek={setOffset}
             labels={{

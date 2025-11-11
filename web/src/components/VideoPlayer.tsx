@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useGlobalContext } from './GlobalContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
+import type { PlayerNativeElement } from 'media-stream-player';
 /* BBox systems */
 import OverlayBBox from './overlay/OverlayBBox';
 import WidgetBBox from './widget/WidgetBBox';
@@ -200,20 +201,28 @@ const VideoPlayer: React.FC = () => {
       });
 
       /* Watch container box and video */
-      resizeObserverRef.current.observe(playerContainerRef.current);
-      resizeObserverRef.current.observe(videoRef.current);
+      if (playerContainerRef.current) {
+        resizeObserverRef.current.observe(playerContainerRef.current);
+      }
+      if (videoRef.current) {
+        resizeObserverRef.current.observe(videoRef.current);
+      }
 
-      videoRef.current.addEventListener('loadedmetadata', logVideoDimensions);
+      if (videoRef.current instanceof HTMLVideoElement) {
+        videoRef.current.addEventListener('loadedmetadata', logVideoDimensions);
+      }
 
       return () => {
         /* Cleanup ResizeObserver and event listeners */
         if (resizeObserverRef.current) {
           resizeObserverRef.current.disconnect();
         }
-        videoRef.current?.removeEventListener(
-          'loadedmetadata',
-          logVideoDimensions
-        );
+        if (videoRef.current instanceof HTMLVideoElement) {
+          videoRef.current.removeEventListener(
+            'loadedmetadata',
+            logVideoDimensions
+          );
+        }
       };
     }
   }, [authorized, retryCount]);
@@ -243,6 +252,13 @@ const VideoPlayer: React.FC = () => {
         vapixParams={vapixParams}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
+        onStreamChange={() => {
+          /* When the stream changes, wait a bit and update dimensions */
+          setTimeout(() => {
+            setRetryCount((count) => count + 1);
+            logVideoDimensions();
+          }, 500);
+        }}
       />
       {/* Widget bounding boxes */}
       {(inWidgetsRoute || inSettingsRoute) && (
