@@ -169,6 +169,35 @@ export const Controls: React.FC<ControlsProps> = ({
     [setVolume]
   );
 
+  /* Hide controls in fullscreen and show them when cursor moves near bottom */
+  const [showInFullscreen, setShowInFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      return;
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      /* 100px from bottom */
+      const threshold = window.innerHeight - 100;
+      if (e.clientY >= threshold) {
+        setShowInFullscreen(true);
+      } else {
+        setShowInFullscreen(false);
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isFullscreen]);
+
+  const hiddenStyle =
+    isFullscreen && !showInFullscreen && !settings
+      ? { display: 'none' }
+      : undefined;
+
   const [totalDuration, setTotalDuration] = useState(duration);
   const __mediaTimeline = useRef({
     startDateTime: startTime ? DateTime.fromISO(startTime) : undefined
@@ -314,7 +343,7 @@ export const Controls: React.FC<ControlsProps> = ({
   }, [startTime, totalDuration]);
 
   return (
-    <div style={controlAreaStyle} ref={controlArea}>
+    <div style={{ ...controlAreaStyle, ...hiddenStyle }} ref={controlArea}>
       <div style={controlBarStyle}>
         {play ? (
           <Tooltip title={labels?.pause} arrow placement="top">
