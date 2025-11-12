@@ -21,7 +21,8 @@ import {
   getNormalizedCoordinateRanges,
   getAlignmentFlags
 } from '../../helpers/bboxhelper';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
+import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -107,14 +108,16 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
   /* Global context */
   const {
     appSettings,
+  } = useAppContext();
+  const {
     activeWidgets,
     setActiveWidgets,
     updateWidget,
     activeDraggableWidget,
     setActiveDraggableWidget,
     openDropdownIndex,
-    setOpenDropdownIndex
-  } = useGlobalContext();
+    setOpenDropdownIndex,
+  } = useWidgetContext();
 
   /* BBox colors */
   const bboxColor = useMemo(() => {
@@ -732,13 +735,13 @@ interface WidgetBBoxProps {
 
 const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
+  const { currentChannel } = useAppContext();
   const {
     activeWidgets,
     activeDraggableWidget,
     setActiveDraggableWidget,
-    setOpenDropdownIndex,
-    currentChannel
-  } = useGlobalContext();
+    setOpenDropdownIndex
+  } = useWidgetContext();
 
   /* Refs: keep live refs to all BBox elements */
   const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());

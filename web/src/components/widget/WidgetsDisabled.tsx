@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 import { lightTheme, darkTheme } from '../../theme';
 /* MUI */
 import Alert from '@mui/material/Alert';
@@ -15,7 +15,7 @@ interface WidgetsDisabledProps {
 
 const WidgetsDisabled: React.FC<WidgetsDisabledProps> = ({ sx }) => {
   /* Global context */
-  const { currentTheme } = useGlobalContext();
+  const { currentTheme } = useAppContext();
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;

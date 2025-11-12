@@ -2,7 +2,7 @@ import React, { ChangeEventHandler, useCallback } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
@@ -22,7 +22,7 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   toggleStats
 }) => {
   /* Global state */
-  const { setCurrentChannel } = useGlobalContext();
+  const { setCurrentChannel } = useAppContext();
 
   /* Global parameter list */
   const { parameters } = useParameters();

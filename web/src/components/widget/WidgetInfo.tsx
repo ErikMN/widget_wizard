@@ -1,7 +1,7 @@
 import React from 'react';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 import { useScreenSizes } from '../../helpers/hooks.jsx';
-import { useGlobalContext } from '../GlobalContext';
+import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Typography from '@mui/material/Typography';
 
@@ -10,7 +10,7 @@ const WidgetInfo: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   /* Global context */
-  const { activeWidgets, widgetSupported } = useGlobalContext();
+  const { activeWidgets, widgetSupported } = useWidgetContext();
 
   if (!widgetSupported) {
     return null;

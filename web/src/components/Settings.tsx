@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
-import { useGlobalContext } from './GlobalContext';
+import { useAppContext } from './AppContext';
+import { useWidgetContext } from './widget/WidgetContext';
 import { useOverlayContext } from './overlay/OverlayContext';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
@@ -45,7 +46,6 @@ const Settings: React.FC = () => {
 
   /* Global context */
   const {
-    listWidgets,
     appSettings,
     currentTheme,
     setAppSettings,
@@ -54,10 +54,10 @@ const Settings: React.FC = () => {
     openAlert,
     setOpenAlert,
     handleOpenAlert,
-    setOpenDropdownIndex,
-    setCurrentTheme,
-    widgetSupported
-  } = useGlobalContext();
+    setCurrentTheme
+  } = useAppContext();
+  const { listWidgets, setOpenDropdownIndex, widgetSupported } =
+    useWidgetContext();
 
   const { listOverlays } = useOverlayContext();
 

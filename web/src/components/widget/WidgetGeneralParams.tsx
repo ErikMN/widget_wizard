@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
-import { useGlobalContext } from '../GlobalContext';
+import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import { playSound } from '../../helpers/utils';
@@ -63,7 +63,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
     widgetCapabilities,
     activeDraggableWidget,
     setActiveDraggableWidget
-  } = useGlobalContext();
+  } = useWidgetContext();
 
   /****************************************************************************/
   /* Handle UI updates for general parameters */

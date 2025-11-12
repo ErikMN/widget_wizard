@@ -3,7 +3,7 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 import { ImageOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
@@ -54,7 +54,7 @@ const OverlayItemImage: React.FC<{
     setActiveDraggableOverlay
   } = useOverlayContext();
 
-  const { jsonTheme, appSettings } = useGlobalContext();
+  const { jsonTheme, appSettings } = useAppContext();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
@@ -504,7 +504,7 @@ const OverlayItemImage: React.FC<{
                 }
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme={jsonTheme}
+                theme={jsonTheme as any}
               />
             )}
             {jsonError && (

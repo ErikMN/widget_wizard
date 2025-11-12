@@ -3,7 +3,7 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 import { TextOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
@@ -63,7 +63,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setActiveDraggableOverlay
   } = useOverlayContext();
 
-  const { jsonTheme, appSettings } = useGlobalContext();
+  const { jsonTheme, appSettings } = useAppContext();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
@@ -666,7 +666,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
                 }
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme={jsonTheme}
+                theme={jsonTheme as any}
               />
             )}
             {jsonError && (

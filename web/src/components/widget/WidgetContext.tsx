@@ -1,27 +1,24 @@
-/* Application global context
+/* Application widget context
  * This context manages widget-related operations and state
  * throughout the app.
  */
 import React, { createContext, useContext, useState } from 'react';
-import { useLocalStorage, useTabVisibility } from '../helpers/hooks.jsx';
-import { jsonRequest } from '../helpers/cgihelper.jsx';
-import { log, enableLogging } from '../helpers/logger.js';
-import { playSound } from '../helpers/utils';
-import warningSoundUrl from '../assets/audio/warning.oga';
-import trashSoundUrl from '../assets/audio/trash.oga';
-import newSoundUrl from '../assets/audio/new.oga';
-import { AppSettings, defaultAppSettings } from './appInterface.js';
-import {
-  ApiResponse,
-  Widget,
-  WidgetCapabilities
-} from './widget/widgetInterfaces.js';
-import { W_CGI } from './constants.js';
+import { useTabVisibility } from '../../helpers/hooks.jsx';
+import { jsonRequest } from '../../helpers/cgihelper.jsx';
+import { log, enableLogging } from '../../helpers/logger.js';
+import { playSound } from '../../helpers/utils';
+import warningSoundUrl from '../../assets/audio/warning.oga';
+import trashSoundUrl from '../../assets/audio/trash.oga';
+import newSoundUrl from '../../assets/audio/new.oga';
+import { AppProvider, useAppContext } from '../AppContext';
+import { ApiResponse, Widget, WidgetCapabilities } from './widgetInterfaces.js';
+import { W_CGI } from '../constants.js';
 
+// DANGER ZONE: Changing API version may break stuff
 const API_VERSION = '2.0';
 
 /* Interface defining the structure of the context */
-interface GlobalContextProps {
+interface WidgetContextProps {
   /* Widget operations */
   listWidgets: () => Promise<void>;
   listWidgetCapabilities: () => Promise<void>;
@@ -31,7 +28,7 @@ interface GlobalContextProps {
   removeAllWidgets: () => Promise<void>;
   updateWidget: (widgetItem: Widget) => Promise<void>;
 
-  /* Alert handling */
+  /* Alert handling (from app context) */
   handleOpenAlert: (
     content: string,
     severity: 'info' | 'success' | 'error' | 'warning'
@@ -44,8 +41,12 @@ interface GlobalContextProps {
   setWidgetCapabilities: React.Dispatch<
     React.SetStateAction<WidgetCapabilities | null>
   >;
+
+  /* App-level loading (kept same name, provided by app context) */
   widgetLoading: boolean;
   setWidgetLoading: React.Dispatch<React.SetStateAction<boolean>>;
+
+  /* Widget support state (widget context) */
   widgetSupported: boolean;
   setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -71,7 +72,7 @@ interface GlobalContextProps {
   selectedWidget: string;
   setSelectedWidget: React.Dispatch<React.SetStateAction<string>>;
 
-  /* Alert-related state */
+  /* Alert-related state (from app context) */
   openAlert: boolean;
   setOpenAlert: React.Dispatch<React.SetStateAction<boolean>>;
   alertContent: string;
@@ -81,25 +82,31 @@ interface GlobalContextProps {
     React.SetStateAction<'info' | 'success' | 'error' | 'warning'>
   >;
 
-  /* Theme-related state */
+  /* Theme-related state (from app context) */
   currentTheme: string;
   setCurrentTheme: React.Dispatch<React.SetStateAction<string>>;
 
-  /* Global settings for the application */
-  appSettings: AppSettings;
-  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
-  jsonTheme: undefined;
+  /* Global settings for the application (from app context) */
+  appSettings: any;
+  setAppSettings: React.Dispatch<React.SetStateAction<any>>;
+  jsonTheme: string;
   setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
+
+  /* Selected videoplayer channel (from app context) */
   currentChannel: string;
   setCurrentChannel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /* Creating the Widget context */
-const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
+const WidgetContext = createContext<WidgetContextProps | undefined>(undefined);
 
-export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
+/* Inner provider that sits under AppProvider so it can consume app state */
+const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
+  /* Disabling logging by default, but can be enabled as needed */
+  enableLogging(false);
+
   /* Widget-related state variables */
   const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
   const [widgetCapabilities, setWidgetCapabilities] =
@@ -108,26 +115,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
-  const [widgetLoading, setWidgetLoading] = useState<boolean>(false);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
-
-  /* Alert-related state variables */
-  const [openAlert, setOpenAlert] = useState<boolean>(false);
-  const [alertContent, setAlertContent] = useState<string>('');
-  const [alertSeverity, setAlertSeverity] = useState<
-    'info' | 'success' | 'error' | 'warning'
-  >('info');
-
-  /* Local storage state */
-  const [currentTheme, setCurrentTheme] = useLocalStorage('theme', 'dark');
-  const [appSettings, setAppSettings] = useLocalStorage(
-    'appSettings',
-    defaultAppSettings
-  );
-  const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
-
-  /* Disabling logging by default, but can be enabled as needed */
-  enableLogging(false);
 
   /* Draggable widget state */
   const [activeDraggableWidget, setActiveDraggableWidget] = useState<{
@@ -137,37 +125,26 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
     highlight: boolean;
   }>({ id: null, active: false, clickBBox: false, highlight: false });
 
-  /* Function to open an alert with content and severity */
-  const handleOpenAlert = (
-    content: string,
-    severity: 'info' | 'success' | 'error' | 'warning'
-  ) => {
-    setAlertContent(content);
-    setAlertSeverity(severity);
-    setOpenAlert(true);
-  };
-
-  /* Function to init channel from local storage */
-  const initChannel = () => {
-    try {
-      const vapix = localStorage.getItem('vapix');
-      if (vapix) {
-        const parsed = JSON.parse(vapix);
-        if (parsed?.camera) {
-          return String(parsed.camera);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse vapix from localStorage:', e);
-    }
-    return '1';
-  };
-
-  /* Selected videoplayer channel */
-  const [currentChannel, setCurrentChannel] = useLocalStorage(
-    'currentChannel',
-    initChannel()
-  );
+  /* App-level state pulled from AppContext (names unchanged) */
+  const {
+    handleOpenAlert,
+    openAlert,
+    setOpenAlert,
+    alertContent,
+    setAlertContent,
+    alertSeverity,
+    setAlertSeverity,
+    currentTheme,
+    setCurrentTheme,
+    appSettings,
+    setAppSettings,
+    jsonTheme,
+    setJsonTheme,
+    widgetLoading,
+    setWidgetLoading,
+    currentChannel,
+    setCurrentChannel
+  } = useAppContext();
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -302,7 +279,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
           type: widgetType,
           datasource: '#D0',
           /* anchor: 'none', */
-          channel: parseInt(initChannel(), 10),
+          channel: parseInt(currentChannel, 10),
           isVisible: true,
           position: { x: 0, y: 0 },
           size: 'medium',
@@ -455,7 +432,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
   /****************************************************************************/
 
   return (
-    <GlobalContext.Provider
+    <WidgetContext.Provider
       value={{
         activeDraggableWidget,
         setActiveDraggableWidget,
@@ -496,15 +473,26 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({
       }}
     >
       {children}
-    </GlobalContext.Provider>
+    </WidgetContext.Provider>
   );
 };
 
-/* Hook to use the GlobalContext, with an error if used outside the provider */
-export const useGlobalContext = () => {
-  const context = useContext(GlobalContext);
+/* Top-level provider that ensures AppProvider is mounted */
+export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
+  return (
+    <AppProvider>
+      <WidgetProviderInner>{children}</WidgetProviderInner>
+    </AppProvider>
+  );
+};
+
+/* Hook to use the WidgetContext, with an error if used outside the provider */
+export const useWidgetContext = () => {
+  const context = useContext(WidgetContext);
   if (context === undefined) {
-    throw new Error('useGlobalContext must be used within a GlobalProvider');
+    throw new Error('useWidgetContext must be used within a WidgetProvider');
   }
   return context;
 };
