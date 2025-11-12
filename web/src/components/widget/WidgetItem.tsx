@@ -5,7 +5,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
 import { Widget } from './widgetInterfaces';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
+import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import WidgetGeneralParams from './WidgetGeneralParams';
@@ -66,15 +67,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   });
 
   /* Global context */
+  const { jsonTheme, appSettings } = useAppContext();
   const {
-    jsonTheme,
-    appSettings,
     removeWidget,
     updateWidget,
     addCustomWidget,
     openDropdownIndex,
     activeDraggableWidget
-  } = useGlobalContext();
+  } = useWidgetContext();
 
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
@@ -399,7 +399,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
                 }}
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme={jsonTheme}
+                theme={jsonTheme as any}
               />
             )}
             {/* Display error if invalid JSON */}

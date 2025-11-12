@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
+import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
 import { CustomButton } from './../CustomComponents';
@@ -36,7 +37,6 @@ const WidgetHandler: React.FC = () => {
 
   /* Global context */
   const {
-    appSettings,
     activeDraggableWidget,
     setActiveDraggableWidget,
     activeWidgets,
@@ -51,7 +51,8 @@ const WidgetHandler: React.FC = () => {
     setOpenDropdownIndex,
     widgetSupported,
     updateWidget
-  } = useGlobalContext();
+  } = useWidgetContext();
+  const { appSettings } = useAppContext();
 
   /* Refs */
   const previousWidgetIdsRef = useRef<Set<number>>(new Set());

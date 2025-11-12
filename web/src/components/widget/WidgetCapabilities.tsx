@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
+import { useWidgetContext } from './WidgetContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';
 import ReactJson from 'react-json-view';
@@ -57,14 +58,10 @@ type ReactJsonThemes =
 
 const WidgetCapabilities: React.FC = () => {
   /* Global context */
-  const {
-    jsonTheme,
-    setJsonTheme,
-    widgetCapabilities,
-    currentTheme,
-    listWidgetCapabilities,
-    widgetSupported
-  } = useGlobalContext();
+  const { jsonTheme, setJsonTheme, currentTheme } = useAppContext();
+  const { widgetCapabilities, listWidgetCapabilities, widgetSupported } =
+    useWidgetContext();
+
   const jsonData = widgetCapabilities?.data;
 
   /* Navigation */
@@ -138,7 +135,7 @@ const WidgetCapabilities: React.FC = () => {
           <InputLabel id="react-json-theme-label">JSON theme</InputLabel>
           <Select
             labelId="react-json-theme-label"
-            value={jsonTheme}
+            value={jsonTheme as any}
             onChange={handleThemeChange}
             label="JSON theme"
           >
@@ -202,7 +199,7 @@ const WidgetCapabilities: React.FC = () => {
                 collapsed={collapsed}
                 enableClipboard={false}
                 displayDataTypes={false}
-                theme={jsonTheme}
+                theme={jsonTheme as any}
               />
             </CustomBox>
           </>

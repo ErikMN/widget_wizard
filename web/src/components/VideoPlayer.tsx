@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useGlobalContext } from './GlobalContext';
+import { useAppContext } from './AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';
@@ -61,7 +61,7 @@ const VideoPlayer: React.FC = () => {
   });
 
   /* Global context */
-  const { appSettings, currentTheme } = useGlobalContext();
+  const { appSettings, currentTheme } = useAppContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGlobalContext } from './GlobalContext';
+import { useAppContext } from './AppContext';
 import { useParameters } from './ParametersContext';
 import { jsonRequest } from '../helpers/cgihelper';
 import { lightTheme, darkTheme } from '../theme';
@@ -18,7 +18,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   const [systemReady, setSystemReady] = useState<string>('no');
 
   /* Global context */
-  const { currentTheme, handleOpenAlert } = useGlobalContext();
+  const { currentTheme, handleOpenAlert } = useAppContext();
   const { paramsLoading } = useParameters();
 
   /* Theme */

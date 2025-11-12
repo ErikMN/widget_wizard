@@ -17,12 +17,13 @@ import {
   TextOverlay,
   OverlayCapabilities
 } from './overlayInterfaces';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 import { playSound } from '../../helpers/utils';
 import newSoundUrl from '../../assets/audio/new.oga';
 import warningSoundUrl from '../../assets/audio/warning.oga';
 import trashSoundUrl from '../../assets/audio/trash.oga';
 
+// DANGER ZONE: Changing API version may break stuff
 const API_VERSION = '1.8';
 
 /* Interface defining the structure of the context */
@@ -63,7 +64,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   children
 }) => {
   /* Global context */
-  const { handleOpenAlert, setWidgetLoading } = useGlobalContext();
+  const { handleOpenAlert, setWidgetLoading } = useAppContext();
 
   /* Local state */
   const [overlaySupported, setOverlaySupported] = useState(true);

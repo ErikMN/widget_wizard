@@ -15,7 +15,7 @@ import Draggable from 'react-draggable';
 import { useOverlayContext } from './OverlayContext';
 import { ImageOverlay, TextOverlay } from './overlayInterfaces';
 import { Dimensions } from '../appInterface';
-import { useGlobalContext } from '../GlobalContext';
+import { useAppContext } from '../AppContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { useParameters } from '../ParametersContext';
 import { playSound } from '../../helpers/utils';
@@ -134,7 +134,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     activeDraggableOverlay,
     setActiveDraggableOverlay
   } = useOverlayContext();
-  const { appSettings, activeDraggableWidget } = useGlobalContext();
+  const { appSettings } = useAppContext();
 
   /* Local state */
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
@@ -677,7 +677,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                       : `2px dashed rgba(200, 200, 200, 1)`,
                   borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                   backgroundColor:
-                    (isActive && activeDraggableWidget?.highlight) ||
+                    (isActive && activeDraggableOverlay?.highlight) ||
                     (activeDraggableOverlay?.highlight &&
                       activeDraggableOverlay?.id === overlay.identity)
                       ? `${bboxColor}4D`
@@ -876,7 +876,7 @@ interface OverlayBBoxInnerProps {
 
 const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
   /* Global context */
-  const { currentChannel } = useGlobalContext();
+  const { currentChannel } = useAppContext();
   const {
     activeOverlays,
     activeOverlayId,

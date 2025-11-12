@@ -13,7 +13,7 @@ import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { playSound } from '../helpers/utils';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
-import { useGlobalContext } from './GlobalContext';
+import { useAppContext } from './AppContext';
 import messageSoundUrl from '../assets/audio/message.oga';
 /* Widgets */
 import WidgetInfo from './widget/WidgetInfo';
@@ -163,7 +163,7 @@ const App: React.FC = () => {
     currentTheme,
     setCurrentTheme,
     appSettings
-  } = useGlobalContext();
+  } = useAppContext();
 
   /* Refs */
   const drawerRef = useRef<HTMLDivElement>(null);
