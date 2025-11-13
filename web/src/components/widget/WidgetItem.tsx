@@ -2,25 +2,19 @@
  * WidgetItem: Represent one widget.
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import CodeEditor from '@uiw/react-textarea-code-editor';
-import rehypePrism from 'rehype-prism-plus';
 import { Widget } from './widgetInterfaces';
-import { useAppContext } from '../AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
+import JsonEditor from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
-import ReactJson from 'react-json-view';
 import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
-import { useTheme } from '@mui/material/styles';
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DataObjectIcon from '@mui/icons-material/DataObject';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -29,7 +23,6 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ImageIcon from '@mui/icons-material/Image';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
@@ -50,7 +43,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
-  const [jsonVisible, setJsonVisible] = useState<boolean>(false);
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(widget, null, 2)
   );
@@ -67,7 +59,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   });
 
   /* Global context */
-  const { jsonTheme, appSettings } = useAppContext();
   const {
     removeWidget,
     updateWidget,
@@ -75,26 +66,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     openDropdownIndex,
     activeDraggableWidget
   } = useWidgetContext();
-
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-
-  /* Prism JSON syntax highligh theme https://github.com/PrismJS/prism-themes */
-  const codeStyles: Record<string, string> = useMemo(
-    () => ({
-      '--json-key': isDarkMode ? '#ffcb6b' : '#d35400',
-      '--json-string': isDarkMode ? '#c3e88d' : '#388e3c',
-      '--json-number': isDarkMode ? '#f78c6c' : '#d80080',
-      '--json-boolean': isDarkMode ? '#82aaff' : '#1565c0',
-      '--json-null': isDarkMode ? '#ff5370' : '#c62828',
-      '--json-punctuation': isDarkMode ? '#89ddff' : '#546e7a',
-      '--json-operator': isDarkMode ? '#ff9cac' : '#ff6f61',
-      '--background': theme.palette.background.paper,
-      '--text-color': theme.palette.text.primary,
-      '--border-color': jsonError ? '#d32f2f' : theme.palette.divider
-    }),
-    [isDarkMode, theme, jsonError]
-  );
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {
@@ -136,23 +107,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   }, []);
 
   /****************************************************************************/
-  /* JSON editor handlers */
-  const [useJsonEditorPro, setUseJsonEditorPro] = useState(false);
-
-  /* Toggle how to display JSON in JSON editor */
-  const toggleJsonEditor = useCallback(() => {
-    setUseJsonEditorPro((prev) => !prev);
-  }, []);
-
-  /* Toggle JSON editor */
-  const toggleJsonVisibility = useCallback(() => {
-    setJsonVisible((prev) => !prev);
-  }, []);
-
-  /* Handle edited JSON in the editor */
-  const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setJsonInput(event.target.value);
-  };
 
   const handleUpdateJSON = () => {
     try {
@@ -320,118 +274,15 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           </Collapse>
           {/* Widget Params End */}
 
-          {/* Toggle JSON editor button */}
-          <CustomButton
-            variant={jsonVisible ? 'contained' : 'outlined'}
-            fullWidth
-            onClick={toggleJsonVisibility}
-            startIcon={<DataObjectIcon />}
-            endIcon={jsonVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            sx={{
-              color: 'text.secondary',
-              backgroundColor: 'background.default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: 1,
-              marginTop: 2,
-              marginBottom: 1,
-              height: '32px',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              overflow: 'hidden'
-            }}
-          >
-            {jsonVisible ? 'Hide JSON editor' : 'Show JSON editor'}
-          </CustomButton>
-
           {/* JSON editor */}
-          {/* https://github.com/uiwjs/react-textarea-code-editor */}
-          {/* https://github.com/timlrx/rehype-prism-plus */}
-          <Collapse in={jsonVisible}>
-            {/* Editable JSON field */}
-            {!useJsonEditorPro ? (
-              <div style={codeStyles}>
-                <CodeEditor
-                  value={jsonInput}
-                  onChange={(e) => setJsonInput(e.target.value)}
-                  language="json"
-                  data-color-mode={isDarkMode ? 'dark' : 'light'}
-                  className="custom-json-theme"
-                  style={{
-                    color: theme.palette.text.primary,
-                    backgroundColor: isDarkMode
-                      ? theme.palette.background.paper
-                      : '#ffffe6',
-                    marginTop: 8,
-                    width: '100%',
-                    fontSize: 14,
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
-                    borderRadius: 8,
-                    border: jsonError
-                      ? '1px solid red'
-                      : `1px solid ${theme.palette.background.paper}`
-                  }}
-                  rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
-                  placeholder="JSON"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                />
-              </div>
-            ) : (
-              /* JSON editor PRO */
-              <ReactJson
-                src={safeParseJson(jsonInput)}
-                onEdit={(edit) => {
-                  const updatedJson = JSON.stringify(edit.updated_src, null, 2);
-                  setJsonInput(updatedJson);
-                }}
-                onAdd={(add) => {
-                  const updatedJson = JSON.stringify(add.updated_src, null, 2);
-                  setJsonInput(updatedJson);
-                }}
-                onDelete={(del) => {
-                  const updatedJson = JSON.stringify(del.updated_src, null, 2);
-                  setJsonInput(updatedJson);
-                }}
-                enableClipboard={false}
-                displayDataTypes={false}
-                theme={jsonTheme as any}
-              />
-            )}
-            {/* Display error if invalid JSON */}
-            {jsonError && (
-              <Alert severity="error" sx={{ marginTop: 1 }}>
-                {jsonError}
-              </Alert>
-            )}
-            {appSettings.debug && (
-              <CustomButton
-                onClick={toggleJsonEditor}
-                variant="contained"
-                startIcon={<ImageIcon />}
-                sx={{ marginTop: 1, width: '100%', height: '30px' }}
-              >
-                {useJsonEditorPro ? 'JSON editor' : 'JSON editor PRO'}
-              </CustomButton>
-            )}
-            <CustomButton
-              onClick={handleUpdateJSON}
-              variant="outlined"
-              startIcon={<DataObjectIcon />}
-              sx={{
-                marginTop: 1,
-                marginRight: 1,
-                width: '100%'
-              }}
-            >
-              Update {capitalizeFirstLetter(widget.generalParams.type)}
-            </CustomButton>
-          </Collapse>
-          {/* JSON viewer end */}
+          <JsonEditor
+            jsonInput={jsonInput}
+            setJsonInput={setJsonInput}
+            jsonError={jsonError}
+            setJsonError={setJsonError}
+            onUpdate={handleUpdateJSON}
+            updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
+          />
 
           {/* Remove this widget confirmation dialog */}
           <Dialog
