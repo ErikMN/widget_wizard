@@ -26,7 +26,7 @@ export const defaultAppSettings: AppSettings = {
   bboxColor: 'yellow',
   bboxThickness: 'medium',
   bboxLabel: true,
-  bboxAnchorIndicator: true,
+  bboxAnchorIndicator: false,
   bboxOnlyShowActive: false,
   sortBy: 'id',
   sortAscending: true,
