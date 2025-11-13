@@ -187,6 +187,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(overlay, null, 2)
   );
+  const [parsedJSON, setParsedJSON] = useState<any | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,16 +195,8 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setJsonError(null);
   }, [overlay]);
 
-  const safeParseJson = (json: string) => {
-    try {
-      return JSON.parse(json);
-    } catch {
-      return null;
-    }
-  };
-
   const handleUpdateJSON = useCallback(() => {
-    const parsed = safeParseJson(jsonInput);
+    const parsed = parsedJSON;
     if (parsed == null) {
       setJsonError('Invalid JSON format');
       return;
@@ -561,6 +554,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             jsonError={jsonError}
             setJsonError={setJsonError}
             onUpdate={handleUpdateJSON}
+            onParseJson={setParsedJSON}
             updateLabel="Update text overlay"
           />
 

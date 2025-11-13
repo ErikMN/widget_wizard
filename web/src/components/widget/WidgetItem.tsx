@@ -46,6 +46,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(widget, null, 2)
   );
+  const [parsedJSON, setParsedJSON] = useState<any | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   /* Combined widget general param state */
@@ -110,7 +111,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const handleUpdateJSON = () => {
     try {
-      const parsedWidget = safeParseJson(jsonInput);
+      const parsedWidget = parsedJSON;
       if (parsedWidget == null) {
         setJsonError('Invalid JSON format');
         return;
@@ -281,6 +282,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             jsonError={jsonError}
             setJsonError={setJsonError}
             onUpdate={handleUpdateJSON}
+            onParseJson={setParsedJSON}
             updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
           />
 

@@ -25,6 +25,7 @@ interface JsonEditorProps {
   jsonError: string | null;
   setJsonError: (value: string | null) => void;
   onUpdate: () => void;
+  onParseJson?: (parsed: any | null) => void;
   updateLabel?: string;
 }
 
@@ -34,6 +35,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   jsonError,
   setJsonError,
   onUpdate,
+  onParseJson,
   updateLabel
 }) => {
   /* Theme */
@@ -82,8 +84,12 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   }, []);
 
   const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setJsonInput(event.target.value);
+    const text = event.target.value;
+    setJsonInput(text);
     setJsonError(null);
+    if (onParseJson) {
+      onParseJson(safeParseJson(text));
+    }
   };
 
   return (
@@ -159,15 +165,27 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
           ) : (
             <ReactJson
               src={safeParseJson(jsonInput)}
-              onEdit={(edit) =>
-                setJsonInput(JSON.stringify(edit.updated_src, null, 2))
-              }
-              onAdd={(add) =>
-                setJsonInput(JSON.stringify(add.updated_src, null, 2))
-              }
-              onDelete={(del) =>
-                setJsonInput(JSON.stringify(del.updated_src, null, 2))
-              }
+              onEdit={(edit) => {
+                const updated = JSON.stringify(edit.updated_src, null, 2);
+                setJsonInput(updated);
+                if (onParseJson) {
+                  onParseJson(edit.updated_src);
+                }
+              }}
+              onAdd={(add) => {
+                const updated = JSON.stringify(add.updated_src, null, 2);
+                setJsonInput(updated);
+                if (onParseJson) {
+                  onParseJson(add.updated_src);
+                }
+              }}
+              onDelete={(del) => {
+                const updated = JSON.stringify(del.updated_src, null, 2);
+                setJsonInput(updated);
+                if (onParseJson) {
+                  onParseJson(del.updated_src);
+                }
+              }}
               enableClipboard={false}
               displayDataTypes={false}
               theme={jsonTheme as any}
