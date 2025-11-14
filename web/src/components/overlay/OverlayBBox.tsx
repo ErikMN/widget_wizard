@@ -42,7 +42,7 @@ interface OverlayBoxProps {
   overlay: ImageOverlay | TextOverlay;
   dimensions: Dimensions;
   isActive: boolean;
-  onSelect: (id: number) => void;
+  onSelect: (id: number | null) => void;
   registerRef?: (el: HTMLElement | null) => void;
 }
 
@@ -441,8 +441,9 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
       suppressClickRef.current = false;
       return;
     }
-    onSelect(overlay.identity);
-  }, [onSelect, overlay.identity]);
+    /* Deactivate if click again in bbox */
+    onSelect(isActive ? null : overlay.identity);
+  }, [onSelect, overlay.identity, isActive]);
 
   const handleClick = !appSettings.widgetDoubleClick
     ? () => handleBBoxClick()
