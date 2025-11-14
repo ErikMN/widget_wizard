@@ -221,3 +221,78 @@ export const getAlignmentFlags = (
     isNearCenter
   };
 };
+
+/**
+ * Map normalized top-left coords [-1..1] to pixel coords, with size-aware range.
+ * Xmin = -1
+ * Xmax = 1 - 2*(wPx/pixelW)
+ * Same for Y.
+ */
+export const normalizedToPixel = (
+  [nx, ny]: [number, number],
+  dims: Dimensions,
+  wPx: number,
+  hPx: number
+) => {
+  const pixelW = Math.max(1, dims.pixelWidth);
+  const pixelH = Math.max(1, dims.pixelHeight);
+
+  const safeW = Math.min(wPx, pixelW);
+  const safeH = Math.min(hPx, pixelH);
+
+  const Xmin = -1.0;
+  const Xmax = Math.max(Xmin + 0.0001, 1.0 - 2 * (safeW / pixelW));
+  const Ymin = -1.0;
+  const Ymax = Math.max(Ymin + 0.0001, 1.0 - 2 * (safeH / pixelH));
+
+  const pw = Math.max(1, pixelW - safeW);
+  const ph = Math.max(1, pixelH - safeH);
+
+  let x = ((nx - Xmin) / (Xmax - Xmin)) * pw;
+  let y = ((ny - Ymin) / (Ymax - Ymin)) * ph;
+
+  /* Clamp into the video rect */
+  x = Math.max(0, Math.min(x, pixelW - safeW));
+  y = Math.max(0, Math.min(y, pixelH - safeH));
+
+  return { x, y };
+};
+
+/* NOTE: Inverse: pixel top-left -> normalized top-left [-1..1], size-aware. */
+export const pixelToNormalized = (
+  x: number,
+  y: number,
+  dims: Dimensions,
+  wPx: number,
+  hPx: number
+) => {
+  const pixelW = Math.max(1, dims.pixelWidth);
+  const pixelH = Math.max(1, dims.pixelHeight);
+
+  const safeW = Math.min(wPx, pixelW);
+  const safeH = Math.min(hPx, pixelH);
+
+  const Xmin = -1.0;
+  const Xmax = Math.max(Xmin + 0.0001, 1.0 - 2 * (safeW / pixelW));
+  const Ymin = -1.0;
+  const Ymax = Math.max(Ymin + 0.0001, 1.0 - 2 * (safeH / pixelH));
+
+  const pw = Math.max(1, pixelW - safeW);
+  const ph = Math.max(1, pixelH - safeH);
+
+  const clampedX = Math.max(0, Math.min(x, pixelW - safeW));
+  const clampedY = Math.max(0, Math.min(y, pixelH - safeH));
+
+  let nx = (clampedX / pw) * (Xmax - Xmin) + Xmin;
+  let ny = (clampedY / ph) * (Ymax - Ymin) + Ymin;
+
+  /* Ensure finite numbers, never null/NaN (NOTE: remove this?) */
+  if (!Number.isFinite(nx)) {
+    nx = 0;
+  }
+  if (!Number.isFinite(ny)) {
+    ny = 0;
+  }
+
+  return { nx, ny };
+};
