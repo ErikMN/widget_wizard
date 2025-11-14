@@ -45,7 +45,6 @@ const OverlayHandler: React.FC = () => {
 
   /* Local state */
   const [openDialog, setOpenDialog] = useState(false);
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<'image' | 'text'>('image');
   const [selectedImageFile, setSelectedImageFile] = useState<string>('');
 
@@ -58,22 +57,13 @@ const OverlayHandler: React.FC = () => {
     fetchData();
   }, []);
 
-  /* Sync openIndex with selected overlay */
-  useEffect(() => {
-    if (activeOverlayId == null) {
-      setOpenIndex(null);
-      return;
-    }
-    const idx = activeOverlays.findIndex((o) => o.identity === activeOverlayId);
-    if (idx !== -1) setOpenIndex(idx);
-  }, [activeOverlayId, activeOverlays]);
-
   /* Toggle overlay expand/collapse */
-  const toggleDropdown = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
-    const overlay = activeOverlays[index];
-    if (overlay) onSelectOverlay(openIndex === index ? null : overlay.identity);
-  };
+  const toggleDropdown = useCallback(
+    (overlayId: number) => {
+      onSelectOverlay(activeOverlayId === overlayId ? null : overlayId);
+    },
+    [activeOverlayId, onSelectOverlay]
+  );
 
   /* Remove all dialog */
   const handleRemoveAllClick = useCallback(() => {
@@ -257,7 +247,7 @@ const OverlayHandler: React.FC = () => {
             return appSettings.sortAscending ? sortResult : -sortResult;
           })
           .map((overlay, index) => {
-            const isOpen = openIndex === index;
+            const isOpen = overlay.identity === activeOverlayId;
             if ('overlayPath' in overlay) {
               /* Return Image overlay item */
               return (
