@@ -3,6 +3,7 @@
  * OverlayHandler: Handler of overlays.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { useAppContext } from '../AppContext';
 import { useOverlayContext } from './OverlayContext';
 import OverlayItemImage from './OverlayItemImage';
 import OverlayItemText from './OverlayItemText';
@@ -40,6 +41,7 @@ const OverlayHandler: React.FC = () => {
     listOverlays,
     imageFiles
   } = useOverlayContext();
+  const { appSettings } = useAppContext();
 
   /* Local state */
   const [openDialog, setOpenDialog] = useState(false);
@@ -47,7 +49,7 @@ const OverlayHandler: React.FC = () => {
   const [selectedType, setSelectedType] = useState<'image' | 'text'>('image');
   const [selectedImageFile, setSelectedImageFile] = useState<string>('');
 
-  /* Component mount: Calls listWidgetCapabilities and listWidgets */
+  /* Component mount: Calls listOverlayCapabilities and listOverlays */
   useEffect(() => {
     const fetchData = async () => {
       await listOverlayCapabilities();
@@ -236,11 +238,41 @@ const OverlayHandler: React.FC = () => {
 
       {/* List of Active Overlays */}
       <Box sx={{ marginTop: 2 }}>
-        {activeOverlays.map((overlay, index) => {
-          const isOpen = openIndex === index;
-          if ('overlayPath' in overlay) {
+        {activeOverlays
+          .slice()
+          .sort((a, b) => {
+            let sortResult = 0;
+            switch (appSettings.sortBy) {
+              case 'id':
+                sortResult = a.identity - b.identity;
+                break;
+              case 'type':
+                const typeA = 'overlayPath' in a ? 'image' : 'text';
+                const typeB = 'overlayPath' in b ? 'image' : 'text';
+                sortResult = typeA.localeCompare(typeB);
+                break;
+              default:
+                break;
+            }
+            return appSettings.sortAscending ? sortResult : -sortResult;
+          })
+          .map((overlay, index) => {
+            const isOpen = openIndex === index;
+            if ('overlayPath' in overlay) {
+              /* Return Image overlay item */
+              return (
+                <OverlayItemImage
+                  key={overlay.identity}
+                  overlay={overlay}
+                  index={index}
+                  isOpen={isOpen}
+                  toggleDropdown={toggleDropdown}
+                />
+              );
+            }
+            /* Return Text overlay item */
             return (
-              <OverlayItemImage
+              <OverlayItemText
                 key={overlay.identity}
                 overlay={overlay}
                 index={index}
@@ -248,17 +280,7 @@ const OverlayHandler: React.FC = () => {
                 toggleDropdown={toggleDropdown}
               />
             );
-          }
-          return (
-            <OverlayItemText
-              key={overlay.identity}
-              overlay={overlay}
-              index={index}
-              isOpen={isOpen}
-              toggleDropdown={toggleDropdown}
-            />
-          );
-        })}
+          })}
       </Box>
 
       {/* Remove all overlays button */}
