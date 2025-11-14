@@ -15,10 +15,7 @@ import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
 import messageSoundUrl from '../assets/audio/message.oga';
-/* Widgets */
-import WidgetInfo from './widget/WidgetInfo';
-/* Overlays */
-import OverlayInfo from './overlay/OverlayInfo';
+import DrawerHeaderContent from './DrawerHeaderContent';
 /* MUI */
 import { styled } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -469,16 +466,7 @@ const App: React.FC = () => {
               width: '100%'
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexGrow: 1
-              }}
-            >
-              {drawerTab === 1 ? <OverlayInfo /> : <WidgetInfo />}
-            </Box>
+            <DrawerHeaderContent drawerTab={drawerTab} />
             {/* Menu toggle button */}
             <Tooltip
               title={drawerOpen ? 'Close the menu' : 'Open the menu'}
