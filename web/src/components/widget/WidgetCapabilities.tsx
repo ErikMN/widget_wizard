@@ -75,7 +75,13 @@ const WidgetCapabilities: React.FC = () => {
 
   /* Handle navigation back */
   const handleBack = () => {
-    navigate('/');
+    /* Navigate back to previous screen */
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      /* Fallback to home if there's no navigation history */
+      navigate('/');
+    }
   };
 
   /* Toggle collapse state */
