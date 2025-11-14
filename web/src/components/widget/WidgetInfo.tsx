@@ -1,9 +1,12 @@
-import React from 'react';
-import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useScreenSizes } from '../../helpers/hooks.jsx';
 import { useWidgetContext } from './WidgetContext';
+import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 const WidgetInfo: React.FC = () => {
   /* Screen size */
@@ -12,9 +15,16 @@ const WidgetInfo: React.FC = () => {
   /* Global context */
   const { activeWidgets, widgetSupported } = useWidgetContext();
 
+  /* Navigation */
+  const navigate = useNavigate();
+
   if (!widgetSupported) {
     return null;
   }
+
+  const handleNavigateToCapabilities = useCallback(() => {
+    navigate('/capabilities');
+  }, [navigate]);
 
   return (
     <div
@@ -25,13 +35,26 @@ const WidgetInfo: React.FC = () => {
       }}
     >
       {/* Left-aligned icon */}
-      <WidgetsOutlinedIcon
-        sx={{
-          width: '20px',
-          height: '20px',
-          color: 'text.secondary'
-        }}
-      />
+      <Tooltip title="Show Widget Capabilities JSON" arrow>
+        <div>
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label="Show Widget Capabilities JSON"
+            onClick={handleNavigateToCapabilities}
+            edge="start"
+            disableRipple
+          >
+            <WidgetsOutlinedIcon
+              sx={{
+                width: '20px',
+                height: '20px',
+                color: 'text.secondary'
+              }}
+            />
+          </CustomStyledIconButton>
+        </div>
+      </Tooltip>
+
       {/* Centered text */}
       <Typography
         variant="inherit"

@@ -27,7 +27,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CircularProgress from '@mui/material/CircularProgress';
 import ContrastIcon from '@mui/icons-material/Contrast';
-import DataObjectIcon from '@mui/icons-material/DataObject';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import Fab from '@mui/material/Fab';
@@ -210,10 +209,6 @@ const App: React.FC = () => {
     navigate('/settings');
   };
 
-  const handleNavigateToCapabilities = () => {
-    navigate('/capabilities');
-  };
-
   /* Alert handler */
   const handleCloseAlert = (
     event?: React.SyntheticEvent | Event,
@@ -344,27 +339,6 @@ const App: React.FC = () => {
                       }}
                     />
                   )}
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-
-            {/* Show Widget Capabilities JSON button */}
-            <Tooltip title="Show widget capabilities JSON" arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="Show Widget Capabilities JSON"
-                  onClick={handleNavigateToCapabilities}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  <DataObjectIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
                 </CustomStyledIconButton>
               </div>
             </Tooltip>
