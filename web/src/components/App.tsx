@@ -409,7 +409,9 @@ const App: React.FC = () => {
 
         {/* Drawer menu */}
         <Drawer
-          PaperProps={{ ref: drawerRef }}
+          slotProps={{
+            paper: { ref: drawerRef }
+          }}
           sx={{
             flexShrink: 0,
             '& .MuiDrawer-paper': {
