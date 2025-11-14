@@ -312,98 +312,102 @@ const App: React.FC = () => {
               </Fade>
             </Box>
 
-            {/* Mute button */}
-            <Tooltip title={isMuted ? 'Unmute audio' : 'Mute audio'} arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="mute/unmute audio"
-                  onClick={handleToggleMute}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  {isMuted ? (
-                    <VolumeOffOutlinedIcon
+            {/* Right-side action buttons */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {/* Mute button */}
+              <Tooltip title={isMuted ? 'Unmute audio' : 'Mute audio'} arrow>
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="mute/unmute audio"
+                    onClick={handleToggleMute}
+                    edge="end"
+                    sx={{ p: 0.5 }}
+                  >
+                    {isMuted ? (
+                      <VolumeOffOutlinedIcon
+                        sx={{
+                          width: '20px',
+                          height: '20px',
+                          color: 'text.secondary'
+                        }}
+                      />
+                    ) : (
+                      <VolumeUpOutlinedIcon
+                        sx={{
+                          width: '20px',
+                          height: '20px',
+                          color: 'text.secondary'
+                        }}
+                      />
+                    )}
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
+
+              {/* Info Button (left of theme icon) */}
+              <Tooltip title="About info" arrow>
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="about info"
+                    onClick={handleOpenAboutModal}
+                    edge="end"
+                    sx={{ p: 0.5 }}
+                  >
+                    <InfoOutlinedIcon
                       sx={{
                         width: '20px',
                         height: '20px',
                         color: 'text.secondary'
                       }}
                     />
-                  ) : (
-                    <VolumeUpOutlinedIcon
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
+
+              {/* Theme Toggle Button */}
+              <Tooltip title="Toggle theme" arrow>
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="toggle theme"
+                    onClick={toggleTheme}
+                    edge="end"
+                    sx={{ p: 0.5 }}
+                  >
+                    <ContrastIcon
                       sx={{
                         width: '20px',
                         height: '20px',
                         color: 'text.secondary'
                       }}
                     />
-                  )}
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
 
-            {/* Info Button (left of theme icon) */}
-            <Tooltip title="About info" arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="about info"
-                  onClick={handleOpenAboutModal}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  <InfoOutlinedIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-
-            {/* Theme Toggle Button */}
-            <Tooltip title="Toggle theme" arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="toggle theme"
-                  onClick={toggleTheme}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  <ContrastIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-
-            {/* Settings button */}
-            <Tooltip title="Application settings" arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="settings"
-                  onClick={handleNavigateToSettings}
-                  edge="end"
-                >
-                  <SettingsIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
+              {/* Settings button */}
+              <Tooltip title="Application settings" arrow>
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="settings"
+                    onClick={handleNavigateToSettings}
+                    edge="end"
+                    sx={{ p: 0.5 }}
+                  >
+                    <SettingsIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
+            </Box>
           </Toolbar>
         </AppBar>
 
