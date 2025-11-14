@@ -687,9 +687,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                       : `2px dashed rgba(200, 200, 200, 1)`,
                   borderRadius: appSettings.roundedBboxCorners ? '8px' : '0px',
                   backgroundColor:
-                    (isActive && activeDraggableOverlay?.highlight) ||
-                    (activeDraggableOverlay?.highlight &&
-                      activeDraggableOverlay?.id === overlay.identity)
+                    activeDraggableOverlay?.highlight &&
+                    activeDraggableOverlay?.id === overlay.identity
                       ? `${bboxColor}4D`
                       : 'transparent',
                   transform: `rotate(${rotation}deg)`,
