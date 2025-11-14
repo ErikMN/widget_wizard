@@ -297,7 +297,12 @@ const Settings: React.FC = () => {
     /* Reset the countdown */
     setCountdown(null);
     /* Navigate back to previous screen */
-    navigate('/');
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      /* Fallback to home if there's no navigation history */
+      navigate('/');
+    }
   };
 
   /* Handle reset to default settings */
