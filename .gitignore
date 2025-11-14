@@ -15,8 +15,7 @@ html
 *LICENSE.txt
 tmp*
 slask
-credentials.json
-credentials2.json
+credentials*.json
 .eap-install.cfg
 .yarnrc
 .cache
