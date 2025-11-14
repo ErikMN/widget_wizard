@@ -508,7 +508,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     ]
   );
 
-  const handleClick = useCallback(() => {
+  /* Handle clicking the bbox */
+  const handleBBoxClick = useCallback(() => {
     if (suppressClickRef.current) {
       /* Consume the suppressed click */
       suppressClickRef.current = false;
@@ -516,6 +517,13 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     }
     onSelect(overlay.identity);
   }, [onSelect, overlay.identity]);
+
+  const handleClick = !appSettings.widgetDoubleClick
+    ? () => handleBBoxClick()
+    : undefined;
+  const handleDoubleClick = appSettings.widgetDoubleClick
+    ? () => handleBBoxClick()
+    : undefined;
 
   const overlayType = 'overlayPath' in overlay ? 'Image' : 'Text';
 
@@ -657,6 +665,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 registerRef?.(el as HTMLElement | null);
               }}
               onClick={handleClick}
+              onDoubleClick={handleDoubleClick}
+              onTouchEnd={() => handleBBoxClick()}
               sx={{
                 width: `${wPx}px`,
                 height: `${hPx}px`,
