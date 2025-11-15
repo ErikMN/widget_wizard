@@ -733,7 +733,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 bottom: 0,
                 left: `${dimensions.pixelWidth / 2}px`,
                 width: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
@@ -745,7 +745,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 right: 0,
                 top: `${dimensions.pixelHeight / 2}px`,
                 height: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
@@ -757,7 +757,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 right: 0,
                 top: 0,
                 height: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
@@ -769,7 +769,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 right: 0,
                 bottom: 0,
                 height: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
@@ -781,7 +781,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 bottom: 0,
                 left: 0,
                 width: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
@@ -793,12 +793,13 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 bottom: 0,
                 right: 0,
                 width: '1px',
-                backgroundColor: '#ffcc33'
+                backgroundColor: bboxColor
               }}
             />
           )}
         </div>
       )}
+      {/* Alignment guide end */}
     </>
   );
 };

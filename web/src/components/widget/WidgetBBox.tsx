@@ -623,6 +623,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
               )}
             </Box>
           </Draggable>
+
           {/* Alignment guide */}
           {appSettings.snapToAnchor && (
             <div
@@ -644,7 +645,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     bottom: 0,
                     left: `${dimensions.pixelWidth / 2}px`,
                     width: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
@@ -656,7 +657,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     right: 0,
                     top: `${dimensions.pixelHeight / 2}px`,
                     height: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
@@ -668,7 +669,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     right: 0,
                     top: 0,
                     height: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
@@ -680,7 +681,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     right: 0,
                     bottom: 0,
                     height: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
@@ -692,7 +693,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     bottom: 0,
                     left: 0,
                     width: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
@@ -704,7 +705,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
                     bottom: 0,
                     right: 0,
                     width: '1px',
-                    backgroundColor: 'red'
+                    backgroundColor: bboxColor
                   }}
                 />
               )}
