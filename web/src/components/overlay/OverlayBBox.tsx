@@ -64,6 +64,10 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 
   /* Local state */
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
+  const [overlayAnchor, setOverlayAnchor] = useState(
+    typeof overlay.position === 'string' ? overlay.position : 'none'
+  );
+
   const [rotation, setRotation] = useState<number>(
     'rotation' in overlay ? (overlay.rotation ?? 0) : 0
   );
@@ -304,6 +308,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
           showLeft: false,
           showRight: false
         });
+
         return;
       }
       if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
@@ -392,6 +397,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
         finalAnchor !== 'none' ||
         Math.abs(nx - oldX) > EPSILON ||
         Math.abs(ny - oldY) > EPSILON;
+
+      setOverlayAnchor(finalAnchor);
 
       if (changed) {
         if ('overlayPath' in overlay) {
@@ -504,11 +511,16 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     [appSettings.snapToAnchor, dimensions, wPx, hPx]
   );
 
-  /* Sync rotation from context when overlay.rotation changes */
   useEffect(() => {
+    /* Sync rotation from context when overlay.rotation changes */
     if ('rotation' in overlay && typeof overlay.rotation === 'number') {
       setRotation(overlay.rotation);
     }
+
+    /* Sync anchor overlay when overlay.position changes */
+    setOverlayAnchor(
+      typeof overlay.position === 'string' ? overlay.position : 'none'
+    );
   }, [overlay]);
 
   /* Rotation handler */
@@ -564,7 +576,12 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   /****************************************************************************/
 
   return (
-    <>
+    /* Wrap Draggable in div to handle click events */
+    <div
+      onClick={handleClick} /* Regular click */
+      onDoubleClick={handleDoubleClick} /* Double-click */
+      onTouchEnd={() => handleBBoxClick()} /* Touch display click */
+    >
       <Fade in={true} timeout={500}>
         <div>
           <Draggable
@@ -591,9 +608,6 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 nodeRef.current = el as HTMLElement | null;
                 registerRef?.(el as HTMLElement | null);
               }}
-              onClick={handleClick}
-              onDoubleClick={handleDoubleClick}
-              onTouchEnd={() => handleBBoxClick()}
               sx={{
                 width: `${wPx}px`,
                 height: `${hPx}px`,
@@ -624,21 +638,19 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                   position: 'relative'
                 }}
               >
-                {/* FIXME: Overlay anchor indicators (only for image overlays) */}
-                {/* {'overlayPath' in overlay && (
-                <OverlayAnchorIndicators
-                  overlayAnchor={
-                    typeof overlay.position === 'string'
-                      ? overlay.position
-                      : 'none'
-                  }
-                  wPx={wPx}
-                  hPx={hPx}
-                  bboxColor={bboxColor}
-                  enabled={!!appSettings.bboxAnchorIndicator && showIndicators}
-                  dashed={activeDraggableOverlay?.id !== overlay.identity}
-                />
-              )} */}
+                {/* Anchor point indicators */}
+                {'overlayPath' in overlay && (
+                  <OverlayAnchorIndicators
+                    overlayAnchor={overlayAnchor}
+                    wPx={wPx}
+                    hPx={hPx}
+                    bboxColor={bboxColor}
+                    enabled={
+                      !!appSettings.bboxAnchorIndicator && showIndicators
+                    }
+                    dashed={activeDraggableOverlay?.id !== overlay.identity}
+                  />
+                )}
                 {/* Overlay info note above the bbox */}
                 {appSettings.bboxLabel && (
                   <Typography
@@ -709,98 +721,98 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
               </Box>
             </Box>
           </Draggable>
+
+          {/* Alignment guide */}
+          {appSettings.snapToAnchor && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: `${dimensions.pixelWidth}px`,
+                height: `${dimensions.pixelHeight}px`,
+                pointerEvents: 'none',
+                zIndex: 9999
+              }}
+            >
+              {alignmentGuides.showVerticalCenter && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: `${dimensions.pixelWidth / 2}px`,
+                    width: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+              {alignmentGuides.showHorizontalCenter && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: `${dimensions.pixelHeight / 2}px`,
+                    height: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+              {alignmentGuides.showTop && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+              {alignmentGuides.showBottom && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+              {alignmentGuides.showLeft && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    width: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+              {alignmentGuides.showRight && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    width: '1px',
+                    backgroundColor: bboxColor
+                  }}
+                />
+              )}
+            </div>
+          )}
+          {/* Alignment guide end */}
         </div>
       </Fade>
-
-      {/* Alignment guide */}
-      {appSettings.snapToAnchor && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: `${dimensions.pixelWidth}px`,
-            height: `${dimensions.pixelHeight}px`,
-            pointerEvents: 'none',
-            zIndex: 9999
-          }}
-        >
-          {alignmentGuides.showVerticalCenter && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: `${dimensions.pixelWidth / 2}px`,
-                width: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-          {alignmentGuides.showHorizontalCenter && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: `${dimensions.pixelHeight / 2}px`,
-                height: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-          {alignmentGuides.showTop && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: 0,
-                height: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-          {alignmentGuides.showBottom && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-          {alignmentGuides.showLeft && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: 0,
-                width: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-          {alignmentGuides.showRight && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                right: 0,
-                width: '1px',
-                backgroundColor: bboxColor
-              }}
-            />
-          )}
-        </div>
-      )}
-      {/* Alignment guide end */}
-    </>
+    </div>
   );
 };
 
