@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
@@ -33,7 +33,6 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const [IsBBoxClick, setIsBBoxClick] = useState<boolean>(false);
 
   /* Global context */
   const {
@@ -54,9 +53,6 @@ const WidgetHandler: React.FC = () => {
   } = useWidgetContext();
   const { appSettings } = useAppContext();
 
-  /* Refs */
-  const previousWidgetIdsRef = useRef<Set<number>>(new Set());
-
   enableLogging(false);
 
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
@@ -67,30 +63,6 @@ const WidgetHandler: React.FC = () => {
     };
     fetchData();
   }, []);
-
-  /* Effect for opening last added widget by default */
-  useEffect(() => {
-    const currentWidgetIds = new Set(
-      activeWidgets.map((widget) => widget.generalParams.id)
-    );
-    const previousWidgetIds = previousWidgetIdsRef.current;
-    const newWidgetIds = [...currentWidgetIds].filter(
-      (id) => !previousWidgetIds.has(id)
-    );
-    if (
-      newWidgetIds.length > 0 &&
-      (previousWidgetIds.size !== 0 || currentWidgetIds.size === 1)
-    ) {
-      const latestWidgetId = newWidgetIds[newWidgetIds.length - 1];
-      setActiveDraggableWidget((prev) => ({
-        ...prev,
-        id: latestWidgetId
-      }));
-      setOpenWidgetId(latestWidgetId);
-    }
-    /* Update the previous IDs for the next comparison */
-    previousWidgetIdsRef.current = currentWidgetIds;
-  }, [activeWidgets, setActiveDraggableWidget, setOpenWidgetId]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
