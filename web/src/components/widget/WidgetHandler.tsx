@@ -68,25 +68,6 @@ const WidgetHandler: React.FC = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    // log('[DEBUG] Active Widgets:', activeWidgets);
-    /* After removing all widgets, reset the dropdown state */
-    if (activeWidgets.length === 0) {
-      log('No more widgets: reset dropdown state');
-      setOpenWidgetId(null);
-    } else if (activeDraggableWidget?.clickBBox) {
-      const index = activeWidgets.findIndex(
-        (widget) => widget.generalParams.id === activeDraggableWidget.id
-      );
-      if (index !== -1) {
-        /* Indicate that the dropdown was opened by a click */
-        setIsBBoxClick(true);
-        /* Reset click flag to be able to open dropdown with click */
-        setIsBBoxClick(false);
-      }
-    }
-  }, [activeDraggableWidget, activeWidgets]);
-
   /* Effect for opening last added widget by default */
   useEffect(() => {
     const currentWidgetIds = new Set(
