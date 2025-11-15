@@ -47,8 +47,8 @@ const WidgetHandler: React.FC = () => {
     selectedWidget,
     setSelectedWidget,
     widgetCapabilities,
-    openDropdownIndex,
-    setOpenDropdownIndex,
+    openWidgetId,
+    setOpenWidgetId,
     widgetSupported,
     updateWidget
   } = useWidgetContext();
@@ -73,7 +73,7 @@ const WidgetHandler: React.FC = () => {
     /* After removing all widgets, reset the dropdown state */
     if (activeWidgets.length === 0) {
       log('No more widgets: reset dropdown state');
-      setOpenDropdownIndex(null);
+      setOpenWidgetId(null);
     } else if (activeDraggableWidget?.clickBBox) {
       const index = activeWidgets.findIndex(
         (widget) => widget.generalParams.id === activeDraggableWidget.id
@@ -105,16 +105,11 @@ const WidgetHandler: React.FC = () => {
         ...prev,
         id: latestWidgetId
       }));
-      const index = activeWidgets.findIndex(
-        (widget) => widget.generalParams.id === latestWidgetId
-      );
-      if (index !== -1) {
-        setOpenDropdownIndex(index);
-      }
+      setOpenWidgetId(latestWidgetId);
     }
     /* Update the previous IDs for the next comparison */
     previousWidgetIdsRef.current = currentWidgetIds;
-  }, [activeWidgets, setActiveDraggableWidget, setOpenDropdownIndex]);
+  }, [activeWidgets, setActiveDraggableWidget, setOpenWidgetId]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
@@ -146,37 +141,33 @@ const WidgetHandler: React.FC = () => {
 
   /* Handle dropdown toggle */
   const toggleDropdown = useCallback(
-    (index: number) => {
-      // console.log(index, openDropdownIndex);
-      /* Set id of activeWidgets to current for updating bbox zIndex */
+    (widgetId: number) => {
+      const newId = openWidgetId === widgetId ? null : widgetId;
+
       setActiveDraggableWidget((prev) => ({
         ...prev,
-        id: activeWidgets[index].generalParams.id
+        id: newId ?? -1,
+        active: false,
+        highlight: false,
+        clickBBox: false
       }));
-      if (!IsBBoxClick) {
-        const newIndex = openDropdownIndex === index ? null : index;
-        setOpenDropdownIndex(newIndex);
-        /* If no widget is open reset activeDraggableWidget.id */
-        if (newIndex === null) {
-          setActiveDraggableWidget((prev) => ({
-            ...prev,
-            id: -1,
-            active: false,
-            highlight: false,
-            clickBBox: false
-          }));
-        }
-      }
+
+      setOpenWidgetId(newId);
+
       if (appSettings.widgetAutoBringFront) {
-        setDepth('front', activeWidgets[index]);
+        const widget = activeWidgets.find(
+          (w) => w.generalParams.id === widgetId
+        );
+        if (widget) {
+          setDepth('front', widget);
+        }
       }
     },
     [
+      openWidgetId,
       activeWidgets,
-      IsBBoxClick,
-      openDropdownIndex,
       setActiveDraggableWidget,
-      setOpenDropdownIndex,
+      setOpenWidgetId,
       appSettings.widgetAutoBringFront,
       setDepth
     ]
@@ -329,7 +320,6 @@ const WidgetHandler: React.FC = () => {
             <WidgetItem
               key={widget.generalParams.id}
               widget={widget}
-              index={index}
               toggleDropdown={toggleDropdown}
             />
           ))}

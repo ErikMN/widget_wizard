@@ -56,9 +56,8 @@ const Settings: React.FC = () => {
     handleOpenAlert,
     setCurrentTheme
   } = useAppContext();
-  const { listWidgets, setOpenDropdownIndex, widgetSupported } =
-    useWidgetContext();
 
+  const { listWidgets, widgetSupported } = useWidgetContext();
   const { listOverlays } = useOverlayContext();
 
   /* Refs */
@@ -197,8 +196,6 @@ const Settings: React.FC = () => {
   }
 
   const handleSortChange = (event: SelectChangeEvent<string>) => {
-    /* Close all open widgets first */
-    setOpenDropdownIndex(null);
     const selectedSort = event.target.value as 'id' | 'type';
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -211,8 +208,6 @@ const Settings: React.FC = () => {
   };
 
   const handleToggleSortOrder = () => {
-    /* Close all open widgets first */
-    setOpenDropdownIndex(null);
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
       sortAscending: !prevSettings.sortAscending

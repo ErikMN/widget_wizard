@@ -67,8 +67,8 @@ interface WidgetContextProps {
   >;
 
   /* UI-related state */
-  openDropdownIndex: number | null;
-  setOpenDropdownIndex: React.Dispatch<React.SetStateAction<number | null>>;
+  openWidgetId: number | null;
+  setOpenWidgetId: React.Dispatch<React.SetStateAction<number | null>>;
   selectedWidget: string;
   setSelectedWidget: React.Dispatch<React.SetStateAction<string>>;
 
@@ -112,9 +112,7 @@ const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
   const [widgetCapabilities, setWidgetCapabilities] =
     useState<WidgetCapabilities | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null
-  );
+  const [openWidgetId, setOpenWidgetId] = useState<number | null>(null);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
 
   /* Draggable widget state */
@@ -426,7 +424,7 @@ const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
     /* Refresh the active widget list after removing all */
     listWidgets();
     /* Reset dropdown state after all widgets are removed */
-    setOpenDropdownIndex(null);
+    setOpenWidgetId(null);
   };
 
   /****************************************************************************/
@@ -446,8 +444,8 @@ const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
         setWidgetSupported,
         selectedWidget,
         setSelectedWidget,
-        openDropdownIndex,
-        setOpenDropdownIndex,
+        openWidgetId,
+        setOpenWidgetId,
         listWidgets,
         listWidgetCapabilities,
         addWidget,

@@ -106,17 +106,15 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
   });
 
   /* Global context */
-  const {
-    appSettings,
-  } = useAppContext();
+  const { appSettings } = useAppContext();
   const {
     activeWidgets,
     setActiveWidgets,
     updateWidget,
     activeDraggableWidget,
     setActiveDraggableWidget,
-    openDropdownIndex,
-    setOpenDropdownIndex,
+    openWidgetId,
+    setOpenWidgetId
   } = useWidgetContext();
 
   /* BBox colors */
@@ -278,12 +276,7 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
         showRight: flags.nearRight || flags.nearCenterRight
       });
     },
-    [
-      appSettings.snapToAnchor,
-      dimensions,
-      scaleFactor,
-      thresholds
-    ]
+    [appSettings.snapToAnchor, dimensions, scaleFactor, thresholds]
   );
 
   /* Handle drag stop */
@@ -496,35 +489,33 @@ const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef 
   /* Handle clicking the bbox */
   const handleBBoxClick = useCallback(
     (widget: Widget) => {
-      // console.log(`clicked widget ${widget.generalParams.id}`);
       /* Skip the synthetic click that immediately follows a drag */
       if (suppressClickRef.current) {
         suppressClickRef.current = false;
         return;
       }
-      const index = activeWidgets.findIndex(
-        (w) => w.generalParams.id === widget.generalParams.id
-      );
-      if (index !== -1) {
-        const isCurrentlyOpen = openDropdownIndex === index;
-        setActiveDraggableWidget({
-          id: widget.generalParams.id,
-          active: false,
-          clickBBox: !isCurrentlyOpen,
-          highlight: false
-        });
-        /* Toggle dropdown: close if open, open if closed */
-        setOpenDropdownIndex(isCurrentlyOpen ? null : index);
-      }
+
+      const widgetId = widget.generalParams.id;
+      const isCurrentlyOpen = openWidgetId === widgetId;
+
+      setActiveDraggableWidget({
+        id: widgetId,
+        active: false,
+        clickBBox: !isCurrentlyOpen,
+        highlight: false
+      });
+
+      /* Toggle dropdown: close if open, open if closed */
+      setOpenWidgetId(isCurrentlyOpen ? null : widgetId);
+
       if (appSettings.widgetAutoBringFront) {
         setDepth('front', widget);
       }
     },
     [
-      activeWidgets,
-      openDropdownIndex,
+      openWidgetId,
       setActiveDraggableWidget,
-      setOpenDropdownIndex,
+      setOpenWidgetId,
       appSettings.widgetAutoBringFront,
       setDepth
     ]
@@ -740,7 +731,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
     activeWidgets,
     activeDraggableWidget,
     setActiveDraggableWidget,
-    setOpenDropdownIndex
+    setOpenWidgetId
   } = useWidgetContext();
 
   /* Refs: keep live refs to all BBox elements */
@@ -766,7 +757,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
       clickBBox: false,
       highlight: false
     });
-    setOpenDropdownIndex(null);
+    setOpenWidgetId(null);
   };
 
   return (

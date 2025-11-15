@@ -31,15 +31,10 @@ import '../../assets/css/prism-theme.css';
 
 interface WidgetItemProps {
   widget: Widget;
-  index: number;
-  toggleDropdown: (index: number) => void;
+  toggleDropdown: (id: number) => void;
 }
 
-const WidgetItem: React.FC<WidgetItemProps> = ({
-  widget,
-  index,
-  toggleDropdown
-}) => {
+const WidgetItem: React.FC<WidgetItemProps> = ({ widget, toggleDropdown }) => {
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
@@ -64,7 +59,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     removeWidget,
     updateWidget,
     addCustomWidget,
-    openDropdownIndex,
+    openWidgetId,
+    setOpenWidgetId,
     activeDraggableWidget
   } = useWidgetContext();
 
@@ -162,7 +158,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       <CustomButton
         variant="outlined"
         fullWidth
-        onClick={() => toggleDropdown(index)}
+        onClick={() => toggleDropdown(widget.generalParams.id)}
         sx={(theme) => ({
           display: 'flex',
           alignItems: 'center',
@@ -173,17 +169,19 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           backgroundColor:
             (activeDraggableWidget.id === widget.generalParams.id &&
               activeDraggableWidget.active) ||
-            openDropdownIndex === index
+            openWidgetId === widget.generalParams.id
               ? 'primary.light'
               : 'unset',
           borderColor:
             (activeDraggableWidget.id === widget.generalParams.id &&
               activeDraggableWidget.active) ||
-            openDropdownIndex === index
+            openWidgetId === widget.generalParams.id
               ? 'primary.main'
               : 'grey.600',
-          borderBottomLeftRadius: openDropdownIndex === index ? '0px' : '4px',
-          borderBottomRightRadius: openDropdownIndex === index ? '0px' : '4px',
+          borderBottomLeftRadius:
+            openWidgetId === widget.generalParams.id ? '0px' : '4px',
+          borderBottomRightRadius:
+            openWidgetId === widget.generalParams.id ? '0px' : '4px',
           transition: 'background-color 0.3s ease, border-color 0.3s ease',
           /* Text shadow */
           ...(theme.palette.mode === 'dark'
@@ -192,7 +190,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         })}
         startIcon={<WidgetsIcon color="primary" />}
         endIcon={
-          openDropdownIndex === index ? <ExpandLessIcon /> : <ExpandMoreIcon />
+          openWidgetId === widget.generalParams.id ? (
+            <ExpandLessIcon />
+          ) : (
+            <ExpandMoreIcon />
+          )
         }
       >
         <div
@@ -225,7 +227,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       </CustomButton>
 
       {/* Dropdown for current widget settings */}
-      <Collapse in={openDropdownIndex === index}>
+      <Collapse in={openWidgetId === widget.generalParams.id}>
         <Box
           sx={(theme) => ({
             backgroundColor: theme.palette.background.default,
