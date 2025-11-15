@@ -255,7 +255,7 @@ const OverlayHandler: React.FC = () => {
             }
             return appSettings.sortAscending ? sortResult : -sortResult;
           })
-          .map((overlay, index) => {
+          .map((overlay) => {
             const isOpen = overlay.identity === activeOverlayId;
             if ('overlayPath' in overlay) {
               /* Return Image overlay item */
@@ -263,7 +263,6 @@ const OverlayHandler: React.FC = () => {
                 <OverlayItemImage
                   key={overlay.identity}
                   overlay={overlay}
-                  index={index}
                   isOpen={isOpen}
                   toggleDropdown={toggleDropdown}
                 />
@@ -274,7 +273,6 @@ const OverlayHandler: React.FC = () => {
               <OverlayItemText
                 key={overlay.identity}
                 overlay={overlay}
-                index={index}
                 isOpen={isOpen}
                 toggleDropdown={toggleDropdown}
               />

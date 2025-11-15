@@ -316,7 +316,7 @@ const WidgetHandler: React.FC = () => {
             }
             return appSettings.sortAscending ? sortResult : -sortResult;
           })
-          .map((widget, index) => (
+          .map((widget) => (
             <WidgetItem
               key={widget.generalParams.id}
               widget={widget}

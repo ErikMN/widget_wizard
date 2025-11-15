@@ -35,10 +35,9 @@ import '../../assets/css/prism-theme.css';
 
 const OverlayItemImage: React.FC<{
   overlay: ImageOverlay;
-  index: number;
   isOpen: boolean;
-  toggleDropdown: (index: number) => void;
-}> = ({ overlay, index, isOpen, toggleDropdown }) => {
+  toggleDropdown: (id: number) => void;
+}> = ({ overlay, isOpen, toggleDropdown }) => {
   /* Global state */
   const {
     removeOverlay,

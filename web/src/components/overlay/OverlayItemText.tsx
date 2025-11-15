@@ -37,14 +37,12 @@ import '../../assets/css/prism-theme.css';
 
 interface OverlayItemTextProps {
   overlay: TextOverlay;
-  index: number;
   isOpen: boolean;
-  toggleDropdown: (index: number) => void;
+  toggleDropdown: (id: number) => void;
 }
 
 const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   overlay,
-  index,
   isOpen,
   toggleDropdown
 }) => {
