@@ -185,7 +185,7 @@ const OverlayItemImage: React.FC<{
       <CustomButton
         variant="outlined"
         fullWidth
-        onClick={() => toggleDropdown(index)}
+        onClick={() => toggleDropdown(overlay.identity)}
         sx={(theme) => ({
           display: 'flex',
           alignItems: 'center',

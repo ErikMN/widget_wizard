@@ -39,6 +39,7 @@ const OverlayHandler: React.FC = () => {
     removeAllOverlays,
     listOverlayCapabilities,
     listOverlays,
+    setActiveDraggableOverlay,
     imageFiles
   } = useOverlayContext();
   const { appSettings } = useAppContext();
@@ -59,10 +60,18 @@ const OverlayHandler: React.FC = () => {
 
   /* Toggle overlay expand/collapse */
   const toggleDropdown = useCallback(
-    (overlayId: number) => {
-      onSelectOverlay(activeOverlayId === overlayId ? null : overlayId);
+    (identity: number) => {
+      const newId = activeOverlayId === identity ? null : identity;
+
+      onSelectOverlay(newId);
+
+      setActiveDraggableOverlay({
+        id: newId,
+        active: false,
+        highlight: false
+      });
     },
-    [activeOverlayId, onSelectOverlay]
+    [activeOverlayId, onSelectOverlay, setActiveDraggableOverlay]
   );
 
   /* Remove all dialog */
