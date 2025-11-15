@@ -10,7 +10,7 @@ import { playSound } from '../../helpers/utils';
 import warningSoundUrl from '../../assets/audio/warning.oga';
 import trashSoundUrl from '../../assets/audio/trash.oga';
 import newSoundUrl from '../../assets/audio/new.oga';
-import { AppProvider, useAppContext } from '../AppContext';
+import { useAppContext } from '../AppContext';
 import { ApiResponse, Widget, WidgetCapabilities } from './widgetInterfaces.js';
 import { W_CGI } from '../constants.js';
 
@@ -28,12 +28,6 @@ interface WidgetContextProps {
   removeAllWidgets: () => Promise<void>;
   updateWidget: (widgetItem: Widget) => Promise<void>;
 
-  /* Alert handling (from app context) */
-  handleOpenAlert: (
-    content: string,
-    severity: 'info' | 'success' | 'error' | 'warning'
-  ) => void;
-
   /* Widget-related state */
   activeWidgets: Widget[];
   setActiveWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
@@ -41,10 +35,6 @@ interface WidgetContextProps {
   setWidgetCapabilities: React.Dispatch<
     React.SetStateAction<WidgetCapabilities | null>
   >;
-
-  /* App-level loading (kept same name, provided by app context) */
-  widgetLoading: boolean;
-  setWidgetLoading: React.Dispatch<React.SetStateAction<boolean>>;
 
   /* Widget support state (widget context) */
   widgetSupported: boolean;
@@ -71,37 +61,13 @@ interface WidgetContextProps {
   setOpenWidgetId: React.Dispatch<React.SetStateAction<number | null>>;
   selectedWidget: string;
   setSelectedWidget: React.Dispatch<React.SetStateAction<string>>;
-
-  /* Alert-related state (from app context) */
-  openAlert: boolean;
-  setOpenAlert: React.Dispatch<React.SetStateAction<boolean>>;
-  alertContent: string;
-  setAlertContent: React.Dispatch<React.SetStateAction<string>>;
-  alertSeverity: 'info' | 'success' | 'error' | 'warning';
-  setAlertSeverity: React.Dispatch<
-    React.SetStateAction<'info' | 'success' | 'error' | 'warning'>
-  >;
-
-  /* Theme-related state (from app context) */
-  currentTheme: string;
-  setCurrentTheme: React.Dispatch<React.SetStateAction<string>>;
-
-  /* Global settings for the application (from app context) */
-  appSettings: any;
-  setAppSettings: React.Dispatch<React.SetStateAction<any>>;
-  jsonTheme: string;
-  setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
-
-  /* Selected videoplayer channel (from app context) */
-  currentChannel: string;
-  setCurrentChannel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 /* Creating the Widget context */
 const WidgetContext = createContext<WidgetContextProps | undefined>(undefined);
 
 /* Inner provider that sits under AppProvider so it can consume app state */
-const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
+export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
   /* Disabling logging by default, but can be enabled as needed */
@@ -123,26 +89,8 @@ const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
     highlight: boolean;
   }>({ id: null, active: false, clickBBox: false, highlight: false });
 
-  /* App-level state pulled from AppContext (names unchanged) */
-  const {
-    handleOpenAlert,
-    openAlert,
-    setOpenAlert,
-    alertContent,
-    setAlertContent,
-    alertSeverity,
-    setAlertSeverity,
-    currentTheme,
-    setCurrentTheme,
-    appSettings,
-    setAppSettings,
-    jsonTheme,
-    setJsonTheme,
-    widgetLoading,
-    setWidgetLoading,
-    currentChannel,
-    setCurrentChannel
-  } = useAppContext();
+  /* Global context */
+  const { handleOpenAlert, setWidgetLoading, currentChannel } = useAppContext();
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -428,68 +376,39 @@ const WidgetProviderInner: React.FC<{ children: React.ReactNode }> = ({
   };
 
   /****************************************************************************/
+  /* Provider */
+
+  const value: WidgetContextProps = {
+    activeDraggableWidget,
+    setActiveDraggableWidget,
+    activeWidgets,
+    setActiveWidgets,
+    widgetCapabilities,
+    setWidgetCapabilities,
+    widgetSupported,
+    setWidgetSupported,
+    selectedWidget,
+    setSelectedWidget,
+    openWidgetId,
+    setOpenWidgetId,
+    listWidgets,
+    listWidgetCapabilities,
+    addWidget,
+    addCustomWidget,
+    removeWidget,
+    removeAllWidgets,
+    updateWidget
+  };
 
   return (
-    <WidgetContext.Provider
-      value={{
-        activeDraggableWidget,
-        setActiveDraggableWidget,
-        activeWidgets,
-        setActiveWidgets,
-        widgetCapabilities,
-        setWidgetCapabilities,
-        widgetLoading,
-        setWidgetLoading,
-        widgetSupported,
-        setWidgetSupported,
-        selectedWidget,
-        setSelectedWidget,
-        openWidgetId,
-        setOpenWidgetId,
-        listWidgets,
-        listWidgetCapabilities,
-        addWidget,
-        addCustomWidget,
-        removeWidget,
-        removeAllWidgets,
-        updateWidget,
-        handleOpenAlert,
-        openAlert,
-        setOpenAlert,
-        alertContent,
-        setAlertContent,
-        alertSeverity,
-        setAlertSeverity,
-        currentTheme,
-        setCurrentTheme,
-        appSettings,
-        setAppSettings,
-        jsonTheme,
-        setJsonTheme,
-        currentChannel,
-        setCurrentChannel
-      }}
-    >
-      {children}
-    </WidgetContext.Provider>
-  );
-};
-
-/* Top-level provider that ensures AppProvider is mounted */
-export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
-  children
-}) => {
-  return (
-    <AppProvider>
-      <WidgetProviderInner>{children}</WidgetProviderInner>
-    </AppProvider>
+    <WidgetContext.Provider value={value}>{children}</WidgetContext.Provider>
   );
 };
 
 /* Hook to use the WidgetContext, with an error if used outside the provider */
-export const useWidgetContext = () => {
+export const useWidgetContext = (): WidgetContextProps => {
   const context = useContext(WidgetContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useWidgetContext must be used within a WidgetProvider');
   }
   return context;
