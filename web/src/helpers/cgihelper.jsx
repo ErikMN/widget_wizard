@@ -34,10 +34,15 @@ export const getCgiResponseJSON = async (path) => {
 export const jsonRequest = async (url, body) => {
   try {
     const response = await serverPost(url, JSON.stringify(body));
-    return response.json();
+    try {
+      return await response.json();
+    } catch (jsonError) {
+      console.error('jsonRequest: invalid JSON response', jsonError);
+      return null;
+    }
   } catch (error) {
-    // Response probably not JSON
-    console.error(error);
+    console.error('jsonRequest: network error', error);
+    return null;
   }
 };
 
