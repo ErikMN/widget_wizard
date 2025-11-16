@@ -123,7 +123,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (resp?.data) {
-        setOverlayCapabilities(resp.data);
+        setOverlayCapabilities(resp);
         setOverlaySupported(true);
       } else {
         setOverlaySupported(false);

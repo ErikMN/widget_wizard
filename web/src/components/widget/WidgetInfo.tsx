@@ -23,7 +23,7 @@ const WidgetInfo: React.FC = () => {
   }
 
   const handleNavigateToCapabilities = useCallback(() => {
-    navigate('/capabilities');
+    navigate('/widgetcapabilities');
   }, [navigate]);
 
   return (

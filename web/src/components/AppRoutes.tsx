@@ -4,9 +4,12 @@ import LoadingScreen from './LoadingScreen';
 /* Components */
 import App from './App';
 import Settings from './Settings';
-import WidgetCapabilities from './widget/WidgetCapabilities';
+/* Widgets */
 import WidgetHandler from './widget/WidgetHandler';
+import WidgetCapabilities from './widget/WidgetCapabilities';
+/* Overlays */
 import OverlayHandler from './overlay/OverlayHandler';
+import OverlayCapabilities from './overlay/OverlayCapabilities';
 
 const AppRoutes = () => {
   return (
@@ -26,8 +29,12 @@ const AppRoutes = () => {
           element={<LoadingScreen Component={Settings} />}
         />
         <Route
-          path="/capabilities"
+          path="/widgetcapabilities"
           element={<LoadingScreen Component={WidgetCapabilities} />}
+        />
+        <Route
+          path="/overlaycapabilities"
+          element={<LoadingScreen Component={OverlayCapabilities} />}
         />
 
         {/* Fallback */}

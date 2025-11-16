@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useScreenSizes } from '../../helpers/hooks.jsx';
 import { useOverlayContext } from './OverlayContext';
+import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
 const OverlayInfo: React.FC = () => {
@@ -12,9 +15,16 @@ const OverlayInfo: React.FC = () => {
   /* Overlay context */
   const { activeOverlays, overlaySupported } = useOverlayContext();
 
+  /* Navigation */
+  const navigate = useNavigate();
+
   if (!overlaySupported) {
     return null;
   }
+
+  const handleNavigateToCapabilities = useCallback(() => {
+    navigate('/overlaycapabilities');
+  }, [navigate]);
 
   return (
     <div
@@ -25,13 +35,25 @@ const OverlayInfo: React.FC = () => {
       }}
     >
       {/* Left-aligned icon */}
-      <LayersOutlinedIcon
-        sx={{
-          width: '20px',
-          height: '20px',
-          color: 'text.secondary'
-        }}
-      />
+      <Tooltip title="Show Overlay Capabilities JSON" arrow>
+        <div>
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label="Show Overlay Capabilities JSON"
+            onClick={handleNavigateToCapabilities}
+            edge="start"
+            disableRipple
+          >
+            <LayersOutlinedIcon
+              sx={{
+                width: '20px',
+                height: '20px',
+                color: 'text.secondary'
+              }}
+            />
+          </CustomStyledIconButton>
+        </div>
+      </Tooltip>
 
       {/* Centered text */}
       <Typography
