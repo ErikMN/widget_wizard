@@ -830,18 +830,17 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 };
 
 /******************************************************************************/
-/* Inner consumer of OverlayContext */
+/* Overlay BBoxes for all overlays in activeOverlays */
 
-interface OverlayBBoxInnerProps {
+interface OverlayBBoxProps {
   dimensions: Dimensions;
 }
 
-const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
+const OverlayBBox: React.FC<OverlayBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const { currentChannel } = useAppContext();
   const {
     activeOverlays,
-    activeOverlayId,
     onSelectOverlay,
     activeDraggableOverlay,
     setActiveDraggableOverlay
@@ -863,7 +862,7 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
         return;
       }
     }
-    /* Click outside any bbox: deactivate overlay */
+    /* Click outside a bbox but inside the video-player-overlay: deactivate overlay */
     setActiveDraggableOverlay({ id: null, active: false, highlight: false });
     onSelectOverlay(null);
   };
@@ -875,6 +874,7 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
   return (
     /* Overlay bounding boxes */
     <div
+      /* Handle clicks directly on this BBox */
       onPointerDown={handlePointerDown}
       style={{
         // backgroundColor: 'purple',
@@ -914,16 +914,6 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
         ))}
     </div>
   );
-};
-
-/******************************************************************************/
-/* Public wrapper (consumes shared OverlayProvider) */
-interface OverlayBBoxProps {
-  dimensions: Dimensions;
-}
-
-const OverlayBBox: React.FC<OverlayBBoxProps> = ({ dimensions }) => {
-  return <OverlayBBoxInner dimensions={dimensions} />;
 };
 
 /******************************************************************************/
