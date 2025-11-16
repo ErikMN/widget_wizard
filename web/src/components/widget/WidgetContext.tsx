@@ -151,8 +151,16 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse | null = await jsonRequest(W_CGI, payload);
       setWidgetLoading(false);
+
+      /* Backend missing or invalid JSON */
+      if (!resp) {
+        setWidgetSupported(false);
+        setActiveWidgets([]);
+        return;
+      }
+
       log('*** LIST ACTIVE WIDGETS', { resp });
       if (resp.error) {
         playSound(warningSoundUrl);
@@ -184,8 +192,16 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     try {
       setWidgetLoading(true);
-      const resp: WidgetCapabilities = await jsonRequest(W_CGI, payload);
+      const resp: WidgetCapabilities | null = await jsonRequest(W_CGI, payload);
       setWidgetLoading(false);
+
+      /* Backend missing or invalid JSON */
+      if (!resp) {
+        setWidgetSupported(false);
+        setActiveWidgets([]);
+        return;
+      }
+
       log('*** WIDGET CAPABILITIES', { resp });
       if (resp.error) {
         playSound(warningSoundUrl);
