@@ -172,14 +172,17 @@ export const Controls: React.FC<ControlsProps> = ({
   /* Hide controls in fullscreen and show them when cursor moves near bottom */
   const [showInFullscreen, setShowInFullscreen] = useState(false);
 
+  /* How far down to move the cursor in fullscreen mode until the controls show */
+  const FULLSCREEN_CONTROL_SHOW_PX_THRESHOLD = 25;
+
   useEffect(() => {
     if (!isFullscreen) {
       return;
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      /* 100px from bottom */
-      const threshold = window.innerHeight - 100;
+      const threshold =
+        window.innerHeight - FULLSCREEN_CONTROL_SHOW_PX_THRESHOLD;
       if (e.clientY >= threshold) {
         setShowInFullscreen(true);
       } else {
