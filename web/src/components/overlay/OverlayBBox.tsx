@@ -41,7 +41,6 @@ const LEFTRIGHT_THRESHOLD_X_PERCENT = 0.005;
 interface OverlayBoxProps {
   overlay: ImageOverlay | TextOverlay;
   dimensions: Dimensions;
-  isActive: boolean;
   onSelect: (id: number | null) => void;
   registerRef?: (el: HTMLElement | null) => void;
 }
@@ -49,12 +48,12 @@ interface OverlayBoxProps {
 const OverlayBox: React.FC<OverlayBoxProps> = ({
   overlay,
   dimensions,
-  isActive,
   onSelect,
   registerRef
 }) => {
   /* Global context */
   const {
+    activeOverlayId,
     updateImageOverlay,
     updateTextOverlay,
     activeDraggableOverlay,
@@ -91,6 +90,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     x: number;
     y: number;
   } | null>(null);
+
+  const overlayIsActive = activeDraggableOverlay?.id === overlay.identity;
 
   const baseWidth = useMemo(() => {
     if (typeof Resolution === 'string') {
@@ -443,14 +444,25 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 
   /* Handle clicking the bbox */
   const handleBBoxClick = useCallback(() => {
+    /* Skip the synthetic click that immediately follows a drag */
     if (suppressClickRef.current) {
-      /* Consume the suppressed click */
       suppressClickRef.current = false;
       return;
     }
-    /* Deactivate if click again in bbox */
-    onSelect(isActive ? null : overlay.identity);
-  }, [onSelect, overlay.identity, isActive]);
+
+    const overlayId = overlay.identity;
+    const isCurrentlyOpen = activeOverlayId === overlayId;
+
+    /* Activate bbox visually */
+    setActiveDraggableOverlay({
+      id: overlayId,
+      active: false,
+      highlight: false
+    });
+
+    /* Toggle dropdown: close if open, open if closed */
+    onSelect(isCurrentlyOpen ? null : overlayId);
+  }, [activeOverlayId, onSelect, overlay.identity, setActiveDraggableOverlay]);
 
   const handleClick = !appSettings.widgetDoubleClick
     ? () => handleBBoxClick()
@@ -614,8 +626,9 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                 position: 'absolute',
                 pointerEvents: 'auto',
                 cursor: isRotating ? 'grabbing' : 'move',
-                zIndex: isActive ? 1000 : 1,
-                opacity: appSettings.bboxOnlyShowActive && !isActive ? 0 : 1
+                zIndex: overlayIsActive ? 1000 : 1,
+                opacity:
+                  appSettings.bboxOnlyShowActive && !overlayIsActive ? 0 : 1
               }}
             >
               <Box
@@ -886,7 +899,6 @@ const OverlayBBoxInner: React.FC<OverlayBBoxInnerProps> = ({ dimensions }) => {
             key={overlay.identity}
             overlay={overlay}
             dimensions={dimensions}
-            isActive={overlay.identity === activeOverlayId}
             onSelect={onSelectOverlay}
             /* Each bbox has its own ref */
             registerRef={(el) => {
