@@ -29,7 +29,7 @@ import Fade from '@mui/material/Fade';
 import Typography from '@mui/material/Typography';
 
 /******************************************************************************/
-/* One BBox with scaling logic and click handlers */
+/* One WidgetBBox with scaling logic and click handlers */
 
 const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
@@ -42,14 +42,14 @@ const TOPBOTTOM_THRESHOLD_Y_PERCENT = 0.005;
 const LEFTRIGHT_THRESHOLD_X_PERCENT = 0.005;
 const LEFTRIGHT_THRESHOLD_Y_PERCENT = 0.02;
 
-interface BBoxProps {
+interface WidgetBoxProps {
   widget: Widget;
   dimensions: Dimensions;
   registerRef?: (el: HTMLElement | null) => void;
 }
 
 // prettier-ignore
-const BBox: React.FC<BBoxProps> = React.memo(({ widget, dimensions, registerRef }) => {
+const WidgetBox: React.FC<WidgetBoxProps> = React.memo(({ widget, dimensions, registerRef }) => {
   /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;
@@ -786,7 +786,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
           const widgetId = widget.generalParams.id;
           return (
             /* One BBox per active widget */
-            <BBox
+            <WidgetBox
               key={widget.generalParams.id}
               widget={widget}
               dimensions={dimensions}
