@@ -18,13 +18,14 @@ const OverlayInfo: React.FC = () => {
   /* Navigation */
   const navigate = useNavigate();
 
-  if (!overlaySupported) {
-    return null;
-  }
-
   const handleNavigateToCapabilities = useCallback(() => {
     navigate('/overlaycapabilities');
   }, [navigate]);
+
+  /* Early return must be after hooks */
+  if (!overlaySupported) {
+    return null;
+  }
 
   return (
     <div

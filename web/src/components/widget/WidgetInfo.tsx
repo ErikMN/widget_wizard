@@ -18,13 +18,14 @@ const WidgetInfo: React.FC = () => {
   /* Navigation */
   const navigate = useNavigate();
 
-  if (!widgetSupported) {
-    return null;
-  }
-
   const handleNavigateToCapabilities = useCallback(() => {
     navigate('/widgetcapabilities');
   }, [navigate]);
+
+  /* Early return must be after hooks */
+  if (!widgetSupported) {
+    return null;
+  }
 
   return (
     <div
