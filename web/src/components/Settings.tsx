@@ -31,6 +31,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
+import TvIcon from '@mui/icons-material/Tv';
 import Typography from '@mui/material/Typography';
 
 const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
@@ -654,7 +655,8 @@ const Settings: React.FC = () => {
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            marginTop: 4
+            marginTop: 2,
+            marginBottom: 2
           }}
         >
           <CustomButton onClick={handleResetDefaults} variant="outlined">
@@ -670,11 +672,21 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Video preview */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <TvIcon sx={{ marginRight: 1 }} />
+          <Typography id="preview" variant="h5" component="h2">
+            Preview
+          </Typography>
+        </Box>
         <Box
           sx={{
             display: 'flex',
             minHeight: isMobile ? '240px' : '540px',
-            marginTop: 2
+            marginTop: 2,
+            borderRadius: 1,
+            border: 1,
+            borderColor: 'divider',
+            overflow: 'hidden'
           }}
         >
           <VideoPlayer />
