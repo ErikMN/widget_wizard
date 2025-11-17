@@ -2,7 +2,7 @@
  * This context manages widget-related operations and state
  * throughout the app.
  */
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useTabVisibility } from '../../helpers/hooks.jsx';
 import { jsonRequest } from '../../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../../helpers/logger.js';
@@ -96,55 +96,58 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Widget endpoint communication functions */
 
   /* Updates the parameters of a widget */
-  const updateWidget = async (widgetItem: Widget) => {
-    const { type, ...updatedGeneralParams } = widgetItem.generalParams;
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'updateWidget',
-      params: {
-        generalParams: updatedGeneralParams,
-        widgetParams: widgetItem.widgetParams
-      }
-    };
-    try {
-      setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      setWidgetLoading(false);
-      if (resp.error) {
-        playSound(warningSoundUrl);
-        handleOpenAlert(resp.error.message, 'error');
-        return;
-      }
-      /* If response contains updated generalParams, update the widget state */
-      if (resp?.data?.generalParams) {
-        const updatedWidgetId = resp.data.generalParams.id;
-        setActiveWidgets((prevWidgets) =>
-          prevWidgets.map((widget) =>
-            widget.generalParams.id === updatedWidgetId
-              ? { ...widget, ...resp.data }
-              : widget
-          )
+  const updateWidget = useCallback(
+    async (widgetItem: Widget) => {
+      const { type, ...updatedGeneralParams } = widgetItem.generalParams;
+      const payload = {
+        apiVersion: API_VERSION,
+        method: 'updateWidget',
+        params: {
+          generalParams: updatedGeneralParams,
+          widgetParams: widgetItem.widgetParams
+        }
+      };
+      try {
+        setWidgetLoading(true);
+        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        setWidgetLoading(false);
+        if (resp.error) {
+          playSound(warningSoundUrl);
+          handleOpenAlert(resp.error.message, 'error');
+          return;
+        }
+        /* If response contains updated generalParams, update the widget state */
+        if (resp?.data?.generalParams) {
+          const updatedWidgetId = resp.data.generalParams.id;
+          setActiveWidgets((prevWidgets) =>
+            prevWidgets.map((widget) =>
+              widget.generalParams.id === updatedWidgetId
+                ? { ...widget, ...resp.data }
+                : widget
+            )
+          );
+        }
+        handleOpenAlert(
+          `Widget ${widgetItem.generalParams.id} updated`,
+          'success'
         );
+      } catch (error) {
+        setWidgetLoading(false);
+        playSound(warningSoundUrl);
+        handleOpenAlert(
+          `Widget ${widgetItem.generalParams.id} failed to update`,
+          'error'
+        );
+        console.error('Error:', error);
       }
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} updated`,
-        'success'
-      );
-    } catch (error) {
-      setWidgetLoading(false);
-      playSound(warningSoundUrl);
-      handleOpenAlert(
-        `Widget ${widgetItem.generalParams.id} failed to update`,
-        'error'
-      );
-      console.error('Error:', error);
-    }
-  };
+    },
+    [handleOpenAlert, setWidgetLoading]
+  );
 
   /* Lists all currently active widgets and their parameter values.
    * NOTE: This needs to be done after add, remove, update
    */
-  const listWidgets = async () => {
+  const listWidgets = useCallback(async () => {
     const payload = {
       apiVersion: API_VERSION,
       method: 'listWidgets'
@@ -179,13 +182,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
-  };
+  }, [handleOpenAlert, setWidgetLoading]);
 
   /* List widgets on tab switch */
   useTabVisibility(listWidgets);
 
   /* Lists all available widget types and their parameters */
-  const listWidgetCapabilities = async () => {
+  const listWidgetCapabilities = useCallback(async () => {
     const payload = {
       apiVersion: API_VERSION,
       method: 'listCapabilities'
@@ -225,144 +228,153 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
-  };
+  }, [handleOpenAlert, setWidgetLoading]);
 
   /* Adds a new widget and refreshes the widget list */
-  const addWidget = async (widgetType: string) => {
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'addWidget',
-      params: {
-        /* Default general widget parameter settings
-         * NOTE: We might not want defaults for _every_ general params here
-         * because they would overwrite custom per widget defaults.
-         */
-        generalParams: {
-          type: widgetType,
-          datasource: '#D0',
-          /* anchor: 'none', */
-          channel: parseInt(currentChannel, 10),
-          isVisible: true,
-          position: { x: 0, y: 0 },
-          size: 'medium',
-          transparency: 0,
-          updateTime: 1
-        },
-        widgetParams: {} as {
-          minAlarmThreshold?: { value: number; enabled: boolean };
-          maxAlarmThreshold?: { value: number; enabled: boolean };
+  const addWidget = useCallback(
+    async (widgetType: string) => {
+      const payload = {
+        apiVersion: API_VERSION,
+        method: 'addWidget',
+        params: {
+          /* Default general widget parameter settings
+           * NOTE: We might not want defaults for _every_ general params here
+           * because they would overwrite custom per widget defaults.
+           */
+          generalParams: {
+            type: widgetType,
+            datasource: '#D0',
+            /* anchor: 'none', */
+            channel: parseInt(currentChannel, 10),
+            isVisible: true,
+            position: { x: 0, y: 0 },
+            size: 'medium',
+            transparency: 0,
+            updateTime: 1
+          },
+          widgetParams: {} as {
+            minAlarmThreshold?: { value: number; enabled: boolean };
+            maxAlarmThreshold?: { value: number; enabled: boolean };
+          }
         }
-      }
-    };
-    /* NOTE: Official web UI seems to need these to move the bbox */
-    if (widgetType === 'linegraph' || widgetType === 'meter') {
-      payload.params.widgetParams.minAlarmThreshold = {
-        value: 0,
-        enabled: false
       };
-      payload.params.widgetParams.maxAlarmThreshold = {
-        value: 100,
-        enabled: false
+      /* NOTE: Official web UI seems to need these to move the bbox */
+      if (widgetType === 'linegraph' || widgetType === 'meter') {
+        payload.params.widgetParams.minAlarmThreshold = {
+          value: 0,
+          enabled: false
+        };
+        payload.params.widgetParams.maxAlarmThreshold = {
+          value: 100,
+          enabled: false
+        };
+      }
+
+      try {
+        setWidgetLoading(true);
+        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        setWidgetLoading(false);
+        log('*** ADD WIDGET', { resp });
+        if (resp.error) {
+          playSound(warningSoundUrl);
+          handleOpenAlert(resp.error.message, 'error');
+          return;
+        }
+        if (resp?.data) {
+          /* After adding the widget, refresh the active widgets list */
+          await listWidgets();
+        }
+        playSound(newSoundUrl);
+        handleOpenAlert(`Added ${widgetType}`, 'success');
+      } catch (error) {
+        setWidgetLoading(false);
+        playSound(warningSoundUrl);
+        handleOpenAlert(`Failed to add ${widgetType}`, 'error');
+        console.error('Error:', error);
+      }
+    },
+    [currentChannel, listWidgets, handleOpenAlert, setWidgetLoading]
+  );
+
+  const addCustomWidget = useCallback(
+    async (params: Widget) => {
+      /* Strip stuff not accepted by addWidget */
+      const { height, width, generalParams, ...restParams } = params;
+      const { id, ...restGeneralParams } = generalParams || {};
+      const payload = {
+        apiVersion: API_VERSION,
+        method: 'addWidget',
+        params: {
+          ...restParams,
+          generalParams: restGeneralParams
+        }
       };
-    }
-
-    try {
-      setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      setWidgetLoading(false);
-      log('*** ADD WIDGET', { resp });
-      if (resp.error) {
+      try {
+        setWidgetLoading(true);
+        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        setWidgetLoading(false);
+        log('*** ADD WIDGET', { resp });
+        if (resp.error) {
+          playSound(warningSoundUrl);
+          handleOpenAlert(resp.error.message, 'error');
+          return;
+        }
+        if (resp?.data) {
+          /* After adding the widget, refresh the active widgets list */
+          await listWidgets();
+        }
+        playSound(newSoundUrl);
+        handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
+      } catch (error) {
+        setWidgetLoading(false);
         playSound(warningSoundUrl);
-        handleOpenAlert(resp.error.message, 'error');
-        return;
+        handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
+        console.error('Error:', error);
       }
-      if (resp?.data) {
-        /* After adding the widget, refresh the active widgets list */
-        await listWidgets();
-      }
-      playSound(newSoundUrl);
-      handleOpenAlert(`Added ${widgetType}`, 'success');
-    } catch (error) {
-      setWidgetLoading(false);
-      playSound(warningSoundUrl);
-      handleOpenAlert(`Failed to add ${widgetType}`, 'error');
-      console.error('Error:', error);
-    }
-  };
-
-  const addCustomWidget = async (params: Widget) => {
-    /* Strip stuff not accepted by addWidget */
-    const { height, width, generalParams, ...restParams } = params;
-    const { id, ...restGeneralParams } = generalParams || {};
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'addWidget',
-      params: {
-        ...restParams,
-        generalParams: restGeneralParams
-      }
-    };
-    try {
-      setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      setWidgetLoading(false);
-      log('*** ADD WIDGET', { resp });
-      if (resp.error) {
-        playSound(warningSoundUrl);
-        handleOpenAlert(resp.error.message, 'error');
-        return;
-      }
-      if (resp?.data) {
-        /* After adding the widget, refresh the active widgets list */
-        await listWidgets();
-      }
-      playSound(newSoundUrl);
-      handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
-    } catch (error) {
-      setWidgetLoading(false);
-      playSound(warningSoundUrl);
-      handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
-      console.error('Error:', error);
-    }
-  };
+    },
+    [listWidgets, handleOpenAlert, setWidgetLoading]
+  );
 
   /* Removes a specified widget */
-  const removeWidget = async (widgetID: number) => {
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'removeWidget',
-      params: {
-        generalParams: {
-          id: widgetID
+  const removeWidget = useCallback(
+    async (widgetID: number) => {
+      const payload = {
+        apiVersion: API_VERSION,
+        method: 'removeWidget',
+        params: {
+          generalParams: {
+            id: widgetID
+          }
         }
-      }
-    };
-    try {
-      setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
-      setWidgetLoading(false);
-      log('*** REMOVE WIDGET', { resp });
-      if (resp.error) {
+      };
+      try {
+        setWidgetLoading(true);
+        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        setWidgetLoading(false);
+        log('*** REMOVE WIDGET', { resp });
+        if (resp.error) {
+          playSound(warningSoundUrl);
+          handleOpenAlert(resp.error.message, 'error');
+          return;
+        }
+        /* Update activeWidgets state by filtering out the removed widget */
+        setActiveWidgets((prevWidgets) =>
+          prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
+        );
+        playSound(trashSoundUrl);
+        handleOpenAlert(`Removed widget ${widgetID}`, 'success');
+      } catch (error) {
+        setWidgetLoading(false);
+        handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
+        console.error('Error:', error);
         playSound(warningSoundUrl);
-        handleOpenAlert(resp.error.message, 'error');
-        return;
       }
-      /* Update activeWidgets state by filtering out the removed widget */
-      setActiveWidgets((prevWidgets) =>
-        prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
-      );
-      playSound(trashSoundUrl);
-      handleOpenAlert(`Removed widget ${widgetID}`, 'success');
-    } catch (error) {
-      setWidgetLoading(false);
-      handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
-      console.error('Error:', error);
-      playSound(warningSoundUrl);
-    }
-  };
+    },
+    [handleOpenAlert, setWidgetLoading]
+  );
 
   /* Removes all currently active widgets */
-  const removeAllWidgets = async () => {
+  const removeAllWidgets = useCallback(async () => {
     const payload = {
       apiVersion: API_VERSION,
       method: 'removeAllWidgets'
@@ -389,7 +401,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     listWidgets();
     /* Reset dropdown state after all widgets are removed */
     setOpenWidgetId(null);
-  };
+  }, [listWidgets, handleOpenAlert, setWidgetLoading]);
 
   /****************************************************************************/
   /* Provider */
