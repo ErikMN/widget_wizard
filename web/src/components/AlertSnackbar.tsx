@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { appbarHeight } from './constants';
 import { playSound } from '../helpers/utils';
 import lockSoundUrl from '../assets/audio/lock.oga';
 import unlockSoundUrl from '../assets/audio/unlock.oga';
@@ -63,7 +64,13 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
         isPersistent ? null : alertSeverity === 'success' ? 2000 : 6000
       }
       onClose={handleCloseAlert}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      sx={{
+        '&.MuiSnackbar-root': {
+          top: `calc(${appbarHeight} + ${theme.spacing(2)})`,
+          right: theme.spacing(2)
+        }
+      }}
     >
       <div
         onClick={() => {
