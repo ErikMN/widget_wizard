@@ -13,6 +13,7 @@ import JsonEditor from '../JsonEditor';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -51,7 +52,8 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     removeOverlay,
     updateTextOverlay,
     activeDraggableOverlay,
-    setActiveDraggableOverlay
+    setActiveDraggableOverlay,
+    duplicateOverlay
   } = useOverlayContext();
 
   /* Local state */
@@ -556,7 +558,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             updateLabel="Update text overlay"
           />
 
-          {/* Action buttons */}
+          {/* Remove and Duplicate buttons */}
           <Box
             sx={{
               display: 'flex',
@@ -566,6 +568,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
               mt: 2
             }}
           >
+            {/* Duplicate text overlay button */}
             <CustomButton
               color="error"
               variant="contained"
@@ -578,6 +581,20 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
               }}
             >
               Remove
+            </CustomButton>
+            {/* Duplicate text overlay button */}
+            <CustomButton
+              color="secondary"
+              variant="contained"
+              onClick={() => duplicateOverlay(overlay)}
+              startIcon={<ContentCopyIcon />}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
+            >
+              Duplicate
             </CustomButton>
           </Box>
 

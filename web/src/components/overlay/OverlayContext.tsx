@@ -42,6 +42,7 @@ interface OverlayContextProps {
   removeAllOverlays: () => Promise<void>;
   updateImageOverlay: (overlay: ImageOverlay) => Promise<void>;
   updateTextOverlay: (overlay: TextOverlay) => Promise<void>;
+  duplicateOverlay: (overlay: ImageOverlay | TextOverlay) => Promise<void>;
   activeDraggableOverlay: {
     id: number | null;
     active: boolean;
@@ -397,6 +398,36 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     [listOverlays, handleOpenAlert]
   );
 
+  /* Duplicates an existing overlay (using accepted fields) */
+  const duplicateOverlay = useCallback(
+    async (overlay: ImageOverlay | TextOverlay) => {
+      try {
+        /* Image overlay */
+        if ('overlayPath' in overlay) {
+          await addImageOverlay({
+            camera: overlay.camera,
+            overlayPath: overlay.overlayPath,
+            position: overlay.position
+          });
+          return;
+        }
+
+        /* Text overlay */
+        await addTextOverlay({
+          camera: overlay.camera,
+          text: overlay.text,
+          position: overlay.position,
+          textColor: overlay.textColor,
+          fontSize: overlay.fontSize,
+          reference: overlay.reference
+        });
+      } catch (err) {
+        console.error('Failed to duplicate overlay:', err);
+      }
+    },
+    [addImageOverlay, addTextOverlay]
+  );
+
   /****************************************************************************/
   /* Provider */
 
@@ -416,7 +447,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     updateImageOverlay,
     updateTextOverlay,
     activeDraggableOverlay,
-    setActiveDraggableOverlay
+    setActiveDraggableOverlay,
+    duplicateOverlay
   };
 
   return (

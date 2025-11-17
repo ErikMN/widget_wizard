@@ -12,6 +12,7 @@ import JsonEditor from '../JsonEditor';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -44,7 +45,8 @@ const OverlayItemImage: React.FC<{
     updateImageOverlay,
     imageFiles,
     activeDraggableOverlay,
-    setActiveDraggableOverlay
+    setActiveDraggableOverlay,
+    duplicateOverlay
   } = useOverlayContext();
 
   /* Local state */
@@ -396,7 +398,7 @@ const OverlayItemImage: React.FC<{
             updateLabel="Update image overlay"
           />
 
-          {/* Action buttons */}
+          {/* Remove and Duplicate buttons */}
           <Box
             sx={{
               display: 'flex',
@@ -405,6 +407,7 @@ const OverlayItemImage: React.FC<{
               mt: 2
             }}
           >
+            {/* Remove image overlay button */}
             <CustomButton
               color="error"
               variant="contained"
@@ -412,6 +415,20 @@ const OverlayItemImage: React.FC<{
               startIcon={<DeleteIcon />}
             >
               Remove
+            </CustomButton>
+            {/* Duplicate image overlay button */}
+            <CustomButton
+              color="secondary"
+              variant="contained"
+              onClick={() => duplicateOverlay(overlay)}
+              startIcon={<ContentCopyIcon />}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
+            >
+              Duplicate
             </CustomButton>
           </Box>
 
