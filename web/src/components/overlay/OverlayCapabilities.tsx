@@ -8,6 +8,7 @@ import OverlaysDisabled from './OverlaysDisabled';
 import ReactJson from 'react-json-view';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import FormControl from '@mui/material/FormControl';
@@ -233,6 +234,7 @@ const OverlayCapabilities: React.FC = () => {
             onClick={handleBack}
             sx={{ marginTop: 2 }}
             variant="contained"
+            startIcon={<ArrowBackIcon />}
           >
             Back
           </CustomButton>
