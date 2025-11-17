@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Divider from '@mui/material/Divider';
 import ErrorIcon from '@mui/icons-material/Error';
+import Slide from '@mui/material/Slide';
 import Snackbar from '@mui/material/Snackbar';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
@@ -18,6 +19,10 @@ interface AlertSnackbarProps {
   alertContent: string;
   handleCloseAlert: () => void;
 }
+
+const SlideTransition = (props: any) => {
+  return <Slide {...props} direction="left" />;
+};
 
 const getIconForSeverity = (severity: string) => {
   switch (severity) {
@@ -65,6 +70,9 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
       }
       onClose={handleCloseAlert}
       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      slots={{
+        transition: SlideTransition
+      }}
       sx={{
         '&.MuiSnackbar-root': {
           top: `calc(${appbarHeight} + ${theme.spacing(2)})`,
@@ -92,14 +100,46 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
             display: 'flex',
             alignItems: 'center',
             cursor: 'pointer',
+            position: 'relative',
             border: isPersistent
               ? `2px solid ${getBorderColor(alertSeverity, theme)}`
               : 'none',
             backgroundColor: isPersistent
               ? getBackgroundColor(theme)
-              : undefined
+              : undefined,
+            '@keyframes snackbar-timer': {
+              from: { transform: 'scaleX(1)' },
+              to: { transform: 'scaleX(0)' }
+            }
           }}
         >
+          {/* Timer bar */}
+          {!isPersistent && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                height: '3px',
+                width: '100%',
+                backgroundColor: theme.palette.grey[500],
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: '100%',
+                  backgroundColor: theme.palette.primary.main,
+                  transformOrigin: 'left',
+                  animation: `snackbar-timer ${
+                    alertSeverity === 'success' ? 2000 : 6000
+                  }ms linear forwards`
+                }}
+              />
+            </div>
+          )}
+
           <div
             style={{
               display: 'flex',
