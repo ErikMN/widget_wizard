@@ -697,7 +697,13 @@ const Settings: React.FC = () => {
           open={openAlert}
           autoHideDuration={2000}
           onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          sx={{
+            '&.MuiSnackbar-root': {
+              top: theme.spacing(2),
+              right: theme.spacing(2)
+            }
+          }}
         >
           <Alert
             onClose={handleCloseAlert}
