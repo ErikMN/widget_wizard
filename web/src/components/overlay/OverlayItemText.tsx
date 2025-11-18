@@ -3,12 +3,14 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
+import { saveOverlayBackup } from './overlayBackupStorage';
 import { TextOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import JsonEditor from '../JsonEditor';
+import { useAppContext } from '../AppContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -27,6 +29,7 @@ import InputLabel from '@mui/material/InputLabel';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
+import SaveIcon from '@mui/icons-material/Save';
 import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
@@ -40,12 +43,14 @@ interface OverlayItemTextProps {
   overlay: TextOverlay;
   isOpen: boolean;
   toggleDropdown: (id: number) => void;
+  onBackupRequested: () => void;
 }
 
 const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   overlay,
   isOpen,
-  toggleDropdown
+  toggleDropdown,
+  onBackupRequested
 }) => {
   /* Global state */
   const {
@@ -55,6 +60,8 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setActiveDraggableOverlay,
     duplicateOverlay
   } = useOverlayContext();
+
+  const { handleOpenAlert } = useAppContext();
 
   /* Local state */
   const [text, setText] = useState(overlay.text ?? '');
@@ -558,7 +565,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             updateLabel="Update text overlay"
           />
 
-          {/* Remove and Duplicate buttons */}
+          {/* Remove, Backup and Duplicate buttons */}
           <Box
             sx={{
               display: 'flex',
@@ -581,6 +588,20 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
               }}
             >
               Remove
+            </CustomButton>
+            {/* Backup button */}
+            <CustomButton
+              color="secondary"
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={() => {
+                saveOverlayBackup(overlay);
+                onBackupRequested();
+                handleOpenAlert('Backup created', 'success');
+              }}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              Backup
             </CustomButton>
             {/* Duplicate text overlay button */}
             <CustomButton

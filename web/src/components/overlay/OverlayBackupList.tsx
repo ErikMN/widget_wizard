@@ -1,0 +1,379 @@
+/*
+ * OverlayBackupList: Backup and restore list for overlays.
+ */
+import React, { useState, useCallback } from 'react';
+import {
+  restoreOverlayBackup,
+  deleteOverlayBackup,
+  clearOverlayBackups
+} from './overlayBackupStorage';
+import { useOverlayContext } from './OverlayContext';
+import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
+import { useAppContext } from '../AppContext';
+/* MUI */
+import ArchiveIcon from '@mui/icons-material/Archive';
+import Box from '@mui/material/Box';
+import Collapse from '@mui/material/Collapse';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RestoreIcon from '@mui/icons-material/Restore';
+import Typography from '@mui/material/Typography';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+
+const OverlayBackupList: React.FC<{
+  backupList: any[];
+  setBackupList: (list: any[]) => void;
+}> = ({ backupList, setBackupList }) => {
+  /* Global context */
+  const { duplicateOverlay } = useOverlayContext();
+  const { handleOpenAlert } = useAppContext();
+
+  /* Local state */
+  const [isOpen, setIsOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openRestoreDialog, setOpenRestoreDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  /* Restore one backup */
+  const handleRestore = useCallback(
+    (index: number) => {
+      const restored = restoreOverlayBackup(index);
+      if (!restored) {
+        return;
+      }
+
+      duplicateOverlay(restored);
+
+      /* Parent manages the actual list */
+      setBackupList([...backupList]);
+
+      handleOpenAlert('Backup restored', 'success');
+    },
+    [duplicateOverlay, backupList, setBackupList, handleOpenAlert]
+  );
+
+  /* Delete one backup */
+  const handleDelete = useCallback(
+    (index: number) => {
+      deleteOverlayBackup(index);
+
+      const updated = [...backupList];
+      updated.splice(index, 1);
+      setBackupList(updated);
+
+      handleOpenAlert('Backup deleted', 'success');
+    },
+    [backupList, setBackupList, handleOpenAlert]
+  );
+
+  const handleOpenRestoreDialog = useCallback((index: number) => {
+    setSelectedIndex(index);
+    setOpenRestoreDialog(true);
+  }, []);
+
+  const handleOpenDeleteDialog = useCallback((index: number) => {
+    setSelectedIndex(index);
+    setOpenDeleteDialog(true);
+  }, []);
+
+  const handleCloseRestoreDialog = useCallback(() => {
+    setOpenRestoreDialog(false);
+    setSelectedIndex(null);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setOpenDeleteDialog(false);
+    setSelectedIndex(null);
+  }, []);
+
+  const handleConfirmRestore = useCallback(() => {
+    if (selectedIndex == null) {
+      return;
+    }
+    handleRestore(selectedIndex);
+    setOpenRestoreDialog(false);
+    setSelectedIndex(null);
+  }, [selectedIndex, handleRestore]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (selectedIndex == null) {
+      return;
+    }
+    handleDelete(selectedIndex);
+    setOpenDeleteDialog(false);
+    setSelectedIndex(null);
+  }, [selectedIndex, handleDelete]);
+
+  /* Clear all backups */
+  const handleClearAll = useCallback(() => {
+    setOpenDialog(true);
+  }, []);
+
+  const handleDialogClose = useCallback(() => {
+    setOpenDialog(false);
+  }, []);
+
+  const handleConfirmClearAll = useCallback(() => {
+    clearOverlayBackups();
+    setBackupList([]);
+
+    handleOpenAlert('All backups cleared', 'success');
+    setOpenDialog(false);
+  }, [setBackupList, handleOpenAlert]);
+
+  return (
+    <Box sx={{ marginTop: 2 }}>
+      {/* Header button */}
+      <CustomButton
+        variant="outlined"
+        fullWidth
+        onClick={() => setIsOpen((prev) => !prev)}
+        sx={(theme) => ({
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: 1,
+          color: 'text.primary',
+          backgroundColor: isOpen ? 'primary.light' : 'unset',
+          borderColor: isOpen ? 'primary.main' : 'grey.600',
+          borderBottomLeftRadius: isOpen ? '0px' : '4px',
+          borderBottomRightRadius: isOpen ? '0px' : '4px',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          ...(theme.palette.mode === 'dark'
+            ? { textShadow: '0px 1px 4px rgba(0,0,0,0.8)' }
+            : { textShadow: '0px 1px 2px rgba(255,255,255,0.8)' })
+        })}
+        startIcon={<ArchiveIcon color="primary" />}
+        endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+          Overlay backups
+        </Typography>
+      </CustomButton>
+
+      {/* Contents */}
+      <Collapse in={isOpen}>
+        <Box
+          sx={(theme) => ({
+            backgroundColor: theme.palette.background.default,
+            padding: '8px',
+            border: `1px solid ${theme.palette.grey[600]}`,
+            borderTop: 'none',
+            borderRadius: '0 0 4px 4px'
+          })}
+        >
+          {/* Clear all button */}
+          {backupList.length > 0 && (
+            <CustomButton
+              color="error"
+              variant="contained"
+              startIcon={<DeleteIcon />}
+              sx={{ mb: 1 }}
+              onClick={handleClearAll}
+            >
+              Clear all
+            </CustomButton>
+          )}
+
+          {backupList.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No backups available
+            </Typography>
+          ) : (
+            backupList.map((backup, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '4px 6px',
+                  marginBottom: 1,
+                  borderRadius: '4px',
+                  backgroundColor: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.grey[800]
+                      : theme.palette.grey[200],
+                  border: (theme) => `1px solid ${theme.palette.grey[600]}`
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    marginRight: 1,
+                    fontWeight: 500
+                  }}
+                >
+                  {backup.overlayPath
+                    ? backup.overlayPath.split('/').pop()
+                    : 'Text overlay'}
+                </Typography>
+
+                <CustomButton
+                  color="primary"
+                  variant="outlined"
+                  startIcon={<RestoreIcon />}
+                  sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
+                  onClick={() => handleOpenRestoreDialog(index)}
+                >
+                  Restore
+                </CustomButton>
+
+                <CustomButton
+                  color="error"
+                  variant="outlined"
+                  startIcon={<DeleteIcon />}
+                  sx={{ whiteSpace: 'nowrap' }}
+                  onClick={() => handleOpenDeleteDialog(index)}
+                >
+                  Delete
+                </CustomButton>
+              </Box>
+            ))
+          )}
+        </Box>
+      </Collapse>
+
+      {/* Restore confirmation dialog */}
+      <Dialog
+        open={openRestoreDialog}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleCloseRestoreDialog();
+        }}
+        aria-labelledby="restore-dialog-title"
+        aria-describedby="restore-dialog-description"
+      >
+        <DialogTitle id="restore-dialog-title">
+          <Box display="flex" alignItems="center">
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Restore Backup`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="restore-dialog-description">
+            Are you sure you want to restore this overlay backup?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={handleCloseRestoreDialog}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={handleConfirmRestore}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleCloseDeleteDialog();
+        }}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          <Box display="flex" alignItems="center">
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Delete Backup`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete this overlay backup? This action
+            cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={handleCloseDeleteDialog}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={handleConfirmDelete}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Clear all confirmation dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleDialogClose();
+        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          <Box display="flex" alignItems="center">
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Clear All Backups`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to remove all overlay backups? This action
+            cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={handleDialogClose}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={handleConfirmClearAll}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default OverlayBackupList;

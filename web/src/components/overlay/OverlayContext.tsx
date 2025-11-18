@@ -231,6 +231,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
             text: params?.text ?? 'Hello World!',
             position: params?.position ?? 'topLeft',
             textColor: params?.textColor ?? 'white',
+            textBGColor: params?.textBGColor ?? 'transparent',
+            textOLColor: params?.textOLColor ?? 'black',
             ...(params?.fontSize ? { fontSize: params.fontSize } : {}),
             reference: params?.reference ?? 'channel'
           }

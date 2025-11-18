@@ -10,6 +10,8 @@ import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
 import { CustomButton } from './../CustomComponents';
+import WidgetBackupList from './WidgetBackupList';
+import { loadWidgetBackups } from './widgetBackupStorage';
 import messageSoundUrl from '../../assets/audio/message.oga';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -33,6 +35,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [backupList, setBackupList] = useState(loadWidgetBackups());
 
   /* Global context */
   const {
@@ -207,6 +210,9 @@ const WidgetHandler: React.FC = () => {
         </Tooltip>
       </Box>
 
+      {/* Global widget backup list */}
+      <WidgetBackupList backupList={backupList} setBackupList={setBackupList} />
+
       {/* Remove all widgets confirmation dialog */}
       <Dialog
         open={openDialog}
@@ -274,6 +280,7 @@ const WidgetHandler: React.FC = () => {
               key={widget.generalParams.id}
               widget={widget}
               toggleDropdown={toggleDropdown}
+              onBackupRequested={() => setBackupList(loadWidgetBackups())}
             />
           ))}
       </Box>

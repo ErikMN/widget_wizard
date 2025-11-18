@@ -3,11 +3,13 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
+import { saveOverlayBackup } from './overlayBackupStorage';
 import { ImageOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import JsonEditor from '../JsonEditor';
+import { useAppContext } from '../AppContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -27,6 +29,7 @@ import InputLabel from '@mui/material/InputLabel';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import MenuItem from '@mui/material/MenuItem';
+import SaveIcon from '@mui/icons-material/Save';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -38,7 +41,8 @@ const OverlayItemImage: React.FC<{
   overlay: ImageOverlay;
   isOpen: boolean;
   toggleDropdown: (id: number) => void;
-}> = ({ overlay, isOpen, toggleDropdown }) => {
+  onBackupRequested: () => void;
+}> = ({ overlay, isOpen, toggleDropdown, onBackupRequested }) => {
   /* Global state */
   const {
     removeOverlay,
@@ -48,6 +52,8 @@ const OverlayItemImage: React.FC<{
     setActiveDraggableOverlay,
     duplicateOverlay
   } = useOverlayContext();
+
+  const { handleOpenAlert } = useAppContext();
 
   /* Local state */
   const [selectedImage, setSelectedImage] = useState(overlay.overlayPath);
@@ -400,7 +406,7 @@ const OverlayItemImage: React.FC<{
             updateLabel="Update image overlay"
           />
 
-          {/* Remove and Duplicate buttons */}
+          {/* Remove, Backup and Duplicate buttons */}
           <Box
             sx={{
               display: 'flex',
@@ -417,6 +423,20 @@ const OverlayItemImage: React.FC<{
               startIcon={<DeleteIcon />}
             >
               Remove
+            </CustomButton>
+            {/* Backup overlay button */}
+            <CustomButton
+              color="secondary"
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={() => {
+                saveOverlayBackup(overlay);
+                onBackupRequested();
+                handleOpenAlert('Backup created', 'success');
+              }}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              Backup
             </CustomButton>
             {/* Duplicate image overlay button */}
             <CustomButton

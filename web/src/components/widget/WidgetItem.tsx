@@ -10,6 +10,8 @@ import JsonEditor from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
 import messageSoundUrl from '../../assets/audio/message.oga';
+import { saveWidgetBackup } from './widgetBackupStorage';
+import { useAppContext } from '../AppContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -23,6 +25,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SaveIcon from '@mui/icons-material/Save';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
@@ -32,9 +35,14 @@ import '../../assets/css/prism-theme.css';
 interface WidgetItemProps {
   widget: Widget;
   toggleDropdown: (id: number) => void;
+  onBackupRequested: () => void;
 }
 
-const WidgetItem: React.FC<WidgetItemProps> = ({ widget, toggleDropdown }) => {
+const WidgetItem: React.FC<WidgetItemProps> = ({
+  widget,
+  toggleDropdown,
+  onBackupRequested
+}) => {
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
@@ -63,6 +71,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({ widget, toggleDropdown }) => {
     setOpenWidgetId,
     activeDraggableWidget
   } = useWidgetContext();
+
+  const { handleOpenAlert } = useAppContext();
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {
@@ -332,13 +342,14 @@ const WidgetItem: React.FC<WidgetItemProps> = ({ widget, toggleDropdown }) => {
             </DialogActions>
           </Dialog>
 
-          {/* Remove and Duplicate buttons*/}
+          {/* Remove, Backup and Duplicate buttons*/}
           <Box
             sx={{
               marginTop: 2,
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              gap: 1.5
             }}
           >
             {/* Remove widget button */}
@@ -354,6 +365,24 @@ const WidgetItem: React.FC<WidgetItemProps> = ({ widget, toggleDropdown }) => {
               }}
             >
               Remove
+            </CustomButton>
+            {/* Backup widget button */}
+            <CustomButton
+              color="secondary"
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={() => {
+                saveWidgetBackup(widget);
+                onBackupRequested();
+                handleOpenAlert('Widget backup created', 'success');
+              }}
+              sx={{
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
+            >
+              Backup
             </CustomButton>
             {/* Duplicate widget button */}
             <CustomButton

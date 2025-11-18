@@ -5,6 +5,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { useOverlayContext } from './OverlayContext';
+import OverlayBackupList from './OverlayBackupList';
+import { loadOverlayBackups } from './overlayBackupStorage';
 import OverlayItemImage from './OverlayItemImage';
 import OverlayItemText from './OverlayItemText';
 import OverlaysDisabled from './OverlaysDisabled';
@@ -48,6 +50,7 @@ const OverlayHandler: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedType, setSelectedType] = useState<'image' | 'text'>('image');
   const [selectedImageFile, setSelectedImageFile] = useState<string>('');
+  const [backupList, setBackupList] = useState(loadOverlayBackups());
 
   /* Component mount: Calls listOverlayCapabilities and listOverlays */
   useEffect(() => {
@@ -192,6 +195,12 @@ const OverlayHandler: React.FC = () => {
         </Box>
       )}
 
+      {/* Global overlay backup list */}
+      <OverlayBackupList
+        backupList={backupList}
+        setBackupList={setBackupList}
+      />
+
       {/* Confirm Remove All Dialog */}
       <Dialog
         open={openDialog}
@@ -265,6 +274,7 @@ const OverlayHandler: React.FC = () => {
                   overlay={overlay}
                   isOpen={isOpen}
                   toggleDropdown={toggleDropdown}
+                  onBackupRequested={() => setBackupList(loadOverlayBackups())}
                 />
               );
             }
@@ -275,6 +285,7 @@ const OverlayHandler: React.FC = () => {
                 overlay={overlay}
                 isOpen={isOpen}
                 toggleDropdown={toggleDropdown}
+                onBackupRequested={() => setBackupList(loadOverlayBackups())}
               />
             );
           })}
