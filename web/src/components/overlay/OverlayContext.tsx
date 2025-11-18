@@ -88,7 +88,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   /* Response helper */
-  const handleResponse = (json: any, successMsg: string) => {
+  const handleResponse = (json: any, successMsg: string | null = null) => {
     if (json?.error) {
       playSound(warningSoundUrl);
       handleOpenAlert(
@@ -98,7 +98,10 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       console.error('Overlay API error:', json.error);
       return false;
     }
-    handleOpenAlert(successMsg, 'success');
+
+    if (successMsg) {
+      handleOpenAlert(successMsg, 'success');
+    }
 
     return true;
   };
@@ -327,9 +330,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] setImage:', resp);
 
-        if (
-          !handleResponse(resp, `Updated image overlay #${overlay.identity}`)
-        ) {
+        if (!handleResponse(resp)) {
           return;
         }
 
@@ -378,9 +379,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] setText:', json);
 
-        if (
-          !handleResponse(json, `Updated text overlay #${overlay.identity}`)
-        ) {
+        if (!handleResponse(json)) {
           return;
         }
 

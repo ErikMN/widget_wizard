@@ -127,10 +127,6 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             )
           );
         }
-        handleOpenAlert(
-          `Widget ${widgetItem.generalParams.id} updated`,
-          'success'
-        );
       } catch (error) {
         setWidgetLoading(false);
         playSound(warningSoundUrl);
