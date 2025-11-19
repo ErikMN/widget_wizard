@@ -225,6 +225,25 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     px = Math.max(0, Math.min(px, dimensions.pixelWidth - wPx));
     py = Math.max(0, Math.min(py, dimensions.pixelHeight - hPx));
 
+    /* HACK: For some reason the rotated text overlays has the pivot point set
+     * to center and the non rotated pivot point set to top-left.
+     * We need to check if the text overlay is rotated or not to make sure the
+     * bbox is properly aligned.
+     */
+    const isTextOverlay = !('overlayPath' in overlay);
+    const rotationDeg =
+      isTextOverlay &&
+      'rotation' in overlay &&
+      typeof overlay.rotation === 'number'
+        ? overlay.rotation
+        : 0;
+
+    if (isTextOverlay && Math.abs(rotationDeg) > EPSILON) {
+      /* Shift bbox origin so rotation around center keeps visual alignment */
+      px -= wPx / 2;
+      py -= hPx / 2;
+    }
+
     return { x: px, y: py };
   }, [
     overlay.position,
