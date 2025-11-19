@@ -75,8 +75,10 @@ const OverlayItemImage: React.FC<{
     setIsReady(true);
   }, []);
 
-  /* Sync position from context safely */
+  /* Sync position and overlayPath from context safely */
   useEffect(() => {
+    setSelectedImage(overlay.overlayPath);
+
     if (Array.isArray(overlay.position)) {
       const pos = overlay.position as [number, number];
       setPosition('custom');
@@ -97,7 +99,7 @@ const OverlayItemImage: React.FC<{
       /* Any other string is treated as "custom" */
       setPosition('custom');
     }
-  }, [overlay.position]);
+  }, [overlay.overlayPath, overlay.position]);
 
   const label = useMemo(
     () => overlay.overlayPath.split('/').pop() ?? 'Image',
