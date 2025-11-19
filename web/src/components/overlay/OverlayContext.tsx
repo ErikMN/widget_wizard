@@ -202,7 +202,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] addImage:', resp);
 
-        if (!handleResponse(resp, 'Image overlay added')) {
+        if (!handleResponse(resp, 'Added image overlay')) {
           return;
         }
         playSound(newSoundUrl);
@@ -240,7 +240,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] addText:', resp);
 
-        if (!handleResponse(resp, 'Text overlay added')) {
+        if (!handleResponse(resp, 'Added text overlay')) {
           return;
         }
         playSound(newSoundUrl);
