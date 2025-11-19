@@ -79,6 +79,7 @@ export interface OverlayCapabilities {
     maxImageSize: number;
     maxTextLength: number;
     numAvailableSlots: number;
+    rotationSupported: boolean;
     slotsPerImageOverlay: number;
     slotsPerOverlay: number;
     slotsPerTextOverlay: number;

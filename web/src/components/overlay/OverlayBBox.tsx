@@ -57,7 +57,8 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
     updateImageOverlay,
     updateTextOverlay,
     activeDraggableOverlay,
-    setActiveDraggableOverlay
+    setActiveDraggableOverlay,
+    overlayCapabilities
   } = useOverlayContext();
   const { appSettings } = useAppContext();
 
@@ -92,6 +93,15 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   } | null>(null);
 
   const overlayIsActive = activeDraggableOverlay?.id === overlay.identity;
+
+  /* HACK: filter out image overlays */
+  const isImageOverlay = 'overlayPath' in overlay;
+  const isTextOverlay = !isImageOverlay;
+
+  const rotationSupported =
+    overlayCapabilities &&
+    (overlayCapabilities.data.rotationSupported === true ||
+      typeof overlayCapabilities.data.rotationSupported === 'undefined');
 
   const baseWidth = useMemo(() => {
     if (typeof Resolution === 'string') {
@@ -142,10 +152,6 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
 
     let wPx = 0;
     let hPx = 0;
-
-    /* HACK: filter out image overlays */
-    const isImageOverlay = 'overlayPath' in overlay;
-    const isTextOverlay = !isImageOverlay;
 
     if (isImageOverlay && overlay.scalable) {
       /* Scalable image overlays */
@@ -230,7 +236,6 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
      * We need to check if the text overlay is rotated or not to make sure the
      * bbox is properly aligned.
      */
-    const isTextOverlay = !('overlayPath' in overlay);
     const rotationDeg =
       isTextOverlay &&
       'rotation' in overlay &&
@@ -703,7 +708,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                   </Typography>
                 )}
                 {/* Show rotation handle if rotation is supported */}
-                {'rotation' in overlay && (
+                {isTextOverlay && rotationSupported && (
                   <div
                     onMouseDown={(e) => {
                       e.stopPropagation();
@@ -729,7 +734,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
                   />
                 )}
                 {/* Show live rotation angle while rotating */}
-                {isRotating && (
+                {isRotating && isTextOverlay && rotationSupported && (
                   <Box
                     sx={{
                       position: 'absolute',
