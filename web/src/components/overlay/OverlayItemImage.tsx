@@ -3,13 +3,14 @@
  */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOverlayContext } from './OverlayContext';
-import { saveOverlayBackup } from './overlayBackupStorage';
+import { saveOverlayBackup, loadOverlayBackups } from './overlayBackupStorage';
 import { ImageOverlay } from './overlayInterfaces';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import JsonEditor from '../JsonEditor';
 import { useAppContext } from '../AppContext';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -131,6 +132,8 @@ const OverlayItemImage: React.FC<{
       updateImageOverlay(updated);
     }
   }, [isReady, selectedImage, position, customPosition, overlay.identity]);
+
+  const backupCount = loadOverlayBackups().length;
 
   const handleRemoveClick = useCallback(() => {
     setOpenDialog(true);
@@ -429,7 +432,11 @@ const OverlayItemImage: React.FC<{
               color="secondary"
               variant="contained"
               startIcon={<SaveIcon />}
+              disabled={backupCount >= MAX_LS_BACKUPS}
               onClick={() => {
+                if (backupCount >= MAX_LS_BACKUPS) {
+                  return;
+                }
                 saveOverlayBackup(overlay);
                 onBackupRequested();
                 handleOpenAlert('Backup created', 'success');

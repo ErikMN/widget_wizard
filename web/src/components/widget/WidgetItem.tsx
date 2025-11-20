@@ -10,8 +10,9 @@ import JsonEditor from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
 import messageSoundUrl from '../../assets/audio/message.oga';
-import { saveWidgetBackup } from './widgetBackupStorage';
+import { saveWidgetBackup, loadWidgetBackups } from './widgetBackupStorage';
 import { useAppContext } from '../AppContext';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -73,6 +74,8 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   } = useWidgetContext();
 
   const { handleOpenAlert } = useAppContext();
+
+  const backupCount = loadWidgetBackups().length;
 
   /* Safe JSON parser */
   const safeParseJson = (json: string) => {
@@ -371,7 +374,11 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               color="secondary"
               variant="contained"
               startIcon={<SaveIcon />}
+              disabled={backupCount >= MAX_LS_BACKUPS}
               onClick={() => {
+                if (backupCount >= MAX_LS_BACKUPS) {
+                  return;
+                }
                 saveWidgetBackup(widget);
                 onBackupRequested();
                 handleOpenAlert('Widget backup created', 'success');

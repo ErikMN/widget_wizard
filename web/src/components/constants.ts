@@ -8,3 +8,6 @@ export const O_CGI = '/axis-cgi/dynamicoverlay/dynamicoverlay.cgi';
 export const drawerWidth = 360; // Official web UI uses 360px for widget drawer and 270px for main drawer
 export const drawerHeight = '60vh'; // For mobile mode
 export const appbarHeight = '54px'; // Official web UI uses 54px for app bar height
+
+/* Maximum amount of allowed local storage backups */
+export const MAX_LS_BACKUPS = 5;
