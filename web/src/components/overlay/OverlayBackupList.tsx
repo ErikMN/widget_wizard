@@ -169,19 +169,7 @@ const OverlayBackupList: React.FC<{
             borderRadius: '0 0 4px 4px'
           })}
         >
-          {/* Clear all button */}
-          {backupList.length > 0 && (
-            <CustomButton
-              color="error"
-              variant="contained"
-              startIcon={<DeleteIcon />}
-              sx={{ mb: 1 }}
-              onClick={handleClearAll}
-            >
-              Clear all
-            </CustomButton>
-          )}
-
+          {/* List of backups */}
           {backupList.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               No backups available
@@ -223,6 +211,7 @@ const OverlayBackupList: React.FC<{
                 <CustomButton
                   color="primary"
                   variant="outlined"
+                  size="small"
                   startIcon={<RestoreIcon />}
                   sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
                   onClick={() => handleOpenRestoreDialog(index)}
@@ -233,6 +222,7 @@ const OverlayBackupList: React.FC<{
                 <CustomButton
                   color="error"
                   variant="outlined"
+                  size="small"
                   startIcon={<DeleteIcon />}
                   sx={{ whiteSpace: 'nowrap' }}
                   onClick={() => handleOpenDeleteDialog(index)}
@@ -241,6 +231,18 @@ const OverlayBackupList: React.FC<{
                 </CustomButton>
               </Box>
             ))
+          )}
+          {/* Clear all button */}
+          {backupList.length > 0 && (
+            <CustomButton
+              color="error"
+              variant="contained"
+              size="small"
+              startIcon={<DeleteIcon />}
+              onClick={handleClearAll}
+            >
+              Clear all
+            </CustomButton>
           )}
         </Box>
       </Collapse>
