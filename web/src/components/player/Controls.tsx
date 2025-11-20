@@ -6,6 +6,7 @@ import { CustomStyledIconButton } from './../CustomComponents';
 import { darkTheme } from '../../theme';
 /* MUI */
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import FullscreenExitOutlinedIcon from '@mui/icons-material/FullscreenExitOutlined';
 import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined';
 import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
@@ -98,7 +99,7 @@ const progressBarTimestampStyle = (left = 0) =>
 const progressIndicatorStyle = {
   color: 'rgb(240, 180, 0)',
   paddingLeft: '24px',
-  fontSize: '10px',
+  fontSize: '12px',
   whiteSpace: 'nowrap'
 } as const;
 
@@ -448,7 +449,29 @@ export const Controls: React.FC<ControlsProps> = ({
                 </div>
               </div>
               <div style={progressIndicatorStyle}>
-                {totalDuration === Infinity ? '∙ LIVE' : progress.counter}
+                {totalDuration === Infinity ? (
+                  <>
+                    <FiberManualRecordIcon
+                      fontSize="small"
+                      style={{
+                        color: play ? 'red' : 'gray',
+                        verticalAlign: 'middle',
+                        marginRight: 4
+                      }}
+                    />
+                    <span
+                      style={{
+                        color: play ? 'rgb(240, 180, 0)' : 'gray',
+                        position: 'relative',
+                        top: '2px'
+                      }}
+                    >
+                      LIVE
+                    </span>
+                  </>
+                ) : (
+                  progress.counter
+                )}
               </div>
             </>
           )}
