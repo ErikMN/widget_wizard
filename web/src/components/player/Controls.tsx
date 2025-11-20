@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
 import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
 import { PlayerSettings } from './PlayerSettings';
-import { CustomStyledIconButton } from './../CustomComponents';
+import { CustomStyledIconButton, CustomSlider } from './../CustomComponents';
 import { darkTheme } from '../../theme';
 /* MUI */
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
@@ -164,8 +164,10 @@ export const Controls: React.FC<ControlsProps> = ({
   const toggleSettings = useCallback(() => setSettings((s) => !s), []);
 
   const onVolumeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (setVolume) setVolume(parseFloat(e.target.value));
+    (_: Event, value: number | number[]) => {
+      if (setVolume && typeof value === 'number') {
+        setVolume(value);
+      }
     },
     [setVolume]
   );
@@ -415,13 +417,15 @@ export const Controls: React.FC<ControlsProps> = ({
         )}
         {volume !== undefined && (
           <div style={{ marginLeft: '8px' }} title={labels?.volume}>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
+            <CustomSlider
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
               onChange={onVolumeChange}
-              value={volume ?? 0}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => `${Math.round(v * 100)}`}
+              sx={{ width: 120, mt: '4px' }}
             />
           </div>
         )}
