@@ -55,7 +55,7 @@ const progressBarContainerStyle = {
 
 const progressBarStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  height: '2px',
+  height: '4px',
   position: 'relative',
   width: '100%'
 } as const;
@@ -424,23 +424,34 @@ export const Controls: React.FC<ControlsProps> = ({
             />
           </div>
         )}
+        {/* Progress bar for RTSP over WebSocket */}
         <div style={progressStyle}>
-          <div style={progressBarContainerStyle} onClick={seek} ref={barRef}>
-            <div style={progressBarStyle}>
-              <div style={progressBarPlayedStyle(progress.playedFraction)} />
+          {format === 'RTP_H264' && (
+            <>
               <div
-                style={progressBarBufferedStyle(progress.bufferedFraction)}
-              />
-              {timestamp.left !== 0 && (
-                <div style={progressBarTimestampStyle(timestamp.left)}>
-                  {timestamp.label}
+                style={progressBarContainerStyle}
+                onClick={seek}
+                ref={barRef}
+              >
+                <div style={progressBarStyle}>
+                  <div
+                    style={progressBarPlayedStyle(progress.playedFraction)}
+                  />
+                  <div
+                    style={progressBarBufferedStyle(progress.bufferedFraction)}
+                  />
+                  {timestamp.left !== 0 && (
+                    <div style={progressBarTimestampStyle(timestamp.left)}>
+                      {timestamp.label}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-          <div style={progressIndicatorStyle}>
-            {totalDuration === Infinity ? '∙ LIVE' : progress.counter}
-          </div>
+              </div>
+              <div style={progressIndicatorStyle}>
+                {totalDuration === Infinity ? '∙ LIVE' : progress.counter}
+              </div>
+            </>
+          )}
         </div>
         <Tooltip title={labels?.settings} arrow placement="top">
           <CustomStyledIconButton
