@@ -99,9 +99,7 @@ const OverlayBox: React.FC<OverlayBoxProps> = ({
   const isTextOverlay = !isImageOverlay;
 
   const rotationSupported =
-    overlayCapabilities &&
-    (overlayCapabilities.data.rotationSupported === true ||
-      typeof overlayCapabilities.data.rotationSupported === 'undefined');
+    overlayCapabilities && overlayCapabilities.data.rotationSupported === true;
 
   const baseWidth = useMemo(() => {
     if (typeof Resolution === 'string') {
