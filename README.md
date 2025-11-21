@@ -20,4 +20,4 @@ make app
 ```
 
 <br/>
-<img src="files/images/latest_screenshot.png" width="800" alt="screenshot"/>
+<img src="files/images/latest_screenshot.jpg" width="800" alt="screenshot"/>
