@@ -9,7 +9,7 @@ import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import FullscreenExitOutlinedIcon from '@mui/icons-material/FullscreenExitOutlined';
 import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined';
-import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
+// import PauseCircleOutlineOutlinedIcon from '@mui/icons-material/PauseCircleOutlineOutlined';
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
@@ -348,19 +348,21 @@ export const Controls: React.FC<ControlsProps> = ({
     };
   }, [startTime, totalDuration]);
 
+  const isPlaying = !!src;
+
   return (
     <div style={{ ...controlAreaStyle, ...hiddenStyle }} ref={controlArea}>
       <div style={controlBarStyle}>
-        {play ? (
-          <Tooltip title={labels?.pause} arrow placement="top">
+        {isPlaying ? (
+          <Tooltip title={labels?.stop} arrow placement="top">
             <CustomStyledIconButton
               color="inherit"
-              aria-label={labels?.pause}
+              aria-label={labels?.stop}
               onClick={onPlay}
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              <PauseCircleOutlineOutlinedIcon />
+              <StopCircleOutlinedIcon />
             </CustomStyledIconButton>
           </Tooltip>
         ) : (
@@ -373,19 +375,6 @@ export const Controls: React.FC<ControlsProps> = ({
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
               <PlayCircleOutlineOutlinedIcon />
-            </CustomStyledIconButton>
-          </Tooltip>
-        )}
-        {src && (
-          <Tooltip title={labels?.stop} arrow placement="top">
-            <CustomStyledIconButton
-              color="inherit"
-              aria-label={labels?.stop}
-              onClick={onStop}
-              edge="end"
-              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-            >
-              <StopCircleOutlinedIcon />
             </CustomStyledIconButton>
           </Tooltip>
         )}
@@ -458,7 +447,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     <FiberManualRecordIcon
                       fontSize="small"
                       style={{
-                        color: play ? 'red' : 'gray',
+                        color: isPlaying ? 'red' : 'gray',
                         verticalAlign: 'middle',
                         marginRight: 4
                       }}

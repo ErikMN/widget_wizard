@@ -144,7 +144,8 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
       <select onChange={changeFormat} defaultValue={format}>
         <option value="RTP_H264">H.264 (RTP over WS)</option>
         <option value="MP4_H264">H.264 (MP4 over HTTP)</option>
-        <option value="RTP_JPEG">Motion JPEG</option>
+        <option value="RTP_JPEG">Motion JPEG (MJPEG over WS)</option>
+        <option value="MJPEG">Motion JPEG (MJPEG over HTTP)</option>
         <option value="JPEG">Still image</option>
       </select>
 
