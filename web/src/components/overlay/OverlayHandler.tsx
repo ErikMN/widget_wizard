@@ -61,6 +61,38 @@ const OverlayHandler: React.FC = () => {
     fetchData();
   }, []);
 
+  /* Keyboard Shift+Delete shortcut: remove all overlays (but not when typing) */
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      /* Ignore if typing in input, textarea, or contenteditable */
+      const target = event.target as HTMLElement;
+      const isTyping =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+      if (isTyping) {
+        return;
+      }
+      /* Do nothing if no overlays exist */
+      if (activeOverlays.length === 0) {
+        return;
+      }
+      /* Trigger only on Shift + Delete */
+      if (!event.shiftKey || event.key !== 'Delete') {
+        return;
+      }
+      /* Open remove-all dialog */
+      setOpenDialog(true);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    /* Unmount cleanup */
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeOverlays.length]);
+
   /* Toggle overlay expand/collapse */
   const toggleDropdown = useCallback(
     (identity: number) => {
