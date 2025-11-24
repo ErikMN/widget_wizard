@@ -109,6 +109,38 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     setJsonError(null);
   }, [widget]);
 
+  /* Keyboard Delete shortcut: remove active widget (but not when typing) */
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      /* Ignore if typing in input, textarea, or contenteditable */
+      const target = event.target as HTMLElement;
+      const isTyping =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+      if (isTyping) {
+        return;
+      }
+      /* Trigger only on the Delete key */
+      if (event.key !== 'Delete') {
+        return;
+      }
+      /* Only the active widget reacts */
+      if (activeDraggableWidget.id !== widget.generalParams.id) {
+        return;
+      }
+      /* Open delete dialog */
+      setOpenDialog(true);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    /* Unmount cleanup */
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeDraggableWidget.id, widget.generalParams.id]);
+
   /****************************************************************************/
 
   /* Toggle Widget Params */

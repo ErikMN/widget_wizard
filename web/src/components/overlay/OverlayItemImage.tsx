@@ -82,6 +82,38 @@ const OverlayItemImage: React.FC<{
     setIsReady(true);
   }, []);
 
+  /* Keyboard Delete shortcut: remove active overlay (but not when typing) */
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      /* Ignore if typing in input, textarea, or contenteditable */
+      const target = event.target as HTMLElement;
+      const isTyping =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+      if (isTyping) {
+        return;
+      }
+      /* Trigger only on the Delete key */
+      if (event.key !== 'Delete') {
+        return;
+      }
+      /* Only the active overlay reacts */
+      if (activeDraggableOverlay?.id !== overlay.identity) {
+        return;
+      }
+      /* Open delete dialog */
+      setOpenDialog(true);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    /* Unmount cleanup */
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeDraggableOverlay?.id, overlay.identity]);
+
   /* Sync position and overlayPath from context safely */
   useEffect(() => {
     setSelectedImage(overlay.overlayPath);
