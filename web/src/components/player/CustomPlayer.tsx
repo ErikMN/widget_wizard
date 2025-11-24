@@ -159,20 +159,26 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       [setWaiting]
     );
 
-    const onPlayPause = useCallback(() => {
-      if (play) {
+    const onPlayStop = useCallback(() => {
+      if (host) {
         setPlay(false);
+        setHost('');
+        setWaiting(false);
       } else {
         setWaiting(true);
         setHost(hostname);
         setPlay(true);
+        /* Reload dimensions */
+        onStreamChange?.();
       }
-    }, [play, hostname]);
+    }, [host, hostname]);
 
     const onRefresh = useCallback(() => {
       setPlay(true);
       setRefresh((value) => value + 1);
       setWaiting(true);
+      /* Reload dimensions */
+      onStreamChange?.();
     }, []);
 
     const onScreenshot = useCallback(() => {
@@ -190,6 +196,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       link.dispatchEvent(event);
     }, [videoProperties]);
 
+    /* NOTE: This callback is never used, stop is handled in onPlayStop */
     const onStop = useCallback(() => {
       setPlay(false);
       setHost('');
@@ -365,7 +372,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             videoProperties={videoProperties}
             src={host}
             parameters={parameters}
-            onPlay={onPlayPause}
+            onPlay={onPlayStop}
             onStop={onStop}
             onRefresh={onRefresh}
             onScreenshot={onScreenshot}
