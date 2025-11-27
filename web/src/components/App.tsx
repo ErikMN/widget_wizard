@@ -288,6 +288,7 @@ const App: React.FC = () => {
                   {/* Debug Icon */}
                   {appSettings.debug && (
                     <ScienceOutlinedIcon
+                      titleAccess="Debug mode enabled"
                       sx={{
                         marginRight: '8px',
                         width: '20px',
