@@ -30,12 +30,17 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 8080,
     open: true,
+    /* Proxy endpoints */
     proxy: {
       '/rtsp-over-websocket': {
         target: `ws://${process.env.TARGET_IP}`,
         ws: true
       },
       '/axis-cgi/': {
+        target: `http://${process.env.TARGET_IP}`,
+        changeOrigin: true
+      },
+      '/mjpg/': {
         target: `http://${process.env.TARGET_IP}`,
         changeOrigin: true
       }
