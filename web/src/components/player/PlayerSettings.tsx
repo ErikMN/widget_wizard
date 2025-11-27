@@ -128,7 +128,7 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         position: 'absolute',
         right: '0',
         rowGap: '4px',
-        width: '320px'
+        width: '360px'
       }}
     >
       <div>Camera</div>
