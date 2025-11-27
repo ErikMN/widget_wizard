@@ -50,7 +50,6 @@ const VideoPlayer: React.FC = () => {
   /* Local state */
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [authorized, setAuthorized] = useState<boolean>(false);
-  const [retryCount, setRetryCount] = useState<number>(0);
   const [dimensions, setDimensions] = useState<Dimensions>({
     videoWidth: 0,
     videoHeight: 0,
@@ -136,12 +135,21 @@ const VideoPlayer: React.FC = () => {
       if (el instanceof HTMLVideoElement) {
         videoWidth = el.videoWidth;
         videoHeight = el.videoHeight;
+        if (appSettings.debug) {
+          console.warn('HTMLVideoElement', videoWidth, 'x', videoHeight);
+        }
       } else if (el instanceof HTMLImageElement) {
         videoWidth = el.naturalWidth;
         videoHeight = el.naturalHeight;
+        if (appSettings.debug) {
+          console.warn('HTMLImageElement', videoWidth, 'x', videoHeight);
+        }
       } else if (el instanceof HTMLCanvasElement) {
         videoWidth = el.width;
         videoHeight = el.height;
+        if (appSettings.debug) {
+          console.warn('HTMLCanvasElement', videoWidth, 'x', videoHeight);
+        }
       }
 
       /* Video element pixel dimensions */
@@ -151,24 +159,6 @@ const VideoPlayer: React.FC = () => {
       const offsetX = videoRect.left - containerRect.left;
       const offsetY = videoRect.top - containerRect.top;
 
-      /* Check if any of the values are 0, and retry after a short delay */
-      if (
-        videoWidth === 0 ||
-        videoHeight === 0 ||
-        videoRect.width === 0 ||
-        videoRect.height === 0
-      ) {
-        if (appSettings.debug) {
-          console.warn('Video dimensions not ready, retrying...');
-        }
-        /* Retry after a short delay (e.g., 500ms) */
-        setTimeout(() => {
-          setRetryCount((count) => count + 1);
-          logVideoDimensions();
-        }, 500);
-
-        return;
-      }
       /* Set stream and pixel dimensions */
       setDimensions({
         videoWidth, // Stream width
@@ -239,7 +229,7 @@ const VideoPlayer: React.FC = () => {
         }
       };
     }
-  }, [authorized, retryCount]);
+  }, [authorized, videoRef.current]);
 
   if (!authorized) {
     return null;
@@ -266,13 +256,7 @@ const VideoPlayer: React.FC = () => {
         vapixParams={vapixParams}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
-        onStreamChange={() => {
-          /* When the stream changes, wait a bit and update dimensions */
-          setTimeout(() => {
-            setRetryCount((count) => count + 1);
-            logVideoDimensions();
-          }, 500);
-        }}
+        onStreamChange={logVideoDimensions}
       />
       {/* Widget bounding boxes */}
       {(inWidgetsRoute || inSettingsRoute) && (
