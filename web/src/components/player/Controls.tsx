@@ -132,6 +132,7 @@ interface ControlsProps {
   readonly setVolume?: (v: number) => void;
   readonly onToggleFullscreen?: () => void;
   readonly isFullscreen?: boolean;
+  readonly waiting?: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -155,7 +156,8 @@ export const Controls: React.FC<ControlsProps> = ({
   volume,
   setVolume,
   onToggleFullscreen,
-  isFullscreen
+  isFullscreen,
+  waiting
 }) => {
   const controlArea = useRef(null);
 
@@ -455,7 +457,9 @@ export const Controls: React.FC<ControlsProps> = ({
                   style={{
                     color: isPlaying ? 'red' : 'gray',
                     verticalAlign: 'middle',
-                    marginRight: 4
+                    marginRight: 4,
+                    animation:
+                      isPlaying && waiting ? 'blink 0.8s infinite' : 'none'
                   }}
                 />
                 <span

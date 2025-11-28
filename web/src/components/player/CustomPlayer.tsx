@@ -400,6 +400,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             duration={duration}
             onToggleFullscreen={onToggleFullscreen}
             isFullscreen={isFullscreen}
+            waiting={waiting}
           />
         </div>
       </div>
