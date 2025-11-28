@@ -205,7 +205,27 @@ export const Controls: React.FC<ControlsProps> = ({
       ? { display: 'none' }
       : undefined;
 
-  const [totalDuration, setTotalDuration] = useState(duration);
+  /* Default to Infinity for live formats without a known duration so LIVE can show immediately */
+  const initialDuration =
+    format !== 'JPEG' && (duration === undefined || duration === 0)
+      ? Infinity
+      : duration;
+
+  const [totalDuration, setTotalDuration] = useState(initialDuration);
+
+  /* When switching from JPEG (still image) to a live format, ensure totalDuration
+   * becomes Infinity so the LIVE indicator is enabled even if no duration/range
+   * has been reported yet.
+   */
+  useEffect(() => {
+    if (
+      format !== 'JPEG' &&
+      (totalDuration === undefined || totalDuration === 0)
+    ) {
+      setTotalDuration(Infinity);
+    }
+  }, [format]);
+
   const __mediaTimeline = useRef({
     startDateTime: startTime ? DateTime.fromISO(startTime) : undefined
   });
@@ -247,6 +267,7 @@ export const Controls: React.FC<ControlsProps> = ({
     bufferedFraction: 0,
     counter: ''
   });
+
   useEffect(() => {
     if (videoProperties === undefined) {
       return;
