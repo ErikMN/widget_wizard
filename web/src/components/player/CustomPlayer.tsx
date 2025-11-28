@@ -17,6 +17,7 @@ import {
   VapixParameters
 } from 'media-stream-player';
 import { Feedback } from './Feedback';
+import { NoVideoIndicator } from './NoVideoIndicator';
 import { Container } from './Container';
 import { Limiter } from './Limiter';
 import { Controls } from './Controls';
@@ -370,6 +371,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                 */}
                 <Feedback waiting={!!host && play && waiting} />
               </Layer>
+              {/* No video indicator */}
+              <Layer>{!host && <NoVideoIndicator />}</Layer>
             </Container>
           </Limiter>
         </div>
