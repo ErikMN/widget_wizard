@@ -13,6 +13,7 @@ import { useAppContext } from '../AppContext';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';
 import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
 import Collapse from '@mui/material/Collapse';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
@@ -39,7 +40,21 @@ const OverlayBackupList: React.FC<{
   const [openDialog, setOpenDialog] = useState(false);
   const [openRestoreDialog, setOpenRestoreDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openDeleteMarkedDialog, setOpenDeleteMarkedDialog] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [marked, setMarked] = useState<Set<number>>(new Set());
+
+  const toggleMarked = useCallback((index: number) => {
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
 
   /* Restore one backup */
   const handleRestore = useCallback(
@@ -53,6 +68,9 @@ const OverlayBackupList: React.FC<{
 
       /* Parent manages the actual list */
       setBackupList([...backupList]);
+
+      /* Selection of indices may no longer match: clear */
+      setMarked(new Set());
 
       handleOpenAlert('Backup restored', 'success');
     },
@@ -68,10 +86,32 @@ const OverlayBackupList: React.FC<{
       updated.splice(index, 1);
       setBackupList(updated);
 
+      /* Selection of indices no longer valid: clear it */
+      setMarked(new Set());
+
       handleOpenAlert('Backup deleted', 'success');
     },
     [backupList, setBackupList, handleOpenAlert]
   );
+
+  /* Delete all marked backups */
+  const handleDeleteMarked = useCallback(() => {
+    if (marked.size === 0) {
+      return;
+    }
+
+    /* Delete from storage in descending index order so indices stay valid */
+    const indices = Array.from(marked).sort((a, b) => b - a);
+    indices.forEach((idx) => deleteOverlayBackup(idx));
+
+    /* Update local list by filtering out marked indices */
+    const updated = backupList.filter((_, idx) => !marked.has(idx));
+    setBackupList(updated);
+
+    setMarked(new Set());
+
+    handleOpenAlert('Marked backups deleted', 'success');
+  }, [marked, backupList, setBackupList, handleOpenAlert]);
 
   const handleOpenRestoreDialog = useCallback((index: number) => {
     setSelectedIndex(index);
@@ -123,6 +163,7 @@ const OverlayBackupList: React.FC<{
   const handleConfirmClearAll = useCallback(() => {
     clearOverlayBackups();
     setBackupList([]);
+    setMarked(new Set());
 
     handleOpenAlert('All backups cleared', 'success');
     setOpenDialog(false);
@@ -199,6 +240,14 @@ const OverlayBackupList: React.FC<{
                     border: (theme) => `1px solid ${theme.palette.grey[600]}`
                   }}
                 >
+                  <Checkbox
+                    disableRipple
+                    size="small"
+                    checked={marked.has(index)}
+                    onChange={() => toggleMarked(index)}
+                    sx={{ marginRight: 1 }}
+                  />
+
                   <Typography
                     variant="body2"
                     sx={{
@@ -240,17 +289,30 @@ const OverlayBackupList: React.FC<{
               ))}
             </Box>
           )}
-          {/* Clear all button */}
+          {/* Delete buttons */}
           {backupList.length > 0 && (
-            <CustomButton
-              color="error"
-              variant="contained"
-              size="small"
-              startIcon={<DeleteIcon />}
-              onClick={handleClearAll}
-            >
-              Clear all
-            </CustomButton>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {marked.size > 0 && (
+                <CustomButton
+                  color="error"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setOpenDeleteMarkedDialog(true)}
+                >
+                  Delete marked
+                </CustomButton>
+              )}
+              <CustomButton
+                color="error"
+                variant="contained"
+                size="small"
+                startIcon={<DeleteIcon />}
+                onClick={handleClearAll}
+              >
+                Clear all
+              </CustomButton>
+            </Box>
           )}
         </Box>
       </Collapse>
@@ -375,6 +437,52 @@ const OverlayBackupList: React.FC<{
           <CustomButton
             variant="contained"
             onClick={handleConfirmClearAll}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete marked confirmation dialog */}
+      <Dialog
+        open={openDeleteMarkedDialog}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          setOpenDeleteMarkedDialog(false);
+        }}
+        aria-labelledby="delete-marked-dialog-title"
+        aria-describedby="delete-marked-dialog-description"
+      >
+        <DialogTitle id="delete-marked-dialog-title">
+          <Box display="flex" alignItems="center">
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Delete Marked Backups`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-marked-dialog-description">
+            Are you sure you want to delete all marked backups? This action
+            cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={() => setOpenDeleteMarkedDialog(false)}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={() => {
+              handleDeleteMarked();
+              setOpenDeleteMarkedDialog(false);
+            }}
             color="error"
             autoFocus
           >
