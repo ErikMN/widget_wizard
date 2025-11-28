@@ -417,10 +417,11 @@ export const Controls: React.FC<ControlsProps> = ({
             />
           </div>
         )}
-        {/* Progress bar for RTSP over WebSocket */}
         <div style={progressStyle}>
-          {format === 'RTP_H264' && (
+          {/* Progress bar only for RTSP over WebSocket */}
+          {format === 'RTP_H264' ? (
             <>
+              {/* Actual progress bar */}
               <div
                 style={progressBarContainerStyle}
                 onClick={seek}
@@ -440,33 +441,38 @@ export const Controls: React.FC<ControlsProps> = ({
                   )}
                 </div>
               </div>
-              <div style={progressIndicatorStyle}>
-                {totalDuration === Infinity ? (
-                  <>
-                    <FiberManualRecordIcon
-                      fontSize="small"
-                      style={{
-                        color: isPlaying ? 'red' : 'gray',
-                        verticalAlign: 'middle',
-                        marginRight: 4
-                      }}
-                    />
-                    <span
-                      style={{
-                        color: play ? 'rgb(240, 180, 0)' : 'gray',
-                        position: 'relative',
-                        top: '2px'
-                      }}
-                    >
-                      LIVE
-                    </span>
-                  </>
-                ) : (
-                  progress.counter
-                )}
-              </div>
             </>
+          ) : (
+            /* Progress bar placeholder */
+            <div style={progressBarContainerStyle} />
           )}
+          {/* LIVE indicator (not for JPEG still image) */}
+          <div style={progressIndicatorStyle}>
+            {format === 'JPEG' ? null : totalDuration === Infinity ? (
+              <>
+                <FiberManualRecordIcon
+                  fontSize="small"
+                  style={{
+                    color: isPlaying ? 'red' : 'gray',
+                    verticalAlign: 'middle',
+                    marginRight: 4
+                  }}
+                />
+                <span
+                  style={{
+                    color: play ? 'rgb(240, 180, 0)' : 'gray',
+                    position: 'relative',
+                    top: '2px'
+                  }}
+                >
+                  LIVE
+                </span>
+              </>
+            ) : (
+              /* Show time counter only for non-live, non-JPEG streams */
+              progress.counter
+            )}
+          </div>
         </div>
         <Tooltip title={labels?.settings} arrow placement="top">
           <CustomStyledIconButton
