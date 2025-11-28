@@ -361,7 +361,14 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                 />
               </Layer>
               <Layer>
-                <Feedback waiting={waiting} />
+                {/*
+                  Show Feedback only while the stream is starting:
+                  - host: a real backend endpoint is set
+                  - play: the user has requested playback
+                  - waiting: PlaybackArea has not yet emitted onPlaying
+                  This prevents the spinner from appearing after Stop or during teardown.
+                */}
+                <Feedback waiting={!!host && play && waiting} />
               </Layer>
             </Container>
           </Limiter>
