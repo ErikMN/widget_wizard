@@ -10,4 +10,4 @@ export const drawerHeight = '60vh'; // For mobile mode
 export const appbarHeight = '54px'; // Official web UI uses 54px for app bar height
 
 /* Maximum amount of allowed local storage backups */
-export const MAX_LS_BACKUPS = 5;
+export const MAX_LS_BACKUPS = 15;
