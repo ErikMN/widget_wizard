@@ -155,7 +155,7 @@ const WidgetBackupList: React.FC<{
         endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Widget backups
+          Widget backups ({backupList.length})
         </Typography>
       </CustomButton>
 
@@ -176,79 +176,87 @@ const WidgetBackupList: React.FC<{
               No widget backups available
             </Typography>
           ) : (
-            backupList.map((backup, index) => {
-              const type =
-                backup?.generalParams?.type ??
-                (backup?.type ? backup.type : 'widget');
-              const width = backup?.width;
-              const height = backup?.height;
+            <Box
+              sx={{
+                maxHeight: 240,
+                overflowY: 'auto',
+                marginBottom: 1
+              }}
+            >
+              {backupList.map((backup, index) => {
+                const type =
+                  backup?.generalParams?.type ??
+                  (backup?.type ? backup.type : 'widget');
+                const width = backup?.width;
+                const height = backup?.height;
 
-              const labelParts: string[] = [];
-              if (type) {
-                labelParts.push(capitalizeFirstLetter(type));
-              }
-              if (typeof width === 'number' && typeof height === 'number') {
-                labelParts.push(`(${width}x${height})`);
-              }
+                const labelParts: string[] = [];
+                if (type) {
+                  labelParts.push(capitalizeFirstLetter(type));
+                }
+                if (typeof width === 'number' && typeof height === 'number') {
+                  labelParts.push(`(${width}x${height})`);
+                }
 
-              const label =
-                labelParts.length > 0 ? labelParts.join(' ') : 'Widget';
+                const label =
+                  labelParts.length > 0 ? labelParts.join(' ') : 'Widget';
 
-              return (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '4px 6px',
-                    marginBottom: 1,
-                    borderRadius: '4px',
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? theme.palette.grey[800]
-                        : theme.palette.grey[200],
-                    border: (theme) => `1px solid ${theme.palette.grey[600]}`
-                  }}
-                >
-                  <Typography
-                    variant="body2"
+                return (
+                  <Box
+                    key={index}
                     sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                      marginRight: 1,
-                      fontWeight: 500
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '4px 6px',
+                      marginBottom: 1,
+                      borderRadius: '4px',
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? theme.palette.grey[800]
+                          : theme.palette.grey[200],
+                      border: (theme) => `1px solid ${theme.palette.grey[600]}`
                     }}
                   >
-                    {label}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1,
+                        marginRight: 1,
+                        fontWeight: 500
+                      }}
+                    >
+                      {label}
+                    </Typography>
 
-                  <CustomButton
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<RestoreIcon />}
-                    sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
-                    onClick={() => handleOpenRestoreDialog(index)}
-                  >
-                    Restore
-                  </CustomButton>
+                    <CustomButton
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<RestoreIcon />}
+                      sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
+                      onClick={() => handleOpenRestoreDialog(index)}
+                    >
+                      Restore
+                    </CustomButton>
 
-                  <CustomButton
-                    color="error"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DeleteIcon />}
-                    sx={{ whiteSpace: 'nowrap' }}
-                    onClick={() => handleOpenDeleteDialog(index)}
-                  >
-                    Delete
-                  </CustomButton>
-                </Box>
-              );
-            })
+                    <CustomButton
+                      color="error"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DeleteIcon />}
+                      sx={{ whiteSpace: 'nowrap' }}
+                      onClick={() => handleOpenDeleteDialog(index)}
+                    >
+                      Delete
+                    </CustomButton>
+                  </Box>
+                );
+              })}
+            </Box>
           )}
           {/* Clear all button */}
           {backupList.length > 0 && (

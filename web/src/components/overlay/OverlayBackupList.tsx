@@ -154,7 +154,7 @@ const OverlayBackupList: React.FC<{
         endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Overlay backups
+          Overlay backups ({backupList.length})
         </Typography>
       </CustomButton>
 
@@ -175,62 +175,70 @@ const OverlayBackupList: React.FC<{
               No backups available
             </Typography>
           ) : (
-            backupList.map((backup, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '4px 6px',
-                  marginBottom: 1,
-                  borderRadius: '4px',
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? theme.palette.grey[800]
-                      : theme.palette.grey[200],
-                  border: (theme) => `1px solid ${theme.palette.grey[600]}`
-                }}
-              >
-                <Typography
-                  variant="body2"
+            <Box
+              sx={{
+                maxHeight: 240,
+                overflowY: 'auto',
+                marginBottom: 1
+              }}
+            >
+              {backupList.map((backup, index) => (
+                <Box
+                  key={index}
                   sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
-                    marginRight: 1,
-                    fontWeight: 500
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '4px 6px',
+                    marginBottom: 1,
+                    borderRadius: '4px',
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.grey[800]
+                        : theme.palette.grey[200],
+                    border: (theme) => `1px solid ${theme.palette.grey[600]}`
                   }}
                 >
-                  {backup.overlayPath
-                    ? backup.overlayPath.split('/').pop()
-                    : 'Text overlay'}
-                </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                      marginRight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {backup.overlayPath
+                      ? backup.overlayPath.split('/').pop()
+                      : 'Text overlay'}
+                  </Typography>
 
-                <CustomButton
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RestoreIcon />}
-                  sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
-                  onClick={() => handleOpenRestoreDialog(index)}
-                >
-                  Restore
-                </CustomButton>
+                  <CustomButton
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<RestoreIcon />}
+                    sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
+                    onClick={() => handleOpenRestoreDialog(index)}
+                  >
+                    Restore
+                  </CustomButton>
 
-                <CustomButton
-                  color="error"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<DeleteIcon />}
-                  sx={{ whiteSpace: 'nowrap' }}
-                  onClick={() => handleOpenDeleteDialog(index)}
-                >
-                  Delete
-                </CustomButton>
-              </Box>
-            ))
+                  <CustomButton
+                    color="error"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DeleteIcon />}
+                    sx={{ whiteSpace: 'nowrap' }}
+                    onClick={() => handleOpenDeleteDialog(index)}
+                  >
+                    Delete
+                  </CustomButton>
+                </Box>
+              ))}
+            </Box>
           )}
           {/* Clear all button */}
           {backupList.length > 0 && (
