@@ -33,6 +33,8 @@ import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
 import TvIcon from '@mui/icons-material/Tv';
 import Typography from '@mui/material/Typography';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
 const availableColors = ['yellow', 'blue', 'red', 'green', 'purple'];
 const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
@@ -307,6 +309,10 @@ const Settings: React.FC = () => {
     handleOpenAlert('Settings have been reset to default values', 'success');
   };
 
+  const handleToggleMute = () => {
+    setAppSettings({ ...appSettings, mute: !appSettings.mute });
+  };
+
   const toggleTheme = useCallback(() => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     setCurrentTheme(newTheme);
@@ -343,26 +349,69 @@ const Settings: React.FC = () => {
               Application settings
             </Typography>
           </Box>
-          {/* Theme Toggle CustomButton */}
-          <Tooltip title="Toggle theme" arrow>
-            <div>
-              <CustomStyledIconButton
-                color="inherit"
-                aria-label="toggle theme"
-                onClick={toggleTheme}
-                edge="end"
-                sx={{ marginRight: '0px' }}
-              >
-                <ContrastIcon
-                  sx={{
-                    width: '20px',
-                    height: '20px',
-                    color: 'text.secondary'
-                  }}
-                />
-              </CustomStyledIconButton>
-            </div>
-          </Tooltip>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              marginLeft: 'auto'
+            }}
+          >
+            {/* Mute button */}
+            <Tooltip
+              title={appSettings.mute ? 'Unmute audio' : 'Mute audio'}
+              arrow
+            >
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="mute/unmute audio"
+                  onClick={handleToggleMute}
+                  edge="end"
+                  sx={{ p: 0.5 }}
+                >
+                  {appSettings.mute ? (
+                    <VolumeOffOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  ) : (
+                    <VolumeUpOutlinedIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  )}
+                </CustomStyledIconButton>
+              </div>
+            </Tooltip>
+
+            {/* Theme Toggle CustomButton */}
+            <Tooltip title="Toggle theme" arrow>
+              <div>
+                <CustomStyledIconButton
+                  color="inherit"
+                  aria-label="toggle theme"
+                  onClick={toggleTheme}
+                  edge="end"
+                  sx={{ marginRight: '0px' }}
+                >
+                  <ContrastIcon
+                    sx={{
+                      width: '20px',
+                      height: '20px',
+                      color: 'text.secondary'
+                    }}
+                  />
+                </CustomStyledIconButton>
+              </div>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* Bounding Box settings */}
