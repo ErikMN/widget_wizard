@@ -9,10 +9,10 @@ import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import FullscreenExitOutlinedIcon from '@mui/icons-material/FullscreenExitOutlined';
 import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined';
-import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined';
+import PauseIcon from '@mui/icons-material/Pause';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined';
 import Tooltip from '@mui/material/Tooltip';
 
 function isHTMLMediaElement(el: HTMLElement): el is HTMLMediaElement {
@@ -28,12 +28,17 @@ const controlAreaStyle = {
 
 const controlBarStyle = {
   width: '100%',
-  height: '42px',
-  background: 'rgb(0, 0, 0, 0.7)',
+  height: '50px',
+  background: 'rgb(20, 20, 20)',
   display: 'flex',
   alignItems: 'center',
   padding: '0 16px',
   boxSizing: 'border-box'
+} as const;
+
+const controlIconStyle = {
+  width: '30px',
+  height: '30px'
 } as const;
 
 const progressStyle = {
@@ -384,7 +389,8 @@ export const Controls: React.FC<ControlsProps> = ({
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              <StopCircleOutlinedIcon />
+              {/* NOTE: Should technically be a stop icon but pause looks nicer */}
+              <PauseIcon sx={controlIconStyle} />
             </CustomStyledIconButton>
           </Tooltip>
         ) : (
@@ -396,7 +402,7 @@ export const Controls: React.FC<ControlsProps> = ({
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              <PlayCircleOutlineOutlinedIcon />
+              <PlayArrowIcon sx={controlIconStyle} />
             </CustomStyledIconButton>
           </Tooltip>
         )}
@@ -409,7 +415,7 @@ export const Controls: React.FC<ControlsProps> = ({
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              <RefreshOutlinedIcon />
+              <RefreshOutlinedIcon sx={controlIconStyle} />
             </CustomStyledIconButton>
           </Tooltip>
         )}
@@ -422,7 +428,7 @@ export const Controls: React.FC<ControlsProps> = ({
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              <CameraAltOutlinedIcon />
+              <CameraAltOutlinedIcon sx={controlIconStyle} />
             </CustomStyledIconButton>
           </Tooltip>
         )}
@@ -507,7 +513,7 @@ export const Controls: React.FC<ControlsProps> = ({
             edge="end"
             sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
           >
-            <SettingsOutlinedIcon />
+            <SettingsOutlinedIcon sx={controlIconStyle} />
           </CustomStyledIconButton>
         </Tooltip>
         <Tooltip
@@ -523,9 +529,9 @@ export const Controls: React.FC<ControlsProps> = ({
             sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
           >
             {isFullscreen ? (
-              <FullscreenExitOutlinedIcon />
+              <FullscreenExitOutlinedIcon sx={controlIconStyle} />
             ) : (
-              <FullscreenOutlinedIcon />
+              <FullscreenOutlinedIcon sx={controlIconStyle} />
             )}
           </CustomStyledIconButton>
         </Tooltip>
