@@ -19,7 +19,7 @@ The UI runs directly on the camera as part of the installed ACAP application (se
 
 > **⚠️ IMPORTANT** \
 > Requires a device that supports widgets or overlay capabilities.\
-> Unofficial app: Requires "Allow unsigned apps" to be enabled.
+> **UNOFFICIAL APP:** Requires "Allow unsigned apps" to be enabled.
 
 ## Get the latest pre-built release under [Releases](https://github.com/ErikMN/widget_wizard/releases)
 
@@ -48,3 +48,7 @@ Recreating the full official UI is outside the scope of this project.
 
 This frontend is deployed by using the [ACAP](https://www.axis.com/products/acap)
 framework which allows for installing custom applications on an Axis device.
+
+Standalone web deployment isn’t possible because the device does not expose the
+[CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+headers required for browser access.
