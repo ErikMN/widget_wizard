@@ -1,5 +1,7 @@
 /* Collection of utility functions */
 
+import { AppSettings } from '../components/appInterface';
+
 export function capitalizeFirstLetter(word: string): string {
   if (!word) return word;
   return word.charAt(0).toUpperCase() + word.slice(1);
@@ -53,10 +55,21 @@ export function toNiceName(word: string): string {
 
 /* Play a sound at volume */
 export const playSound = (url: string, volume: number = 0.5) => {
-  const isMuted = localStorage.getItem('mute');
-  if (isMuted === 'true') {
-    return;
+  /* Read the raw app settings */
+  const settingsRaw = localStorage.getItem('appSettings');
+  /* Parse the app settings */
+  if (settingsRaw !== null) {
+    try {
+      const settings: AppSettings = JSON.parse(settingsRaw);
+      const isMuted = settings.mute === true;
+      if (isMuted) {
+        return;
+      }
+    } catch (err) {
+      console.warn('Failed to parse appSettings from localStorage:', err);
+    }
   }
+  /* Not muted or no settings: Play the sound */
   const audio = new Audio(url);
   audio.volume = Math.min(Math.max(volume, 0), 1);
   audio.play().catch((err) => {

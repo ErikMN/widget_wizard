@@ -5,6 +5,7 @@
 /* Application settings JSON interface */
 export interface AppSettings {
   debug: boolean;
+  mute: boolean;
   roundedBboxCorners: boolean;
   bboxColor: string;
   bboxThickness: 'small' | 'medium' | 'large';
@@ -22,6 +23,7 @@ export interface AppSettings {
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
   debug: false,
+  mute: false,
   roundedBboxCorners: false,
   bboxColor: 'yellow',
   bboxThickness: 'medium',

@@ -147,7 +147,6 @@ const App: React.FC = () => {
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
-  const [isMuted, setIsMuted] = useLocalStorage('mute', false);
 
   /* Global context */
   const {
@@ -158,7 +157,8 @@ const App: React.FC = () => {
     alertSeverity,
     currentTheme,
     setCurrentTheme,
-    appSettings
+    appSettings,
+    setAppSettings
   } = useAppContext();
 
   /* Refs */
@@ -218,7 +218,7 @@ const App: React.FC = () => {
   };
 
   const handleToggleMute = () => {
-    setIsMuted((prev: boolean) => !prev);
+    setAppSettings({ ...appSettings, mute: !appSettings.mute });
   };
 
   const contentMain = () => {
@@ -313,7 +313,10 @@ const App: React.FC = () => {
             {/* Right-side action buttons */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               {/* Mute button */}
-              <Tooltip title={isMuted ? 'Unmute audio' : 'Mute audio'} arrow>
+              <Tooltip
+                title={appSettings.mute ? 'Unmute audio' : 'Mute audio'}
+                arrow
+              >
                 <div>
                   <CustomStyledIconButton
                     color="inherit"
@@ -322,7 +325,7 @@ const App: React.FC = () => {
                     edge="end"
                     sx={{ p: 0.5 }}
                   >
-                    {isMuted ? (
+                    {appSettings.mute ? (
                       <VolumeOffOutlinedIcon
                         sx={{
                           width: '20px',
