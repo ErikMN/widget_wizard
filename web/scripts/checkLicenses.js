@@ -5,7 +5,8 @@
  * This script will::
  *   - Recursively scan node_modules for package.json files.
  *   - Read each package's license field.
- *   - Detect any copyleft licenses (GPL, AGPL, LGPL, MPL, etc.).
+ *   - Detect strong copyleft licenses (GPL, AGPL, LGPL, etc.) and block them.
+ *   - Detect weak copyleft licenses (MPL) and warn about them without blocking.
  *   - Detect missing license declarations.
  *   - Detect dual-licensed or multi-license packages.
  *   - Optionally print each scanned package with --verbose / -v.
@@ -29,9 +30,14 @@ const args = process.argv.slice(2);
 const SHOW_SCANNED = args.includes('--verbose') || args.includes('-v');
 
 /*
- * Copyleft licenses that should be blocked.
+ * Strong copyleft licenses that should be blocked.
  */
-const COPLEFT = ['GPL', 'LGPL', 'AGPL', 'MPL', 'EUPL', 'CPAL', 'OSL'];
+const COPLEFT_STRONG = ['GPL', 'LGPL', 'AGPL', 'EUPL', 'CPAL', 'OSL'];
+
+/*
+ * Weak copyleft licenses that warn but not fail.
+ */
+const COPLEFT_WEAK = ['MPL'];
 
 /*
  * Walk through node_modules.
@@ -80,15 +86,15 @@ function normalizeLicense(licenseField) {
   }
 
   if (typeof licenseField === 'string') {
-    return licenseField;
+    return licenseField.trim();
   }
 
   if (Array.isArray(licenseField)) {
-    return licenseField.map((x) => x.type || x).join(', ');
+    return licenseField.map((x) => (x.type || x).trim()).join(', ');
   }
 
   if (typeof licenseField === 'object' && licenseField.type) {
-    return licenseField.type;
+    return licenseField.type.trim();
   }
 
   return null;
@@ -122,7 +128,7 @@ function isDualLicensed(licenseString) {
 /*
  * Main execution routine.
  * Loads all package.json files, extracts licenses,
- * optionally prints each, and checks for copyleft violations.
+ * optionally prints each, and checks for license violations.
  * Also collects license summary statistics and dual-license packages.
  */
 function main() {
@@ -134,11 +140,27 @@ function main() {
 
   const violations = [];
   const dualLicenses = [];
+  const weakCopyleft = [];
   const licenseSummary = {};
   let scannedCount = 0;
 
   for (const pkgFile of walkNodeModules(nm)) {
-    const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+    let pkg;
+
+    /*
+     * Guard JSON.parse to avoid crashes from corrupted package.json files.
+     */
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+    } catch (e) {
+      console.error(`Failed to parse ${pkgFile}: ${e.message}`);
+      violations.push({
+        name: '(unknown)',
+        version: '(unknown)',
+        license: 'INVALID PACKAGE.JSON'
+      });
+      continue;
+    }
 
     const name = pkg.name || '(unknown)';
     const version = pkg.version || '(unknown)';
@@ -161,8 +183,18 @@ function main() {
       dualLicenses.push({ name, version, license });
     }
 
-    if (COPLEFT.some((word) => upper.includes(word))) {
+    /*
+     * Detect strong copyleft (block).
+     */
+    if (COPLEFT_STRONG.some((word) => upper.includes(word))) {
       violations.push({ name, version, license });
+    }
+
+    /*
+     * Detect weak copyleft (warn only).
+     */
+    if (COPLEFT_WEAK.some((word) => upper.includes(word))) {
+      weakCopyleft.push({ name, version, license });
     }
 
     if (!licenseSummary[license]) {
@@ -170,10 +202,7 @@ function main() {
     }
     licenseSummary[license] += 1;
   }
-
-  if (SHOW_SCANNED) {
-    console.log(`\nTotal scanned dependencies: ${scannedCount}`);
-  }
+  console.log(`Total scanned dependencies: ${scannedCount}`);
 
   /*
    * Print summary of licenses.
@@ -194,10 +223,22 @@ function main() {
   }
 
   /*
-   * Report violations.
+   * Report weak copyleft (MPL).
+   */
+  if (weakCopyleft.length > 0) {
+    console.warn('\nWarnings (weak copyleft licenses):\n');
+    for (const w of weakCopyleft) {
+      console.warn(`${w.name}@${w.version} -> ${w.license}`);
+    }
+  }
+
+  /*
+   * Report blocking violations.
    */
   if (violations.length > 0) {
-    console.error('\nBlocked (copyleft or missing) licenses:\n');
+    console.error(
+      '\nBlocked (strong copyleft, missing, or invalid) licenses:\n'
+    );
     for (const v of violations) {
       console.error(`${v.name}@${v.version} -> ${v.license}`);
     }
@@ -205,7 +246,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log('\nNo copyleft licenses found');
+  console.log('\nNo strong copyleft licenses found');
 }
 
 main();
