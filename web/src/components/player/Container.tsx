@@ -24,12 +24,9 @@ import React, { PropsWithChildren } from 'react';
 // aspectRatio property on the Container component.
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 
-const getHeightPct = (aspectRatio: number) => {
-  if (aspectRatio === 0) {
-    throw new Error('Cannot handle aspect ratio 0');
-  }
-  return 100 / aspectRatio;
-};
+interface ContainerProps {
+  readonly aspectRatio?: number;
+}
 
 export const Layer = ({ children }: PropsWithChildren) => {
   return (
@@ -47,10 +44,6 @@ export const Layer = ({ children }: PropsWithChildren) => {
   );
 };
 
-interface ContainerProps {
-  readonly aspectRatio?: number;
-}
-
 export const Container = ({
   aspectRatio = DEFAULT_ASPECT_RATIO,
   children
@@ -58,9 +51,14 @@ export const Container = ({
   <div
     style={{
       background: 'black',
-      paddingTop: `${getHeightPct(aspectRatio)}%`,
       position: 'relative',
-      width: '100%'
+      width: '100%',
+      /**
+       * Native CSS aspect-ratio controls the height of the container based
+       * on its width. This ensures the video area keeps the expected shape
+       * regardless of layout or screen size.
+       */
+      aspectRatio: `${aspectRatio}`
     }}
   >
     {children}
