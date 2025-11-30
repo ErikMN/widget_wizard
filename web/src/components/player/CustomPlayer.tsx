@@ -2,7 +2,9 @@ import React, {
   forwardRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 import {
@@ -17,6 +19,7 @@ import {
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
 import { Container } from './Container';
+import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
 
@@ -254,6 +257,33 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     }, [videoProperties]);
 
     /**
+     * Limit video size.
+     *
+     * The video size should not expand outside the available container, and
+     * should be recomputed on resize.
+     */
+    const limiterRef = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+      if (naturalAspectRatio === undefined || limiterRef.current === null) {
+        return;
+      }
+
+      const observer = new window.ResizeObserver(([entry]) => {
+        const element = entry.target as HTMLElement;
+        if (!isMobile) {
+          const maxWidth = element.clientHeight * naturalAspectRatio;
+          element.style.maxWidth = `${maxWidth}px`;
+        } else {
+          /* Mobile mode: no width limit */
+          element.style.maxWidth = '100%';
+        }
+      });
+      observer.observe(limiterRef.current);
+
+      return () => observer.disconnect();
+    }, [naturalAspectRatio, isMobile]);
+
+    /**
      * Volume control on the VideoElement (h264 only)
      */
     useEffect(() => {
@@ -313,27 +343,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             />
           </div>
         )}
-        <div
-          style={{
-            flex: '1 1 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            /* ensures the flex math works properly on desktop */
-            ...(isMobile ? {} : { height: '0' })
-          }}
-        >
-          {/* Center the video vertically */}
-          <div
-            style={{
-              flex: '1 1 auto',
-              display: 'flex',
-              justifyContent: 'center' /* horizontal centering */,
-              alignItems: 'center' /* vertical centering */,
-              minHeight: 0 /* prevents overflow pushing controls away */,
-              /* margin only around the video area */
-              margin: isMobile ? '3px' : '3px 3px 0 3px'
-            }}
-          >
+        <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
+          <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
                 <PlaybackArea
@@ -363,45 +374,44 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
               {/* No video indicator */}
               <Layer>{!host && <NoVideoIndicator />}</Layer>
             </Container>
-          </div>
-          {/* Controls are always fixed at bottom */}
-          <div style={{ flex: '0 0 auto', position: 'relative', zIndex: 10 }}>
-            <Controls
-              play={play}
-              videoProperties={videoProperties}
-              src={host}
-              parameters={parameters}
-              onPlay={onPlayStop}
-              onStop={onStop}
-              onRefresh={onRefresh}
-              onScreenshot={onScreenshot}
-              onFormat={(fmt) => {
-                setFormat(fmt);
-                onStreamChange?.();
-              }}
-              onVapix={onVapix}
-              onSeek={setOffset}
-              labels={{
-                play: 'Play',
-                pause: 'Pause',
-                stop: 'Stop',
-                refresh: 'Refresh',
-                settings: 'Settings',
-                screenshot: 'Take a snapshot',
-                volume: 'Volume'
-              }}
-              showStatsOverlay={showStatsOverlay}
-              toggleStats={toggleStatsOverlay}
-              format={format}
-              volume={volume}
-              setVolume={setVolume}
-              startTime={startTime}
-              duration={duration}
-              onToggleFullscreen={onToggleFullscreen}
-              isFullscreen={isFullscreen}
-              waiting={waiting}
-            />
-          </div>
+          </Limiter>
+        </div>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <Controls
+            play={play}
+            videoProperties={videoProperties}
+            src={host}
+            parameters={parameters}
+            onPlay={onPlayStop}
+            onStop={onStop}
+            onRefresh={onRefresh}
+            onScreenshot={onScreenshot}
+            onFormat={(fmt) => {
+              setFormat(fmt);
+              onStreamChange?.();
+            }}
+            onVapix={onVapix}
+            onSeek={setOffset}
+            labels={{
+              play: 'Play',
+              pause: 'Pause',
+              stop: 'Stop',
+              refresh: 'Refresh',
+              settings: 'Settings',
+              screenshot: 'Take a snapshot',
+              volume: 'Volume'
+            }}
+            showStatsOverlay={showStatsOverlay}
+            toggleStats={toggleStatsOverlay}
+            format={format}
+            volume={volume}
+            setVolume={setVolume}
+            startTime={startTime}
+            duration={duration}
+            onToggleFullscreen={onToggleFullscreen}
+            isFullscreen={isFullscreen}
+            waiting={waiting}
+          />
         </div>
       </div>
     );
