@@ -154,7 +154,7 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         value={vapixParameters['resolution'] ?? ''}
         onChange={changeResolution}
       >
-        <option value="">default</option>
+        <option value="">Default resolution</option>
         {supportedResolutions.map((res) => (
           <option key={res} value={res}>
             {res.replace(/x/i, ' x ')} ({aspectOf(res)})
