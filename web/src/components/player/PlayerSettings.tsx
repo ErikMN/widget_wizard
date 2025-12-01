@@ -3,6 +3,9 @@ import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
 import { useAppContext } from '../AppContext';
+/* MUI */
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
@@ -39,27 +42,25 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
     [toggleStats]
   );
 
-  const changeFormat: ChangeEventHandler<HTMLSelectElement> = useCallback(
-    (e) => onFormat(e.target.value as Format),
-    [onFormat]
-  );
+  const changeFormat: ChangeEventHandler<
+    HTMLTextAreaElement | HTMLInputElement
+  > = useCallback((e) => onFormat(e.target.value as Format), [onFormat]);
 
-  const changeResolution: ChangeEventHandler<HTMLSelectElement> = useCallback(
-    (e) => onVapix('resolution', e.target.value),
-    [onVapix]
-  );
+  const changeResolution: ChangeEventHandler<
+    HTMLTextAreaElement | HTMLInputElement
+  > = useCallback((e) => onVapix('resolution', e.target.value), [onVapix]);
 
-  const changeRotation: ChangeEventHandler<HTMLSelectElement> = useCallback(
-    (e) => onVapix('rotation', e.target.value),
-    [onVapix]
-  );
+  const changeRotation: ChangeEventHandler<
+    HTMLTextAreaElement | HTMLInputElement
+  > = useCallback((e) => onVapix('rotation', e.target.value), [onVapix]);
 
-  const changeCompression: ChangeEventHandler<HTMLSelectElement> = useCallback(
-    (e) => onVapix('compression', e.target.value),
-    [onVapix]
-  );
+  const changeCompression: ChangeEventHandler<
+    HTMLTextAreaElement | HTMLInputElement
+  > = useCallback((e) => onVapix('compression', e.target.value), [onVapix]);
 
-  const changeCamera: ChangeEventHandler<HTMLSelectElement> = useCallback(
+  const changeCamera: ChangeEventHandler<
+    HTMLTextAreaElement | HTMLInputElement
+  > = useCallback(
     (e) => {
       const value = e.target.value;
       onVapix('camera', value);
@@ -67,6 +68,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
     },
     [onVapix, setCurrentChannel]
   );
+
+  const changeFps: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> =
+    useCallback((e) => onVapix('fps', e.target.value), [onVapix]);
 
   /* Parse supported resolutions */
   const supportedResolutions = React.useMemo(() => {
@@ -128,52 +132,95 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         position: 'absolute',
         right: '0',
         rowGap: '4px',
-        width: '360px'
+        width: '360px',
+        alignItems: 'center' /* center labels with controls */
       }}
     >
       <div>Camera</div>
-      <select value={vapixParameters['camera'] ?? '1'} onChange={changeCamera}>
+      <TextField
+        select
+        size="small"
+        value={vapixParameters['camera'] ?? '1'}
+        onChange={changeCamera}
+      >
         {cameraOptions.map((num) => (
-          <option key={num} value={String(num)}>
+          <MenuItem disableRipple key={num} value={String(num)}>
             Camera {num}
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </TextField>
 
       <div>Format</div>
-      <select onChange={changeFormat} defaultValue={format}>
-        <option value="RTP_H264">H.264 (RTP over WS)</option>
-        <option value="MP4_H264">H.264 (MP4 over HTTP)</option>
-        <option value="RTP_JPEG">Motion JPEG (MJPEG over WS)</option>
-        <option value="MJPEG">Motion JPEG (MJPEG over HTTP)</option>
-        <option value="JPEG">Still image</option>
-      </select>
+      <TextField select size="small" value={format} onChange={changeFormat}>
+        <MenuItem disableRipple value="RTP_H264">
+          H.264 (RTP over WS)
+        </MenuItem>
+        <MenuItem disableRipple value="MP4_H264">
+          H.264 (MP4 over HTTP)
+        </MenuItem>
+        <MenuItem disableRipple value="RTP_JPEG">
+          Motion JPEG (MJPEG over WS)
+        </MenuItem>
+        <MenuItem disableRipple value="MJPEG">
+          Motion JPEG (MJPEG over HTTP)
+        </MenuItem>
+        <MenuItem disableRipple value="JPEG">
+          Still image
+        </MenuItem>
+      </TextField>
 
       <div>Resolution</div>
-      <select
+      <TextField
+        select
+        size="small"
         value={vapixParameters['resolution'] ?? ''}
         onChange={changeResolution}
+        slotProps={{
+          select: {
+            displayEmpty: true
+          }
+        }}
       >
-        <option value="">Default resolution</option>
+        <MenuItem disableRipple value="">
+          Default resolution
+        </MenuItem>
         {supportedResolutions.map((res) => (
-          <option key={res} value={res}>
+          <MenuItem disableRipple key={res} value={res}>
             {res.replace(/x/i, ' x ')} ({aspectOf(res)})
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </TextField>
 
       <div>Compression</div>
-      <select
-        value={vapixParameters['compression']}
+      <TextField
+        select
+        size="small"
+        value={vapixParameters['compression'] ?? ''}
         onChange={changeCompression}
+        slotProps={{
+          select: {
+            displayEmpty: true
+          }
+        }}
       >
-        <option value="">default</option>
+        <MenuItem disableRipple value="">
+          Default compression
+        </MenuItem>
         {Array.from({ length: 11 }, (_, i) => i * 10).map((val) => (
-          <option key={val} value={String(val)}>
+          <MenuItem disableRipple key={val} value={String(val)}>
             {val}
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </TextField>
+
+      <div>FPS</div>
+      <TextField
+        variant="outlined"
+        size="small"
+        value={vapixParameters['fps'] ?? ''}
+        onChange={changeFps}
+        placeholder="Default FPS"
+      />
 
       <div
         style={{
