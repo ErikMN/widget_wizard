@@ -4,6 +4,7 @@ import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
 import { useAppContext } from '../AppContext';
 /* MUI */
+import { useTheme, alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 
@@ -24,6 +25,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   showStatsOverlay,
   toggleStats
 }) => {
+  /* Theme */
+  const theme = useTheme();
+
   /* Global state */
   const { setCurrentChannel } = useAppContext();
 
@@ -118,9 +122,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   return (
     <div
       style={{
-        background: 'rgb(16, 16, 16, 0.8)',
+        background: alpha(theme.palette.background.paper, 0.8),
         bottom: '32px',
-        color: 'white',
+        color: theme.palette.text.primary,
         display: 'grid',
         fontFamily: 'sans-serif',
         fontSize: '14px',
