@@ -1,3 +1,14 @@
+/**
+ * PlayerSettings
+ *
+ * Handle the settings for the video player:
+ *   - Camera selection
+ *   - Video format
+ *   - Resolution
+ *   - Compression
+ *   - FPS
+ *   - Stats overlay toggle
+ */
 import React, { ChangeEventHandler, useCallback } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';

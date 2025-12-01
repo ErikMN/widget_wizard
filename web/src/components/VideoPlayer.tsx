@@ -1,3 +1,9 @@
+/**
+ * VideoPlayer
+ *
+ * Main video player component that handles authorization, fullscreen toggling,
+ * and dimension tracking. The actual video playback is handled by the CustomPlayer.
+ */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppContext } from './AppContext';

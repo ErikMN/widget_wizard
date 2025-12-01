@@ -1,3 +1,9 @@
+/**
+ * CustomPlayer
+ *
+ * A custom video player built using the media-stream-player library.
+ * https://github.com/AxisCommunications/media-stream-player-js
+ */
 import React, {
   forwardRef,
   useCallback,
@@ -9,7 +15,6 @@ import React, {
 } from 'react';
 import {
   Stats,
-  Layer,
   PlaybackArea,
   PlayerNativeElement,
   Format,
@@ -18,7 +23,7 @@ import {
 } from 'media-stream-player';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
-import { Container } from './Container';
+import { Container, Layer } from './Container';
 import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';

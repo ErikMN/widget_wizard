@@ -1,3 +1,13 @@
+/**
+ * Controls
+ *
+ * Handle the controls for the video player:
+ *  - Play and pause (actually stop)
+ *  - Refresh
+ *  - Screenshot
+ *  - Settings toggle
+ *  - Optional progress bar for RTP_H264 streams
+ */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
 import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
