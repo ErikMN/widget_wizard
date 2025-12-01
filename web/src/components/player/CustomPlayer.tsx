@@ -213,6 +213,10 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           }
           return newParams;
         });
+        /* NOTE: Clear video properties if setting default resolution */
+        if (key === 'resolution' && value === '') {
+          setVideoProperties(undefined);
+        }
         setRefresh((refreshCount) => refreshCount + 1);
         onStreamChange?.();
       },
