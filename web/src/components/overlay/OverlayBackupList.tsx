@@ -8,7 +8,7 @@ import {
   clearOverlayBackups
 } from './overlayBackupStorage';
 import { useOverlayContext } from './OverlayContext';
-import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
+import { CustomButton } from '../CustomComponents';
 import { useAppContext } from '../AppContext';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';

@@ -4,7 +4,7 @@
  * Uses a fixed 1920×1080 virtual HD coordinate system as the reference space.
  * Actual on-screen positions and sizes are scaled according to the current video dimensions.
  */
-import React, { useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import Draggable from 'react-draggable';
 import WidgetAnchorIndicators from './WidgetAnchorIndicators';
 import { Widget } from './widgetInterfaces';
