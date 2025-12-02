@@ -10,9 +10,7 @@ import { useAppContext } from './AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';
-/* BBox systems */
-import OverlayBBox from './overlay/OverlayBBox';
-import WidgetBBox from './widget/WidgetBBox';
+import BBoxSurface from './BBoxSurface';
 
 interface VapixConfig {
   compression: string;
@@ -264,15 +262,12 @@ const VideoPlayer: React.FC = () => {
         isFullscreen={isFullscreen}
         onStreamChange={logVideoDimensions}
       />
-      {/* Widget bounding boxes */}
-      {(inWidgetsRoute || inSettingsRoute) && (
-        <WidgetBBox dimensions={dimensions} />
-      )}
-
-      {/* Overlay bounding boxes */}
-      {(inOverlaysRoute || inSettingsRoute) && (
-        <OverlayBBox dimensions={dimensions} />
-      )}
+      {/* Bounding boxes for widgets and overlays */}
+      <BBoxSurface
+        dimensions={dimensions}
+        showWidgets={inWidgetsRoute || inSettingsRoute}
+        showOverlays={inOverlaysRoute || inSettingsRoute}
+      />
     </div>
   );
 };

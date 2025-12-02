@@ -49,7 +49,9 @@ interface WidgetBoxProps {
 }
 
 // prettier-ignore
-const WidgetBox: React.FC<WidgetBoxProps> = React.memo(({ widget, dimensions, registerRef }) => {
+export const WidgetBox = React.memo(
+  ({ widget, dimensions, registerRef }: WidgetBoxProps) => {
+
   /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
     return null;

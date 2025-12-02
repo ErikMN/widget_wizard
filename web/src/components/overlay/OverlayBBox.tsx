@@ -45,7 +45,7 @@ interface OverlayBoxProps {
   registerRef?: (el: HTMLElement | null) => void;
 }
 
-const OverlayBox: React.FC<OverlayBoxProps> = ({
+export const OverlayBox: React.FC<OverlayBoxProps> = ({
   overlay,
   dimensions,
   onSelect,
