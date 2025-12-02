@@ -237,21 +237,13 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         placeholder="Default FPS"
       />
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        <span>Stats overlay</span>
-        <CustomSwitch
-          name="stats"
-          checked={showStatsOverlay}
-          onChange={changeStatsOverlay}
-        />
-      </div>
+      <div>Client stream information</div>
+      <CustomSwitch
+        name="stats"
+        checked={showStatsOverlay}
+        onChange={changeStatsOverlay}
+        sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
+      />
     </div>
   );
 };
