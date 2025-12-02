@@ -42,6 +42,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   /* Global state */
   const { setCurrentChannel } = useAppContext();
 
+  /* Local state */
+  const [fpsError, setFpsError] = React.useState<string>('');
+
   /* Global parameter list */
   const { parameters } = useParameters();
   const Resolution = parameters?.['root.Properties.Image.Resolution'];
@@ -85,7 +88,30 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   );
 
   const changeFps: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> =
-    useCallback((e) => onVapix('fps', e.target.value), [onVapix]);
+    useCallback(
+      (e) => {
+        const raw = e.target.value;
+        /* Allow empty for "default" */
+        if (raw === '') {
+          setFpsError('');
+          onVapix('fps', '');
+          return;
+        }
+        /* Only digits */
+        if (!/^\d+$/.test(raw)) {
+          setFpsError('Only digits 0-9 allowed');
+          return;
+        }
+        const num = Number(raw);
+        if (num < 0 || num > 999) {
+          setFpsError('Value must be between 0 and 999');
+          return;
+        }
+        setFpsError('');
+        onVapix('fps', raw);
+      },
+      [onVapix]
+    );
 
   /* Parse supported resolutions */
   const supportedResolutions = React.useMemo(() => {
@@ -235,6 +261,14 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         value={vapixParameters['fps'] ?? ''}
         onChange={changeFps}
         placeholder="Default FPS"
+        error={fpsError !== ''}
+        helperText={fpsError || ' '}
+        slotProps={{
+          htmlInput: {
+            inputMode: 'numeric',
+            maxLength: 3
+          }
+        }}
       />
 
       <div>Client stream information</div>
