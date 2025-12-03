@@ -50,10 +50,17 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   const widgetRefs = useRef<Map<number, HTMLElement>>(new Map());
   const overlayRefs = useRef<Map<number, HTMLElement>>(new Map());
 
-  /* NOTE: Only one bbox system should have an active bbox at any time.
+  /* Only one bbox system should have an active bbox at any time:
    * If widget activates: deactivate overlay.
    * If overlay activates: deactivate widget.
+   *
+   * NOTE:
+   * lastActiveRef is required to avoid flicker: without it, both systems may
+   * briefly appear to be active during a state transition which causes each
+   * branch to deactivate the other in the same render pass.
    */
+  const lastActiveRef = useRef<'widget' | 'overlay' | null>(null);
+
   useEffect(() => {
     const widgetActive =
       activeDraggableWidget && activeDraggableWidget.id !== null;
@@ -62,17 +69,19 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
       activeDraggableOverlay && activeDraggableOverlay.id !== null;
 
     /* Widget activated: deactivate overlay */
-    if (widgetActive && overlayActive) {
+    if (widgetActive && lastActiveRef.current !== 'widget') {
       setActiveDraggableOverlay({
         id: null,
         active: false,
         highlight: false
       });
       onSelectOverlay(null);
+      lastActiveRef.current = 'widget';
+      return;
     }
 
     /* Overlay activated: deactivate widget */
-    if (overlayActive && widgetActive) {
+    if (overlayActive && lastActiveRef.current !== 'overlay') {
       setActiveDraggableWidget({
         id: null,
         active: false,
@@ -80,6 +89,13 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
         highlight: false
       });
       setOpenWidgetId(null);
+      lastActiveRef.current = 'overlay';
+      return;
+    }
+
+    /* Neither active */
+    if (!widgetActive && !overlayActive) {
+      lastActiveRef.current = null;
     }
   }, [
     activeDraggableWidget,
