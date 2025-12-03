@@ -43,6 +43,7 @@ const WidgetBackupList: React.FC<{
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openDeleteMarkedDialog, setOpenDeleteMarkedDialog] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [visibleCheckbox, setVisibleCheckbox] = useState<number | null>(null);
   const [marked, setMarked] = useState<Set<number>>(new Set());
 
   const toggleMarked = useCallback((index: number) => {
@@ -242,9 +243,13 @@ const WidgetBackupList: React.FC<{
                 const label =
                   labelParts.length > 0 ? labelParts.join(' ') : 'Widget';
 
+                const isSelected = visibleCheckbox === index;
+                const isMarked = marked.has(index);
+
                 return (
                   <Box
                     key={index}
+                    onClick={() => setVisibleCheckbox(index)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -256,16 +261,26 @@ const WidgetBackupList: React.FC<{
                         theme.palette.mode === 'dark'
                           ? theme.palette.grey[800]
                           : theme.palette.grey[200],
-                      border: (theme) => `1px solid ${theme.palette.grey[600]}`
+                      border: (theme) => {
+                        let color = theme.palette.grey[600];
+                        if (isMarked) {
+                          color = theme.palette.error.main;
+                        } else if (isSelected) {
+                          color = theme.palette.primary.main;
+                        }
+                        return `1px solid ${color}`;
+                      }
                     }}
                   >
-                    <Checkbox
-                      disableRipple
-                      size="small"
-                      checked={marked.has(index)}
-                      onChange={() => toggleMarked(index)}
-                      sx={{ marginRight: 1 }}
-                    />
+                    {(visibleCheckbox === index || marked.has(index)) && (
+                      <Checkbox
+                        disableRipple
+                        size="small"
+                        checked={marked.has(index)}
+                        onChange={() => toggleMarked(index)}
+                        sx={{ marginRight: 1 }}
+                      />
+                    )}
 
                     <Typography
                       variant="body2"

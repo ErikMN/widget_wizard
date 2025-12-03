@@ -42,6 +42,7 @@ const OverlayBackupList: React.FC<{
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openDeleteMarkedDialog, setOpenDeleteMarkedDialog] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [visibleCheckbox, setVisibleCheckbox] = useState<number | null>(null);
   const [marked, setMarked] = useState<Set<number>>(new Set());
 
   const toggleMarked = useCallback((index: number) => {
@@ -223,70 +224,86 @@ const OverlayBackupList: React.FC<{
                 marginBottom: 1
               }}
             >
-              {backupList.map((backup, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '4px 6px',
-                    marginBottom: 1,
-                    borderRadius: '4px',
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? theme.palette.grey[800]
-                        : theme.palette.grey[200],
-                    border: (theme) => `1px solid ${theme.palette.grey[600]}`
-                  }}
-                >
-                  <Checkbox
-                    disableRipple
-                    size="small"
-                    checked={marked.has(index)}
-                    onChange={() => toggleMarked(index)}
-                    sx={{ marginRight: 1 }}
-                  />
+              {backupList.map((backup, index) => {
+                const isSelected = visibleCheckbox === index;
+                const isMarked = marked.has(index);
 
-                  <Typography
-                    variant="body2"
+                return (
+                  <Box
+                    key={index}
+                    onClick={() => setVisibleCheckbox(index)}
                     sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                      marginRight: 1,
-                      fontWeight: 500
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '4px 6px',
+                      marginBottom: 1,
+                      borderRadius: '4px',
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? theme.palette.grey[800]
+                          : theme.palette.grey[200],
+                      border: (theme) => {
+                        let color = theme.palette.grey[600];
+                        if (isMarked) {
+                          color = theme.palette.error.main;
+                        } else if (isSelected) {
+                          color = theme.palette.primary.main;
+                        }
+                        return `1px solid ${color}`;
+                      }
                     }}
                   >
-                    {backup.overlayPath
-                      ? backup.overlayPath.split('/').pop()
-                      : 'Text overlay'}
-                  </Typography>
+                    {(isSelected || isMarked) && (
+                      <Checkbox
+                        disableRipple
+                        size="small"
+                        checked={isMarked}
+                        onChange={() => toggleMarked(index)}
+                        sx={{ marginRight: 1 }}
+                      />
+                    )}
 
-                  <CustomButton
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<RestoreIcon />}
-                    sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
-                    onClick={() => handleOpenRestoreDialog(index)}
-                  >
-                    Restore
-                  </CustomButton>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1,
+                        marginRight: 1,
+                        fontWeight: 500
+                      }}
+                    >
+                      {backup.overlayPath
+                        ? backup.overlayPath.split('/').pop()
+                        : 'Text overlay'}
+                    </Typography>
 
-                  <CustomButton
-                    color="error"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DeleteIcon />}
-                    sx={{ whiteSpace: 'nowrap' }}
-                    onClick={() => handleOpenDeleteDialog(index)}
-                  >
-                    Delete
-                  </CustomButton>
-                </Box>
-              ))}
+                    <CustomButton
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<RestoreIcon />}
+                      sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
+                      onClick={() => handleOpenRestoreDialog(index)}
+                    >
+                      Restore
+                    </CustomButton>
+
+                    <CustomButton
+                      color="error"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DeleteIcon />}
+                      sx={{ whiteSpace: 'nowrap' }}
+                      onClick={() => handleOpenDeleteDialog(index)}
+                    >
+                      Delete
+                    </CustomButton>
+                  </Box>
+                );
+              })}
             </Box>
           )}
           {/* Delete buttons */}
