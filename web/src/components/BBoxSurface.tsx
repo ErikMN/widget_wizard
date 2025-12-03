@@ -4,7 +4,7 @@
  * A unified bounding-box surface for both Widgets and Overlays.
  * Replaces the separate WidgetBBox and OverlayBBox surfaces.
  */
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Dimensions } from './appInterface';
 import { useAppContext } from './AppContext';
 
@@ -49,6 +49,46 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   /* Refs */
   const widgetRefs = useRef<Map<number, HTMLElement>>(new Map());
   const overlayRefs = useRef<Map<number, HTMLElement>>(new Map());
+
+  /* NOTE: Only one bbox system should have an active bbox at any time.
+   * If widget activates: deactivate overlay.
+   * If overlay activates: deactivate widget.
+   */
+  useEffect(() => {
+    const widgetActive =
+      activeDraggableWidget && activeDraggableWidget.id !== null;
+
+    const overlayActive =
+      activeDraggableOverlay && activeDraggableOverlay.id !== null;
+
+    /* Widget activated: deactivate overlay */
+    if (widgetActive && overlayActive) {
+      setActiveDraggableOverlay({
+        id: null,
+        active: false,
+        highlight: false
+      });
+      onSelectOverlay(null);
+    }
+
+    /* Overlay activated: deactivate widget */
+    if (overlayActive && widgetActive) {
+      setActiveDraggableWidget({
+        id: null,
+        active: false,
+        clickBBox: false,
+        highlight: false
+      });
+      setOpenWidgetId(null);
+    }
+  }, [
+    activeDraggableWidget,
+    activeDraggableOverlay,
+    setActiveDraggableWidget,
+    setActiveDraggableOverlay,
+    setOpenWidgetId,
+    onSelectOverlay
+  ]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     /* Ignore while dragging */
