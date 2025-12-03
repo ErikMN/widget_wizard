@@ -11,7 +11,7 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/roboto": "^5.2.9",
     "@mui/icons-material": "^7.3.5",
-    "@mui/material": "^7.3.5",
+    "@mui/material": "^7.3.6",
     "@mui/styles": "^6.4.8",
     "@types/lodash": "^4.17.21",
     "@types/react": "^19.2.7",
