@@ -542,6 +542,7 @@ const App: React.FC = () => {
           alertSeverity={alertSeverity}
           alertContent={alertContent}
           handleCloseAlert={handleCloseAlert}
+          alertOffset={`calc(${appbarHeight} + ${theme.spacing(2)})`}
         />
 
         {/* About Modal */}

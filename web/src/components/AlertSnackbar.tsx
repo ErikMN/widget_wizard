@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { appbarHeight } from './constants';
 import { playSound } from '../helpers/utils';
 import lockSoundUrl from '../assets/audio/lock.oga';
 import unlockSoundUrl from '../assets/audio/unlock.oga';
@@ -18,6 +17,7 @@ interface AlertSnackbarProps {
   alertSeverity: 'success' | 'warning' | 'error' | 'info';
   alertContent: string;
   handleCloseAlert: () => void;
+  alertOffset?: string;
 }
 
 const SlideTransition = (props: any) => {
@@ -53,7 +53,8 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
   openAlert,
   alertSeverity,
   alertContent,
-  handleCloseAlert
+  handleCloseAlert,
+  alertOffset = undefined
 }) => {
   const theme = useTheme();
   const [isPersistent, setIsPersistent] = useState(false);
@@ -75,7 +76,7 @@ const AlertSnackbar: React.FC<AlertSnackbarProps> = ({
       }}
       sx={{
         '&.MuiSnackbar-root': {
-          top: `calc(${appbarHeight} + ${theme.spacing(2)})`,
+          ...(alertOffset ? { top: alertOffset } : {}),
           right: theme.spacing(2)
         }
       }}

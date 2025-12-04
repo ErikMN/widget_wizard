@@ -16,9 +16,9 @@ import {
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
 import WidgetsDisabled from './widget/WidgetsDisabled';
+import AlertSnackbar from './AlertSnackbar';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import Alert from '@mui/material/Alert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import ContrastIcon from '@mui/icons-material/Contrast';
@@ -29,7 +29,6 @@ import MenuItem from '@mui/material/MenuItem';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import SettingsIcon from '@mui/icons-material/Settings';
-import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
 import TvIcon from '@mui/icons-material/Tv';
 import Typography from '@mui/material/Typography';
@@ -742,30 +741,12 @@ const Settings: React.FC = () => {
         </Box>
 
         {/* Alert Snackbar */}
-        <Snackbar
-          open={openAlert}
-          autoHideDuration={2000}
-          onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          sx={{
-            '&.MuiSnackbar-root': {
-              top: theme.spacing(2),
-              right: theme.spacing(2)
-            }
-          }}
-        >
-          <Alert
-            onClose={handleCloseAlert}
-            severity={alertSeverity}
-            sx={{
-              width: '100%',
-              borderRadius: 0,
-              fontSize: '1.1rem'
-            }}
-          >
-            {alertContent}
-          </Alert>
-        </Snackbar>
+        <AlertSnackbar
+          openAlert={openAlert}
+          alertSeverity={alertSeverity}
+          alertContent={alertContent}
+          handleCloseAlert={handleCloseAlert}
+        />
       </CustomContainer>
     </ThemeProvider>
   );
