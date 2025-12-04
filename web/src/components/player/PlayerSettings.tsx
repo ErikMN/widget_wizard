@@ -9,7 +9,7 @@
  *   - FPS
  *   - Stats overlay toggle
  */
-import React, { ChangeEventHandler, useCallback } from 'react';
+import React, { ChangeEventHandler, useCallback, useEffect } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
@@ -43,7 +43,20 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   const { setCurrentChannel } = useAppContext();
 
   /* Local state */
+  const [fpsValue, setFpsValue] = React.useState<string>(
+    vapixParameters['fps'] ?? ''
+  );
+  const [compressionValue, setCompressionValue] = React.useState<string>(
+    vapixParameters['compression'] ?? ''
+  );
+
+  /* Error state */
   const [fpsError, setFpsError] = React.useState<string>('');
+  const [compressionError, setCompressionError] = React.useState<string>('');
+
+  /* Refs */
+  const fpsTimerRef = React.useRef<number | null>(null);
+  const compressionTimerRef = React.useRef<number | null>(null);
 
   /* Global parameter list */
   const { parameters } = useParameters();
@@ -53,6 +66,14 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   const cameraOptions = isNaN(NbrOfSources)
     ? [1]
     : Array.from({ length: NbrOfSources }, (_, i) => i + 1);
+
+  useEffect(() => {
+    setFpsValue(vapixParameters['fps'] ?? '');
+  }, [vapixParameters['fps']]);
+
+  useEffect(() => {
+    setCompressionValue(vapixParameters['compression'] ?? '');
+  }, [vapixParameters['compression']]);
 
   const changeStatsOverlay = useCallback(
     (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) =>
@@ -74,7 +95,44 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
 
   const changeCompression: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
-  > = useCallback((e) => onVapix('compression', e.target.value), [onVapix]);
+  > = useCallback(
+    (e) => {
+      const raw = e.target.value;
+      /* Update local value immediately for realtime typing */
+      setCompressionValue(raw);
+
+      /* Allow empty for "default" */
+      if (raw === '') {
+        setCompressionError('');
+        if (compressionTimerRef.current !== null) {
+          clearTimeout(compressionTimerRef.current);
+        }
+        compressionTimerRef.current = window.setTimeout(() => {
+          onVapix('compression', '');
+        }, 1000);
+        return;
+      }
+      /* Only digits */
+      if (!/^\d+$/.test(raw)) {
+        setCompressionError('Only digits 0-9 allowed');
+        return;
+      }
+      const num = Number(raw);
+      if (num < 0 || num > 100) {
+        setCompressionError('Value must be between 0 and 100');
+        return;
+      }
+      setCompressionError('');
+      /* Debounce actual apply by 1s */
+      if (compressionTimerRef.current !== null) {
+        clearTimeout(compressionTimerRef.current);
+      }
+      compressionTimerRef.current = window.setTimeout(() => {
+        onVapix('compression', raw);
+      }, 1000);
+    },
+    [onVapix]
+  );
 
   const changeCamera: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -91,10 +149,18 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
     useCallback(
       (e) => {
         const raw = e.target.value;
+        /* Update local value immediately for realtime typing */
+        setFpsValue(raw);
+
         /* Allow empty for "default" */
         if (raw === '') {
           setFpsError('');
-          onVapix('fps', '');
+          if (fpsTimerRef.current !== null) {
+            clearTimeout(fpsTimerRef.current);
+          }
+          fpsTimerRef.current = window.setTimeout(() => {
+            onVapix('fps', '');
+          }, 1000);
           return;
         }
         /* Only digits */
@@ -108,7 +174,13 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
           return;
         }
         setFpsError('');
-        onVapix('fps', raw);
+        /* Debounce actual apply by 1s */
+        if (fpsTimerRef.current !== null) {
+          clearTimeout(fpsTimerRef.current);
+        }
+        fpsTimerRef.current = window.setTimeout(() => {
+          onVapix('fps', raw);
+        }, 1000);
       },
       [onVapix]
     );
@@ -233,43 +305,50 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
       </TextField>
 
       <div>Compression</div>
-      <TextField
-        select
-        size="small"
-        value={vapixParameters['compression'] ?? ''}
-        onChange={changeCompression}
-        slotProps={{
-          select: {
-            displayEmpty: true
-          }
-        }}
-      >
-        <MenuItem disableRipple value="">
-          Default compression
-        </MenuItem>
-        {Array.from({ length: 11 }, (_, i) => i * 10).map((val) => (
-          <MenuItem disableRipple key={val} value={String(val)}>
-            {val}
-          </MenuItem>
-        ))}
-      </TextField>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <TextField
+          variant="outlined"
+          size="small"
+          value={compressionValue}
+          onChange={changeCompression}
+          placeholder="Default compression"
+          error={compressionError !== ''}
+          slotProps={{
+            htmlInput: {
+              inputMode: 'numeric',
+              maxLength: 3
+            }
+          }}
+        />
+        {compressionError && (
+          <div style={{ color: theme.palette.error.main, fontSize: '12px' }}>
+            {compressionError}
+          </div>
+        )}
+      </div>
 
-      <div>FPS</div>
-      <TextField
-        variant="outlined"
-        size="small"
-        value={vapixParameters['fps'] ?? ''}
-        onChange={changeFps}
-        placeholder="Default FPS"
-        error={fpsError !== ''}
-        helperText={fpsError || ' '}
-        slotProps={{
-          htmlInput: {
-            inputMode: 'numeric',
-            maxLength: 3
-          }
-        }}
-      />
+      <div>FPS (0 = ∞)</div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <TextField
+          variant="outlined"
+          size="small"
+          value={fpsValue}
+          onChange={changeFps}
+          placeholder="Default FPS"
+          error={fpsError !== ''}
+          slotProps={{
+            htmlInput: {
+              inputMode: 'numeric',
+              maxLength: 3
+            }
+          }}
+        />
+        {fpsError && (
+          <div style={{ color: theme.palette.error.main, fontSize: '12px' }}>
+            {fpsError}
+          </div>
+        )}
+      </div>
 
       <div>Client stream information</div>
       <CustomSwitch
