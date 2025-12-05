@@ -1,3 +1,8 @@
+/**
+ * CustomComponents
+ *
+ * A collection of custom-styled MUI components used throughout the application.
+ */
 import React from 'react';
 /* MUI */
 import { IconButton, IconButtonProps } from '@mui/material';

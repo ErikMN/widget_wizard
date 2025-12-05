@@ -854,6 +854,11 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
 /******************************************************************************/
 /* Overlay BBoxes for all overlays in activeOverlays */
 
+/* NOTE: Don't use OverlayBBox
+ * This surface is handled by BBoxSurface for common rendering.
+ * It is considered legacy code.
+ */
+
 interface OverlayBBoxProps {
   dimensions: Dimensions;
 }

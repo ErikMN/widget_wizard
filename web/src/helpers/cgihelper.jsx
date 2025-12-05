@@ -1,3 +1,8 @@
+/**
+ * cgihelper
+ *
+ * Helper functions for making CGI requests to the server.
+ */
 const DEFAULT_OPTIONS = {
   cache: 'no-store',
   credentials: 'same-origin',

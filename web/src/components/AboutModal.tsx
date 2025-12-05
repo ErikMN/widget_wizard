@@ -1,3 +1,9 @@
+/**
+ * AboutModal
+ *
+ * This component displays an "About" modal dialog with application
+ * information, including version, license, and link to GitHub.
+ */
 import React, { useEffect, useState } from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';

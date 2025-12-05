@@ -1,3 +1,8 @@
+/**
+ * DrawerHeaderContent
+ *
+ * This component renders the header content of the drawer based on drawerTab.
+ */
 import React from 'react';
 /* MUI */
 import Box from '@mui/material/Box';

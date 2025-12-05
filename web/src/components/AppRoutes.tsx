@@ -1,3 +1,8 @@
+/**
+ * AppRoutes
+ *
+ * This component defines the routing structure of the application using React Router.
+ */
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoadingScreen from './LoadingScreen';
 

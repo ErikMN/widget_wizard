@@ -1,7 +1,6 @@
 /**
  * A collection of custom hooks.
  */
-
 import React, { useCallback, useState, useEffect } from 'react';
 /* MUI */
 import { useMediaQuery } from '@mui/material';

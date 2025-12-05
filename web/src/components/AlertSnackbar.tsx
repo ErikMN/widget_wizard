@@ -1,3 +1,8 @@
+/**
+ * AlertSnackbar
+ *
+ * This component displays a customizable alert snackbar using MUI components.
+ */
 import React, { useState, useEffect } from 'react';
 import { playSound } from '../helpers/utils';
 import lockSoundUrl from '../assets/audio/lock.oga';

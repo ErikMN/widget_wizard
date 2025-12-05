@@ -1,3 +1,8 @@
+/**
+ * Logo
+ *
+ * This component displays a seasonal logo based on the current date.
+ */
 import React from 'react';
 import logo from '../assets/img/widgy2.png';
 import logo_xmas from '../assets/img/widgy_xmas.png';

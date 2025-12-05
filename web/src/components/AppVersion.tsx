@@ -1,3 +1,10 @@
+/**
+ * AppVersion
+ *
+ * This component displays the application version information.
+ * It first attempts to load static version info from a file.
+ * If unavailable, it falls back to dynamic version info from environment variables.
+ */
 import version from '../assets/etc/version_info?raw';
 
 function AppVersion() {
