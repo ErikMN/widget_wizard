@@ -16,6 +16,7 @@ import {
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
 import WidgetsDisabled from './widget/WidgetsDisabled';
+import OverlaysDisabled from './overlay/OverlaysDisabled';
 import AlertSnackbar from './AlertSnackbar';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -43,9 +44,6 @@ const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
 ];
 
 const Settings: React.FC = () => {
-  /* Local state */
-  const [countdown, setCountdown] = useState<number | null>(null);
-
   /* Global context */
   const {
     appSettings,
@@ -60,7 +58,7 @@ const Settings: React.FC = () => {
   } = useAppContext();
 
   const { listWidgets, widgetSupported } = useWidgetContext();
-  const { listOverlays } = useOverlayContext();
+  const { listOverlays, overlaySupported } = useOverlayContext();
 
   /* Refs */
   const timerRef = useRef<number | null>(null);
@@ -253,46 +251,8 @@ const Settings: React.FC = () => {
     );
   };
 
-  const handleToggleWSDefault = () => {
-    setAppSettings((prevSettings: AppSettings) => ({
-      ...prevSettings,
-      wsDefault: !prevSettings.wsDefault
-    }));
-    handleOpenAlert(`WebSocket stream: ${!appSettings.wsDefault}`, 'success');
-    /* Start the countdown */
-    setCountdown(2);
-  };
-
-  useEffect(() => {
-    if (countdown !== null) {
-      if (countdown > 0) {
-        timerRef.current = window.setTimeout(() => {
-          setCountdown((prevCountdown) => (prevCountdown as number) - 1);
-        }, 1000);
-      } else {
-        /* When countdown reaches zero, reload the page */
-        window.location.reload();
-      }
-    } else {
-      /* If countdown is null, clear any existing timer */
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-    /* Cleanup function to clear timer if the component unmounts */
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [countdown]);
-
   /* Handle navigation back */
   const handleBack = () => {
-    /* Reset the countdown */
-    setCountdown(null);
     /* Navigate back to previous screen */
     if (window.history.length > 1) {
       navigate(-1);
@@ -550,6 +510,9 @@ const Settings: React.FC = () => {
           {!widgetSupported && (
             <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
           )}
+          {!overlaySupported && (
+            <OverlaysDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
+          )}
           {/* Widget sorting */}
           <Box
             sx={{
@@ -626,43 +589,6 @@ const Settings: React.FC = () => {
             label="Widget snap to anchor"
           />
         </Box>
-
-        {/* Misc. settings */}
-        {/* <Box
-          sx={(theme) => ({
-            border: `1px solid ${theme.palette.grey[600]}`,
-            padding: 2,
-            borderRadius: 1,
-            marginBottom: 2,
-            textAlign: 'left'
-          })}
-        >
-          <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Misc. settings
-          </Typography> */}
-
-        {/* Switch for using WS stream as default */}
-        {/* <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.wsDefault}
-                onChange={handleToggleWSDefault}
-                name="wsDefault"
-              />
-            }
-            label="Use WebSocket stream by default (faster, but may be less reliable)"
-          /> */}
-        {/* </Box> */}
-
-        {/* Display the countdown if it's active */}
-        {countdown !== null && (
-          <Typography
-            variant="subtitle1"
-            sx={{ marginTop: 1, textAlign: 'center', color: 'red' }}
-          >
-            Reloading application in {countdown}...
-          </Typography>
-        )}
 
         <Box
           sx={{
