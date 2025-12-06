@@ -160,7 +160,8 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
       /* Text overlays scale better when tied to the vertical resolution
        * FIXME: This is not 100% correct but quite close, it will work on common resolutions.
        */
-      const scaleFactor = dimensions.pixelHeight / 1080;
+      const scaleFactor =
+        Math.min(dimensions.pixelHeight, dimensions.pixelWidth) / 1080;
       wPx = wStream * scaleFactor;
       hPx = hStream * scaleFactor;
     } else {
