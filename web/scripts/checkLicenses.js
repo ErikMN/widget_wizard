@@ -17,6 +17,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /*
  * Parse command-line arguments.
@@ -126,14 +130,41 @@ function isDualLicensed(licenseString) {
 }
 
 /*
+ * Locate the nearest node_modules directory by walking upward.
+ */
+function findNodeModulesDir(startDir) {
+  let dir = startDir;
+
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules');
+
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+
+    dir = parent;
+  }
+
+  return null;
+}
+
+/*
  * Main execution routine.
  * Loads all package.json files, extracts licenses,
  * optionally prints each, and checks for license violations.
  * Also collects license summary statistics and dual-license packages.
  */
 function main() {
-  const nm = path.join(process.cwd(), 'node_modules');
-  if (!fs.existsSync(nm)) {
+  /*
+   * Search upward from the script location for node_modules.
+   */
+  const nm = findNodeModulesDir(__dirname);
+  if (!nm) {
     console.error('node_modules not found.');
     process.exit(1);
   }
