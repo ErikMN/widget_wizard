@@ -346,7 +346,7 @@ const App: React.FC = () => {
                 </div>
               </Tooltip>
 
-              {/* Info Button (left of theme icon) */}
+              {/* Info Button */}
               <Tooltip title="About info" arrow>
                 <div>
                   <CustomStyledIconButton

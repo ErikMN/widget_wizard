@@ -476,7 +476,6 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
     const overlayId = overlay.identity;
     const isCurrentlyOpen = activeOverlayId === overlayId;
 
-    /* Activate bbox visually */
     setActiveDraggableOverlay({
       id: overlayId,
       active: false,

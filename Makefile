@@ -180,7 +180,7 @@ else
 	@exit 1
 endif
 
-# Fasy target to setup Docker image and build the ACAP:
+# Fast target to setup Docker image and build the ACAP:
 .PHONY: app
 app: dockersetup acap
 

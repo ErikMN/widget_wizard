@@ -128,7 +128,10 @@ const VideoPlayer: React.FC = () => {
     };
   }, []);
 
-  /* Function to log and send video element's dimensions */
+  /* Function to log and send video element's dimensions
+   * NOTE: This is very important since alot of other functionalites in the app
+   * depends on having the correct dimensions available.
+   */
   const logVideoDimensions = () => {
     if (videoRef.current && playerContainerRef.current) {
       const el = videoRef.current as HTMLElement;
@@ -235,6 +238,7 @@ const VideoPlayer: React.FC = () => {
     }
   }, [authorized, videoRef.current]);
 
+  /* Not authorized: return */
   if (!authorized) {
     return null;
   }

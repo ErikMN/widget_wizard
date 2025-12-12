@@ -70,7 +70,7 @@ const WidgetContext = createContext<WidgetContextProps | undefined>(undefined);
 export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  /* Disabling logging by default, but can be enabled as needed */
+  /* Disable logging by default */
   enableLogging(false);
 
   /* Widget-related state variables */
@@ -254,7 +254,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
       };
-      /* NOTE: Official web UI seems to need these to move the bbox */
+      /* NOTE: HACK: Official web UI seems to need these to move the bbox */
       if (widgetType === 'linegraph' || widgetType === 'meter') {
         payload.params.widgetParams.minAlarmThreshold = {
           value: 0,

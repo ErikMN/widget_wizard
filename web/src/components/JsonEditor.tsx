@@ -18,7 +18,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
 
-/* Props for the JSON editor component */
 interface JsonEditorProps {
   jsonInput: string;
   setJsonInput: (value: string) => void;

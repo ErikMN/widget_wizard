@@ -9,7 +9,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
 
 interface WidgetsDisabledProps {
-  /** Styles to override the default `sx` */
+  /* Styles to override the default sx */
   sx?: SxProps<Theme>;
 }
 
@@ -31,7 +31,7 @@ const WidgetsDisabled: React.FC<WidgetsDisabledProps> = ({ sx }) => {
             marginLeft: 1,
             marginRight: 1,
             alignItems: 'center',
-            ...sx // Merging custom styles
+            ...sx
           }}
         >
           <Typography>

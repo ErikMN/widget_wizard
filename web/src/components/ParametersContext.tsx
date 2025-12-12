@@ -4,6 +4,8 @@
  * Axis devices stores various configuration parameters that can be accessed via
  * the param.cgi endpoint. This context fetches and provides these parameters
  * to the rest of the application.
+ *
+ * NOTE: Try to NOT rely too much on these parameters in the app!
  */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { P_CGI } from './constants';
@@ -77,6 +79,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+/* Hook to use the ParametersContext, with an error if used outside the provider */
 export const useParameters = (): ParametersContextType => {
   const context = useContext(ParametersContext);
   if (!context) {

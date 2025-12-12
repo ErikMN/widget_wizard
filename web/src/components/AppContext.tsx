@@ -32,11 +32,11 @@ interface AppContextProps {
   jsonTheme: string;
   setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
 
-  /* App-level loading (kept same name for compatibility) */
+  /* App-level loading */
   widgetLoading: boolean;
   setWidgetLoading: React.Dispatch<React.SetStateAction<boolean>>;
 
-  /* Selected videoplayer channel */
+  /* Selected videoplayer camera channel */
   currentChannel: string;
   setCurrentChannel: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -63,7 +63,7 @@ const initChannel = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  /* Alert-related state variables */
+  /* Alert-related state */
   const [openAlert, setOpenAlert] = useState<boolean>(false);
   const [alertContent, setAlertContent] = useState<string>('');
   const [alertSeverity, setAlertSeverity] = useState<Severity>('info');
@@ -76,7 +76,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
 
-  /* App-level loading state (kept same name) */
+  /* App-level loading state */
   const [widgetLoading, setWidgetLoading] = useState<boolean>(false);
 
   /* Selected videoplayer channel */
@@ -85,7 +85,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     initChannel()
   );
 
-  /* Function to open an alert with content and severity */
+  /* Open an alert with content and severity */
   const handleOpenAlert = (content: string, severity: Severity) => {
     setAlertContent(content);
     setAlertSeverity(severity);

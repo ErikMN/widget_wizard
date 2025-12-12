@@ -1,9 +1,12 @@
+/**
+ * Settings
+ *
+ * Application settings are controlled from here by using various app context.
+ */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useAppContext } from './AppContext';
-import { useWidgetContext } from './widget/WidgetContext';
-import { useOverlayContext } from './overlay/OverlayContext';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { P_CGI } from './constants';
@@ -15,9 +18,13 @@ import {
 } from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import VideoPlayer from './VideoPlayer';
-import WidgetsDisabled from './widget/WidgetsDisabled';
-import OverlaysDisabled from './overlay/OverlaysDisabled';
 import AlertSnackbar from './AlertSnackbar';
+/* Widgets */
+import { useWidgetContext } from './widget/WidgetContext';
+import WidgetsDisabled from './widget/WidgetsDisabled';
+/* Overlays */
+import { useOverlayContext } from './overlay/OverlayContext';
+import OverlaysDisabled from './overlay/OverlaysDisabled';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';

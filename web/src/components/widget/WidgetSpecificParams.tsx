@@ -417,6 +417,8 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
   };
 
   /**
+   * FIXME: Add proper nested array support
+   *
    * Render array-type parameters.
    * Used when a parameter has type: "array" and defines a nested object schema in paramConfig.value.
    * Example:
