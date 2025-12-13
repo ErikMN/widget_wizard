@@ -108,7 +108,7 @@ release:
 getsdk: checkdocker
 ifeq ($(APPTYPE), aarch64)
 	@$(call setup_aarch64)
-	@./scripts/dockercopy.sh $(DOCKER_X64_IMG) /opt/axis/acapsdk
+	@./scripts/dockercopy.sh -i $(DOCKER_X64_IMG) -f /opt/axis/acapsdk
 else
 	@echo "Error: Unsupported APPTYPE"
 	@exit 1
