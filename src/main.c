@@ -1,8 +1,25 @@
 /* WebSocket server for streaming system statistics
+ *
  * Test with chrome-plugin "WebSocket Test Client"
  * https://chromewebstore.google.com/detail/websocket-test-client/fgponpodhbmadfljofbimhhlengambbn
  *
  * ws://192.168.0.90:9000
+ *
+ * App overview:
+ * - The application runs entirely in a single GLib main loop thread.
+ * - System statistics are periodically sampled from /proc and stored in latest_stats.
+ * - libwebsockets is serviced from the same GLib main loop via a timer.
+ * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
+ *
+ * Data flow:
+ *   /proc -> stats_timer_cb() -> latest_stats
+ *   latest_stats -> ws_callback() -> WebSocket clients
+ *
+ * Scope and limitations:
+ * - Intended for local or trusted networks (no TLS or authentication).
+ * - Designed for a small number of concurrent clients.
+ * - Not thread-safe by design: All logic runs in the GLib main loop thread.
+ * - Not intended as a general-purpose metrics system.
  */
 #include <stdio.h>
 #include <ctype.h>
@@ -33,6 +50,18 @@
 static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
 
+/* Per-connected WebSocket client (per-session) storage.
+ * libwebsockets gives us one instance of this struct for each connection and
+ * passes it back as the "user" pointer in ws_callback().
+ *
+ * Buffer layout:
+ * - First LWS_PRE bytes: reserved for libwebsockets (must not be written)
+ * - Remaining bytes: outgoing message payload (JSON)
+ */
+struct per_session_data {
+  unsigned char buf[LWS_PRE + 256];
+};
+
 /* Struct for collecting system stats */
 struct sys_stats {
   double cpu_usage;
@@ -40,6 +69,10 @@ struct sys_stats {
   long mem_available_kb;
 };
 
+/* latest_stats is accessed only from the GLib main loop thread.
+ * No locking is required as long as libwebsockets is serviced
+ * exclusively via lws_service() in this loop.
+ */
 static struct sys_stats latest_stats;
 
 /* Read MemTotal and MemAvailable from /proc/meminfo
@@ -48,8 +81,6 @@ static struct sys_stats latest_stats;
 static void
 read_mem_stats(struct sys_stats *stats)
 {
-  char key[64];
-  char unit[16];
   char line[256];
   long value = 0;
   int got_total = 0;
@@ -182,16 +213,35 @@ read_cpu_stats(struct sys_stats *stats)
   prev_total = total_time;
 }
 
+/* WebSocket protocol callback
+ *
+ * - Server sends periodic JSON snapshots.
+ * - Messages are write-only; incoming messages are ignored.
+ * - Update rate is approximately 500 ms per client.
+ * - CPU usage is reported as a percentage [0.0 - 100.0].
+ * - Memory values are reported in kilobytes.
+ * - The first CPU value after connect may be 0.0 due to baseline initialization.
+ */
 static int
 ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
-  (void)user;
   (void)in;
 
   switch (reason) {
 
   case LWS_CALLBACK_ESTABLISHED:
     syslog(LOG_INFO, "WebSocket client connected");
+    /* Send immediately */
+    lws_callback_on_writable(wsi);
+    /* Then every 500ms */
+    lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
+    break;
+
+  case LWS_CALLBACK_TIMER:
+    /* Ask lws for a writeable callback */
+    lws_callback_on_writable(wsi);
+    /* Rearm timer for next tick */
+    lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
     break;
 
   case LWS_CALLBACK_RECEIVE:
@@ -204,34 +254,39 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     break;
 
   case LWS_CALLBACK_SERVER_WRITEABLE: {
+    struct per_session_data *pss = user;
     char json[256];
-    unsigned char buf[LWS_PRE + 256];
-    unsigned char *p = &buf[LWS_PRE];
+    int json_len;
 
-    int json_len = snprintf(json,
-                            sizeof(json),
-                            "{ \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
-                            latest_stats.cpu_usage,
-                            latest_stats.mem_total_kb,
-                            latest_stats.mem_available_kb);
+    if (!pss) {
+      break;
+    }
+    json_len = snprintf(json,
+                        sizeof(json),
+                        "{ \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
+                        latest_stats.cpu_usage,
+                        latest_stats.mem_total_kb,
+                        latest_stats.mem_available_kb);
     if (json_len < 0) {
       break;
     }
+    /* Truncated output! */
     if ((size_t)json_len >= sizeof(json)) {
-      /* NOTE: Truncated output! */
       json_len = (int)(sizeof(json) - 1);
     }
-    if ((size_t)json_len > sizeof(buf) - LWS_PRE) {
-      /* Should not happen if sizes match but guard it anyway */
-      json_len = (int)(sizeof(buf) - LWS_PRE);
-    }
-    memcpy(p, json, (size_t)json_len);
-    int written = lws_write(wsi, p, (size_t)json_len, LWS_WRITE_TEXT);
+    /* Copy JSON to per-session buffer */
+    memcpy(&pss->buf[LWS_PRE], json, (size_t)json_len);
+
+    /* Send one complete WS text message */
+    int written = lws_write(wsi, &pss->buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
     if (written < 0) {
       syslog(LOG_WARNING, "lws_write failed");
+      break;
     }
-    /* NOTE: re-arm writable for continuous streaming */
-    lws_callback_on_writable(wsi);
+    if (written != json_len) {
+      /* Short write: do not attempt to send the remainder as a new TEXT frame */
+      syslog(LOG_WARNING, "short write: %d of %d", written, json_len);
+    }
     break;
   }
 
@@ -245,14 +300,18 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 static const struct lws_protocols protocols[] = { {
                                                       .name = "sysstats",
                                                       .callback = ws_callback,
-                                                      .per_session_data_size = 0,
-                                                      .rx_buffer_size = 0,
-                                                      .id = 0,
-                                                      .user = NULL,
-                                                      .tx_packet_size = 0,
+                                                      .per_session_data_size = sizeof(struct per_session_data),
                                                   },
                                                   { NULL, NULL, 0, 0, 0, NULL, 0 } };
 
+/* Periodic GLib timer callback that updates the global system statistics.
+ *
+ * This runs in the GLib main loop thread and refreshes latest_stats.
+ * The data is later consumed by the WebSocket write
+ * callback when sending updates to connected clients.
+ *
+ * Returning G_SOURCE_CONTINUE keeps the timer active.
+ */
 static gboolean
 stats_timer_cb(gpointer user_data)
 {
@@ -262,19 +321,26 @@ stats_timer_cb(gpointer user_data)
   read_cpu_stats(&latest_stats);
   read_mem_stats(&latest_stats);
 
-  /* Notify all websocket clients that data is ready */
-  lws_callback_on_writable_all_protocol(lws_ctx, &protocols[0]);
-
   return G_SOURCE_CONTINUE;
 }
 
+/* Periodic GLib timer callback that drives libwebsockets from the GLib main loop.
+ *
+ * libwebsockets is not automatically integrated with GLib, so we call
+ * lws_service() periodically to allow it to process network events.
+ *
+ * The timeout argument (1ms) is the maximum time lws_service() may block
+ * while waiting for network activity.
+ *
+ * Returning G_SOURCE_CONTINUE keeps the timer active.
+ */
 static gboolean
 lws_glib_service(gpointer user_data)
 {
   struct lws_context *context = user_data;
 
-  /* Non-blocking service */
-  lws_service(context, 0);
+  /* Service libwebsockets may block up to 1ms */
+  lws_service(context, 1);
 
   return G_SOURCE_CONTINUE;
 }
@@ -353,8 +419,18 @@ main(int argc, char **argv)
     goto exit;
   }
 
-  /* Drive libwebsockets from GLib */
-  g_timeout_add(50, lws_glib_service, lws_ctx);
+  /* Initialize latest_stats and establish CPU usage baseline */
+  read_cpu_stats(&latest_stats);
+  read_mem_stats(&latest_stats);
+
+  /* Drive libwebsockets and system statistics from the GLib main loop.
+   *
+   * - lws_glib_service(): periodically services libwebsockets so it can
+   *   process network events and invoke protocol callbacks.
+   * - stats_timer_cb(): periodically polls system statistics and
+   *   updates latest_stats.
+   */
+  g_timeout_add(10, lws_glib_service, lws_ctx);
   g_timeout_add(500, stats_timer_cb, NULL);
 
   syslog(LOG_INFO, "WebSocket server listening on port %d", WS_PORT);
@@ -383,10 +459,10 @@ exit:
     g_main_loop_unref(main_loop);
     main_loop = NULL;
   }
+  /* Free axparameter */
   if (parameter) {
     ax_parameter_free(parameter);
   }
-
   /* Close application logging to syslog */
   closelog();
 
