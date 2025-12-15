@@ -15,6 +15,9 @@
  *   /proc -> stats_timer_cb() -> latest_stats
  *   latest_stats -> ws_callback() -> WebSocket clients
  *
+ * Returned JSON message format example:
+ * { "ts": 1765823606151, "cpu": 0.49, "mem_total_kb": 981716, "mem_available_kb": 554616 }
+ *
  * Scope and limitations:
  * - Intended for local or trusted networks (no TLS or authentication).
  * - Designed for a small number of concurrent clients.
@@ -38,6 +41,8 @@
 #include <math.h>
 #include <syslog.h>
 #include <signal.h>
+#include <time.h>
+#include <inttypes.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
@@ -59,6 +64,7 @@ static struct lws_context *lws_ctx = NULL;
  * - Remaining bytes: outgoing message payload (JSON)
  */
 struct per_session_data {
+  /* NOTE: Buffer must be large enough for biggest JSON payload */
   unsigned char buf[LWS_PRE + 256];
 };
 
@@ -67,6 +73,7 @@ struct sys_stats {
   double cpu_usage;
   long mem_total_kb;
   long mem_available_kb;
+  uint64_t timestamp_ms;
 };
 
 /* latest_stats is accessed only from the GLib main loop thread.
@@ -74,6 +81,26 @@ struct sys_stats {
  * exclusively via lws_service() in this loop.
  */
 static struct sys_stats latest_stats;
+
+/* Return current wall-clock time in milliseconds since the Unix epoch.
+ *
+ * Uses CLOCK_REALTIME so the timestamp represents real calendar time (UTC).
+ *
+ * On failure, returns 0. Callers can treat this as "timestamp unavailable".
+ * This function performs no caching and always queries the kernel.
+ */
+static uint64_t
+get_timestamp_ms(void)
+{
+  struct timespec ts;
+
+  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+    return 0;
+  }
+
+  /* Convert seconds + nanoseconds to milliseconds */
+  return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+}
 
 /* Read MemTotal and MemAvailable from /proc/meminfo
  * and return them in stats structure.
@@ -263,7 +290,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
     json_len = snprintf(json,
                         sizeof(json),
-                        "{ \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
+                        "{ \"ts\": %" PRIu64 ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
+                        latest_stats.timestamp_ms,
                         latest_stats.cpu_usage,
                         latest_stats.mem_total_kb,
                         latest_stats.mem_available_kb);
@@ -320,6 +348,7 @@ stats_timer_cb(gpointer user_data)
   /* Read stats */
   read_cpu_stats(&latest_stats);
   read_mem_stats(&latest_stats);
+  latest_stats.timestamp_ms = get_timestamp_ms();
 
   return G_SOURCE_CONTINUE;
 }
