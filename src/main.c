@@ -51,9 +51,11 @@
 
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
 #define WS_PORT 9000
+#define MAX_WS_CONNECTED_CLIENTS 10
 
 static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
+static unsigned int ws_connected_client_count = 0;
 
 /* Per-connected WebSocket client (per-session) storage.
  * libwebsockets gives us one instance of this struct for each connection and
@@ -66,6 +68,8 @@ static struct lws_context *lws_ctx = NULL;
 struct per_session_data {
   /* NOTE: Buffer must be large enough for biggest JSON payload */
   unsigned char buf[LWS_PRE + 256];
+  /* True if this connection was counted toward ws_connected_client_count */
+  bool counted;
 };
 
 /* Struct for collecting system stats */
@@ -248,6 +252,7 @@ read_cpu_stats(struct sys_stats *stats)
  * - CPU usage is reported as a percentage [0.0 - 100.0].
  * - Memory values are reported in kilobytes.
  * - The first CPU value after connect may be 0.0 due to baseline initialization.
+ * - Only allow MAX_WS_CONNECTED_CLIENTS concurrent connections.
  */
 static int
 ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
@@ -256,28 +261,49 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   switch (reason) {
 
-  case LWS_CALLBACK_ESTABLISHED:
-    syslog(LOG_INFO, "WebSocket client connected");
+  case LWS_CALLBACK_ESTABLISHED: {
+    struct per_session_data *pss = user;
+    ws_connected_client_count++;
+    pss->counted = true;
+    syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     /* Send immediately */
     lws_callback_on_writable(wsi);
     /* Then every 500ms */
     lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
     break;
+  }
 
-  case LWS_CALLBACK_TIMER:
+  case LWS_CALLBACK_TIMER: {
     /* Ask lws for a writeable callback */
     lws_callback_on_writable(wsi);
     /* Rearm timer for next tick */
     lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
     break;
+  }
 
-  case LWS_CALLBACK_RECEIVE:
+  case LWS_CALLBACK_RECEIVE: {
     /* Log received data */
     syslog(LOG_INFO, "WebSocket received %zu bytes", len);
     break;
+  }
 
-  case LWS_CALLBACK_CLOSED:
-    syslog(LOG_INFO, "WebSocket client disconnected");
+  case LWS_CALLBACK_CLOSED: {
+    struct per_session_data *pss = user;
+    if (pss && pss->counted) {
+      if (ws_connected_client_count > 0) {
+        ws_connected_client_count--;
+      }
+      pss->counted = false;
+    }
+    syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
+    break;
+  }
+
+  case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+    if (ws_connected_client_count >= MAX_WS_CONNECTED_CLIENTS) {
+      syslog(LOG_WARNING, "Rejecting WebSocket connection: client limit (%u) reached", MAX_WS_CONNECTED_CLIENTS);
+      return -1;
+    }
     break;
 
   case LWS_CALLBACK_SERVER_WRITEABLE: {
