@@ -1,5 +1,5 @@
 /* Widget Wizard main component */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Logo from './Logo';
@@ -141,9 +141,7 @@ const App: React.FC = () => {
 
   /* Local state */
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [drawerTab, setDrawerTab] = useState<number>(
-    location.pathname.endsWith('/overlays') ? 1 : 0
-  );
+  const [drawerTab, setDrawerTab] = useState<number>(0);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -176,6 +174,18 @@ const App: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   enableLogging(true);
+
+  /* Selected path */
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.endsWith('/widgets')) {
+      setDrawerTab(0);
+    } else if (path.endsWith('/overlays')) {
+      setDrawerTab(1);
+    } else if (path.endsWith('/stats')) {
+      setDrawerTab(2);
+    }
+  }, [location.pathname]);
 
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
@@ -505,7 +515,19 @@ const App: React.FC = () => {
               value={drawerTab}
               onChange={(_, newValue) => {
                 setDrawerTab(newValue);
-                navigate(newValue === 0 ? 'widgets' : 'overlays');
+                switch (newValue) {
+                  case 0:
+                    navigate('widgets');
+                    break;
+                  case 1:
+                    navigate('overlays');
+                    break;
+                  case 2:
+                    navigate('stats');
+                    break;
+                  default:
+                    break;
+                }
               }}
               variant="fullWidth"
               textColor="primary"
@@ -522,6 +544,7 @@ const App: React.FC = () => {
             >
               <Tab disableRipple label="Widgets" />
               <Tab disableRipple label="Overlays" />
+              <Tab disableRipple label="Stats" />
             </Tabs>
 
             {/* Render the active tab route */}

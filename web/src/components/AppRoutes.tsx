@@ -15,6 +15,8 @@ import WidgetCapabilities from './widget/WidgetCapabilities';
 /* Overlays */
 import OverlayHandler from './overlay/OverlayHandler';
 import OverlayCapabilities from './overlay/OverlayCapabilities';
+/* Stats */
+import SystemStats from './backend/SystemStats';
 
 const AppRoutes = () => {
   return (
@@ -26,6 +28,7 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="widgets" replace />} />
           <Route path="widgets" element={<WidgetHandler />} />
           <Route path="overlays" element={<OverlayHandler />} />
+          <Route path="stats" element={<SystemStats />} />
         </Route>
 
         {/* Other standalone pages */}

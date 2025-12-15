@@ -1,0 +1,285 @@
+/* Stats
+ * Get stats from WS backend and display them.
+ */
+import React, { useRef, useEffect, useState } from 'react';
+import { log, enableLogging } from '../../helpers/logger';
+import { useAppContext } from '../AppContext';
+/* MUI */
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
+import LinearProgress from '@mui/material/LinearProgress';
+import MemoryIcon from '@mui/icons-material/Memory';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+
+const WS_PORT = 9000;
+
+const WS_ADDRESS =
+  import.meta.env.MODE === 'development'
+    ? `ws://${import.meta.env.VITE_TARGET_IP}:${WS_PORT}`
+    : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:${WS_PORT}`;
+
+interface SysStats {
+  ts: number;
+  cpu: number;
+  mem_total_kb: number;
+  mem_available_kb: number;
+}
+
+const SystemStats: React.FC = () => {
+  /* Global context */
+  const { appSettings } = useAppContext();
+
+  /* Local state */
+  const [stats, setStats] = useState<SysStats | null>(null);
+  const [connected, setConnected] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /* Refs */
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const isUnmountedRef = useRef<boolean>(false);
+  const intentionalCloseRef = useRef<boolean>(false);
+
+  enableLogging(false);
+
+  /* Open (or reopen) the WebSocket connection used to stream system stats.
+   *
+   * This function is written to be safe with:
+   * - Unmount during CONNECTING (tab switch, route change)
+   * - Backend disconnects (reconnect every 2 seconds)
+   *
+   * refs used:
+   * - isUnmountedRef: true after cleanup, prevents starting new connections.
+   * - intentionalCloseRef: true when we are intentionally closing during cleanup,
+   *   used to suppress reconnect and error handling.
+   * - wsRef: holds the currently active WebSocket instance for cleanup and state checks.
+   */
+  const connect = () => {
+    /* Do not create a socket if the component has been unmounted. */
+    if (isUnmountedRef.current) {
+      return;
+    }
+
+    /* This is a normal (non-teardown) connection attempt. */
+    intentionalCloseRef.current = false;
+
+    /* Create a new WebSocket and remember it for cleanup. */
+    const ws = new WebSocket(WS_ADDRESS);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      /* If the component was unmounted while the socket was CONNECTING,
+       * the socket may still complete the handshake and become OPEN.
+       * In that case, immediately close it to avoid a leaked connection.
+       */
+      if (intentionalCloseRef.current || isUnmountedRef.current) {
+        ws.close();
+        return;
+      }
+      setConnected(true);
+      setError(null);
+    };
+
+    ws.onmessage = (event) => {
+      /* Server sends JSON snapshots */
+      try {
+        const data = JSON.parse(event.data);
+        setStats(data);
+      } catch {
+        /* Ignore invalid JSON frames */
+      }
+    };
+
+    ws.onerror = () => {
+      /* Suppress errors during intentional teardown */
+      if (intentionalCloseRef.current) {
+        return;
+      }
+      setError('WebSocket disconnected');
+      setConnected(false);
+    };
+
+    ws.onclose = () => {
+      /* Suppress reconnect during intentional teardown */
+      if (intentionalCloseRef.current) {
+        return;
+      }
+      setConnected(false);
+
+      /* Connection dropped: try again later */
+      scheduleReconnect();
+    };
+  };
+
+  const scheduleReconnect = () => {
+    if (isUnmountedRef.current) {
+      return;
+    }
+    if (reconnectTimerRef.current !== null) {
+      return;
+    }
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      connect();
+    }, 2000);
+  };
+
+  /* Manage the WebSocket connection lifecycle for this route-scoped component.
+   *
+   * Mount:
+   * - Reset lifecycle flags for this component instance.
+   * - Establish the initial WebSocket connection.
+   *
+   * Unmount:
+   * - Mark the component as unmounted to prevent any future reconnect attempts.
+   * - Mark the close as intentional so event handlers do not schedule reconnects
+   *   or report spurious errors while tearing down.
+   * - Cancel any pending reconnect timer.
+   * - Detach WebSocket event handlers and close the socket if it is OPEN.
+   */
+  useEffect(() => {
+    /* Component is active: allow connections and normal error handling */
+    isUnmountedRef.current = false;
+    intentionalCloseRef.current = false;
+
+    /* Start (or resume) stats streaming */
+    connect();
+
+    return () => {
+      /* Component is unmounting, prevent reconnects */
+      isUnmountedRef.current = true;
+      intentionalCloseRef.current = true;
+
+      /* Cancel any scheduled reconnect attempt */
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
+      /* Stop the WebSocket connection */
+      if (wsRef.current) {
+        /* Detach handlers to avoid scheduling reconnect from close/error during teardown */
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
+
+        /* Close only if already OPEN. If CONNECTING, we avoid calling close()
+         * here to prevent "closed before the connection is established" noise.
+         * The ws.onopen handler handles the CONNECTING -> OPEN after unmount case
+         * by immediately closing the socket.
+         */
+        if (wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.close();
+        }
+
+        wsRef.current = null;
+      }
+    };
+  }, []);
+
+  const cpuPercent = stats ? stats.cpu : 0;
+  const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
+  const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '6px'
+      }}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {!connected && !error && (
+          <Alert
+            severity="info"
+            variant="outlined"
+            sx={{
+              py: 0.25,
+              px: 1,
+              '& .MuiAlert-icon': {
+                mr: 1
+              }
+            }}
+          >
+            Connecting to statistics backend...
+          </Alert>
+        )}
+
+        {error && (
+          <Alert
+            severity="error"
+            variant="outlined"
+            sx={{
+              py: 0.25,
+              px: 1,
+              '& .MuiAlert-icon': {
+                mr: 1
+              }
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+
+        {connected && stats && (
+          <Stack spacing={2}>
+            {/* CPU */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+              >
+                <DeveloperBoardIcon sx={{ fontSize: 16 }} />
+                CPU: {cpuPercent.toFixed(1)} %
+              </Typography>
+
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(cpuPercent, 100)}
+                sx={{
+                  height: 16,
+                  borderRadius: 0
+                }}
+              />
+            </Box>
+
+            {/* Memory */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+              >
+                <MemoryIcon sx={{ fontSize: 16 }} />
+                RAM: {memUsedPercent.toFixed(1)} % (
+                {(memUsedKb / 1024).toFixed(0)} MB of{' '}
+                {(stats.mem_total_kb / 1024).toFixed(0)} MB)
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(memUsedPercent, 100)}
+                sx={{
+                  height: 16,
+                  borderRadius: 0
+                }}
+              />
+            </Box>
+
+            {/* Timestamp */}
+            <Chip
+              size="small"
+              variant="filled"
+              label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
+              sx={{ alignSelf: 'flex-start' }}
+            />
+          </Stack>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+export default SystemStats;
