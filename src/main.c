@@ -57,6 +57,10 @@
 static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
 static unsigned int ws_connected_client_count = 0;
+static guint stats_timer_id = 0;
+static guint lws_service_timer_id = 0;
+
+static gboolean stats_timer_cb(gpointer user_data);
 
 /* Per-connected WebSocket client (per-session) storage.
  * libwebsockets gives us one instance of this struct for each connection and
@@ -245,6 +249,25 @@ read_cpu_stats(struct sys_stats *stats)
   prev_total = total_time;
 }
 
+/* Start the stats timer */
+static void
+start_stats_timer(void)
+{
+  if (stats_timer_id == 0) {
+    stats_timer_id = g_timeout_add(500, stats_timer_cb, NULL);
+  }
+}
+
+/* Stop the stats timer */
+static void
+stop_stats_timer(void)
+{
+  if (stats_timer_id != 0) {
+    g_source_remove(stats_timer_id);
+    stats_timer_id = 0;
+  }
+}
+
 /* WebSocket protocol callback
  *
  * - Server sends periodic JSON snapshots.
@@ -266,6 +289,10 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     struct per_session_data *pss = user;
     ws_connected_client_count++;
     pss->counted = true;
+    /* If at least one connection: start the timer */
+    if (ws_connected_client_count == 1) {
+      start_stats_timer();
+    }
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     /* Send immediately */
     lws_callback_on_writable(wsi);
@@ -295,6 +322,10 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         ws_connected_client_count--;
       }
       pss->counted = false;
+      /* If no connections: Stop the timer */
+      if (ws_connected_client_count == 0) {
+        stop_stats_timer();
+      }
     }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
@@ -405,9 +436,20 @@ static gboolean
 on_unix_signal(gpointer user_data)
 {
   GMainLoop *main_loop = user_data;
+
+  /* Stop periodic timers to allow clean shutdown */
+  if (stats_timer_id != 0) {
+    g_source_remove(stats_timer_id);
+    stats_timer_id = 0;
+  }
+  if (lws_service_timer_id != 0) {
+    g_source_remove(lws_service_timer_id);
+    lws_service_timer_id = 0;
+  }
   if (main_loop) {
     g_main_loop_quit(main_loop);
   }
+
   return G_SOURCE_REMOVE;
 }
 
@@ -476,10 +518,10 @@ main(int argc, char **argv)
    * - lws_glib_service(): periodically services libwebsockets so it can
    *   process network events and invoke protocol callbacks.
    * - stats_timer_cb(): periodically polls system statistics and
-   *   updates latest_stats.
+   *   updates latest_stats. This function is started/stopped dynamically based
+   *   on whether there are any connected WebSocket clients.
    */
-  g_timeout_add(10, lws_glib_service, lws_ctx);
-  g_timeout_add(500, stats_timer_cb, NULL);
+  lws_service_timer_id = g_timeout_add(10, lws_glib_service, lws_ctx);
 
   syslog(LOG_INFO, "WebSocket server listening on port %d", WS_PORT);
 
