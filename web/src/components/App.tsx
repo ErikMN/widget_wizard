@@ -182,8 +182,6 @@ const App: React.FC = () => {
       setDrawerTab(0);
     } else if (path.endsWith('/overlays')) {
       setDrawerTab(1);
-    } else if (path.endsWith('/stats')) {
-      setDrawerTab(2);
     }
   }, [location.pathname]);
 
@@ -522,9 +520,6 @@ const App: React.FC = () => {
                   case 1:
                     navigate('overlays');
                     break;
-                  case 2:
-                    navigate('stats');
-                    break;
                   default:
                     break;
                 }
@@ -544,7 +539,6 @@ const App: React.FC = () => {
             >
               <Tab disableRipple label="Widgets" />
               <Tab disableRipple label="Overlays" />
-              <Tab disableRipple label="Stats" />
             </Tabs>
 
             {/* Render the active tab route */}

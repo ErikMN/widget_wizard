@@ -142,6 +142,8 @@ interface ControlsProps {
   };
   readonly showStatsOverlay: boolean;
   readonly toggleStats: () => void;
+  readonly showSystemStatsOverlay: boolean;
+  readonly toggleSystemStats: () => void;
   readonly format: Format;
   readonly volume?: number;
   readonly setVolume?: (v: number) => void;
@@ -167,6 +169,8 @@ export const Controls: React.FC<ControlsProps> = ({
   labels,
   showStatsOverlay,
   toggleStats,
+  showSystemStatsOverlay,
+  toggleSystemStats,
   format,
   volume,
   setVolume,
@@ -554,6 +558,8 @@ export const Controls: React.FC<ControlsProps> = ({
           onVapix={onVapix}
           showStatsOverlay={showStatsOverlay}
           toggleStats={toggleStats}
+          showSystemStatsOverlay={showSystemStatsOverlay}
+          toggleSystemStats={toggleSystemStats}
         />
       )}
     </div>

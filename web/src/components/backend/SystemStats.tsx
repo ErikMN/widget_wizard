@@ -45,6 +45,11 @@ const SystemStats: React.FC = () => {
 
   enableLogging(false);
 
+  const isConnectingOrOpen = () =>
+    wsRef.current !== null &&
+    (wsRef.current.readyState === WebSocket.CONNECTING ||
+      wsRef.current.readyState === WebSocket.OPEN);
+
   /* Open (or reopen) the WebSocket connection used to stream system stats.
    *
    * This function is written to be safe with:
@@ -60,6 +65,11 @@ const SystemStats: React.FC = () => {
   const connect = () => {
     /* Do not create a socket if the component has been unmounted. */
     if (isUnmountedRef.current) {
+      return;
+    }
+
+    /* Prevent parallel connections */
+    if (isConnectingOrOpen()) {
       return;
     }
 
@@ -189,7 +199,10 @@ const SystemStats: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '6px'
+        padding: '6px',
+        color: '#fff',
+        '& .MuiTypography-root': { color: '#fff' },
+        '& .MuiSvgIcon-root': { color: '#fff' }
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -200,9 +213,7 @@ const SystemStats: React.FC = () => {
             sx={{
               py: 0.25,
               px: 1,
-              '& .MuiAlert-icon': {
-                mr: 1
-              }
+              color: '#fff'
             }}
           >
             Connecting to statistics backend...
@@ -216,9 +227,7 @@ const SystemStats: React.FC = () => {
             sx={{
               py: 0.25,
               px: 1,
-              '& .MuiAlert-icon': {
-                mr: 1
-              }
+              color: '#fff'
             }}
           >
             {error}
@@ -273,7 +282,11 @@ const SystemStats: React.FC = () => {
               size="small"
               variant="filled"
               label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
-              sx={{ alignSelf: 'flex-start' }}
+              sx={{
+                alignSelf: 'flex-start',
+                color: '#fff',
+                '& .MuiChip-label': { color: '#fff' }
+              }}
             />
           </Stack>
         )}
