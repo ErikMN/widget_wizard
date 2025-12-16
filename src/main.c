@@ -43,6 +43,7 @@
 #include <signal.h>
 #include <time.h>
 #include <inttypes.h>
+#include <glib-unix.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
@@ -400,24 +401,14 @@ lws_glib_service(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-static void
-handle_sigterm(int signo)
+static gboolean
+on_unix_signal(gpointer user_data)
 {
-  (void)signo;
+  GMainLoop *main_loop = user_data;
   if (main_loop) {
     g_main_loop_quit(main_loop);
   }
-}
-
-static void
-init_signals(void)
-{
-  struct sigaction sa;
-  sa.sa_flags = 0;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_handler = handle_sigterm;
-  sigaction(SIGTERM, &sa, NULL);
-  sigaction(SIGINT, &sa, NULL);
+  return G_SOURCE_REMOVE;
 }
 
 int
@@ -430,9 +421,11 @@ main(int argc, char **argv)
   int ret = 0;
   struct lws_context_creation_info info;
 
-  init_signals();
-
   main_loop = g_main_loop_new(NULL, FALSE);
+
+  /* Handle Unix signals for graceful termination */
+  g_unix_signal_add(SIGINT, on_unix_signal, main_loop);
+  g_unix_signal_add(SIGTERM, on_unix_signal, main_loop);
 
   /* Open the syslog to report messages for the app */
   openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
