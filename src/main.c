@@ -24,30 +24,14 @@
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
  */
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <errno.h>
-#include <string.h>
-#include <getopt.h>
-#include <sys/types.h>
 #include <stdbool.h>
-#include <sys/stat.h>
-#include <limits.h>
-#include <assert.h>
-#include <stdint.h>
-#include <math.h>
 #include <syslog.h>
-#include <signal.h>
 #include <time.h>
 #include <inttypes.h>
-#include <glib-unix.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
-#include <glib.h>
+#include <glib-unix.h>
 #include <axsdk/axparameter.h>
 
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
