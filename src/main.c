@@ -61,6 +61,8 @@ struct per_session_data {
   unsigned char buf[LWS_PRE + 256];
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
+  /* True if this connection reserved a slot in ws_pending_client_count */
+  bool pending_reserved;
 };
 
 /* Struct for collecting system stats */
@@ -277,10 +279,11 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     /* Initialize per-session state */
     pss->counted = false;
 
-    /* Convert pending slot to active */
-    if (ws_pending_client_count > 0) {
+    /* Convert pending slot to active (only if we reserved one) */
+    if (pss->pending_reserved && ws_pending_client_count > 0) {
       ws_pending_client_count--;
     }
+    pss->pending_reserved = false;
 
     ws_connected_client_count++;
     pss->counted = true;
@@ -313,6 +316,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_CLOSED: {
     struct per_session_data *pss = user;
+
     if (pss && pss->counted) {
       if (ws_connected_client_count > 0) {
         ws_connected_client_count--;
@@ -322,24 +326,34 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       if (ws_connected_client_count == 0) {
         stop_stats_timer();
       }
-    } else {
-      /* Connection closed before ESTABLISHED: release pending slot */
-      if (ws_pending_client_count > 0) {
-        ws_pending_client_count--;
-      }
     }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
 
   case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: {
+    struct per_session_data *pss = user;
+
+    /* Initialize per-session state for this connection attempt */
+    if (pss) {
+      pss->counted = false;
+      pss->pending_reserved = false;
+    }
     /* Enforce connection limit across both established and in-progress WebSocket handshakes */
     if (ws_connected_client_count + ws_pending_client_count >= MAX_WS_CONNECTED_CLIENTS) {
       syslog(LOG_WARNING, "Rejecting WebSocket connection: client limit (%u) reached", MAX_WS_CONNECTED_CLIENTS);
       return -1;
     }
+    if (!pss) {
+      return -1;
+    }
+
     /* Reserve a slot for this connection attempt */
     ws_pending_client_count++;
+
+    /* Remember reservation so we can undo it if the handshake never establishes */
+    pss->pending_reserved = true;
+
     break;
   }
 
@@ -378,6 +392,19 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (written != json_len) {
       /* Short write: do not attempt to send the remainder as a new TEXT frame */
       syslog(LOG_WARNING, "short write: %d of %d", written, json_len);
+    }
+    break;
+  }
+
+  case LWS_CALLBACK_WSI_DESTROY: {
+    struct per_session_data *pss = user;
+
+    /* Handshake-failure cleanup: CLOSED is not guaranteed after FILTER_PROTOCOL_CONNECTION */
+    if (pss && pss->pending_reserved) {
+      if (ws_pending_client_count > 0) {
+        ws_pending_client_count--;
+      }
+      pss->pending_reserved = false;
     }
     break;
   }
