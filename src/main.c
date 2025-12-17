@@ -363,7 +363,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
     /* Truncated output! */
     if ((size_t)json_len >= sizeof(json)) {
-      json_len = (int)(sizeof(json) - 1);
+      syslog(LOG_ERR, "JSON message truncated, dropping the frame");
+      break;
     }
     /* Copy JSON to per-session buffer */
     memcpy(&pss->buf[LWS_PRE], json, (size_t)json_len);
