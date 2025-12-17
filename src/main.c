@@ -59,6 +59,8 @@ static struct lws_context *lws_ctx = NULL;
 static unsigned int ws_connected_client_count = 0;
 static guint stats_timer_id = 0;
 static guint lws_service_timer_id = 0;
+/* WebSocket handshakes in progress (not yet established) */
+static unsigned int ws_pending_client_count = 0;
 
 static gboolean stats_timer_cb(gpointer user_data);
 
@@ -287,8 +289,18 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_ESTABLISHED: {
     struct per_session_data *pss = user;
+
+    /* Initialize per-session state */
+    pss->counted = false;
+
+    /* Convert pending slot to active */
+    if (ws_pending_client_count > 0) {
+      ws_pending_client_count--;
+    }
+
     ws_connected_client_count++;
     pss->counted = true;
+
     /* If at least one connection: start the timer */
     if (ws_connected_client_count == 1) {
       start_stats_timer();
@@ -326,17 +338,26 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       if (ws_connected_client_count == 0) {
         stop_stats_timer();
       }
+    } else {
+      /* Connection closed before ESTABLISHED: release pending slot */
+      if (ws_pending_client_count > 0) {
+        ws_pending_client_count--;
+      }
     }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
 
-  case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
-    if (ws_connected_client_count >= MAX_WS_CONNECTED_CLIENTS) {
+  case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: {
+    /* Enforce connection limit across both established and in-progress WebSocket handshakes */
+    if (ws_connected_client_count + ws_pending_client_count >= MAX_WS_CONNECTED_CLIENTS) {
       syslog(LOG_WARNING, "Rejecting WebSocket connection: client limit (%u) reached", MAX_WS_CONNECTED_CLIENTS);
       return -1;
     }
+    /* Reserve a slot for this connection attempt */
+    ws_pending_client_count++;
     break;
+  }
 
   case LWS_CALLBACK_SERVER_WRITEABLE: {
     struct per_session_data *pss = user;
