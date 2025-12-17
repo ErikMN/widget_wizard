@@ -28,6 +28,8 @@
 #include <syslog.h>
 #include <time.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
@@ -35,6 +37,8 @@
 #include <axsdk/axparameter.h>
 
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
+#define MAX_WS_MESSAGE_LENGTH 256
+#define MAX_PROC_LINE_LENGTH 256
 #define WS_PORT 9000
 #define MAX_WS_CONNECTED_CLIENTS 10
 
@@ -58,7 +62,7 @@ static gboolean stats_timer_cb(gpointer user_data);
  */
 struct per_session_data {
   /* NOTE: Buffer must be large enough for biggest JSON payload */
-  unsigned char buf[LWS_PRE + 256];
+  unsigned char buf[LWS_PRE + MAX_WS_MESSAGE_LENGTH];
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
 };
@@ -103,7 +107,7 @@ get_timestamp_ms(void)
 static void
 read_mem_stats(struct sys_stats *stats)
 {
-  char line[256];
+  char line[MAX_PROC_LINE_LENGTH];
   long value = 0;
   int got_total = 0;
   int got_avail = 0;
@@ -165,7 +169,7 @@ read_mem_stats(struct sys_stats *stats)
 static void
 read_cpu_stats(struct sys_stats *stats)
 {
-  char line[256];
+  char line[MAX_PROC_LINE_LENGTH];
   static unsigned long long prev_idle = 0;
   static unsigned long long prev_total = 0;
   static bool initialized = false;
@@ -340,7 +344,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_SERVER_WRITEABLE: {
     struct per_session_data *pss = user;
-    char json[256];
+    char json[MAX_WS_MESSAGE_LENGTH];
     int json_len;
 
     if (!pss) {
