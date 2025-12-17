@@ -160,6 +160,7 @@ read_mem_stats(struct sys_stats *stats)
  *   usage%      = 100 * (1 - idle_delta / total_delta)
  *
  * The first call only initializes the previous counters and returns 0.0.
+ * On read or parse failure, cpu_usage is set to 0.0.
  */
 static void
 read_cpu_stats(struct sys_stats *stats)
@@ -167,17 +168,20 @@ read_cpu_stats(struct sys_stats *stats)
   char line[256];
   static unsigned long long prev_idle = 0;
   static unsigned long long prev_total = 0;
-  static int initialized = 0;
+  static bool initialized = false;
+
   unsigned long long user, nice, system, idle, iowait;
   unsigned long long irq, softirq, steal;
-  unsigned long long guest, guest_nice;
   unsigned long long idle_time, total_time;
   unsigned long long delta_idle, delta_total;
-  FILE *f;
+  FILE *f = NULL;
 
   if (!stats) {
     return;
   }
+
+  /* Default to a known value on all failure paths */
+  stats->cpu_usage = 0.0;
 
   f = fopen("/proc/stat", "r");
   if (!f) {
@@ -192,7 +196,7 @@ read_cpu_stats(struct sys_stats *stats)
 
   /* Read aggregate CPU line */
   if (sscanf(line,
-             "cpu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
+             "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
              &user,
              &nice,
              &system,
@@ -200,9 +204,7 @@ read_cpu_stats(struct sys_stats *stats)
              &iowait,
              &irq,
              &softirq,
-             &steal,
-             &guest,
-             &guest_nice) < 8) {
+             &steal) != 8) {
     return;
   }
 
@@ -212,15 +214,14 @@ read_cpu_stats(struct sys_stats *stats)
   if (!initialized) {
     prev_idle = idle_time;
     prev_total = total_time;
-    stats->cpu_usage = 0.0;
-    initialized = 1;
+    initialized = true;
     return;
   }
 
+  /* Detect counter reset or overflow */
   if (idle_time < prev_idle || total_time < prev_total) {
     prev_idle = idle_time;
     prev_total = total_time;
-    stats->cpu_usage = 0.0;
     return;
   }
 
