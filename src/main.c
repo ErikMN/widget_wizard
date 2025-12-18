@@ -16,7 +16,16 @@
  *   latest_stats -> ws_callback() -> WebSocket clients
  *
  * Returned JSON message format example:
- * { "ts": 1765823606151, "cpu": 0.49, "mem_total_kb": 981716, "mem_available_kb": 554616 }
+ * {
+ *   "ts": 1766089635269,
+ *   "cpu": 5.42,
+ *   "mem_total_kb": 981716,
+ *   "mem_available_kb": 531704,
+ *   "uptime_s": 4689109,
+ *   "load1": 0.28,
+ *   "load5": 0.34,
+ *   "load15": 0.26
+ * }
  *
  * Scope and limitations:
  * - Intended for local or trusted networks (no TLS or authentication).
@@ -37,8 +46,8 @@
 #include <axsdk/axparameter.h>
 
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
-#define MAX_WS_MESSAGE_LENGTH 256
-#define MAX_PROC_LINE_LENGTH 256
+#define MAX_WS_MESSAGE_LENGTH 512
+#define MAX_PROC_LINE_LENGTH 512
 #define WS_PORT 9000
 #define MAX_WS_CONNECTED_CLIENTS 10
 
@@ -72,9 +81,17 @@ struct per_session_data {
 
 /* Struct for collecting system stats */
 struct sys_stats {
+  /* CPU usage */
   double cpu_usage;
+  /* Memory usage */
   long mem_total_kb;
   long mem_available_kb;
+  /* Uptime and load */
+  double uptime_s;
+  double load1;
+  double load5;
+  double load15;
+  /* Timestamp */
   uint64_t timestamp_ms;
 };
 
@@ -263,6 +280,62 @@ read_cpu_stats(struct sys_stats *stats)
   prev_total = total_time;
 }
 
+/* Read system uptime and load averages.
+ *
+ * Data sources:
+ * - /proc/uptime:
+ *     First value  -> system uptime in seconds since boot
+ *     Second value -> cumulative idle time across all CPUs (ignored)
+ *
+ * - /proc/loadavg:
+ *     load1  -> 1-minute load average
+ *     load5  -> 5-minute load average
+ *     load15 -> 15-minute load average
+ *
+ * On any read or parse failure, the corresponding values remain zero.
+ * This function performs no caching and always reads directly from /proc.
+ */
+static void
+read_uptime_load(struct sys_stats *stats)
+{
+  char line[MAX_PROC_LINE_LENGTH];
+  FILE *f = NULL;
+
+  if (!stats) {
+    return;
+  }
+
+  stats->uptime_s = 0.0;
+  stats->load1 = 0.0;
+  stats->load5 = 0.0;
+  stats->load15 = 0.0;
+
+  f = fopen("/proc/uptime", "r");
+  if (f) {
+    double up = 0.0;
+    double idle = 0.0;
+    if (fgets(line, sizeof(line), f)) {
+      if (sscanf(line, "%lf %lf", &up, &idle) == 2) {
+        stats->uptime_s = up;
+      }
+    }
+    fclose(f);
+  }
+
+  f = fopen("/proc/loadavg", "r");
+  if (f) {
+    double a = 0.0, b = 0.0, c = 0.0;
+    if (fgets(line, sizeof(line), f)) {
+      if (sscanf(line, "%lf %lf %lf", &a, &b, &c) == 3) {
+        stats->load1 = a;
+        stats->load5 = b;
+        stats->load15 = c;
+      }
+    }
+    fclose(f);
+  }
+}
+
 /*
  * Statistics sampling timer:
  *
@@ -397,11 +470,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     /* Construct the JSON response */
     json_len = snprintf(json,
                         sizeof(json),
-                        "{ \"ts\": %" PRIu64 ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
+                        "{ \"ts\": %" PRIu64 ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld, "
+                        "\"uptime_s\": %.0f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f }",
                         latest_stats.timestamp_ms,
                         latest_stats.cpu_usage,
                         latest_stats.mem_total_kb,
-                        latest_stats.mem_available_kb);
+                        latest_stats.mem_available_kb,
+                        latest_stats.uptime_s,
+                        latest_stats.load1,
+                        latest_stats.load5,
+                        latest_stats.load15);
     if (json_len < 0) {
       break;
     }
@@ -468,6 +546,7 @@ stats_timer_cb(gpointer user_data)
   /* Read stats */
   read_cpu_stats(&latest_stats);
   read_mem_stats(&latest_stats);
+  read_uptime_load(&latest_stats);
   latest_stats.timestamp_ms = get_timestamp_ms();
 
   return G_SOURCE_CONTINUE;
