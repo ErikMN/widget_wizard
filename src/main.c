@@ -24,12 +24,12 @@
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
  */
-#include <stdbool.h>
-#include <syslog.h>
-#include <time.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
+#include <time.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
@@ -42,14 +42,17 @@
 #define WS_PORT 9000
 #define MAX_WS_CONNECTED_CLIENTS 10
 
+/* Global variables */
 static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
-static unsigned int ws_connected_client_count = 0;
 static guint stats_timer_id = 0;
 static guint lws_service_timer_id = 0;
+/* Number of connected clients */
+static unsigned int ws_connected_client_count = 0;
 /* WebSocket handshakes in progress (not yet established) */
 static unsigned int ws_pending_client_count = 0;
 
+/* Function declarations */
 static gboolean stats_timer_cb(gpointer user_data);
 
 /* Per-connected WebSocket client (per-session) storage.
@@ -169,11 +172,31 @@ read_mem_stats(struct sys_stats *stats)
 static void
 read_cpu_stats(struct sys_stats *stats)
 {
+  /* Buffer for reading a single line from /proc/stat */
   char line[MAX_PROC_LINE_LENGTH];
+  /* Previous cumulative CPU idle time (idle + iowait), used to compute deltas */
   static unsigned long long prev_idle = 0;
+  /* Previous cumulative total CPU time, used to compute deltas */
   static unsigned long long prev_total = 0;
+  /* Indicates whether a baseline CPU sample has been recorded */
   static bool initialized = false;
 
+  /* CPU time counters read from /proc/stat aggregate "cpu" line
+   *  user      - Time spent executing user-space processes
+   *  nice      - Time spent executing user-space processes with a non-zero nice value
+   *  system    - Time spent executing kernel-space processes
+   *  idle      - Time spent idle
+   *  iowait    - Time spent idle while waiting for I/O
+   *  irq       - Time spent servicing hardware interrupts
+   *  softirq   - Time spent servicing software interrupts
+   *  steal     - Time stolen by the hypervisor (virtualized systems)
+   *
+   * Derived values:
+   *  idle_time   = idle + iowait
+   *  total_time  = Sum of all CPU time counters
+   *  delta_idle  = idle_time  - previous idle_time
+   *  delta_total = total_time - previous total_time
+   */
   unsigned long long user, nice, system, idle, iowait;
   unsigned long long irq, softirq, steal;
   unsigned long long idle_time, total_time;
@@ -240,7 +263,16 @@ read_cpu_stats(struct sys_stats *stats)
   prev_total = total_time;
 }
 
-/* Start the stats timer */
+/*
+ * Statistics sampling timer:
+ *
+ * - The stats timer is started when the first WebSocket client connects.
+ * - The stats timer is stopped when the last client disconnects.
+ *
+ * Rationale:
+ * - Avoid unnecessary /proc polling when no clients are connected.
+ * - Sampling frequency is independent of WebSocket send frequency.
+ */
 static void
 start_stats_timer(void)
 {
@@ -262,7 +294,7 @@ stop_stats_timer(void)
 /* WebSocket protocol callback
  *
  * - Server sends periodic JSON snapshots.
- * - Messages are write-only; incoming messages are ignored.
+ * - NOTE: Messages are write-only: incoming messages are ignored.
  * - Update rate is approximately 500 ms per client.
  * - CPU usage is reported as a percentage [0.0 - 100.0].
  * - Memory values are reported in kilobytes.
@@ -299,6 +331,18 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     break;
   }
 
+  /*
+   * Per-client send timer:
+   *
+   * Each WebSocket connection has its own libwebsockets timer that
+   * controls how often data is sent to that client.
+   *
+   * This timer:
+   * - Does NOT sample system statistics.
+   * - Only schedules LWS_CALLBACK_SERVER_WRITEABLE.
+   *
+   * All clients observe the same latest_stats snapshot.
+   */
   case LWS_CALLBACK_TIMER: {
     /* Ask lws for a writeable callback */
     lws_callback_on_writable(wsi);
@@ -350,6 +394,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (!pss) {
       break;
     }
+    /* Construct the JSON response */
     json_len = snprintf(json,
                         sizeof(json),
                         "{ \"ts\": %" PRIu64 ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld }",
@@ -449,6 +494,12 @@ lws_glib_service(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
+/* Graceful shutdown handling:
+ *
+ * - Unix signals are integrated into the GLib main loop.
+ * - Periodic timers are explicitly stopped before quitting the loop.
+ * - No libwebsockets APIs are called after lws_context_destroy().
+ */
 static gboolean
 on_unix_signal(gpointer user_data)
 {
