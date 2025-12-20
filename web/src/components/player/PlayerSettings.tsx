@@ -66,6 +66,8 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
 
   /* Global parameter list */
   const { parameters } = useParameters();
+  const backendAvailable =
+    parameters?.['root.Widget_wizard.ApplicationRunning'];
   const Resolution = parameters?.['root.Properties.Image.Resolution'];
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
   const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
@@ -369,14 +371,17 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         onChange={changeStatsOverlay}
         sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
       />
-
-      <div>System monitor</div>
-      <CustomSwitch
-        name="system-stats"
-        checked={showSystemStatsOverlay}
-        onChange={changeSystemStatsOverlay}
-        sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
-      />
+      {backendAvailable !== undefined && (
+        <>
+          <div>System monitor</div>
+          <CustomSwitch
+            name="system-stats"
+            checked={showSystemStatsOverlay}
+            onChange={changeSystemStatsOverlay}
+            sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
+          />
+        </>
+      )}
     </div>
   );
 };
