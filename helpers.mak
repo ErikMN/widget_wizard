@@ -10,7 +10,7 @@
 .PHONY: deploy
 deploy: build
 ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) scp $(PROGS) $(TARGET_USR)@$(TARGET_IP):$(TARGET_DIR)
+	@sshpass -p $(TARGET_PWD) scp -P $(TARGET_SSH_PORT) $(PROGS) $(TARGET_USR)@$(TARGET_IP):$(TARGET_DIR)
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -19,8 +19,8 @@ endif
 .PHONY: deployweb
 deployweb: web
 ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) ssh $(TARGET_USR)@$(TARGET_IP) 'rm -rf $(TARGET_DIR)/html/*'
-	@sshpass -p $(TARGET_PWD) scp -r ./html/* $(TARGET_USR)@$(TARGET_IP):$(TARGET_DIR)/html
+	@sshpass -p $(TARGET_PWD) ssh -p $(TARGET_SSH_PORT) $(TARGET_USR)@$(TARGET_IP) 'rm -rf $(TARGET_DIR)/html/*'
+	@sshpass -p $(TARGET_PWD) scp -P $(TARGET_SSH_PORT) -r ./html/* $(TARGET_USR)@$(TARGET_IP):$(TARGET_DIR)/html
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -29,8 +29,8 @@ endif
 .PHONY: deployprofile
 deployprofile:
 ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) scp ./scripts/profile $(TARGET_USR)@$(TARGET_IP):/$(TARGET_USR)/.profile
-	@sshpass -p $(TARGET_PWD) ssh -t $(TARGET_USR)@$(TARGET_IP) 'sed -i "s/xxxxxx/$(PROGS)/g" /$(TARGET_USR)/.profile'
+	@sshpass -p $(TARGET_PWD) scp -P $(TARGET_SSH_PORT) ./scripts/profile $(TARGET_USR)@$(TARGET_IP):/$(TARGET_USR)/.profile
+	@sshpass -p $(TARGET_PWD) ssh -p $(TARGET_SSH_PORT) -t $(TARGET_USR)@$(TARGET_IP) 'sed -i "s/xxxxxx/$(PROGS)/g" /$(TARGET_USR)/.profile'
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -40,7 +40,7 @@ endif
 deploygdb:
 ifdef TARGET_IP
 ifeq ($(APPTYPE), aarch64)
-	@sshpass -p $(TARGET_PWD) scp ./gdb/gdbserver $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
+	@sshpass -p $(TARGET_PWD) scp -P $(TARGET_SSH_PORT) ./gdb/gdbserver $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
 else
 	@echo "Error: Unsupported APPTYPE"
 	@exit 1
@@ -56,7 +56,7 @@ endif
 .PHONY: logon
 logon:
 ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) ssh -t $(TARGET_USR)@$(TARGET_IP) "cd $(TARGET_DIR) && sh"
+	@sshpass -p $(TARGET_PWD) ssh -p $(TARGET_SSH_PORT) -t $(TARGET_USR)@$(TARGET_IP) "cd $(TARGET_DIR) && sh"
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -65,7 +65,7 @@ endif
 .PHONY: kill
 kill:
 ifdef TARGET_IP
-	@sshpass -p $(TARGET_PWD) ssh $(TARGET_USR)@$(TARGET_IP) 'kill -KILL $$(pidof $(PROGS))'
+	@sshpass -p $(TARGET_PWD) ssh -p $(TARGET_SSH_PORT) $(TARGET_USR)@$(TARGET_IP) 'kill -KILL $$(pidof $(PROGS))'
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -84,7 +84,7 @@ endif
 .PHONY: openweb
 openweb:
 ifdef TARGET_IP
-	@xdg-open http://$(TARGET_IP)/camera/index.html#/apps > /dev/null 2>&1
+	@xdg-open http://$(TARGET_IP):$(TARGET_PORT)/camera/index.html#/apps > /dev/null 2>&1
 else
 	$(error Please source setuptarget.sh first)
 endif

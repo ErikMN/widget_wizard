@@ -66,13 +66,20 @@ ANSI_BG_HI_WHITE = "\033[107m"
 
 def trace_journalctl_ssh(username, password, args):
     try:
+        # Default SSH port if not provided in environment:
+        ssh_port = int(os.environ.get('TARGET_SSH_PORT', '22'))
+
         # Create SSH client:
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # Connect to the remote server:
-        ssh_client.connect(os.environ['TARGET_IP'],
-                           username=username, password=password)
+        ssh_client.connect(
+            os.environ['TARGET_IP'],
+            port=ssh_port,
+            username=username,
+            password=password
+        )
 
         # Check if the 'journalctl' command is available on the remote server:
         stdin, stdout, stderr = ssh_client.exec_command('which journalctl')

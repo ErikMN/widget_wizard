@@ -12,6 +12,9 @@ set -eu
 
 [ -z "$TARGET_IP" ] && echo 'set TARGET_IP' 1>&2 && exit 1
 
+# Default SSH port if not provided:
+TARGET_SSH_PORT="${TARGET_SSH_PORT:-22}"
+
 if ! which sshpass >/dev/null; then
   echo 'sshpass not found' 1>&2
   exit 1
@@ -40,6 +43,7 @@ while :; do
   # If we lose the connection (ssh error return) then try to reconnect again after a few seconds
   sshpass -ppass \
     ssh \
+    -p "$TARGET_SSH_PORT" \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
     -o ForwardX11=no \
