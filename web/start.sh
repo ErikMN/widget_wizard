@@ -18,6 +18,7 @@ fi
 
 # Export environment variables required by React:
 export VITE_TARGET_IP=$TARGET_IP
+export VITE_TARGET_PORT=$TARGET_PORT
 
 # Return to the original directory:
 cd "$original_dir" || exit 1

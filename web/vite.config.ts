@@ -33,15 +33,15 @@ export default defineConfig({
     /* Proxy endpoints */
     proxy: {
       '/rtsp-over-websocket': {
-        target: `ws://${process.env.TARGET_IP}`,
+        target: `ws://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         ws: true
       },
       '/axis-cgi/': {
-        target: `http://${process.env.TARGET_IP}`,
+        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         changeOrigin: true
       },
       '/mjpg/': {
-        target: `http://${process.env.TARGET_IP}`,
+        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         changeOrigin: true
       }
     }

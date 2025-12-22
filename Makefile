@@ -35,6 +35,7 @@ DOCKER_CMD := docker run --rm -i -t \
               -e TARGET_IP=$(TARGET_IP) \
               -e TARGET_USR=$(TARGET_USR) \
               -e TARGET_PWD=$(TARGET_PWD) \
+              -e TARGET_PORT=$(TARGET_PORT) \
               -e HOME=$(d) \
               -w $(d) \
               -u $(shell id -u):$(shell id -g) \
@@ -128,6 +129,7 @@ flags:
 	@echo "User ID: $(shell id -u)"
 	@echo "Group ID: $(shell id -g)"
 	@echo "Target IP: $(TARGET_IP)"
+	@echo "Target port: $(TARGET_PORT)"
 	@echo "APPTYPE: $(APPTYPE)"
 
 # Build the app (if SDK is sourced):
