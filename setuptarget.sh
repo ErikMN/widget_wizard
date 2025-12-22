@@ -2,6 +2,13 @@
 # SOURCE ME!
 #
 # Setup target device credentials and git hooks
+# NOTE: Don't set -e to avoid exiting the shell when sourced
+#
+# Format with:
+# shfmt -i 2 -w setuptarget.sh
+#
+# Lint with:
+# shellcheck setuptarget.sh
 #
 
 # Print colors:
@@ -64,28 +71,47 @@ else
   CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
 fi
 
+# Default credentials:
 DEFAULT_IP="192.168.0.90"
 DEFAULT_USR="root"
 DEFAULT_PWD="pass"
+DEFAULT_PORT="80"
 
 # Check if the credentials file exists:
 if [ -e "$CREDENTIALS_FILE" ]; then
   TARGET_IP=$(jq -r '.TARGET_IP' "$CREDENTIALS_FILE")
   TARGET_USR=$(jq -r '.TARGET_USR' "$CREDENTIALS_FILE")
   TARGET_PWD=$(jq -r '.TARGET_PWD' "$CREDENTIALS_FILE")
+  TARGET_PORT=$(jq -r '.TARGET_PORT // empty' "$CREDENTIALS_FILE")
 else
   # Set default values if the file doesn't exist:
   TARGET_IP="$DEFAULT_IP"
   TARGET_USR="$DEFAULT_USR"
   TARGET_PWD="$DEFAULT_PWD"
+  TARGET_PORT="$DEFAULT_PORT"
   # Create the credentials file with default values:
-  echo '{"TARGET_IP": "'"$TARGET_IP"'", "TARGET_USR": "'"$TARGET_USR"'", "TARGET_PWD": "'"$TARGET_PWD"'"}' >"$CREDENTIALS_FILE"
+  echo '{"TARGET_IP": "'"$TARGET_IP"'", "TARGET_USR": "'"$TARGET_USR"'", "TARGET_PWD": "'"$TARGET_PWD"'", "TARGET_PORT": '"$TARGET_PORT"'}' >"$CREDENTIALS_FILE"
+fi
+
+# BASH: Default values if not provided in credentials file:
+if [ -z "$TARGET_IP" ] || [ "$TARGET_IP" = "null" ]; then
+  TARGET_IP="$DEFAULT_IP"
+fi
+if [ -z "$TARGET_USR" ] || [ "$TARGET_USR" = "null" ]; then
+  TARGET_USR="$DEFAULT_USR"
+fi
+if [ -z "$TARGET_PWD" ] || [ "$TARGET_PWD" = "null" ]; then
+  TARGET_PWD="$DEFAULT_PWD"
+fi
+if [ -z "$TARGET_PORT" ] || [ "$TARGET_PORT" = "null" ]; then
+  TARGET_PORT="$DEFAULT_PORT"
 fi
 
 # Export credentials:
 export TARGET_IP
 export TARGET_USR
 export TARGET_PWD
+export TARGET_PORT
 
 # Read packagename from package.conf:
 package_conf_file="$SCRIPT_DIR/package.conf"
