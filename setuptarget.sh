@@ -7,15 +7,14 @@
 # Format with:
 # shfmt -i 2 -w setuptarget.sh
 #
-# Lint with:
-# shellcheck setuptarget.sh
+# Lint with: shellcheck setuptarget.sh
 #
 
 # Print colors:
 FMT_RED=$(printf '\033[31m')
 FMT_GREEN=$(printf '\033[32m')
-# FMT_BLUE=$(printf '\033[34m')
-# FMT_YELLOW=$(printf '\033[33m')
+FMT_BLUE=$(printf '\033[34m')
+FMT_YELLOW=$(printf '\033[33m')
 FMT_WHITE=$(printf '\033[37m')
 FMT_BOLD=$(printf '\033[1m')
 FMT_RESET=$(printf '\033[0m')
@@ -76,21 +75,33 @@ DEFAULT_IP="192.168.0.90"
 DEFAULT_USR="root"
 DEFAULT_PWD="pass"
 DEFAULT_PORT="80"
+DEFAULT_SSH_PORT="22"
 
 # Check if the credentials file exists:
 if [ -e "$CREDENTIALS_FILE" ]; then
-  TARGET_IP=$(jq -r '.TARGET_IP' "$CREDENTIALS_FILE")
-  TARGET_USR=$(jq -r '.TARGET_USR' "$CREDENTIALS_FILE")
-  TARGET_PWD=$(jq -r '.TARGET_PWD' "$CREDENTIALS_FILE")
+  TARGET_IP=$(jq -r '.TARGET_IP // empty' "$CREDENTIALS_FILE")
+  TARGET_USR=$(jq -r '.TARGET_USR // empty' "$CREDENTIALS_FILE")
+  TARGET_PWD=$(jq -r '.TARGET_PWD // empty' "$CREDENTIALS_FILE")
   TARGET_PORT=$(jq -r '.TARGET_PORT // empty' "$CREDENTIALS_FILE")
+  TARGET_SSH_PORT=$(jq -r '.TARGET_SSH_PORT // empty' "$CREDENTIALS_FILE")
 else
+  echo "${FMT_YELLOW}No credentials.json file found: setting default values${FMT_RESET}"
   # Set default values if the file doesn't exist:
   TARGET_IP="$DEFAULT_IP"
   TARGET_USR="$DEFAULT_USR"
   TARGET_PWD="$DEFAULT_PWD"
   TARGET_PORT="$DEFAULT_PORT"
+  TARGET_SSH_PORT="$DEFAULT_SSH_PORT"
   # Create the credentials file with default values:
-  echo '{"TARGET_IP": "'"$TARGET_IP"'", "TARGET_USR": "'"$TARGET_USR"'", "TARGET_PWD": "'"$TARGET_PWD"'", "TARGET_PORT": '"$TARGET_PORT"'}' >"$CREDENTIALS_FILE"
+  cat >"$CREDENTIALS_FILE" <<EOF
+{
+  "TARGET_IP": "$TARGET_IP",
+  "TARGET_USR": "$TARGET_USR",
+  "TARGET_PWD": "$TARGET_PWD",
+  "TARGET_PORT": "$TARGET_PORT",
+  "TARGET_SSH_PORT": "$TARGET_SSH_PORT"
+}
+EOF
 fi
 
 # BASH: Default values if not provided in credentials file:
@@ -106,16 +117,25 @@ fi
 if [ -z "$TARGET_PORT" ] || [ "$TARGET_PORT" = "null" ]; then
   TARGET_PORT="$DEFAULT_PORT"
 fi
+if [ -z "$TARGET_SSH_PORT" ] || [ "$TARGET_SSH_PORT" = "null" ]; then
+  TARGET_SSH_PORT="$DEFAULT_SSH_PORT"
+fi
 
 # Export credentials:
 export TARGET_IP
 export TARGET_USR
 export TARGET_PWD
 export TARGET_PORT
+export TARGET_SSH_PORT
 
 # Read packagename from package.conf:
 package_conf_file="$SCRIPT_DIR/package.conf"
-packagename=$(grep '^PACKAGENAME=' "$package_conf_file" | awk -F'=' '{print $2}' | tr -d '"')
+if [ -f "$package_conf_file" ]; then
+  packagename=$(grep '^PACKAGENAME=' "$package_conf_file" | awk -F'=' '{print $2}' | tr -d '"')
+else
+  packagename="(unknown)"
+fi
 
 echo "${FMT_BOLD}${FMT_GREEN}*** ACAP project $packagename for ""${FMT_WHITE}""$TARGET_IP${FMT_GREEN}" initialized"${FMT_RESET}"
+echo "${FMT_BLUE}*** Credentials exported${FMT_RESET}"
 echo "*** Run 'make help' to get started"
