@@ -26,7 +26,33 @@ interface SysStats {
   cpu: number;
   mem_total_kb: number;
   mem_available_kb: number;
+  uptime_s: number;
+  load1: number;
+  load5: number;
+  load15: number;
 }
+/* Convert uptime in seconds to a compact human-readable string (e.g. "2d 3h 4m 5s"). */
+const formatUptime = (seconds: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  const parts: string[] = [];
+  if (days > 0) {
+    parts.push(`${days}d`);
+  }
+  if (hours > 0 || days > 0) {
+    parts.push(`${hours}h`);
+  }
+  if (minutes > 0 || hours > 0 || days > 0) {
+    parts.push(`${minutes}m`);
+  }
+  parts.push(`${secs}s`);
+
+  return parts.join(' ');
+};
 
 const SystemStats: React.FC = () => {
   /* Global context */
@@ -277,17 +303,66 @@ const SystemStats: React.FC = () => {
               />
             </Box>
 
+            {/* Load average */}
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Chip
+                size="small"
+                variant="filled"
+                label={`Load 1m: ${stats.load1.toFixed(2)}`}
+                sx={{
+                  alignSelf: 'flex-start',
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' }
+                }}
+              />
+              <Chip
+                size="small"
+                variant="filled"
+                label={`Load 5m: ${stats.load5.toFixed(2)}`}
+                sx={{
+                  alignSelf: 'flex-start',
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' }
+                }}
+              />
+              <Chip
+                size="small"
+                variant="filled"
+                label={`Load 15m: ${stats.load15.toFixed(2)}`}
+                sx={{
+                  alignSelf: 'flex-start',
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' }
+                }}
+              />
+            </Stack>
+
             {/* Timestamp */}
-            <Chip
-              size="small"
-              variant="filled"
-              label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
-              sx={{
-                alignSelf: 'flex-start',
-                color: '#fff',
-                '& .MuiChip-label': { color: '#fff' }
-              }}
-            />
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              <Chip
+                size="small"
+                variant="filled"
+                label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
+                sx={{
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' }
+                }}
+              />
+              <Chip
+                size="small"
+                variant="filled"
+                label={`Uptime: ${formatUptime(stats.uptime_s)}`}
+                sx={{
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' }
+                }}
+              />
+            </Stack>
           </Stack>
         )}
       </Box>
