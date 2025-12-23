@@ -28,6 +28,7 @@ import { Limiter } from './Limiter';
 import { Controls } from './Controls';
 import { getImageURL } from './GetImageURL';
 import SystemStats from '../backend/SystemStats';
+import Draggable from 'react-draggable';
 
 import {
   useSwitch,
@@ -109,6 +110,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [waiting, setWaiting] = useState(autoPlay);
     const [volume, setVolume] = useState<number>();
     const [expanded, setExpanded] = useState(true);
+
+    const systemStatsRef = useRef<HTMLDivElement>(null);
 
     const [format, setFormat] = useLocalStorage(
       'streamFormat',
@@ -372,21 +375,25 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             />
           </div>
         )}
-        {/* System stats overlay */}
+        {/* Draggable system stats overlay */}
         {showSystemStatsOverlay && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '60px',
-              left: '20px',
-              zIndex: 10,
-              background: 'rgba(0, 0, 0, 0.4)',
-              padding: '8px',
-              borderRadius: '4px'
-            }}
-          >
-            <SystemStats />
-          </div>
+          <Draggable bounds="parent" nodeRef={systemStatsRef}>
+            <div
+              ref={systemStatsRef}
+              style={{
+                position: 'absolute',
+                bottom: '60px',
+                left: '20px',
+                zIndex: 10,
+                background: 'rgba(0, 0, 0, 0.4)',
+                padding: '8px',
+                borderRadius: '4px',
+                cursor: 'move'
+              }}
+            >
+              <SystemStats />
+            </div>
+          </Draggable>
         )}
         <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
           <Limiter ref={limiterRef}>
