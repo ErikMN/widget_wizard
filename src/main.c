@@ -18,6 +18,8 @@
  * Returned JSON message format example:
  * {
  *   "ts": 1766089635269,
+ *   "mono_ms": 4689109526,
+ *   "delta_ms": 500,
  *   "cpu": 5.42,
  *   "mem_total_kb": 981716,
  *   "mem_available_kb": 531704,
@@ -93,6 +95,9 @@ struct sys_stats {
   double load15;
   /* Timestamp */
   uint64_t timestamp_ms;
+  /* Monotonic timestamp and delta */
+  uint64_t monotonic_ms;
+  uint64_t delta_ms;
 };
 
 /* latest_stats is accessed only from the GLib main loop thread.
@@ -101,19 +106,27 @@ struct sys_stats {
  */
 static struct sys_stats latest_stats;
 
-/* Return current wall-clock time in milliseconds since the Unix epoch.
+/* Return time in milliseconds for the given clock.
  *
- * Uses CLOCK_REALTIME so the timestamp represents real calendar time (UTC).
+ * Supported clocks:
+ * - CLOCK_REALTIME:
+ *     Wall-clock time since the Unix epoch (UTC).
+ *     Subject to adjustments (NTP, manual clock changes).
+ *     Suitable for timestamps shown to users or correlating with external systems.
  *
- * On failure, returns 0. Callers can treat this as "timestamp unavailable".
- * This function performs no caching and always queries the kernel.
+ * - CLOCK_MONOTONIC:
+ *     Monotonic time since an unspecified starting point (typically boot).
+ *     Not subject to wall-clock adjustments.
+ *     Suitable for measuring time deltas and intervals.
+ *
+ * On failure, returns 0
  */
 static uint64_t
-get_timestamp_ms(void)
+get_time_ms(clockid_t clk_id)
 {
   struct timespec ts;
 
-  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+  if (clock_gettime(clk_id, &ts) != 0) {
     return 0;
   }
 
@@ -470,9 +483,12 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     /* Construct the JSON response */
     json_len = snprintf(json,
                         sizeof(json),
-                        "{ \"ts\": %" PRIu64 ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld, "
+                        "{ \"ts\": %" PRIu64 ", \"mono_ms\": %" PRIu64 ", \"delta_ms\": %" PRIu64
+                        ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld, "
                         "\"uptime_s\": %.0f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f }",
                         latest_stats.timestamp_ms,
+                        latest_stats.monotonic_ms,
+                        latest_stats.delta_ms,
                         latest_stats.cpu_usage,
                         latest_stats.mem_total_kb,
                         latest_stats.mem_available_kb,
@@ -547,7 +563,23 @@ stats_timer_cb(gpointer user_data)
   read_cpu_stats(&latest_stats);
   read_mem_stats(&latest_stats);
   read_uptime_load(&latest_stats);
-  latest_stats.timestamp_ms = get_timestamp_ms();
+  /* Wall-clock timestamp (real time) */
+  latest_stats.timestamp_ms = get_time_ms(CLOCK_REALTIME);
+  /* Previous monotonic timestamp for delta calculation */
+  static uint64_t prev_mono_ms = 0;
+  /* Current monotonic timestamp (not affected by clock adjustments) */
+  uint64_t now_mono_ms = get_time_ms(CLOCK_MONOTONIC);
+  /* Store monotonic time for consumers that need stable timing */
+  latest_stats.monotonic_ms = now_mono_ms;
+  /* Compute elapsed time since last sample using monotonic clock */
+  if (prev_mono_ms != 0 && now_mono_ms >= prev_mono_ms) {
+    latest_stats.delta_ms = now_mono_ms - prev_mono_ms;
+  } else {
+    /* First sample */
+    latest_stats.delta_ms = 0;
+  }
+  /* Update previous monotonic timestamp for next interval */
+  prev_mono_ms = now_mono_ms;
 
   return G_SOURCE_CONTINUE;
 }
