@@ -95,6 +95,14 @@ jobs:
             -f docker/Dockerfile \
             ./docker -t widget_wizard_img_aarch64
 
+      # Copy libwebsockets from the Docker container to the workspace:
+      - name: Copy libwebsockets from container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            widget_wizard_img_aarch64 \
+            sh -c "rm -rf /workspace/libwebsockets && cp -r /opt/app/libwebsockets /workspace/libwebsockets"
+
       # Run ACAP build inside Docker (equivalent to `make acap`):
       - name: Build .eap inside Docker
         run: |

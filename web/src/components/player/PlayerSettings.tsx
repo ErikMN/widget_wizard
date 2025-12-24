@@ -24,8 +24,12 @@ interface PlayerSettingsProps {
   readonly format: Format;
   readonly onFormat: (format: Format) => void;
   readonly onVapix: (key: string, value: string) => void;
+
   readonly showStatsOverlay: boolean;
   readonly toggleStats: (newValue?: boolean) => void;
+
+  readonly showSystemStatsOverlay: boolean;
+  readonly toggleSystemStats: (newValue?: boolean) => void;
 }
 
 export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
@@ -34,7 +38,9 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   onFormat,
   onVapix,
   showStatsOverlay,
-  toggleStats
+  toggleStats,
+  showSystemStatsOverlay,
+  toggleSystemStats
 }) => {
   /* Theme */
   const theme = useTheme();
@@ -60,6 +66,8 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
 
   /* Global parameter list */
   const { parameters } = useParameters();
+  const backendAvailable =
+    parameters?.['root.Widget_wizard.ApplicationRunning'];
   const Resolution = parameters?.['root.Properties.Image.Resolution'];
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
   const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
@@ -79,6 +87,12 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
     (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) =>
       toggleStats(checked),
     [toggleStats]
+  );
+
+  const changeSystemStatsOverlay = useCallback(
+    (_e: React.ChangeEvent<HTMLInputElement>, checked: boolean) =>
+      toggleSystemStats(checked),
+    [toggleSystemStats]
   );
 
   const changeFormat: ChangeEventHandler<
@@ -357,6 +371,17 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         onChange={changeStatsOverlay}
         sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
       />
+      {backendAvailable !== undefined && (
+        <>
+          <div>System monitor</div>
+          <CustomSwitch
+            name="system-stats"
+            checked={showSystemStatsOverlay}
+            onChange={changeSystemStatsOverlay}
+            sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
+          />
+        </>
+      )}
     </div>
   );
 };

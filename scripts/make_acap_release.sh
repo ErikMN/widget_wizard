@@ -20,6 +20,11 @@ cleanup() {
   # NOTE: distclean would remove the build dir
   make clean
   # Remove arch specific artifacts here:
+  echo "${FMT_BOLD}*** Remove libwebsockets${FMT_RESET}"
+  rm -rf libwebsockets || {
+    echo "${FMT_RED}*** Failed to remove libwebsockets${FMT_RESET}"
+    return 1
+  }
 }
 
 ################################################################################

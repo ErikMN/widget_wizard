@@ -7,6 +7,10 @@ Written in TypeScript and React.
 
 The UI runs directly on the camera as part of the installed ACAP application (see below).
 
+The ACAP also provides an optional WebSocket backend to stream real-time
+system metrics to the frontend. \
+The backend application needs to be running for this feature to be working.
+
 ### Features
 
 * Create and edit in-stream widgets and overlays
@@ -15,6 +19,7 @@ The UI runs directly on the camera as part of the installed ACAP application (se
 * Customizable bounding boxes for easy repositioning of widgets and overlays
 * Backup and restore widgets and overlays to browser local storage
 * Built-in video-player with support for (almost) all resolutions and formats offered by the device
+* Optional WebSocket backend for real-time system metrics
 * Responsive and easy to use
 
 > **⚠️ IMPORTANT** \
