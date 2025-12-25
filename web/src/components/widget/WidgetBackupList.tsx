@@ -254,7 +254,7 @@ const WidgetBackupList: React.FC<{
                 const isExpanded = expandedIndex === index;
 
                 return (
-                  <Box key={index}>
+                  <Box key={index} sx={{ marginBottom: 1 }}>
                     <Box
                       onClick={() => setVisibleCheckbox(index)}
                       sx={{
@@ -262,8 +262,9 @@ const WidgetBackupList: React.FC<{
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '4px 6px',
-                        marginBottom: 1,
                         borderRadius: '4px',
+                        borderBottomLeftRadius: isExpanded ? '0px' : '4px',
+                        borderBottomRightRadius: isExpanded ? '0px' : '4px',
                         backgroundColor: (theme) =>
                           theme.palette.mode === 'dark'
                             ? theme.palette.grey[800]
