@@ -11,6 +11,7 @@ import { useWidgetContext } from './WidgetContext';
 import { CustomButton, CustomStyledIconButton } from './../CustomComponents';
 import { useAppContext } from '../AppContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';
 import Box from '@mui/material/Box';
@@ -203,7 +204,7 @@ const WidgetBackupList: React.FC<{
         endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Widget backups ({backupList.length})
+          Widget backups ({backupList.length} of {MAX_LS_BACKUPS})
         </Typography>
       </CustomButton>
 

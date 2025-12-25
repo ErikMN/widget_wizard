@@ -10,6 +10,7 @@ import {
 import { useOverlayContext } from './OverlayContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { useAppContext } from '../AppContext';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';
 import Box from '@mui/material/Box';
@@ -202,7 +203,7 @@ const OverlayBackupList: React.FC<{
         endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-          Overlay backups ({backupList.length})
+          Overlay backups ({backupList.length} of {MAX_LS_BACKUPS})
         </Typography>
       </CustomButton>
 
