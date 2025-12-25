@@ -303,7 +303,7 @@ const WidgetBackupList: React.FC<{
                         {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </CustomStyledIconButton>
 
-                      <Tooltip title={label} placement="top" arrow>
+                      <Tooltip title={label} arrow>
                         <Typography
                           variant="body2"
                           sx={{
@@ -319,27 +319,23 @@ const WidgetBackupList: React.FC<{
                         </Typography>
                       </Tooltip>
 
-                      <CustomButton
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        startIcon={<RestoreIcon />}
-                        sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
-                        onClick={() => handleOpenRestoreDialog(index)}
-                      >
-                        Restore
-                      </CustomButton>
+                      <Tooltip title="Restore" arrow>
+                        <CustomStyledIconButton
+                          size="small"
+                          onClick={() => handleOpenRestoreDialog(index)}
+                        >
+                          <RestoreIcon />
+                        </CustomStyledIconButton>
+                      </Tooltip>
 
-                      <CustomButton
-                        color="error"
-                        variant="outlined"
-                        size="small"
-                        startIcon={<DeleteIcon />}
-                        sx={{ whiteSpace: 'nowrap' }}
-                        onClick={() => handleOpenDeleteDialog(index)}
-                      >
-                        Delete
-                      </CustomButton>
+                      <Tooltip title="Delete" arrow>
+                        <CustomStyledIconButton
+                          size="small"
+                          onClick={() => handleOpenDeleteDialog(index)}
+                        >
+                          <DeleteIcon color="error" />
+                        </CustomStyledIconButton>
+                      </Tooltip>
                     </Box>
 
                     <Collapse in={isExpanded}>
