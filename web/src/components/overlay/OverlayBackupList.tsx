@@ -8,7 +8,7 @@ import {
   clearOverlayBackups
 } from './overlayBackupStorage';
 import { useOverlayContext } from './OverlayContext';
-import { CustomButton } from '../CustomComponents';
+import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { useAppContext } from '../AppContext';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';
@@ -43,6 +43,7 @@ const OverlayBackupList: React.FC<{
   const [openDeleteMarkedDialog, setOpenDeleteMarkedDialog] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [visibleCheckbox, setVisibleCheckbox] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [marked, setMarked] = useState<Set<number>>(new Set());
 
   const toggleMarked = useCallback((index: number) => {
@@ -72,6 +73,7 @@ const OverlayBackupList: React.FC<{
 
       /* Selection of indices may no longer match: clear */
       setMarked(new Set());
+      setExpandedIndex(null);
 
       handleOpenAlert('Backup restored', 'success');
     },
@@ -89,6 +91,7 @@ const OverlayBackupList: React.FC<{
 
       /* Selection of indices no longer valid: clear it */
       setMarked(new Set());
+      setExpandedIndex(null);
 
       handleOpenAlert('Backup deleted', 'success');
     },
@@ -110,6 +113,7 @@ const OverlayBackupList: React.FC<{
     setBackupList(updated);
 
     setMarked(new Set());
+    setExpandedIndex(null);
 
     handleOpenAlert('Marked backups deleted', 'success');
   }, [marked, backupList, setBackupList, handleOpenAlert]);
@@ -165,6 +169,7 @@ const OverlayBackupList: React.FC<{
     clearOverlayBackups();
     setBackupList([]);
     setMarked(new Set());
+    setExpandedIndex(null);
 
     handleOpenAlert('All backups cleared', 'success');
     setOpenDialog(false);
@@ -227,80 +232,134 @@ const OverlayBackupList: React.FC<{
               {backupList.map((backup, index) => {
                 const isSelected = visibleCheckbox === index;
                 const isMarked = marked.has(index);
+                const isExpanded = expandedIndex === index;
+
+                const overlayLabel = backup.overlayPath
+                  ? backup.overlayPath.split('/').pop()
+                  : 'Text overlay';
 
                 return (
-                  <Box
-                    key={index}
-                    onClick={() => setVisibleCheckbox(index)}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '4px 6px',
-                      marginBottom: 1,
-                      borderRadius: '4px',
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === 'dark'
-                          ? theme.palette.grey[800]
-                          : theme.palette.grey[200],
-                      border: (theme) => {
-                        let color = theme.palette.grey[600];
-                        if (isMarked) {
-                          color = theme.palette.error.main;
-                        } else if (isSelected) {
-                          color = theme.palette.primary.main;
-                        }
-                        return `1px solid ${color}`;
-                      }
-                    }}
-                  >
-                    {(isSelected || isMarked) && (
-                      <Checkbox
-                        disableRipple
-                        size="small"
-                        checked={isMarked}
-                        onChange={() => toggleMarked(index)}
-                        sx={{ marginRight: 1 }}
-                      />
-                    )}
-
-                    <Typography
-                      variant="body2"
+                  <Box key={index}>
+                    <Box
+                      onClick={() => setVisibleCheckbox(index)}
                       sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1,
-                        marginRight: 1,
-                        fontWeight: 500
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '4px 6px',
+                        marginBottom: 1,
+                        borderRadius: '4px',
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? theme.palette.grey[800]
+                            : theme.palette.grey[200],
+                        border: (theme) => {
+                          let color = theme.palette.grey[600];
+                          if (isMarked) {
+                            color = theme.palette.error.main;
+                          } else if (isSelected || isExpanded) {
+                            color = theme.palette.primary.main;
+                          }
+                          return `1px solid ${color}`;
+                        }
                       }}
                     >
-                      {backup.overlayPath
-                        ? backup.overlayPath.split('/').pop()
-                        : 'Text overlay'}
-                    </Typography>
+                      {(isSelected || isMarked) && (
+                        <Checkbox
+                          disableRipple
+                          size="small"
+                          checked={isMarked}
+                          onChange={() => toggleMarked(index)}
+                          sx={{ marginRight: 1 }}
+                        />
+                      )}
 
-                    <CustomButton
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                      startIcon={<RestoreIcon />}
-                      sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
-                      onClick={() => handleOpenRestoreDialog(index)}
-                    >
-                      Restore
-                    </CustomButton>
+                      <CustomStyledIconButton
+                        size="small"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setExpandedIndex((prev) =>
+                            prev === index ? null : index
+                          );
+                        }}
+                        sx={{ marginRight: 1 }}
+                      >
+                        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </CustomStyledIconButton>
 
-                    <CustomButton
-                      color="error"
-                      variant="outlined"
-                      size="small"
-                      startIcon={<DeleteIcon />}
-                      sx={{ whiteSpace: 'nowrap' }}
-                      onClick={() => handleOpenDeleteDialog(index)}
-                    >
-                      Delete
-                    </CustomButton>
+                      <Box
+                        component="span"
+                        title={overlayLabel}
+                        sx={{
+                          flex: 1,
+                          marginRight: 1,
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontWeight: 500
+                          }}
+                        >
+                          {overlayLabel}
+                        </Typography>
+                      </Box>
+
+                      <CustomButton
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<RestoreIcon />}
+                        sx={{ whiteSpace: 'nowrap', marginRight: 1 }}
+                        onClick={() => handleOpenRestoreDialog(index)}
+                      >
+                        Restore
+                      </CustomButton>
+
+                      <CustomButton
+                        color="error"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<DeleteIcon />}
+                        sx={{ whiteSpace: 'nowrap' }}
+                        onClick={() => handleOpenDeleteDialog(index)}
+                      >
+                        Delete
+                      </CustomButton>
+                    </Box>
+
+                    <Collapse in={isExpanded}>
+                      <Box
+                        sx={(theme) => ({
+                          backgroundColor:
+                            theme.palette.mode === 'dark'
+                              ? theme.palette.grey[900]
+                              : theme.palette.grey[100],
+                          border: `1px solid ${theme.palette.grey[600]}`,
+                          borderTop: 'none',
+                          borderRadius: '0 0 4px 4px',
+                          padding: '6px 8px',
+                          marginBottom: 1
+                        })}
+                      >
+                        <Typography
+                          variant="body2"
+                          component="pre"
+                          sx={{
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            margin: 0
+                          }}
+                        >
+                          {JSON.stringify(backup, null, 2)}
+                        </Typography>
+                      </Box>
+                    </Collapse>
                   </Box>
                 );
               })}
