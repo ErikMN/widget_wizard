@@ -257,7 +257,11 @@ const WidgetBackupList: React.FC<{
                 return (
                   <Box key={index} sx={{ marginBottom: 1 }}>
                     <Box
-                      onClick={() => setVisibleCheckbox(index)}
+                      onClick={() =>
+                        setVisibleCheckbox((prev) =>
+                          prev === index && !marked.has(index) ? null : index
+                        )
+                      }
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
@@ -287,7 +291,6 @@ const WidgetBackupList: React.FC<{
                           size="small"
                           checked={marked.has(index)}
                           onChange={() => toggleMarked(index)}
-                          sx={{ marginRight: 1 }}
                         />
                       )}
 
