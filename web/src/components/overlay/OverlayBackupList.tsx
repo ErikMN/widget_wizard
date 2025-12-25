@@ -24,6 +24,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RestoreIcon from '@mui/icons-material/Restore';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
@@ -287,27 +288,21 @@ const OverlayBackupList: React.FC<{
                         {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </CustomStyledIconButton>
 
-                      <Box
-                        component="span"
-                        title={overlayLabel}
-                        sx={{
-                          flex: 1,
-                          marginRight: 1,
-                          overflow: 'hidden'
-                        }}
-                      >
+                      <Tooltip title={overlayLabel} placement="top" arrow>
                         <Typography
                           variant="body2"
                           sx={{
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            flex: 1,
+                            marginRight: 1,
                             fontWeight: 500
                           }}
                         >
                           {overlayLabel}
                         </Typography>
-                      </Box>
+                      </Tooltip>
 
                       <CustomButton
                         color="primary"

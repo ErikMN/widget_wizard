@@ -25,6 +25,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RestoreIcon from '@mui/icons-material/Restore';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
@@ -301,19 +302,21 @@ const WidgetBackupList: React.FC<{
                         {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </CustomStyledIconButton>
 
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          flex: 1,
-                          marginRight: 1,
-                          fontWeight: 500
-                        }}
-                      >
-                        {label}
-                      </Typography>
+                      <Tooltip title={label} placement="top" arrow>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            flex: 1,
+                            marginRight: 1,
+                            fontWeight: 500
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                      </Tooltip>
 
                       <CustomButton
                         color="primary"
