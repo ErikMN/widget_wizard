@@ -1,0 +1,22 @@
+@@ -234,11 +234,20 @@
+ ###############################################################################
+ export old_http_proxy=
+
++# Extract host part for ping if axis_device_ip contains a port
++axis_device_host=$axis_device_ip
++
++case "$axis_device_ip" in
++	*:* )
++		axis_device_host=${axis_device_ip%%:*}
++		;;
++esac
++
+ # ping target
+-\ping -q -c 1 -w 15 $axis_device_ip >/dev/null 2>/dev/null
++\ping -q -c 1 -w 15 $axis_device_host >/dev/null 2>/dev/null
+ pingres=$?
+ if [ $pingres -ne 0 ]; then
+-	\ping6 -q -c 1 -w 15 $axis_device_ip >/dev/null 2>/dev/null
++	\ping6 -q -c 1 -w 15 $axis_device_host >/dev/null 2>/dev/null
+ 	pingres=$?
+ fi

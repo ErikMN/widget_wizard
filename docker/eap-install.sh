@@ -10,7 +10,8 @@ echo
 echo -e "${GREEN}>>> Installing using ACAPSDK $OECORE_SDK_VERSION for $OECORE_TARGET_ARCH${NC}"
 echo
 
-export axis_device_ip=$TARGET_IP
+# NOTE: Make sure SDK eap-install.sh supports setting the HTTP port:
+export axis_device_ip=$TARGET_IP:$TARGET_PORT
 export password=$TARGET_PWD
 
 eap-install.sh

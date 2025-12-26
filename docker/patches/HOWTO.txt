@@ -1,0 +1,25 @@
+Patch files in the SDK
+======================
+
+Requires GNU diffutils (diff) and GNU patch (patch)
+
+Example: Patch eap-install.sh
+
+1) Get it from the container:
+./scripts/dockercopy.sh -i widget_wizard_img_aarch64 -f /opt/axis/acapsdk/sysroots/x86_64-pokysdk-linux/usr/bin/eap-install.sh
+
+2) Create copy of file and set correct permissions:
+cp eap-install.sh eap-install.sh.orig
+chmod u+w eap-install.sh
+
+3) Create the patch with GNU diffutils:
+diff -u eap-install.sh.orig eap-install.sh > eap-install-host-port.patch
+
+4) Patch SDK in Dockerfile with GNU patch:
+
+COPY patches/eap-install-host-port.patch /tmp/
+RUN patch -N \
+  /opt/axis/acapsdk/sysroots/x86_64-pokysdk-linux/usr/bin/eap-install.sh \
+  /tmp/eap-install-host-port.patch
+
+5) Run make dockersetup to apply the patch

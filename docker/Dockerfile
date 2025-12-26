@@ -78,3 +78,18 @@ RUN mkdir -p /opt/app/libwebsockets
 RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.so* /opt/app/libwebsockets
 
 ################################################################################
+
+
+##################### PATCHES ##################################################
+
+
+##################### Patch eap-install.sh #####################################
+# Patch eap-install.sh to support host and port in TARGET_IP variable
+
+COPY patches/eap-install-host-port.patch /tmp/
+
+RUN patch -N \
+  /opt/axis/acapsdk/sysroots/x86_64-pokysdk-linux/usr/bin/eap-install.sh \
+  /tmp/eap-install-host-port.patch
+
+################################################################################
