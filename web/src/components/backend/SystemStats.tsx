@@ -13,6 +13,8 @@ import LinearProgress from '@mui/material/LinearProgress';
 import MemoryIcon from '@mui/icons-material/Memory';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+/* MUI X */
+import { LineChart } from '@mui/x-charts/LineChart';
 
 const WS_PORT = 9000;
 
@@ -23,6 +25,8 @@ const WS_ADDRESS =
 
 interface SysStats {
   ts: number;
+  mono_ms: number;
+  delta_ms: number;
   cpu: number;
   mem_total_kb: number;
   mem_available_kb: number;
@@ -31,6 +35,15 @@ interface SysStats {
   load5: number;
   load15: number;
 }
+
+interface HistoryPoint {
+  ts: number;
+  cpu: number;
+  mem: number;
+}
+
+const MAX_HISTORY_POINTS = 60;
+
 /* Convert uptime in seconds to a compact human-readable string (e.g. "2d 3h 4m 5s"). */
 const formatUptime = (seconds: number): string => {
   const totalSeconds = Math.max(0, Math.floor(seconds));
@@ -62,6 +75,8 @@ const SystemStats: React.FC = () => {
   const [stats, setStats] = useState<SysStats | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'bars' | 'chart'>('bars');
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -124,6 +139,18 @@ const SystemStats: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
         setStats(data);
+
+        const memUsedKb = data.mem_total_kb - data.mem_available_kb;
+        const memPercent = (memUsedKb / data.mem_total_kb) * 100;
+        setHistory((prev) => {
+          const next = [
+            ...prev,
+            { ts: data.ts, cpu: data.cpu, mem: memPercent }
+          ];
+          return next.length > MAX_HISTORY_POINTS
+            ? next.slice(-MAX_HISTORY_POINTS)
+            : next;
+        });
       } catch {
         /* Ignore invalid JSON frames */
       }
@@ -262,107 +289,178 @@ const SystemStats: React.FC = () => {
 
         {connected && stats && (
           <Stack spacing={2}>
-            {/* CPU */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-              >
-                <DeveloperBoardIcon sx={{ fontSize: 16 }} />
-                CPU: {cpuPercent.toFixed(1)} %
-              </Typography>
-
-              <LinearProgress
-                variant="determinate"
-                value={Math.min(cpuPercent, 100)}
-                sx={{
-                  height: 16,
-                  borderRadius: 0
-                }}
-              />
-            </Box>
-
-            {/* Memory */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-              >
-                <MemoryIcon sx={{ fontSize: 16 }} />
-                RAM: {memUsedPercent.toFixed(1)} % (
-                {(memUsedKb / 1024).toFixed(0)} MB of{' '}
-                {(stats.mem_total_kb / 1024).toFixed(0)} MB)
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={Math.min(memUsedPercent, 100)}
-                sx={{
-                  height: 16,
-                  borderRadius: 0
-                }}
-              />
-            </Box>
-
-            {/* Load average */}
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Stack direction="row" spacing={1}>
               <Chip
                 size="small"
                 variant="filled"
-                label={`Load 1m: ${stats.load1.toFixed(2)}`}
+                label="Bars"
+                onClick={() => setViewMode('bars')}
                 sx={{
-                  alignSelf: 'flex-start',
+                  cursor: 'pointer',
                   color: '#fff',
-                  '& .MuiChip-label': { color: '#fff' }
+                  '& .MuiChip-label': { color: '#fff' },
+                  opacity: viewMode === 'bars' ? 1 : 0.5
                 }}
               />
               <Chip
                 size="small"
                 variant="filled"
-                label={`Load 5m: ${stats.load5.toFixed(2)}`}
+                label="Chart"
+                onClick={() => setViewMode('chart')}
                 sx={{
-                  alignSelf: 'flex-start',
+                  cursor: 'pointer',
                   color: '#fff',
-                  '& .MuiChip-label': { color: '#fff' }
-                }}
-              />
-              <Chip
-                size="small"
-                variant="filled"
-                label={`Load 15m: ${stats.load15.toFixed(2)}`}
-                sx={{
-                  alignSelf: 'flex-start',
-                  color: '#fff',
-                  '& .MuiChip-label': { color: '#fff' }
+                  '& .MuiChip-label': { color: '#fff' },
+                  opacity: viewMode === 'chart' ? 1 : 0.5
                 }}
               />
             </Stack>
 
-            {/* Timestamp */}
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              <Chip
-                size="small"
-                variant="filled"
-                label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
+            {/* Use standard MUI components */}
+            {viewMode === 'bars' && (
+              <>
+                {/* CPU */}
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                  >
+                    <DeveloperBoardIcon sx={{ fontSize: 16 }} />
+                    CPU: {cpuPercent.toFixed(1)} %
+                  </Typography>
+
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(cpuPercent, 100)}
+                    sx={{
+                      height: 16,
+                      borderRadius: 0
+                    }}
+                  />
+                </Box>
+
+                {/* Memory */}
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                  >
+                    <MemoryIcon sx={{ fontSize: 16 }} />
+                    RAM: {memUsedPercent.toFixed(1)} % (
+                    {(memUsedKb / 1024).toFixed(0)} MB of{' '}
+                    {(stats.mem_total_kb / 1024).toFixed(0)} MB)
+                  </Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(memUsedPercent, 100)}
+                    sx={{
+                      height: 16,
+                      borderRadius: 0
+                    }}
+                  />
+                </Box>
+
+                {/* Load average */}
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Load 1m: ${stats.load1.toFixed(2)}`}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Load 5m: ${stats.load5.toFixed(2)}`}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Load 15m: ${stats.load15.toFixed(2)}`}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Stack>
+
+                {/* Timestamp */}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
+                    sx={{
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Uptime: ${formatUptime(stats.uptime_s)}`}
+                    sx={{
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Stack>
+              </>
+            )}
+
+            {/* Use MUI X LineChart */}
+            {viewMode === 'chart' && (
+              <LineChart
+                height={220}
+                margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
+                series={[
+                  {
+                    data: history.map((h) => h.cpu),
+                    label: 'CPU %',
+                    showMark: false,
+                    valueFormatter: (v) =>
+                      v == null ? '' : `${v.toFixed(1)} %`
+                  },
+                  {
+                    data: history.map((h) => h.mem),
+                    label: 'RAM %',
+                    showMark: false,
+                    valueFormatter: (v) =>
+                      v == null ? '' : `${v.toFixed(1)} %`
+                  }
+                ]}
+                yAxis={[{ min: 0, max: 100 }]}
                 sx={{
-                  color: '#fff',
-                  '& .MuiChip-label': { color: '#fff' }
+                  '& .MuiChartsAxis-line': {
+                    stroke: '#fff'
+                  },
+                  '& .MuiChartsAxis-tick': {
+                    stroke: '#fff'
+                  },
+                  '& .MuiChartsAxis-tickLabel': {
+                    fill: '#fff'
+                  },
+                  '& .MuiChartsLegend-root': {
+                    color: '#fff'
+                  }
                 }}
               />
-              <Chip
-                size="small"
-                variant="filled"
-                label={`Uptime: ${formatUptime(stats.uptime_s)}`}
-                sx={{
-                  color: '#fff',
-                  '& .MuiChip-label': { color: '#fff' }
-                }}
-              />
-            </Stack>
+            )}
           </Stack>
         )}
       </Box>
