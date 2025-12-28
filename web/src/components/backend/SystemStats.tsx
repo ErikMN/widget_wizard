@@ -447,16 +447,16 @@ const SystemStats: React.FC = () => {
                 yAxis={[{ min: 0, max: 100 }]}
                 sx={{
                   '& .MuiChartsAxis-line': {
-                    stroke: '#fff'
+                    stroke: '#fff !important'
                   },
                   '& .MuiChartsAxis-tick': {
-                    stroke: '#fff'
+                    stroke: '#fff !important'
                   },
                   '& .MuiChartsAxis-tickLabel': {
-                    fill: '#fff'
+                    fill: '#fff !important'
                   },
                   '& .MuiChartsLegend-root': {
-                    color: '#fff'
+                    color: '#fff !important'
                   }
                 }}
               />
