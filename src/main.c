@@ -10,10 +10,26 @@
  * - System statistics are periodically sampled from /proc and stored in latest_stats.
  * - libwebsockets is serviced from the same GLib main loop via a timer.
  * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
+ * - Each WebSocket client can optionally request per-process monitoring by process name.
  *
  * Data flow:
  *   /proc -> stats_timer_cb() -> latest_stats
  *   latest_stats -> ws_callback() -> WebSocket clients
+ *
+ * Per-process monitoring:
+ * - The client can send a JSON command to enable monitoring of a single process:
+ *     { "monitor": "process_name" }
+ * - process_name is matched against the first /proc/<pid>/comm that equals the given string.
+ * - Per-process monitoring state is per WebSocket connection (per-session), not global.
+ * - The server responds by adding a "proc" object to the periodic JSON snapshots:
+ *     "proc": { "name": "<process_name>", "cpu": <percent>, "rss_kb": <kB> }
+ * - Process CPU% is computed from (utime + stime) deltas over monotonic time.
+ *   Interpretation: 100% = one fully utilized CPU core.
+ * - Process RSS is reported from VmRSS in /proc/<pid>/status (kB).
+ * - To stop per-process monitoring, the client sends:
+ *     { "monitor": "" }
+ * - If the process cannot be found, the server includes an "error" object:
+ *     "error": { "type": "process_not_found", "message": "Process '<name>' not found" }
  *
  * Returned JSON message format example:
  * {
@@ -26,7 +42,8 @@
  *   "uptime_s": 4689109,
  *   "load1": 0.28,
  *   "load5": 0.34,
- *   "load15": 0.26
+ *   "load15": 0.26,
+ *   "proc": { "name": "pipewire", "cpu": 12.34, "rss_kb": 11052 }
  * }
  *
  * Scope and limitations:
@@ -34,13 +51,17 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
+ * - Incoming JSON is parsed using simple string matching and assumes well-formed input.
+ * - Processes with spaces or parentheses in comm may not be parsed correctly.
  */
+#include <dirent.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
@@ -79,6 +100,15 @@ struct per_session_data {
   unsigned char buf[LWS_PRE + MAX_WS_MESSAGE_LENGTH];
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
+
+  /* Process monitoring */
+  char proc_name[64];
+  bool proc_enabled;
+
+  /* Per-process CPU baseline */
+  unsigned long long prev_proc_utime;
+  unsigned long long prev_proc_stime;
+  uint64_t prev_proc_sample_mono_ms;
 };
 
 /* Struct for collecting system stats */
@@ -105,6 +135,196 @@ struct sys_stats {
  * exclusively via lws_service() in this loop.
  */
 static struct sys_stats latest_stats;
+
+/* Read CPU and memory usage for a named process.
+ *
+ * - Matches the first /proc/<pid>/comm equal to proc_name.
+ * - CPU usage is computed from utime + stime deltas over monotonic time.
+ * - Memory usage is reported as VmRSS in kB.
+ *
+ * NOTE: Limitations:
+ * - Processes with spaces or parentheses in comm may not be parsed correctly
+ *
+ * Returns true on success, false if the process was not found or data
+ * could not be read. On failure, outputs are set to 0.
+ */
+static bool
+read_process_stats(const char *proc_name,
+                   struct per_session_data *pss,
+                   uint64_t now_mono_ms,
+                   double *cpu_out,
+                   long *rss_kb_out)
+{
+  DIR *proc_dir;
+  struct dirent *ent;
+  pid_t pid = -1;
+  char path[256];
+  char buf[256];
+
+  unsigned long long utime = 0;
+  unsigned long long stime = 0;
+  long rss_kb = 0;
+
+  const long clk_tck = sysconf(_SC_CLK_TCK);
+
+  if (!proc_name || !pss || !cpu_out || !rss_kb_out || clk_tck <= 0) {
+    return false;
+  }
+
+  *cpu_out = 0.0;
+  *rss_kb_out = 0;
+
+  /* Find PID by scanning /proc */
+  proc_dir = opendir("/proc");
+  if (!proc_dir) {
+    return false;
+  }
+
+  while ((ent = readdir(proc_dir)) != NULL) {
+    /* /proc entries for processes are numeric */
+    if (ent->d_type != DT_DIR) {
+      continue;
+    }
+
+    char *endptr = NULL;
+    long val = strtol(ent->d_name, &endptr, 10);
+    if (*ent->d_name == '\0' || *endptr != '\0' || val <= 0) {
+      continue;
+    }
+
+    snprintf(path, sizeof(path), "/proc/%ld/comm", val);
+    FILE *f = fopen(path, "r");
+    if (!f) {
+      continue;
+    }
+
+    if (fgets(buf, sizeof(buf), f)) {
+      /* Strip trailing newline */
+      buf[strcspn(buf, "\n")] = '\0';
+      if (strcmp(buf, proc_name) == 0) {
+        pid = (pid_t)val;
+        fclose(f);
+        break;
+      }
+    }
+    fclose(f);
+  }
+  closedir(proc_dir);
+
+  if (pid <= 0) {
+    /* Process not found */
+    pss->prev_proc_utime = 0;
+    pss->prev_proc_stime = 0;
+    pss->prev_proc_sample_mono_ms = 0;
+    return false;
+  }
+  /* Read /proc/<pid>/stat */
+  snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+  FILE *statf = fopen(path, "r");
+  if (!statf) {
+    return false;
+  }
+
+  /*
+   * Field layout:
+   *  1 pid
+   *  2 comm
+   *  3 state
+   *  ...
+   * 14 utime
+   * 15 stime
+   *
+   * Skip everything except utime and stime.
+   */
+  unsigned long long dummy;
+  char comm[128];
+  char state;
+
+  int scanned = fscanf(statf,
+                       "%llu %127s %c "
+                       "%llu %llu %llu %llu %llu "
+                       "%llu %llu %llu %llu %llu "
+                       "%llu %llu",
+                       &dummy,
+                       comm,
+                       &state,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &dummy,
+                       &utime,
+                       &stime);
+  fclose(statf);
+
+  if (scanned < 15) {
+    /* Malformed /proc/<pid>/stat (comm contains spaces)
+     * Reset baseline to avoid bogus deltas on next sample
+     */
+    pss->prev_proc_utime = 0;
+    pss->prev_proc_stime = 0;
+    pss->prev_proc_sample_mono_ms = 0;
+    return false;
+  }
+
+  /* Read VmRSS from /proc/<pid>/status */
+  snprintf(path, sizeof(path), "/proc/%d/status", pid);
+  FILE *statusf = fopen(path, "r");
+  if (statusf) {
+    /* Scan /proc/<pid>/status for the VmRSS field to obtain the memory usage */
+    while (fgets(buf, sizeof(buf), statusf)) {
+      if (sscanf(buf, "VmRSS: %ld kB", &rss_kb) == 1) {
+        break;
+      }
+    }
+    fclose(statusf);
+  }
+
+  /* First sample: establish baseline */
+  if (pss->prev_proc_sample_mono_ms == 0) {
+    pss->prev_proc_utime = utime;
+    pss->prev_proc_stime = stime;
+    pss->prev_proc_sample_mono_ms = now_mono_ms;
+    *rss_kb_out = rss_kb;
+    return true;
+  }
+
+  /* Compute deltas */
+  unsigned long long prev_total = pss->prev_proc_utime + pss->prev_proc_stime;
+  unsigned long long curr_total = utime + stime;
+
+  if (curr_total < prev_total || now_mono_ms <= pss->prev_proc_sample_mono_ms) {
+    /* Process restarted or clock anomaly */
+    pss->prev_proc_utime = utime;
+    pss->prev_proc_stime = stime;
+    pss->prev_proc_sample_mono_ms = now_mono_ms;
+    *rss_kb_out = rss_kb;
+    return true;
+  }
+
+  /* Compute CPU time delta (in jiffies) and elapsed wall time (in seconds) since last sample */
+  unsigned long long delta_jiffies = curr_total - prev_total;
+  double delta_seconds = (double)(now_mono_ms - pss->prev_proc_sample_mono_ms) / 1000.0;
+
+  /* Convert jiffy delta to CPU usage percentage over the sampling interval */
+  if (delta_seconds > 0.0) {
+    *cpu_out = (double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0;
+  }
+
+  *rss_kb_out = rss_kb;
+
+  /* Update baselines */
+  pss->prev_proc_utime = utime;
+  pss->prev_proc_stime = stime;
+  pss->prev_proc_sample_mono_ms = now_mono_ms;
+
+  return true;
+}
 
 /* Return time in milliseconds for the given clock.
  *
@@ -440,6 +660,52 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   case LWS_CALLBACK_RECEIVE: {
     /* Log received data */
     syslog(LOG_INFO, "WebSocket received %zu bytes", len);
+    struct per_session_data *pss = user;
+
+    if (!pss || len == 0 || len >= 128) {
+      break;
+    }
+
+    char msg[128 + 1];
+    memcpy(msg, in, len);
+    msg[len] = '\0';
+
+    /* Expect JSON: { "monitor": "process_name" } */
+    const char *key = "\"monitor\"";
+    char *pos = strstr(msg, key);
+    if (!pos) {
+      break;
+    }
+
+    char name[64] = { 0 };
+
+    /* IMPORTANT NOTE:
+     * Incoming JSON is parsed using simple string matching.
+     * This assumes well-formed input from trusted clients.
+     */
+
+    /* Explicit stop-monitoring command: { "monitor": "" } */
+    if (strstr(pos, "\"monitor\":\"\"")) {
+      pss->proc_enabled = false;
+      pss->proc_name[0] = '\0';
+      pss->prev_proc_utime = 0;
+      pss->prev_proc_stime = 0;
+      pss->prev_proc_sample_mono_ms = 0;
+      syslog(LOG_INFO, "Client stopped process monitoring");
+      break;
+    }
+
+    /* Normal start-monitoring command */
+    if (sscanf(pos, "\"monitor\"%*[^\"\n]\"%63[^\"]\"", name) == 1) {
+      strncpy(pss->proc_name, name, sizeof(pss->proc_name) - 1);
+      pss->proc_name[sizeof(pss->proc_name) - 1] = '\0';
+      pss->proc_enabled = true;
+      pss->prev_proc_utime = 0;
+      pss->prev_proc_stime = 0;
+      pss->prev_proc_sample_mono_ms = 0;
+      syslog(LOG_INFO, "Client monitoring process: %s", pss->proc_name);
+    }
+
     break;
   }
 
@@ -485,7 +751,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
                         sizeof(json),
                         "{ \"ts\": %" PRIu64 ", \"mono_ms\": %" PRIu64 ", \"delta_ms\": %" PRIu64
                         ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld, "
-                        "\"uptime_s\": %.0f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f }",
+                        "\"uptime_s\": %.0f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f",
                         latest_stats.timestamp_ms,
                         latest_stats.monotonic_ms,
                         latest_stats.delta_ms,
@@ -496,14 +762,54 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
                         latest_stats.load1,
                         latest_stats.load5,
                         latest_stats.load15);
-    if (json_len < 0) {
+    if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+      syslog(LOG_ERR, "JSON message truncated, dropping the frame");
       break;
+    }
+    /* Monitor a process */
+    if (pss->proc_enabled) {
+      double proc_cpu = 0.0;
+      long proc_rss_kb = 0;
+      /* Read the process stats */
+      if (read_process_stats(pss->proc_name, pss, latest_stats.monotonic_ms, &proc_cpu, &proc_rss_kb)) {
+        int ret = snprintf(json + json_len,
+                           sizeof(json) - json_len,
+                           ", \"proc\": { \"name\": \"%s\", \"cpu\": %.2f, \"rss_kb\": %ld }",
+                           pss->proc_name,
+                           proc_cpu,
+                           proc_rss_kb);
+        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+          syslog(LOG_ERR, "JSON message truncated, dropping the frame");
+          break;
+        }
+        json_len += ret;
+      } else {
+        /* Process not found */
+        int ret = snprintf(json + json_len,
+                           sizeof(json) - json_len,
+                           ", \"error\": { \"type\": \"process_not_found\", "
+                           "\"message\": \"Process '%s' not found\" }",
+                           pss->proc_name);
+        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+          syslog(LOG_ERR, "JSON message truncated, dropping the frame");
+          break;
+        }
+        json_len += ret;
+      }
     }
     /* Truncated output! */
     if ((size_t)json_len >= sizeof(json)) {
       syslog(LOG_ERR, "JSON message truncated, dropping the frame");
       break;
     }
+    /* Close JSON object */
+    if ((size_t)json_len + 1 >= sizeof(json)) {
+      syslog(LOG_ERR, "JSON message truncated, dropping the frame");
+      break;
+    }
+    json[json_len++] = '}';
+    json[json_len] = '\0';
+
     /* Copy JSON to per-session buffer */
     memcpy(&pss->buf[LWS_PRE], json, (size_t)json_len);
 
