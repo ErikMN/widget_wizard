@@ -68,11 +68,71 @@
 #include <glib-unix.h>
 #include <axsdk/axparameter.h>
 
+/* Axparameters used by this app */
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
+
+/* Maximum size of a single JSON WebSocket message.
+ *
+ * Current worst-case payload is around 230 bytes (including per-process stats),
+ * leaving ample headroom for numeric growth and minor field additions.
+ * Messages are constructed using snprintf() and dropped on truncation.
+ */
 #define MAX_WS_MESSAGE_LENGTH 512
+
+/* Maximum length of a single line read from /proc text files.
+ *
+ * Used for fgets() buffers when parsing files like /proc/stat, /proc/meminfo,
+ * /proc/uptime, /proc/loadavg, and /proc/<pid>/status.
+ *
+ * This value is independent of MAX_WS_MESSAGE_LENGTH.
+ * Lines in these files are typically much shorter, but 512 provides safe headroom.
+ * On successful fgets(), the buffer is always NUL-terminated.
+ */
 #define MAX_PROC_LINE_LENGTH 512
+
+/* Maximum process name length accepted from clients (stored as NUL-terminated string).
+ *
+ * This is compared against /proc/<pid>/comm, which is typically limited (e.g. 16 chars),
+ * but we allow extra headroom for robustness and client-side convenience.
+ */
+#define MAX_PROC_NAME_LENGTH 64
+
+/* TCP port the WebSocket server listens on.
+ *
+ * Chosen as a fixed, non-privileged port for local / embedded use.
+ * Must match the client connection URL (ws://<ip>:9000).
+ */
 #define WS_PORT 9000
+
+/* Maximum number of concurrent WebSocket clients.
+ *
+ * Includes both fully established connections and handshakes in progress.
+ * This limit bounds resource usage and prevents unbounded /proc polling
+ * and per-session state allocation.
+ */
 #define MAX_WS_CONNECTED_CLIENTS 10
+
+/* scanf() field widths must be compile-time decimal literals in the format string.
+ *
+ * The C preprocessor cannot stringify an expression like (MAX_PROC_NAME_LENGTH - 1)
+ * into a valid scanf width, so the value is defined explicitly and verified below.
+ *
+ * This width ensures space for the terminating NUL when scanning into
+ * char proc_name[MAX_PROC_NAME_LENGTH].
+ */
+#define MAX_PROC_NAME_SCAN_WIDTH 63
+_Static_assert(MAX_PROC_NAME_SCAN_WIDTH == MAX_PROC_NAME_LENGTH - 1,
+               "MAX_PROC_NAME_SCAN_WIDTH must be MAX_PROC_NAME_LENGTH - 1");
+
+/* Macro helpers for turning macro *values* into string literals.
+ *
+ * Two-step expansion is required so STR(MAX_PROC_NAME_SCAN_WIDTH)
+ * expands the macro first (e.g. 5) and then stringifies it ("5").
+ *
+ * Used to build scanf format strings with compile-time widths.
+ */
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
 
 /* Global variables */
 static GMainLoop *main_loop = NULL;
@@ -102,7 +162,7 @@ struct per_session_data {
   bool counted;
 
   /* Process monitoring */
-  char proc_name[64];
+  char proc_name[MAX_PROC_NAME_LENGTH];
   bool proc_enabled;
 
   /* Per-process CPU baseline */
@@ -159,7 +219,7 @@ read_process_stats(const char *proc_name,
   struct dirent *ent;
   pid_t pid = -1;
   char path[256];
-  char buf[256];
+  char buf[MAX_PROC_LINE_LENGTH];
 
   unsigned long long utime = 0;
   unsigned long long stime = 0;
@@ -182,7 +242,7 @@ read_process_stats(const char *proc_name,
 
   while ((ent = readdir(proc_dir)) != NULL) {
     /* /proc entries for processes are numeric */
-    if (ent->d_type != DT_DIR) {
+    if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
       continue;
     }
 
@@ -677,7 +737,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       break;
     }
 
-    char name[64] = { 0 };
+    char proc_name[MAX_PROC_NAME_LENGTH] = { 0 };
 
     /* IMPORTANT NOTE:
      * Incoming JSON is parsed using simple string matching.
@@ -696,8 +756,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
 
     /* Normal start-monitoring command */
-    if (sscanf(pos, "\"monitor\"%*[^\"\n]\"%63[^\"]\"", name) == 1) {
-      strncpy(pss->proc_name, name, sizeof(pss->proc_name) - 1);
+    if (sscanf(pos, "\"monitor\"%*[^\"\n]\"%" STR(MAX_PROC_NAME_SCAN_WIDTH) "[^\"]\"", proc_name) == 1) {
+      strncpy(pss->proc_name, proc_name, sizeof(pss->proc_name) - 1);
       pss->proc_name[sizeof(pss->proc_name) - 1] = '\0';
       pss->proc_enabled = true;
       pss->prev_proc_utime = 0;
