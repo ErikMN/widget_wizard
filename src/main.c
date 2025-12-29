@@ -139,10 +139,23 @@ static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
 static guint stats_timer_id = 0;
 static guint lws_service_timer_id = 0;
-/* Number of connected clients */
-static unsigned int ws_connected_client_count = 0;
-/* WebSocket handshakes in progress (not yet established) */
+
+/* Connection accounting:
+ *
+ * - ws_pending_client_count is incremented in LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION.
+ * - It is decremented either when the handshake completes
+ *   (LWS_CALLBACK_ESTABLISHED) or when the connection is destroyed
+ *   before establishment (LWS_CALLBACK_WSI_DESTROY).
+ *
+ * - ws_connected_client_count tracks fully established WebSocket
+ *   connections only and is decremented in LWS_CALLBACK_CLOSED.
+ *
+ * This accounting is required because libwebsockets does not guarantee
+ * that FILTER_PROTOCOL_CONNECTION is paired with ESTABLISHED or CLOSED
+ * on all handshake failure paths.
+ */
 static unsigned int ws_pending_client_count = 0;
+static unsigned int ws_connected_client_count = 0;
 
 /* Function declarations */
 static gboolean stats_timer_cb(gpointer user_data);
@@ -888,9 +901,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_WSI_DESTROY: {
     struct per_session_data *pss = user;
-
-    /* Handshake-failure cleanup: CLOSED is not guaranteed after FILTER_PROTOCOL_CONNECTION */
-    if (!pss || !pss->counted) {
+    /*
+     * Handshake-failure cleanup:
+     *
+     * FILTER_PROTOCOL_CONNECTION is not guaranteed to be paired with
+     * ESTABLISHED or CLOSED on all libwebsockets failure paths.
+     *
+     * If this session never reached ESTABLISHED, it still holds a
+     * pending slot that must be released here.
+     */
+    if (pss && !pss->counted) {
       if (ws_pending_client_count > 0) {
         ws_pending_client_count--;
       }
