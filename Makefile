@@ -56,21 +56,15 @@ endif
 SRCS = $(wildcard src/*.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS += -DAPP_NAME="\"$(PROGS)\""
-CFLAGS += -Werror
 CFLAGS += -W
 CFLAGS += -Wextra
-# CFLAGS += -Wpedantic
-# CFLAGS += -Wmissing-prototypes
-# CFLAGS += -Wstrict-prototypes
+CFLAGS += -Werror
 CFLAGS += -Wvla
 CFLAGS += -Wformat=2
-CFLAGS += -Wmaybe-uninitialized
 CFLAGS += -Wunused-parameter
 CFLAGS += -Wunused-but-set-parameter
 CFLAGS += -Wpointer-arith
-CFLAGS += -Wbad-function-cast
 CFLAGS += -Wfloat-equal
-CFLAGS += -Winline
 CFLAGS += -Wdisabled-optimization
 
 # Set default value for FINAL to 'y' if not already defined:
@@ -79,6 +73,8 @@ FINAL ?= y
 ifeq ($(FINAL), y)
   LDFLAGS += -s
   CFLAGS += -DNDEBUG -g0 -O2
+  CFLAGS += -fno-strict-aliasing
+  CFLAGS += -fno-common
 else
   CFLAGS += -g3 -DDEBUG
   ifeq ($(ASAN), y)
