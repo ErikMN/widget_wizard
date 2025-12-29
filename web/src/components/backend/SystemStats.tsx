@@ -23,6 +23,18 @@ const WS_ADDRESS =
     ? `ws://${import.meta.env.VITE_TARGET_IP}:${WS_PORT}`
     : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:${WS_PORT}`;
 
+interface ProcHistoryPoint {
+  ts: number;
+  cpu: number;
+  mem: number;
+}
+
+interface ProcStats {
+  name: string;
+  cpu: number;
+  rss_kb: number;
+}
+
 interface SysStats {
   ts: number;
   mono_ms: number;
@@ -34,6 +46,7 @@ interface SysStats {
   load1: number;
   load5: number;
   load15: number;
+  proc?: ProcStats;
 }
 
 interface HistoryPoint {
@@ -75,8 +88,13 @@ const SystemStats: React.FC = () => {
   const [stats, setStats] = useState<SysStats | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'bars' | 'chart'>('bars');
+  const [viewMode, setViewMode] = useState<'bars' | 'chart' | 'process'>(
+    'bars'
+  );
   const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [procName, setProcName] = useState<string>('');
+  const [procHistory, setProcHistory] = useState<ProcHistoryPoint[]>([]);
+  const [procError, setProcError] = useState<string | null>(null);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -90,6 +108,16 @@ const SystemStats: React.FC = () => {
     wsRef.current !== null &&
     (wsRef.current.readyState === WebSocket.CONNECTING ||
       wsRef.current.readyState === WebSocket.OPEN);
+
+  /* Send a per-process monitor request */
+  const sendMonitorRequest = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    setProcError(null);
+    setProcHistory([]);
+    wsRef.current.send(JSON.stringify({ monitor: procName.trim() }));
+  };
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
    *
@@ -151,6 +179,26 @@ const SystemStats: React.FC = () => {
             ? next.slice(-MAX_HISTORY_POINTS)
             : next;
         });
+        /* Optional per process stats */
+        if (data.error && data.error.type === 'process_not_found') {
+          setProcError(data.error.message);
+        } else if (data.proc) {
+          setProcError(null);
+          const procMemMb = data.proc.rss_kb / 1024;
+          setProcHistory((prev) => {
+            const next = [
+              ...prev,
+              {
+                ts: data.ts,
+                cpu: data.proc.cpu,
+                mem: procMemMb
+              }
+            ];
+            return next.length > MAX_HISTORY_POINTS
+              ? next.slice(-MAX_HISTORY_POINTS)
+              : next;
+          });
+        }
       } catch {
         /* Ignore invalid JSON frames */
       }
@@ -242,6 +290,19 @@ const SystemStats: React.FC = () => {
     };
   }, []);
 
+  const clearMonitorInput = () => {
+    /* Clear UI state */
+    setProcName('');
+    setProcError(null);
+    setProcHistory([]);
+    setError(null);
+
+    /* Tell backend to stop monitoring */
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ monitor: '' }));
+    }
+  };
+
   const cpuPercent = stats ? stats.cpu : 0;
   const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
   const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
@@ -312,6 +373,18 @@ const SystemStats: React.FC = () => {
                   color: '#fff',
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'chart' ? 1 : 0.5
+                }}
+              />
+              <Chip
+                size="small"
+                variant="filled"
+                label="Process"
+                onClick={() => setViewMode('process')}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' },
+                  opacity: viewMode === 'process' ? 1 : 0.5
                 }}
               />
             </Stack>
@@ -423,7 +496,7 @@ const SystemStats: React.FC = () => {
               </>
             )}
 
-            {/* Use MUI X LineChart */}
+            {/* Use MUI X LineChart for overall system stats */}
             {viewMode === 'chart' && (
               <LineChart
                 height={220}
@@ -460,6 +533,114 @@ const SystemStats: React.FC = () => {
                   }
                 }}
               />
+            )}
+
+            {/* Use MUI X LineChart for per-process stats */}
+            {viewMode === 'process' && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">
+                  Monitor a process by name
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <input
+                    type="text"
+                    value={procName}
+                    onChange={(e) => setProcName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        sendMonitorRequest();
+                      }
+                    }}
+                    placeholder="process name"
+                    style={{
+                      flex: 1,
+                      padding: '6px',
+                      background: '#222',
+                      color: '#fff',
+                      border: '1px solid #555'
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    label="Start"
+                    onClick={sendMonitorRequest}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    label="Clear"
+                    onClick={clearMonitorInput}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Box>
+
+                {procHistory.length === 0 && (
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                    Enter a process name and press Start
+                  </Typography>
+                )}
+
+                {procError && (
+                  <Alert
+                    severity="error"
+                    variant="outlined"
+                    sx={{ py: 0.25, px: 1 }}
+                  >
+                    {procError}
+                  </Alert>
+                )}
+
+                {procHistory.length > 1 && (
+                  <LineChart
+                    height={220}
+                    margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
+                    series={[
+                      {
+                        data: procHistory.map((p) => p.cpu),
+                        label: 'Process CPU % (1 core = 100%)',
+                        showMark: false,
+                        valueFormatter: (v) =>
+                          v == null ? '' : `${v.toFixed(1)} %`
+                      },
+                      {
+                        data: procHistory.map((p) => p.mem),
+                        label: 'RAM MB',
+                        showMark: false,
+                        valueFormatter: (v) =>
+                          v == null ? '' : `${v.toFixed(1)} MB`
+                      }
+                    ]}
+                    yAxis={[
+                      {
+                        min: 0
+                      }
+                    ]}
+                    sx={{
+                      '& .MuiChartsAxis-line': {
+                        stroke: '#fff !important'
+                      },
+                      '& .MuiChartsAxis-tick': {
+                        stroke: '#fff !important'
+                      },
+                      '& .MuiChartsAxis-tickLabel': {
+                        fill: '#fff !important'
+                      },
+                      '& .MuiChartsLegend-root': {
+                        color: '#fff !important'
+                      }
+                    }}
+                  />
+                )}
+              </Stack>
             )}
           </Stack>
         )}
