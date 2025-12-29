@@ -1,9 +1,11 @@
 /**
  * DrawerHeaderContent
  *
- * This component renders the header content of the drawer based on drawerTab.
+ * Renders contextual information in the drawer header based on the current route.
+ * The active section is derived from the URL path.
  */
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 /* MUI */
 import Box from '@mui/material/Box';
 
@@ -12,13 +14,24 @@ import WidgetInfo from './widget/WidgetInfo';
 /* Overlays */
 import OverlayInfo from './overlay/OverlayInfo';
 
-interface DrawerHeaderContentProps {
-  drawerTab: number;
-}
+const DrawerHeaderContent: React.FC = () => {
+  /* Navigation */
+  const location = useLocation();
+  const path = location.pathname;
 
-const DrawerHeaderContent: React.FC<DrawerHeaderContentProps> = ({
-  drawerTab
-}) => {
+  let content: React.ReactNode = null;
+
+  /* Set content */
+  if (path.startsWith('/widgets')) {
+    content = <WidgetInfo />;
+  } else if (path.startsWith('/overlays')) {
+    content = <OverlayInfo />;
+  }
+
+  if (!content) {
+    return null;
+  }
+
   return (
     <Box
       sx={{
@@ -28,7 +41,7 @@ const DrawerHeaderContent: React.FC<DrawerHeaderContentProps> = ({
         flexGrow: 1
       }}
     >
-      {drawerTab === 1 ? <OverlayInfo /> : <WidgetInfo />}
+      {content}
     </Box>
   );
 };

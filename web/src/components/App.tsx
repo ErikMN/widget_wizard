@@ -16,9 +16,10 @@ import { log, enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
 import messageSoundUrl from '../assets/audio/message.oga';
 import DrawerHeaderContent from './DrawerHeaderContent';
+import MainMenu from './MainMenu';
 /* MUI */
 import { styled } from '@mui/material/styles';
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -32,10 +33,9 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MenuIcon from '@mui/icons-material/Menu';
+import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -141,7 +141,6 @@ const App: React.FC = () => {
 
   /* Local state */
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
-  const [drawerTab, setDrawerTab] = useState<number>(0);
 
   /* Local storage state */
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
@@ -160,7 +159,7 @@ const App: React.FC = () => {
   } = useAppContext();
 
   /* Refs */
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerScrollRef = useRef<HTMLDivElement>(null);
 
   /* Global parameter list */
   const { parameters } = useParameters();
@@ -175,16 +174,6 @@ const App: React.FC = () => {
 
   enableLogging(true);
 
-  /* Selected path */
-  useEffect(() => {
-    const path = location.pathname;
-    if (path.endsWith('/widgets')) {
-      setDrawerTab(0);
-    } else if (path.endsWith('/overlays')) {
-      setDrawerTab(1);
-    }
-  }, [location.pathname]);
-
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
   }, [setDrawerOpen]);
@@ -192,8 +181,8 @@ const App: React.FC = () => {
   const toggleDrawerOpen = useCallback(() => {
     setDrawerOpen(!drawerOpen);
     /* Scroll drawer to top if closed in mobile mode */
-    if (drawerOpen && drawerRef.current) {
-      drawerRef.current.scrollTo({ top: 0 });
+    if (drawerOpen && drawerScrollRef.current) {
+      drawerScrollRef.current.scrollTo({ top: 0 });
     }
   }, [drawerOpen, setDrawerOpen]);
 
@@ -422,9 +411,6 @@ const App: React.FC = () => {
 
         {/* Drawer menu */}
         <Drawer
-          slotProps={{
-            paper: { ref: drawerRef }
-          }}
           sx={{
             flexShrink: 0,
             '& .MuiDrawer-paper': {
@@ -472,18 +458,26 @@ const App: React.FC = () => {
           <DrawerHeader
             sx={{
               display: 'flex',
-              justifyContent: 'flex-start',
               alignItems: 'center',
-              position: 'relative',
               width: '100%'
             }}
           >
-            <DrawerHeaderContent drawerTab={drawerTab} />
-            {/* Menu toggle button */}
+            {/* Left and center content */}
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <DrawerHeaderContent />
+            </Box>
+            {/* Right-aligned close button  */}
             <Tooltip
               title={drawerOpen ? 'Close the menu' : 'Open the menu'}
               arrow
-              placement={'right'}
+              placement="right"
             >
               <div>
                 <CustomStyledIconButton
@@ -504,45 +498,58 @@ const App: React.FC = () => {
               </div>
             </Tooltip>
           </DrawerHeader>
-          <Divider />
 
           {/* Drawer content here */}
           <Divider />
-          <Box sx={{ paddingBottom: 1 }}>
-            <Tabs
-              value={drawerTab}
-              onChange={(_, newValue) => {
-                setDrawerTab(newValue);
-                switch (newValue) {
-                  case 0:
-                    navigate('widgets');
-                    break;
-                  case 1:
-                    navigate('overlays');
-                    break;
-                  default:
-                    break;
-                }
-              }}
-              variant="fullWidth"
-              textColor="primary"
-              indicatorColor="primary"
+
+          {/* Scrollable drawer content */}
+          <Box
+            ref={drawerScrollRef}
+            sx={{
+              flex: 1,
+              overflowY: 'auto'
+            }}
+          >
+            <Box sx={{ paddingBottom: 1 }}>
+              {location.pathname === '/' ? <MainMenu /> : <Outlet />}
+            </Box>
+          </Box>
+
+          {/* Fixed bottom navigation */}
+          <Box
+            sx={{
+              p: 1,
+              borderTop: 1,
+              borderColor: 'divider',
+              backgroundColor: 'background.paper'
+            }}
+          >
+            <CustomStyledIconButton
+              onClick={() => navigate('/')}
+              disabled={location.pathname === '/'}
               sx={{
-                borderBottom: 1,
-                borderColor: 'divider',
-                minHeight: 40,
-                '& .MuiTab-root': {
-                  minHeight: 40,
-                  fontSize: '0.875rem'
-                }
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                width: '100%',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Tab disableRipple label="Widgets" />
-              <Tab disableRipple label="Overlays" />
-            </Tabs>
-
-            {/* Render the active tab route */}
-            <Outlet />
+              <ArrowBackIcon
+                sx={{
+                  width: '20px',
+                  height: '20px',
+                  marginRight: '8px',
+                  flexShrink: 0
+                }}
+              />
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}
+              >
+                Back to main menu
+              </Typography>
+            </CustomStyledIconButton>
           </Box>
         </Drawer>
 
@@ -571,8 +578,11 @@ const App: React.FC = () => {
             color="primary"
             size="small"
             onClick={() => {
-              if (drawerRef.current) {
-                drawerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+              if (drawerScrollRef.current) {
+                drawerScrollRef.current.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+                });
               }
             }}
             sx={{
