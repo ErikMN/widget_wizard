@@ -88,13 +88,18 @@ const SystemStats: React.FC = () => {
   const [stats, setStats] = useState<SysStats | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'bars' | 'chart' | 'process'>(
-    'bars'
-  );
+  const [viewMode, setViewMode] = useState<
+    'bars' | 'chart' | 'process' | 'list'
+  >('bars');
+
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [procName, setProcName] = useState<string>('');
   const [procHistory, setProcHistory] = useState<ProcHistoryPoint[]>([]);
   const [procError, setProcError] = useState<string | null>(null);
+
+  const [processList, setProcessList] = useState<string[]>([]);
+  const [processFilter, setProcessFilter] = useState<string>('');
+  const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -117,6 +122,14 @@ const SystemStats: React.FC = () => {
     setProcError(null);
     setProcHistory([]);
     wsRef.current.send(JSON.stringify({ monitor: procName.trim() }));
+  };
+
+  /* Request a one-shot process list */
+  const requestProcessList = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ list_processes: true }));
   };
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
@@ -166,6 +179,12 @@ const SystemStats: React.FC = () => {
       /* Server sends JSON snapshots */
       try {
         const data = JSON.parse(event.data);
+
+        if (Array.isArray(data.processes)) {
+          setProcessList(data.processes);
+          return;
+        }
+
         setStats(data);
 
         const memUsedKb = data.mem_total_kb - data.mem_available_kb;
@@ -307,6 +326,10 @@ const SystemStats: React.FC = () => {
   const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
   const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
 
+  const filteredProcesses = processList.filter((name) =>
+    name.toLowerCase().includes(processFilter.toLowerCase())
+  );
+
   return (
     <Box
       sx={{
@@ -385,6 +408,21 @@ const SystemStats: React.FC = () => {
                   color: '#fff',
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'process' ? 1 : 0.5
+                }}
+              />
+              <Chip
+                size="small"
+                variant="filled"
+                label="List"
+                onClick={() => {
+                  setViewMode('list');
+                  requestProcessList();
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  '& .MuiChip-label': { color: '#fff' },
+                  opacity: viewMode === 'list' ? 1 : 0.5
                 }}
               />
             </Stack>
@@ -640,6 +678,71 @@ const SystemStats: React.FC = () => {
                     }}
                   />
                 )}
+              </Stack>
+            )}
+
+            {viewMode === 'list' && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">Running processes</Typography>
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <input
+                    type="text"
+                    value={processFilter}
+                    onChange={(e) => setProcessFilter(e.target.value)}
+                    placeholder="filter processes"
+                    style={{
+                      flex: 1,
+                      padding: '6px',
+                      background: '#222',
+                      color: '#fff',
+                      border: '1px solid #555'
+                    }}
+                  />
+
+                  <Chip
+                    size="small"
+                    label="Refresh"
+                    onClick={requestProcessList}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Box>
+
+                <Box
+                  sx={{
+                    maxHeight: '240px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    backgroundColor: '#111',
+                    color: '#fff',
+                    padding: '8px',
+                    border: '1px solid #333'
+                  }}
+                >
+                  {filteredProcesses.map((name) => (
+                    <div
+                      key={name}
+                      onClick={() => {
+                        setSelectedProcess(name);
+                        setProcName(name);
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                        backgroundColor:
+                          selectedProcess === name ? '#333' : 'transparent'
+                      }}
+                    >
+                      {name}
+                    </div>
+                  ))}
+                </Box>
               </Stack>
             )}
           </Stack>
