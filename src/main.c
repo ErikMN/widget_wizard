@@ -11,6 +11,7 @@
  * - libwebsockets is serviced from the same GLib main loop via a timer.
  * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
  * - Each WebSocket client can optionally request per-process monitoring by process name.
+ * - Each WebSocket client can request a one-shot list of running process names.
  *
  * Data flow:
  *   /proc -> stats_timer_cb() -> latest_stats
@@ -31,6 +32,16 @@
  * - If the process cannot be found, the server includes an "error" object:
  *     "error": { "type": "process_not_found", "message": "Process '<name>' not found" }
  *
+ * One-shot process list:
+ * - The client can request a list of running process names:
+ *     { "list_processes": true }
+ * - The server scans /proc/<pid>/comm, skips kernel threads ([...]),
+ *   deduplicates names, and returns a bounded list:
+ *     { "processes": ["name1", "name2", ...] }
+ * - The list is intended for UI discovery and filtering, not as a full
+ *   system process inventory.
+ * - The response is size-bounded and may be truncated if limits are reached.
+ *
  * Returned JSON message format example:
  * {
  *   "ts": 1766089635269,
@@ -43,7 +54,7 @@
  *   "load1": 0.28,
  *   "load5": 0.34,
  *   "load15": 0.26,
- *   "proc": { "name": "pipewire", "cpu": 12.34, "rss_kb": 11052 }
+ *   "proc": { "name": "my_process", "cpu": 12.34, "rss_kb": 11052 }
  * }
  *
  * Scope and limitations:
@@ -96,6 +107,42 @@
  * but we allow extra headroom for robustness and client-side convenience.
  */
 #define MAX_PROC_NAME_LENGTH 64
+
+/* Maximum number of unique process names returned in a single list response.
+ *
+ * This bounds:
+ * - /proc scan result size (deduped by /proc/<pid>/comm)
+ * - JSON construction time
+ * - worst-case payload size sent to the client
+ *
+ * The UI uses this list for interactive discovery/filtering, not as a full
+ * process inventory. If more than MAX_PROCESS_COUNT unique names exist,
+ * the list is truncated.
+ */
+#define MAX_PROCESS_COUNT 256
+
+/* Maximum length of a /proc/<pid>/comm path.
+ *
+ * Example: "/proc/123456/comm"
+ * Sized conservatively to allow for future path changes without risking buffer overflow.
+ */
+#define MAX_PROC_PATH_LENGTH 256
+
+/* Maximum size (bytes) of the one-shot JSON response for the process list.
+ *
+ * The list response is formatted as:
+ *   { "processes": ["name1","name2", ...] }
+ *
+ * This buffer is intentionally larger than MAX_WS_MESSAGE_LENGTH because it
+ * can contain hundreds of short strings. If the buffer fills up while appending
+ * entries, the response is truncated (partial list is sent) rather than
+ * allocating dynamically.
+ *
+ * NOTE:
+ * This constant must be kept in sync with the per-session output buffer used
+ * for list responses (pss->list_buf).
+ */
+#define MAX_LIST_JSON_LENGTH 8192
 
 /* TCP port the WebSocket server listens on.
  *
@@ -169,8 +216,10 @@ static gboolean stats_timer_cb(gpointer user_data);
  * - Remaining bytes: outgoing message payload (JSON)
  */
 struct per_session_data {
-  /* NOTE: Buffer must be large enough for biggest JSON payload */
-  unsigned char buf[LWS_PRE + MAX_WS_MESSAGE_LENGTH];
+  /* NOTE: Buffers must be large enough for the biggest JSON payload */
+  unsigned char stream_buf[LWS_PRE + MAX_WS_MESSAGE_LENGTH];
+  unsigned char list_buf[LWS_PRE + MAX_LIST_JSON_LENGTH];
+
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
 
@@ -209,6 +258,115 @@ struct sys_stats {
  */
 static struct sys_stats latest_stats;
 
+/* Collect a unique list of running process names from /proc.
+ *
+ * Implementation details:
+ * - Enumerates numeric /proc/<pid> directories.
+ * - Reads /proc/<pid>/comm to obtain the process name.
+ * - Skips kernel threads (names enclosed in '[...]').
+ * - Deduplicates process names to avoid listing multiple PIDs
+ *   belonging to the same executable.
+ * - Stops when max_names entries have been collected.
+ *
+ * Performance:
+ * - This function performs a linear scan of /proc and opens
+ *   one small text file per PID.
+ * - It is intentionally NOT called periodically or from a timer.
+ * - It is executed only on explicit client request (one-shot),
+ *   making occasional CPU spikes acceptable and bounded.
+ *
+ * Rationale:
+ * - Using /proc/<pid>/comm provides a stable, short process name
+ *   that is readable without elevated privileges.
+ * - The returned list is intended for interactive UI discovery,
+ *   not continuous monitoring.
+ *
+ * Returns:
+ * - Number of unique process names written to the output array.
+ * - Returns 0 on failure or if no processes are found.
+ */
+static size_t
+collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
+{
+  DIR *proc_dir = NULL;
+  struct dirent *ent; /* Directory entry used when iterating over /proc */
+  size_t count = 0;   /* Number of unique process names collected so far */
+  char path[MAX_PROC_PATH_LENGTH];
+  char buf[MAX_PROC_LINE_LENGTH];
+
+  /* Open /proc to iterate over all running processes, return empty result on failure */
+  proc_dir = opendir("/proc");
+  if (!proc_dir) {
+    return 0;
+  }
+
+  /* Iterate all /proc entries (numeric directories correspond to PIDs) */
+  while ((ent = readdir(proc_dir)) != NULL) {
+    /* /proc on some filesystems may not reliably report d_type, so accept DT_UNKNOWN too */
+    if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
+      continue;
+    }
+
+    /* Only consider numeric /proc entries (PIDs)
+     * skip non-numeric names and invalid or non-positive values
+     */
+    char *endptr = NULL;
+    long pid = strtol(ent->d_name, &endptr, 10);
+    if (*ent->d_name == '\0' || *endptr != '\0' || pid <= 0) {
+      continue;
+    }
+
+    /* Read the process name from /proc/<pid>/comm
+     * skip entries that disappear or cannot be opened
+     */
+    snprintf(path, sizeof(path), "/proc/%ld/comm", pid);
+    FILE *f = fopen(path, "r");
+    if (!f) {
+      continue;
+    }
+
+    /* Read one line (process name) and ignore processes that exit mid-read */
+    if (!fgets(buf, sizeof(buf), f)) {
+      fclose(f);
+      continue;
+    }
+    fclose(f);
+
+    /* Strip trailing newline from /proc/<pid>/comm so buf is a clean NUL-terminated name */
+    buf[strcspn(buf, "\n")] = '\0';
+
+    /* Skip kernel threads: in /proc/<pid>/comm they typically appear as "[kthread-name]" */
+    if (buf[0] == '[') {
+      continue;
+    }
+
+    /* Deduplicate: /proc may contain multiple PIDs with the same comm name, but we only want unique names */
+    bool exists = false;
+    for (size_t i = 0; i < count; i++) {
+      if (strcmp(names[i], buf) == 0) {
+        exists = true;
+        break;
+      }
+    }
+    if (exists) {
+      continue;
+    }
+    /* Copy the process name into the output list (always NUL-terminate) and consume one slot */
+    strncpy(names[count], buf, MAX_PROC_NAME_LENGTH - 1);
+    names[count][MAX_PROC_NAME_LENGTH - 1] = '\0';
+    count++;
+
+    /* Stop scanning once the caller-provided output buffer is full */
+    if (count >= max_names) {
+      break;
+    }
+  }
+  /* Release the /proc directory handle before returning to avoid leaking an fd */
+  closedir(proc_dir);
+
+  return count;
+}
+
 /* Read CPU and memory usage for a named process.
  *
  * - Matches the first /proc/<pid>/comm equal to proc_name.
@@ -231,7 +389,7 @@ read_process_stats(const char *proc_name,
   DIR *proc_dir;
   struct dirent *ent;
   pid_t pid = -1;
-  char path[256];
+  char path[MAX_PROC_PATH_LENGTH];
   char buf[MAX_PROC_LINE_LENGTH];
 
   unsigned long long utime = 0;
@@ -743,6 +901,60 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     memcpy(msg, in, len);
     msg[len] = '\0';
 
+    /* One-shot process list request: { "list_processes": true }
+     *
+     * NOTE:
+     * This triggers a full /proc scan to build a unique process list.
+     * The operation may cause brief CPU spikes when repeatedly invoked,
+     * which is acceptable as it is user-initiated and not performed
+     * automatically or in the background.
+     */
+    if (strstr(msg, "\"list_processes\"")) {
+      /* Buffer for a deduplicated snapshot of process names read from /proc/<pid>/comm */
+      char proc_names[MAX_PROCESS_COUNT][MAX_PROC_NAME_LENGTH];
+      size_t proc_count = collect_process_list(proc_names, MAX_PROCESS_COUNT);
+
+      /* NOTE: large stack array here: */
+      char json[MAX_LIST_JSON_LENGTH];
+      /* Initialize JSON output with the process list array header */
+      int json_len = snprintf(json, sizeof(json), "{ \"processes\": [");
+
+      /* Abort if initial JSON header formatting failed or overflowed the output buffer */
+      if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+        break;
+      }
+      /* Append each collected process name to the JSON array */
+      for (size_t i = 0; i < proc_count; i++) {
+        /* Append one quoted process name to the JSON array, prefixing with ',' except for the first element */
+        int ret = snprintf(json + json_len, sizeof(json) - json_len, "%s\"%s\"", (i > 0) ? "," : "", proc_names[i]);
+        /* JSON buffer full: send partial process list */
+        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+          break;
+        }
+        json_len += ret;
+      }
+
+      /* Ensure space for closing ']' and '}' characters plus NUL terminator.
+       * We append exactly two bytes (']' and '}') after this check.
+       */
+      if ((size_t)json_len + 2 >= sizeof(json)) {
+        break;
+      }
+      /* Close the JSON array and object and NUL-terminate the string */
+      json[json_len++] = ']';
+      json[json_len++] = '}';
+      json[json_len] = '\0';
+
+      /* Write the output */
+      memcpy(&pss->list_buf[LWS_PRE], json, (size_t)json_len);
+      int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
+      if (written < 0) {
+        syslog(LOG_WARNING, "lws_write failed");
+        break;
+      }
+      break;
+    }
+
     /* Expect JSON: { "monitor": "process_name" } */
     const char *key = "\"monitor\"";
     char *pos = strstr(msg, key);
@@ -884,10 +1096,10 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     json[json_len] = '\0';
 
     /* Copy JSON to per-session buffer */
-    memcpy(&pss->buf[LWS_PRE], json, (size_t)json_len);
+    memcpy(&pss->stream_buf[LWS_PRE], json, (size_t)json_len);
 
     /* Send one complete WS text message */
-    int written = lws_write(wsi, &pss->buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
+    int written = lws_write(wsi, &pss->stream_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
     if (written < 0) {
       syslog(LOG_WARNING, "lws_write failed");
       break;
