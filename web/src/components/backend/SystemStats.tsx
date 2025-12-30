@@ -322,6 +322,11 @@ const SystemStats: React.FC = () => {
     }
   };
 
+  /* Clear process filter */
+  const clearProcessList = () => {
+    setProcessFilter('');
+  };
+
   const cpuPercent = stats ? stats.cpu : 0;
   const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
   const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
@@ -683,7 +688,9 @@ const SystemStats: React.FC = () => {
 
             {viewMode === 'list' && (
               <Stack spacing={1}>
-                <Typography variant="subtitle2">Running processes</Typography>
+                <Typography variant="subtitle2">
+                  Running processes (double click to monitor)
+                </Typography>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <input
@@ -704,6 +711,17 @@ const SystemStats: React.FC = () => {
                     size="small"
                     label="Refresh"
                     onClick={requestProcessList}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+
+                  <Chip
+                    size="small"
+                    label="Clear"
+                    onClick={clearProcessList}
                     sx={{
                       cursor: 'pointer',
                       color: '#fff',
@@ -731,6 +749,12 @@ const SystemStats: React.FC = () => {
                       onClick={() => {
                         setSelectedProcess(name);
                         setProcName(name);
+                      }}
+                      onDoubleClick={() => {
+                        setSelectedProcess(name);
+                        setProcName(name);
+                        setViewMode('process');
+                        sendMonitorRequest();
                       }}
                       style={{
                         cursor: 'pointer',
