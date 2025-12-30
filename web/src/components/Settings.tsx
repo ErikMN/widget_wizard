@@ -7,9 +7,11 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
 import { useAppContext } from './AppContext';
+import { useParameters } from './ParametersContext';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { P_CGI } from './constants';
+import BackendControl from './backend/BackendControl';
 import {
   CustomSwitch,
   CustomButton,
@@ -51,7 +53,7 @@ const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
 ];
 
 const Settings: React.FC = () => {
-  /* Global context */
+  /* Global app context */
   const {
     appSettings,
     currentTheme,
@@ -63,6 +65,11 @@ const Settings: React.FC = () => {
     handleOpenAlert,
     setCurrentTheme
   } = useAppContext();
+
+  /* Global parameter list */
+  const { parameters } = useParameters();
+  const backendAvailable =
+    parameters?.['root.Widget_wizard.ApplicationRunning'];
 
   const { listWidgets, widgetSupported } = useWidgetContext();
   const { listOverlays, overlaySupported } = useOverlayContext();
@@ -379,6 +386,9 @@ const Settings: React.FC = () => {
             </Tooltip>
           </Box>
         </Box>
+
+        {/* Display backend controls if backend is available */}
+        {backendAvailable !== undefined && <BackendControl />}
 
         {/* Bounding Box settings */}
         <Box
