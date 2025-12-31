@@ -25,7 +25,7 @@
  * - The server responds by adding a "proc" object to the periodic JSON snapshots:
  *     "proc": { "name": "<process_name>", "cpu": <percent>, "rss_kb": <kB> }
  * - Process CPU% is computed from (utime + stime) deltas over monotonic time.
- *   Interpretation: 100% = one fully utilized CPU core.
+ *   Interpretation: 100% = all CPUs fully utilized (system-wide percentage, matches top(1) default).
  * - Process RSS is reported from VmRSS in /proc/<pid>/status (kB).
  * - To stop per-process monitoring, the client sends:
  *     { "monitor": "" }
@@ -389,6 +389,7 @@ read_process_stats(const char *proc_name,
   DIR *proc_dir;
   struct dirent *ent;
   pid_t pid = -1;
+  static long ncpu = 0;
   char path[MAX_PROC_PATH_LENGTH];
   char buf[MAX_PROC_LINE_LENGTH];
 
@@ -404,6 +405,21 @@ read_process_stats(const char *proc_name,
 
   *cpu_out = 0.0;
   *rss_kb_out = 0;
+
+  /* Cache the number of online CPUs once.
+   *
+   * The value is constant for the lifetime of the process on typical
+   * embedded systems, so caching avoids repeated sysconf() calls.
+   * Fallback to 1 ensures safe division if sysconf() fails.
+   */
+  if (ncpu == 0) {
+    ncpu = sysconf(_SC_NPROCESSORS_ONLN);
+    if (ncpu <= 0) {
+      syslog(LOG_WARNING, "sysconf(_SC_NPROCESSORS_ONLN) failed, defaulting to 1 CPU");
+      ncpu = 1;
+    }
+    syslog(LOG_INFO, "Detected %ld online CPU(s)", ncpu);
+  }
 
   /* Find PID by scanning /proc */
   proc_dir = opendir("/proc");
@@ -544,7 +560,13 @@ read_process_stats(const char *proc_name,
 
   /* Convert jiffy delta to CPU usage percentage over the sampling interval */
   if (delta_seconds > 0.0) {
-    *cpu_out = (double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0;
+    /* CPU usage normalized to system-wide percentage.
+     *
+     * Interpretation:
+     * - 100% means all CPUs fully utilized
+     * - Matches top(1) default behavior
+     */
+    *cpu_out = ((double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0) / (double)ncpu;
   }
 
   *rss_kb_out = rss_kb;
