@@ -649,7 +649,7 @@ const SystemStats: React.FC = () => {
                     series={[
                       {
                         data: procHistory.map((p) => p.cpu),
-                        label: 'Process CPU % (1 core = 100%)',
+                        label: 'Process CPU %',
                         showMark: false,
                         valueFormatter: (v) =>
                           v == null ? '' : `${v.toFixed(1)} %`
