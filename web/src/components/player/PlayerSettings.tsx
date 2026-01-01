@@ -14,8 +14,10 @@ import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../ParametersContext';
 import { useAppContext } from '../AppContext';
+import { darkTheme } from '../../theme';
 /* MUI */
 import { useTheme, alpha } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 
@@ -32,7 +34,7 @@ interface PlayerSettingsProps {
   readonly toggleSystemStats: (newValue?: boolean) => void;
 }
 
-export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
+const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   vapixParameters,
   format,
   onFormat,
@@ -383,5 +385,14 @@ export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
         </>
       )}
     </div>
+  );
+};
+
+export const PlayerSettings: React.FC<PlayerSettingsProps> = (props) => {
+  return (
+    /* Always use dark theme for player settings */
+    <ThemeProvider theme={darkTheme}>
+      <PlayerSettingsContent {...props} />
+    </ThemeProvider>
   );
 };
