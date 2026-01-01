@@ -414,6 +414,9 @@ const App: React.FC = () => {
           sx={{
             flexShrink: 0,
             '& .MuiDrawer-paper': {
+              borderTopRightRadius: isMobile ? 0 : '12px',
+              borderBottomRightRadius: isMobile ? 0 : '12px',
+              boxShadow: theme.shadows[2],
               boxSizing: 'border-box',
               overflow: isMobile && !drawerOpen ? 'hidden' : 'auto',
               /* Prevent horizontal overflow */
@@ -521,7 +524,7 @@ const App: React.FC = () => {
               p: 1,
               borderTop: 1,
               borderColor: 'divider',
-              backgroundColor: 'background.paper'
+              backgroundColor: theme.palette.background.default
             }}
           >
             <CustomStyledIconButton
@@ -544,8 +547,8 @@ const App: React.FC = () => {
                 }}
               />
               <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}
+                variant="h6"
+                sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', pt: '1px' }}
               >
                 Back to main menu
               </Typography>
