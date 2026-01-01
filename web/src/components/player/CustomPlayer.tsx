@@ -21,6 +21,7 @@ import {
   VideoProperties,
   VapixParameters
 } from 'media-stream-player';
+import { useParameters } from '../ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
 import { Container, Layer } from './Container';
@@ -111,6 +112,11 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [volume, setVolume] = useState<number>();
     const [expanded, setExpanded] = useState(true);
 
+    /* Global parameter list */
+    const { parameters: globalParameters } = useParameters();
+    const backendAvailable =
+      globalParameters?.['root.Widget_wizard.ApplicationRunning'];
+
     const systemStatsRef = useRef<HTMLDivElement>(null);
 
     const [format, setFormat] = useLocalStorage(
@@ -122,7 +128,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     /**
      * VAPIX parameters
      */
-    const [parameters, setParameters] = useState(vapixParams);
+    const [vapixParameters, setVapixParameters] = useState(vapixParams);
 
     useEffect(() => {
       /**
@@ -130,9 +136,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
        * server side render, localStorage won't be available.
        */
       if (window?.localStorage !== undefined) {
-        window.localStorage.setItem('vapix', JSON.stringify(parameters));
+        window.localStorage.setItem('vapix', JSON.stringify(vapixParameters));
       }
-    }, [parameters]);
+    }, [vapixParameters]);
 
     /**
      * Stats overlay
@@ -233,7 +239,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
     const onVapix = useCallback(
       (key: string, value: string) => {
-        setParameters((p: typeof vapixParams) => {
+        setVapixParameters((p: typeof vapixParams) => {
           const newParams = { ...p, [key]: value };
           if (value === '') {
             delete newParams[key];
@@ -376,7 +382,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           </div>
         )}
         {/* Draggable system stats overlay */}
-        {showSystemStatsOverlay && (
+        {backendAvailable !== undefined && showSystemStatsOverlay && (
           <Draggable bounds="parent" nodeRef={systemStatsRef}>
             <div
               ref={systemStatsRef}
@@ -406,7 +412,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                   offset={offset}
                   host={host}
                   format={format}
-                  parameters={parameters}
+                  parameters={vapixParameters}
                   onPlaying={onPlaying}
                   onEnded={onEnded}
                   secure={secure}
@@ -433,7 +439,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             play={play}
             videoProperties={videoProperties}
             src={host}
-            parameters={parameters}
+            parameters={vapixParameters}
             onPlay={onPlayStop}
             onStop={onStop}
             onRefresh={onRefresh}
