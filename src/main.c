@@ -48,12 +48,14 @@
  *   "mono_ms": 4689109526,
  *   "delta_ms": 500,
  *   "cpu": 5.42,
+ *   "cpu_cores": 4,
  *   "mem_total_kb": 981716,
  *   "mem_available_kb": 531704,
  *   "uptime_s": 4689109,
  *   "load1": 0.28,
  *   "load5": 0.34,
  *   "load15": 0.26,
+ *   "clients": { "connected": 3, "max": 10 },
  *   "proc": { "name": "my_process", "cpu": 12.34, "rss_kb": 11052 }
  * }
  *
@@ -84,11 +86,11 @@
 
 /* Maximum size of a single JSON WebSocket message.
  *
- * Current worst-case payload is around 230 bytes (including per-process stats),
+ * Current worst-case payload is around 320 bytes (including per-process stats),
  * leaving ample headroom for numeric growth and minor field additions.
  * Messages are constructed using snprintf() and dropped on truncation.
  */
-#define MAX_WS_MESSAGE_LENGTH 512
+#define MAX_WS_MESSAGE_LENGTH 1024
 
 /* Maximum length of a single line read from /proc text files.
  *
@@ -186,6 +188,7 @@ static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
 static guint stats_timer_id = 0;
 static guint lws_service_timer_id = 0;
+static long cpu_core_count = 1;
 
 /* Connection accounting:
  *
@@ -389,7 +392,6 @@ read_process_stats(const char *proc_name,
   DIR *proc_dir;
   struct dirent *ent;
   pid_t pid = -1;
-  static long ncpu = 0;
   char path[MAX_PROC_PATH_LENGTH];
   char buf[MAX_PROC_LINE_LENGTH];
 
@@ -405,21 +407,6 @@ read_process_stats(const char *proc_name,
 
   *cpu_out = 0.0;
   *rss_kb_out = 0;
-
-  /* Cache the number of online CPUs once.
-   *
-   * The value is constant for the lifetime of the process on typical
-   * embedded systems, so caching avoids repeated sysconf() calls.
-   * Fallback to 1 ensures safe division if sysconf() fails.
-   */
-  if (ncpu == 0) {
-    ncpu = sysconf(_SC_NPROCESSORS_ONLN);
-    if (ncpu <= 0) {
-      syslog(LOG_WARNING, "sysconf(_SC_NPROCESSORS_ONLN) failed, defaulting to 1 CPU");
-      ncpu = 1;
-    }
-    syslog(LOG_INFO, "Detected %ld online CPU(s)", ncpu);
-  }
 
   /* Find PID by scanning /proc */
   proc_dir = opendir("/proc");
@@ -566,7 +553,7 @@ read_process_stats(const char *proc_name,
      * - 100% means all CPUs fully utilized
      * - Matches top(1) default behavior
      */
-    *cpu_out = ((double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0) / (double)ncpu;
+    *cpu_out = ((double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0) / (double)cpu_core_count;
   }
 
   *rss_kb_out = rss_kb;
@@ -1056,19 +1043,28 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     /* Construct the JSON response */
     json_len = snprintf(json,
                         sizeof(json),
-                        "{ \"ts\": %" PRIu64 ", \"mono_ms\": %" PRIu64 ", \"delta_ms\": %" PRIu64
-                        ", \"cpu\": %.2f, \"mem_total_kb\": %ld, \"mem_available_kb\": %ld, "
-                        "\"uptime_s\": %.0f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f",
+                        "{ \"ts\": %" PRIu64 ", \"mono_ms\": %" PRIu64 ", \"delta_ms\": %" PRIu64 ", \"cpu\": %.2f"
+                        ", \"cpu_cores\": %ld"
+                        ", \"mem_total_kb\": %ld"
+                        ", \"mem_available_kb\": %ld"
+                        ", \"uptime_s\": %.0f"
+                        ", \"load1\": %.2f"
+                        ", \"load5\": %.2f"
+                        ", \"load15\": %.2f"
+                        ", \"clients\": { \"connected\": %u, \"max\": %u }",
                         latest_stats.timestamp_ms,
                         latest_stats.monotonic_ms,
                         latest_stats.delta_ms,
                         latest_stats.cpu_usage,
+                        cpu_core_count,
                         latest_stats.mem_total_kb,
                         latest_stats.mem_available_kb,
                         latest_stats.uptime_s,
                         latest_stats.load1,
                         latest_stats.load5,
-                        latest_stats.load15);
+                        latest_stats.load15,
+                        ws_connected_client_count,
+                        MAX_WS_CONNECTED_CLIENTS);
     if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
       syslog(LOG_ERR, "JSON message truncated, dropping the frame");
       break;
@@ -1307,6 +1303,18 @@ main(int argc, char **argv)
     ret = -1;
     goto exit;
   }
+  /* Cache the number of online CPUs once.
+   *
+   * The value is constant for the lifetime of the process on typical
+   * embedded systems, so caching avoids repeated sysconf() calls.
+   * Fallback to 1 ensures safe division if sysconf() fails.
+   */
+  cpu_core_count = sysconf(_SC_NPROCESSORS_ONLN);
+  if (cpu_core_count <= 0) {
+    syslog(LOG_WARNING, "sysconf(_SC_NPROCESSORS_ONLN) failed, defaulting to 1 CPU");
+    cpu_core_count = 1;
+  }
+  syslog(LOG_INFO, "Detected %ld CPU core(s)", cpu_core_count);
 
   /* Initialize latest_stats and establish CPU usage baseline */
   read_cpu_stats(&latest_stats);
