@@ -734,9 +734,7 @@ const SystemStats: React.FC = () => {
 
             {viewMode === 'list' && (
               <Stack spacing={1}>
-                <Typography variant="subtitle2">
-                  Running processes (double click to monitor)
-                </Typography>
+                <Typography variant="subtitle2">Running processes</Typography>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <input
