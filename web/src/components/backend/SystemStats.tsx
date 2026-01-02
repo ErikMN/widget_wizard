@@ -42,12 +42,17 @@ interface SysStats {
   mono_ms: number;
   delta_ms: number;
   cpu: number;
+  cpu_cores: number;
   mem_total_kb: number;
   mem_available_kb: number;
   uptime_s: number;
   load1: number;
   load5: number;
   load15: number;
+  clients: {
+    connected: number;
+    max: number;
+  };
   proc?: ProcStats;
 }
 
@@ -548,6 +553,30 @@ const SystemStats: React.FC = () => {
                     variant="filled"
                     label={`Uptime: ${formatUptime(stats.uptime_s)}`}
                     sx={{
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Stack>
+
+                {/* System info */}
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`CPU cores: ${stats.cpu_cores}`}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                  <Chip
+                    size="small"
+                    variant="filled"
+                    label={`Clients: ${stats.clients.connected} / ${stats.clients.max}`}
+                    sx={{
+                      alignSelf: 'flex-start',
                       color: '#fff',
                       '& .MuiChip-label': { color: '#fff' }
                     }}
