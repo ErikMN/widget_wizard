@@ -4,10 +4,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import { useAppContext } from '../AppContext';
+import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
 import LinearProgress from '@mui/material/LinearProgress';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -327,6 +329,16 @@ const SystemStats: React.FC = () => {
     setProcessFilter('');
   };
 
+  /* Copy to clipboard helper */
+  const copyToClipboard = (text: string) => {
+    if (!navigator.clipboard) {
+      return;
+    }
+    navigator.clipboard.writeText(text).catch(() => {
+      /* Just ignore any clipboard errors */
+    });
+  };
+
   const cpuPercent = stats ? stats.cpu : 0;
   const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
   const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
@@ -379,10 +391,9 @@ const SystemStats: React.FC = () => {
         {connected && stats && (
           <Stack spacing={2}>
             <Stack direction="row" spacing={1}>
-              <Chip
+              <CustomButton
                 size="small"
-                variant="filled"
-                label="Bars"
+                variant="outlined"
                 onClick={() => setViewMode('bars')}
                 sx={{
                   cursor: 'pointer',
@@ -390,11 +401,12 @@ const SystemStats: React.FC = () => {
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'bars' ? 1 : 0.5
                 }}
-              />
-              <Chip
+              >
+                Bars
+              </CustomButton>
+              <CustomButton
                 size="small"
-                variant="filled"
-                label="Chart"
+                variant="outlined"
                 onClick={() => setViewMode('chart')}
                 sx={{
                   cursor: 'pointer',
@@ -402,11 +414,13 @@ const SystemStats: React.FC = () => {
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'chart' ? 1 : 0.5
                 }}
-              />
-              <Chip
+              >
+                Chart
+              </CustomButton>
+
+              <CustomButton
                 size="small"
-                variant="filled"
-                label="Process"
+                variant="outlined"
                 onClick={() => setViewMode('process')}
                 sx={{
                   cursor: 'pointer',
@@ -414,11 +428,12 @@ const SystemStats: React.FC = () => {
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'process' ? 1 : 0.5
                 }}
-              />
-              <Chip
+              >
+                Process
+              </CustomButton>
+              <CustomButton
                 size="small"
-                variant="filled"
-                label="List"
+                variant="outlined"
                 onClick={() => {
                   setViewMode('list');
                   requestProcessList();
@@ -429,7 +444,9 @@ const SystemStats: React.FC = () => {
                   '& .MuiChip-label': { color: '#fff' },
                   opacity: viewMode === 'list' ? 1 : 0.5
                 }}
-              />
+              >
+                List
+              </CustomButton>
             </Stack>
 
             {/* Use standard MUI components */}
@@ -746,24 +763,52 @@ const SystemStats: React.FC = () => {
                   {filteredProcesses.map((name) => (
                     <div
                       key={name}
+                      /* Needed to exclude from Draggable on touch screens */
+                      className="process-row"
                       onClick={() => {
                         setSelectedProcess(name);
                         setProcName(name);
                       }}
-                      onDoubleClick={() => {
-                        setSelectedProcess(name);
-                        setProcName(name);
-                        setViewMode('process');
-                        sendMonitorRequest();
-                      }}
                       style={{
                         cursor: 'pointer',
                         padding: '2px 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         backgroundColor:
                           selectedProcess === name ? '#333' : 'transparent'
                       }}
                     >
-                      {name}
+                      <span>{name}</span>
+                      {selectedProcess === name && (
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <CustomStyledIconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(name);
+                            }}
+                            sx={{
+                              minWidth: 0,
+                              padding: '2px',
+                              marginRight: '4px'
+                            }}
+                          >
+                            <ContentCopyIcon fontSize="small" />
+                          </CustomStyledIconButton>
+                          <CustomButton
+                            size="small"
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewMode('process');
+                              sendMonitorRequest();
+                            }}
+                          >
+                            Monitor
+                          </CustomButton>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </Box>
