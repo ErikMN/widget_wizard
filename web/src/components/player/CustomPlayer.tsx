@@ -383,7 +383,12 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         )}
         {/* Draggable system stats overlay */}
         {backendAvailable !== undefined && showSystemStatsOverlay && (
-          <Draggable bounds="parent" nodeRef={systemStatsRef}>
+          <Draggable
+            bounds="parent"
+            nodeRef={systemStatsRef}
+            /* NOTE: We need this for the inputs to work on touch screens: */
+            cancel="input, textarea, select, button, .process-row"
+          >
             <div
               ref={systemStatsRef}
               style={{
