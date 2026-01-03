@@ -52,7 +52,7 @@ RUN git clone https://github.com/warmcat/libwebsockets.git --branch=${LWS_VER} $
 # Create build directory:
 RUN mkdir -p ${LWS_BUILD_DIR}
 
-# Configure and build libwebsockets:
+# Configure and build libwebsockets statically:
 WORKDIR ${LWS_BUILD_DIR}
 RUN . /opt/axis/acapsdk/environment-setup* && \
   cmake \
@@ -66,16 +66,16 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
   -D LWS_WITH_SSL=OFF \
   -D LWS_WITH_CRYPTO=OFF \
   -D LWS_WITH_ZLIB=OFF \
-  -D LWS_WITH_STATIC=OFF \
-  -D LWS_WITH_SHARED=ON \
+  -D LWS_WITH_STATIC=ON \
+  -D LWS_WITH_SHARED=OFF \
   -D LWS_WITHOUT_TESTAPPS=ON \
   -D LWS_HAVE_LIBCAP=OFF \
   ${LWS_SRC_DIR} && \
   make -j$(nproc) install
 
-# Copy libwebsockets libs to /opt/app in order to easily get them to host for packaging in ACAP:
+# Copy static libwebsockets archive for linking:
 RUN mkdir -p /opt/app/libwebsockets
-RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.so* /opt/app/libwebsockets
+RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.a /opt/app/libwebsockets
 
 ################################################################################
 
