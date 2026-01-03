@@ -348,9 +348,10 @@ const SystemStats: React.FC = () => {
   const memUsedKb = stats ? stats.mem_total_kb - stats.mem_available_kb : 0;
   const memUsedPercent = stats ? (memUsedKb / stats.mem_total_kb) * 100 : 0;
 
-  const filteredProcesses = processList.filter((name) =>
-    name.toLowerCase().includes(processFilter.toLowerCase())
-  );
+  /* Filter and sort the process list alphabetically */
+  const filteredProcesses = processList
+    .filter((name) => name.toLowerCase().includes(processFilter.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b));
 
   return (
     <Box
