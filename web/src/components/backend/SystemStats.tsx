@@ -334,14 +334,35 @@ const SystemStats: React.FC = () => {
     setProcessFilter('');
   };
 
+  /* Clipboard support (HTTP-safe fallback) */
+  const canCopyToClipboard =
+    typeof document !== 'undefined' &&
+    typeof document.execCommand === 'function' &&
+    (typeof document.queryCommandSupported !== 'function' ||
+      document.queryCommandSupported('copy'));
+
   /* Copy to clipboard helper */
   const copyToClipboard = (text: string) => {
-    if (!navigator.clipboard) {
+    if (!canCopyToClipboard) {
       return;
     }
-    navigator.clipboard.writeText(text).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed'; /* avoid scroll jump */
+    textarea.style.opacity = '0';
+    textarea.style.left = '0';
+    textarea.style.top = '0';
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      document.execCommand('copy');
+    } catch {
       /* Just ignore any clipboard errors */
-    });
+    }
+    document.body.removeChild(textarea);
   };
 
   const cpuPercent = stats ? stats.cpu : 0;
@@ -810,20 +831,22 @@ const SystemStats: React.FC = () => {
                       <span>{name}</span>
                       {selectedProcess === name && (
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <CustomStyledIconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(name);
-                            }}
-                            sx={{
-                              minWidth: 0,
-                              padding: '2px',
-                              marginRight: '4px'
-                            }}
-                          >
-                            <ContentCopyIcon fontSize="small" />
-                          </CustomStyledIconButton>
+                          {canCopyToClipboard && (
+                            <CustomStyledIconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(name);
+                              }}
+                              sx={{
+                                minWidth: 0,
+                                padding: '2px',
+                                marginRight: '4px'
+                              }}
+                            >
+                              <ContentCopyIcon fontSize="small" />
+                            </CustomStyledIconButton>
+                          )}
                           <CustomButton
                             size="small"
                             variant="outlined"
