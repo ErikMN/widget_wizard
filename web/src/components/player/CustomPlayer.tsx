@@ -387,7 +387,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             bounds="parent"
             nodeRef={systemStatsRef}
             /* NOTE: We need this for the inputs to work on touch screens: */
-            cancel="input, textarea, select, button, .process-row"
+            cancel="input, textarea, select, button, .process-row, .MuiChip-root"
           >
             <div
               ref={systemStatsRef}
