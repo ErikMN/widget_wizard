@@ -68,6 +68,7 @@
  * - Processes with spaces or parentheses in comm may not be parsed correctly.
  */
 #include <dirent.h>
+#include <getopt.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -146,12 +147,12 @@
  */
 #define MAX_LIST_JSON_LENGTH 8192
 
-/* TCP port the WebSocket server listens on.
+/* Default TCP port the WebSocket server listens on.
  *
  * Chosen as a fixed, non-privileged port for local / embedded use.
  * Must match the client connection URL (ws://<ip>:9000).
  */
-#define WS_PORT 9000
+#define WS_PORT_DEFAULT 9000
 
 /* Maximum number of concurrent WebSocket clients.
  *
@@ -1251,21 +1252,37 @@ on_unix_signal(gpointer user_data)
 int
 main(int argc, char **argv)
 {
-  (void)argc;
-  (void)argv;
   AXParameter *parameter = NULL;
   GError *error = NULL;
   int ret = 0;
   struct lws_context_creation_info info;
+  int ws_port = WS_PORT_DEFAULT;
+
+  /* Open the syslog to report messages for the app */
+  openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
+
+  /* Parse input options */
+  int opt;
+  while ((opt = getopt(argc, argv, "p:")) != -1) {
+    switch (opt) {
+    case 'p':
+      ws_port = atoi(optarg);
+      if (ws_port <= 0 || ws_port > 65535) {
+        syslog(LOG_ERR, "Invalid port: %s", optarg);
+        return EXIT_FAILURE;
+      }
+      break;
+    default:
+      syslog(LOG_ERR, "Usage: %s [-p port]", argv[0]);
+      return EXIT_FAILURE;
+    }
+  }
 
   main_loop = g_main_loop_new(NULL, FALSE);
 
   /* Handle Unix signals for graceful termination */
   g_unix_signal_add(SIGINT, on_unix_signal, main_loop);
   g_unix_signal_add(SIGTERM, on_unix_signal, main_loop);
-
-  /* Open the syslog to report messages for the app */
-  openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
 
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "%s starting WebSocket backend.", APP_NAME);
@@ -1289,7 +1306,7 @@ main(int argc, char **argv)
 
   /* Create WebSocket context */
   memset(&info, 0, sizeof(info));
-  info.port = WS_PORT;
+  info.port = ws_port;
   info.protocols = protocols;
   info.gid = -1;
   info.uid = -1;
@@ -1330,7 +1347,7 @@ main(int argc, char **argv)
    */
   lws_service_timer_id = g_timeout_add(10, lws_glib_service, lws_ctx);
 
-  syslog(LOG_INFO, "WebSocket server listening on port %d", WS_PORT);
+  syslog(LOG_INFO, "WebSocket server listening on port %d", ws_port);
 
   /* Start the main loop */
   g_main_loop_run(main_loop);
