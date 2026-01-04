@@ -12,6 +12,7 @@
  * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
  * - Each WebSocket client can optionally request per-process monitoring by process name.
  * - Each WebSocket client can request a one-shot list of running process names.
+ * - Each WebSocket client can request one-shot filesystem storage information.
  *
  * Data flow:
  *   /proc -> stats_timer_cb() -> latest_stats
@@ -41,6 +42,13 @@
  * - The list is intended for UI discovery and filtering, not as a full
  *   system process inventory.
  * - The response is size-bounded and may be truncated if limits are reached.
+ *
+ * One-shot storage information:
+ * - The client can request filesystem usage statistics:
+ *     { "storage": true }
+ * - The server probes a fixed allowlist of mount points using statvfs().
+ * - Reported values include total, used, and available space in kilobytes.
+ * - Storage information is returned only on explicit request and is not streamed.
  *
  * Returned JSON message format example:
  * {
@@ -73,6 +81,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/statvfs.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
@@ -147,6 +156,18 @@
  */
 #define MAX_LIST_JSON_LENGTH 8192
 
+/* Maximum number of storage mount points reported in a single one-shot response.
+ *
+ * This bounds:
+ * - The number of paths probed with statvfs()
+ * - JSON construction time
+ * - Worst-case response size
+ *
+ * The value is intentionally small and fixed because storage reporting
+ * is intended for UI inspection, not exhaustive filesystem enumeration.
+ */
+#define MAX_STORAGE_MOUNTS 8
+
 /* Default TCP port the WebSocket server listens on.
  *
  * Chosen as a fixed, non-privileged port for local / embedded use.
@@ -184,6 +205,8 @@ _Static_assert(MAX_PROC_NAME_SCAN_WIDTH == MAX_PROC_NAME_LENGTH - 1,
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+/******************************************************************************/
+
 /* Global variables */
 static GMainLoop *main_loop = NULL;
 static struct lws_context *lws_ctx = NULL;
@@ -210,6 +233,8 @@ static unsigned int ws_connected_client_count = 0;
 
 /* Function declarations */
 static gboolean stats_timer_cb(gpointer user_data);
+
+/******************************************************************************/
 
 /* Per-connected WebSocket client (per-session) storage.
  * libwebsockets gives us one instance of this struct for each connection and
@@ -261,6 +286,95 @@ struct sys_stats {
  * exclusively via lws_service() in this loop.
  */
 static struct sys_stats latest_stats;
+struct storage_info {
+  char path[MAX_PROC_PATH_LENGTH];
+  unsigned long long total_kb;
+  unsigned long long used_kb;
+  unsigned long long available_kb;
+};
+
+/******************************************************************************/
+
+// clang-format off
+/* List of filesystem mount points for one-shot storage reporting */
+static const char *storage_paths[] = {
+  "/",
+  "/mnt/flash",
+  "/usr/lib/persistent",
+  "/var/lib",
+  "/var/cache"
+};
+// clang-format on
+
+/* Read filesystem storage usage for a single path using statvfs().
+ *
+ * - The path should point to a mount point (or any directory within it).
+ * - Values are reported from the perspective of an unprivileged user:
+ *     available_kb uses f_bavail (excludes root-reserved blocks).
+ * - used_kb is computed from total - free (free uses f_bfree, includes reserved blocks),
+ *   matching df(1) "Used" semantics.
+ *
+ * Returns true on success, false on statvfs() failure or invalid arguments.
+ */
+static bool
+read_storage_for_path(const char *path, struct storage_info *out)
+{
+  struct statvfs vfs;
+
+  if (!path || !out) {
+    return false;
+  }
+
+  if (statvfs(path, &vfs) != 0) {
+    return false;
+  }
+
+  /* f_frsize is the fragment size (preferred over f_bsize) */
+  unsigned long long block_size = vfs.f_frsize;
+
+  unsigned long long total = vfs.f_blocks * block_size;
+  unsigned long long free = vfs.f_bfree * block_size;
+  unsigned long long avail = vfs.f_bavail * block_size;
+
+  out->total_kb = total / 1024ULL;
+  out->available_kb = avail / 1024ULL;
+  out->used_kb = (total - free) / 1024ULL;
+
+  strncpy(out->path, path, sizeof(out->path) - 1);
+  out->path[sizeof(out->path) - 1] = '\0';
+
+  return true;
+}
+
+/* Collect one-shot storage information for a bounded set of mount points.
+ *
+ * - Iterates the static storage_paths allowlist and probes each path with statvfs().
+ * - Paths that do not exist or cannot be queried are skipped.
+ * - Collection stops when max_entries have been written to the output array.
+ *
+ * Returns:
+ * - Number of storage_info entries written to out.
+ */
+static size_t
+collect_storage_info(struct storage_info *out, size_t max_entries)
+{
+  size_t count = 0;
+
+  for (size_t i = 0; i < G_N_ELEMENTS(storage_paths); i++) {
+    if (count >= max_entries) {
+      break;
+    }
+    struct storage_info info;
+    if (!read_storage_for_path(storage_paths[i], &info)) {
+      continue;
+    }
+    out[count++] = info;
+  }
+
+  return count;
+}
+
+/******************************************************************************/
 
 /* Collect a unique list of running process names from /proc.
  *
@@ -370,6 +484,8 @@ collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
 
   return count;
 }
+
+/******************************************************************************/
 
 /* Read CPU and memory usage for a named process.
  *
@@ -567,6 +683,8 @@ read_process_stats(const char *proc_name,
   return true;
 }
 
+/******************************************************************************/
+
 /* Return time in milliseconds for the given clock.
  *
  * Supported clocks:
@@ -594,6 +712,8 @@ get_time_ms(clockid_t clk_id)
   /* Convert seconds + nanoseconds to milliseconds */
   return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
 }
+
+/******************************************************************************/
 
 /* Read MemTotal and MemAvailable from /proc/meminfo
  * and return them in stats structure.
@@ -644,6 +764,8 @@ read_mem_stats(struct sys_stats *stats)
 
   fclose(f);
 }
+
+/******************************************************************************/
 
 /* Read aggregate CPU time counters from /proc/stat and compute CPU usage.
  *
@@ -754,6 +876,8 @@ read_cpu_stats(struct sys_stats *stats)
   prev_total = total_time;
 }
 
+/******************************************************************************/
+
 /* Read system uptime and load averages.
  *
  * Data sources:
@@ -810,6 +934,8 @@ read_uptime_load(struct sys_stats *stats)
   }
 }
 
+/******************************************************************************/
+
 /*
  * Statistics sampling timer:
  *
@@ -837,6 +963,8 @@ stop_stats_timer(void)
     stats_timer_id = 0;
   }
 }
+
+/******************************************************************************/
 
 /* WebSocket protocol callback
  *
@@ -944,6 +1072,57 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         json_len += ret;
       }
 
+      /* Ensure space for closing ']' and '}' characters plus NUL terminator.
+       * We append exactly two bytes (']' and '}') after this check.
+       */
+      if ((size_t)json_len + 2 >= sizeof(json)) {
+        break;
+      }
+      /* Close the JSON array and object and NUL-terminate the string */
+      json[json_len++] = ']';
+      json[json_len++] = '}';
+      json[json_len] = '\0';
+
+      /* Write the output */
+      memcpy(&pss->list_buf[LWS_PRE], json, (size_t)json_len);
+      int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
+      if (written < 0) {
+        syslog(LOG_WARNING, "lws_write failed");
+        break;
+      }
+      break;
+    }
+
+    /* One-shot storage info request: { "storage": true } */
+    if (strstr(msg, "\"storage\"")) {
+      struct storage_info storage[MAX_STORAGE_MOUNTS];
+      size_t storage_count = collect_storage_info(storage, MAX_STORAGE_MOUNTS);
+
+      /* NOTE: large stack array here: */
+      char json[MAX_LIST_JSON_LENGTH];
+      /* Initialize JSON output with the storage list array header */
+      int json_len = snprintf(json, sizeof(json), "{ \"storage\": [");
+
+      /* Abort if initial JSON header formatting failed or overflowed the output buffer */
+      if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+        break;
+      }
+      /* Append each collected storage point to the JSON array */
+      for (size_t i = 0; i < storage_count; i++) {
+        int ret = snprintf(json + json_len,
+                           sizeof(json) - json_len,
+                           "%s{ \"path\": \"%s\", \"total_kb\": %llu, \"used_kb\": %llu, \"available_kb\": %llu }",
+                           (i > 0) ? "," : "",
+                           storage[i].path,
+                           storage[i].total_kb,
+                           storage[i].used_kb,
+                           storage[i].available_kb);
+        /* JSON buffer full: send partial process list */
+        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+          break;
+        }
+        json_len += ret;
+      }
       /* Ensure space for closing ']' and '}' characters plus NUL terminator.
        * We append exactly two bytes (']' and '}') after this check.
        */
@@ -1156,6 +1335,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   return 0;
 }
 
+/******************************************************************************/
+
 static const struct lws_protocols protocols[] = { {
                                                       .name = "sysstats",
                                                       .callback = ws_callback,
@@ -1248,6 +1429,8 @@ on_unix_signal(gpointer user_data)
 
   return G_SOURCE_REMOVE;
 }
+
+/******************************************************************************/
 
 int
 main(int argc, char **argv)
