@@ -21,6 +21,7 @@ import {
   VideoProperties,
   VapixParameters
 } from 'media-stream-player';
+import { useAppContext } from '../AppContext';
 import { useParameters } from '../ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
@@ -111,6 +112,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [waiting, setWaiting] = useState(autoPlay);
     const [volume, setVolume] = useState<number>();
     const [expanded, setExpanded] = useState(true);
+
+    /* Global app context */
+    const { appSettings } = useAppContext();
 
     /* Global parameter list */
     const { parameters: globalParameters } = useParameters();
@@ -382,30 +386,31 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           </div>
         )}
         {/* Draggable system stats overlay */}
-        {backendAvailable !== undefined && showSystemStatsOverlay && (
-          <Draggable
-            bounds="parent"
-            nodeRef={systemStatsRef}
-            /* NOTE: We need this for the inputs to work on touch screens: */
-            cancel="input, textarea, select, button, .process-row, .MuiChip-root"
-          >
-            <div
-              ref={systemStatsRef}
-              style={{
-                position: 'absolute',
-                bottom: '60px',
-                left: '20px',
-                zIndex: 10,
-                background: 'rgba(0, 0, 0, 0.4)',
-                padding: '8px',
-                borderRadius: '4px',
-                cursor: 'move'
-              }}
+        {(appSettings.debug || backendAvailable !== undefined) &&
+          showSystemStatsOverlay && (
+            <Draggable
+              bounds="parent"
+              nodeRef={systemStatsRef}
+              /* NOTE: We need this for the inputs to work on touch screens: */
+              cancel="input, textarea, select, button, .process-row, .MuiChip-root"
             >
-              <SystemStats />
-            </div>
-          </Draggable>
-        )}
+              <div
+                ref={systemStatsRef}
+                style={{
+                  position: 'absolute',
+                  bottom: '60px',
+                  left: '20px',
+                  zIndex: 10,
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  cursor: 'move'
+                }}
+              >
+                <SystemStats />
+              </div>
+            </Draggable>
+          )}
         <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>

@@ -48,7 +48,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const theme = useTheme();
 
   /* Global state */
-  const { setCurrentChannel } = useAppContext();
+  const { appSettings, setCurrentChannel } = useAppContext();
 
   /* Local state */
   const [fpsValue, setFpsValue] = React.useState<string>(
@@ -373,7 +373,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         onChange={changeStatsOverlay}
         sx={{ justifySelf: 'flex-end', marginRight: '-4px' }}
       />
-      {backendAvailable !== undefined && (
+      {(appSettings.debug || backendAvailable !== undefined) && (
         <>
           <div>System monitor</div>
           <CustomSwitch
