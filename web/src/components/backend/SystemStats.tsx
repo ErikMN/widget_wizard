@@ -27,6 +27,7 @@ const WS_ADDRESS =
 
 interface StorageInfo {
   path: string;
+  fs: string;
   total_kb: number;
   used_kb: number;
   available_kb: number;
@@ -921,7 +922,7 @@ const SystemStats: React.FC = () => {
 
                   return (
                     <Box
-                      key={fs.path}
+                      key={`${fs.path}:${fs.fs}`}
                       sx={{
                         border: '1px solid #333',
                         padding: '8px',
@@ -933,6 +934,10 @@ const SystemStats: React.FC = () => {
                         sx={{ marginBottom: '4px' }}
                       >
                         {fs.path}
+                      </Typography>
+
+                      <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                        Filesystem: {fs.fs}
                       </Typography>
 
                       <LinearProgress
