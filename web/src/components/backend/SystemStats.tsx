@@ -25,6 +25,13 @@ const WS_ADDRESS =
     ? `ws://${import.meta.env.VITE_TARGET_IP}:${WS_PORT}`
     : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:${WS_PORT}`;
 
+interface StorageInfo {
+  path: string;
+  total_kb: number;
+  used_kb: number;
+  available_kb: number;
+}
+
 interface ProcHistoryPoint {
   ts: number;
   cpu: number;
@@ -96,7 +103,7 @@ const SystemStats: React.FC = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<
-    'bars' | 'chart' | 'process' | 'list'
+    'bars' | 'chart' | 'process' | 'list' | 'storage'
   >('bars');
 
   const [history, setHistory] = useState<HistoryPoint[]>([]);
@@ -107,6 +114,8 @@ const SystemStats: React.FC = () => {
   const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
+
+  const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -137,6 +146,14 @@ const SystemStats: React.FC = () => {
       return;
     }
     wsRef.current.send(JSON.stringify({ list_processes: true }));
+  };
+
+  /* Request one-shot storage information */
+  const requestStorageInfo = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ storage: true }));
   };
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
@@ -187,8 +204,14 @@ const SystemStats: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
 
+        /* One-shot process list */
         if (Array.isArray(data.processes)) {
           setProcessList(data.processes);
+          return;
+        }
+        /* One-shot storage list */
+        if (Array.isArray(data.storage)) {
+          setStorageInfo(data.storage);
           return;
         }
 
@@ -473,6 +496,22 @@ const SystemStats: React.FC = () => {
                 }}
               >
                 List
+              </CustomButton>
+
+              <CustomButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setViewMode('storage');
+                  requestStorageInfo();
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  opacity: viewMode === 'storage' ? 1 : 0.5
+                }}
+              >
+                Storage
               </CustomButton>
             </Stack>
 
@@ -863,6 +902,53 @@ const SystemStats: React.FC = () => {
                     </div>
                   ))}
                 </Box>
+              </Stack>
+            )}
+
+            {viewMode === 'storage' && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">Filesystem storage</Typography>
+
+                {storageInfo.length === 0 && (
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                    No storage data received yet
+                  </Typography>
+                )}
+
+                {storageInfo.map((fs) => {
+                  const usedPercent =
+                    fs.total_kb > 0 ? (fs.used_kb / fs.total_kb) * 100 : 0;
+
+                  return (
+                    <Box
+                      key={fs.path}
+                      sx={{
+                        border: '1px solid #333',
+                        padding: '8px',
+                        backgroundColor: '#111'
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ marginBottom: '4px' }}
+                      >
+                        {fs.path}
+                      </Typography>
+
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(usedPercent, 100)}
+                        sx={{ height: 12, marginBottom: '4px' }}
+                      />
+
+                      <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                        Used {(fs.used_kb / 1024).toFixed(0)} MB /{' '}
+                        {(fs.total_kb / 1024).toFixed(0)} MB (
+                        {usedPercent.toFixed(1)}%)
+                      </Typography>
+                    </Box>
+                  );
+                })}
               </Stack>
             )}
           </Stack>
