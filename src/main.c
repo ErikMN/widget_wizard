@@ -46,8 +46,11 @@
  * One-shot storage information:
  * - The client can request filesystem usage statistics:
  *     { "storage": true }
- * - The server probes a fixed allowlist of mount points using statvfs().
+ * - The server probes a fixed allowlist of paths using statvfs().
  * - Reported values include total, used, and available space in kilobytes.
+ * - Filesystem type is resolved from /proc/self/mounts and reflects the
+ *   mounted filesystem visible at that path (df-style view, e.g. "overlay",
+ *   "tmpfs", "ext4"), not necessarily the underlying backing store.
  * - Storage information is returned only on explicit request and is not streamed.
  *
  * Returned JSON message format example:
@@ -288,6 +291,7 @@ struct sys_stats {
 static struct sys_stats latest_stats;
 struct storage_info {
   char path[MAX_PROC_PATH_LENGTH];
+  char fs_type[32]; /* Filesystem type (e.g. ext4, tmpfs) */
   unsigned long long total_kb;
   unsigned long long used_kb;
   unsigned long long available_kb;
@@ -305,6 +309,46 @@ static const char *storage_paths[] = {
   "/var/cache"
 };
 // clang-format on
+
+/* Resolve filesystem type for a given path using /proc/self/mounts.
+ *
+ * - Finds the mounted filesystem visible at this path (df-style view).
+ * - Chooses the longest matching mount point prefix.
+ * - For overlay/union filesystems, this returns the mount type
+ *   (e.g. "overlay"), not the backing filesystem.
+ *
+ * Returns true on success, false if no matching mount is found.
+ */
+static bool
+get_fs_type_for_path(const char *path, char *fs_type, size_t fs_type_len)
+{
+  /* Open the current process mount table, fail gracefully if unavailable */
+  FILE *f = fopen("/proc/self/mounts", "r");
+  if (!f) {
+    return false;
+  }
+  char mount_dev[128];
+  char mount_point[MAX_PROC_PATH_LENGTH];
+  char type[32];
+  size_t best_len = 0;
+  bool found = false;
+
+  /* Parse one /proc/self/mounts entry: device, mount point, filesystem type */
+  while (fscanf(f, "%127s %255s %31s %*s %*d %*d\n", mount_dev, mount_point, type) == 3) {
+    size_t len = strlen(mount_point);
+    /* Select the longest mount point that is a proper prefix of the path */
+    if (len > best_len && strncmp(path, mount_point, len) == 0 && (path[len] == '/' || path[len] == '\0')) {
+      /* Record the best (longest) matching filesystem type */
+      strncpy(fs_type, type, fs_type_len - 1);
+      fs_type[fs_type_len - 1] = '\0';
+      best_len = len;
+      found = true;
+    }
+  }
+  fclose(f);
+
+  return found;
+}
 
 /* Read filesystem storage usage for a single path using statvfs().
  *
@@ -342,6 +386,12 @@ read_storage_for_path(const char *path, struct storage_info *out)
 
   strncpy(out->path, path, sizeof(out->path) - 1);
   out->path[sizeof(out->path) - 1] = '\0';
+
+  /* Resolve filesystem type (best-effort) */
+  if (!get_fs_type_for_path(path, out->fs_type, sizeof(out->fs_type))) {
+    strncpy(out->fs_type, "unknown", sizeof(out->fs_type) - 1);
+    out->fs_type[sizeof(out->fs_type) - 1] = '\0';
+  }
 
   return true;
 }
@@ -1109,14 +1159,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       }
       /* Append each collected storage point to the JSON array */
       for (size_t i = 0; i < storage_count; i++) {
-        int ret = snprintf(json + json_len,
-                           sizeof(json) - json_len,
-                           "%s{ \"path\": \"%s\", \"total_kb\": %llu, \"used_kb\": %llu, \"available_kb\": %llu }",
-                           (i > 0) ? "," : "",
-                           storage[i].path,
-                           storage[i].total_kb,
-                           storage[i].used_kb,
-                           storage[i].available_kb);
+        int ret = snprintf(
+            json + json_len,
+            sizeof(json) - json_len,
+            "%s{ \"path\": \"%s\", \"fs\": \"%s\", \"total_kb\": %llu, \"used_kb\": %llu, \"available_kb\": %llu }",
+            (i > 0) ? "," : "",
+            storage[i].path,
+            storage[i].fs_type,
+            storage[i].total_kb,
+            storage[i].used_kb,
+            storage[i].available_kb);
         /* JSON buffer full: send partial process list */
         if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
           break;
