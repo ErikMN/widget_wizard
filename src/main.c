@@ -75,7 +75,6 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
- * - Incoming JSON is parsed using simple string matching and assumes well-formed input.
  * - Processes with spaces or parentheses in comm may not be parsed correctly.
  */
 #include <dirent.h>
@@ -89,6 +88,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <jansson.h>
 #include <libwebsockets.h>
 #include <glib/gstdio.h>
 #include <glib-unix.h>
@@ -1089,6 +1089,21 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     memcpy(msg, in, len);
     msg[len] = '\0';
 
+    /* Parse JSON using libjansson */
+    json_error_t json_error;
+    json_t *root = json_loads(msg, 0, &json_error);
+    if (!root || !json_is_object(root)) {
+      syslog(LOG_WARNING,
+             "Invalid JSON received: %s (line %d, column %d)",
+             json_error.text,
+             json_error.line,
+             json_error.column);
+      if (root) {
+        json_decref(root);
+      }
+      break;
+    }
+
     /* One-shot process list request: { "list_processes": true }
      *
      * NOTE:
@@ -1097,7 +1112,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
      * which is acceptable as it is user-initiated and not performed
      * automatically or in the background.
      */
-    if (strstr(msg, "\"list_processes\"")) {
+    json_t *list_processes = json_object_get(root, "list_processes");
+    if (json_is_true(list_processes)) {
       /* Buffer for a deduplicated snapshot of process names read from /proc/<pid>/comm */
       char proc_names[MAX_PROCESS_COUNT][MAX_PROC_NAME_LENGTH];
       size_t proc_count = collect_process_list(proc_names, MAX_PROCESS_COUNT);
@@ -1109,6 +1125,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
       /* Abort if initial JSON header formatting failed or overflowed the output buffer */
       if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+        json_decref(root);
         break;
       }
       /* Append each collected process name to the JSON array */
@@ -1126,6 +1143,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
        * We append exactly two bytes (']' and '}') after this check.
        */
       if ((size_t)json_len + 2 >= sizeof(json)) {
+        json_decref(root);
         break;
       }
       /* Close the JSON array and object and NUL-terminate the string */
@@ -1138,13 +1156,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
       if (written < 0) {
         syslog(LOG_WARNING, "lws_write failed");
+        json_decref(root);
         break;
       }
+      json_decref(root);
       break;
     }
 
     /* One-shot storage info request: { "storage": true } */
-    if (strstr(msg, "\"storage\"")) {
+    json_t *storage_req = json_object_get(root, "storage");
+    if (json_is_true(storage_req)) {
       struct storage_info storage[MAX_STORAGE_MOUNTS];
       size_t storage_count = collect_storage_info(storage, MAX_STORAGE_MOUNTS);
 
@@ -1155,6 +1176,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
       /* Abort if initial JSON header formatting failed or overflowed the output buffer */
       if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+        json_decref(root);
         break;
       }
       /* Append each collected storage point to the JSON array */
@@ -1179,6 +1201,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
        * We append exactly two bytes (']' and '}') after this check.
        */
       if ((size_t)json_len + 2 >= sizeof(json)) {
+        json_decref(root);
         break;
       }
       /* Close the JSON array and object and NUL-terminate the string */
@@ -1191,39 +1214,35 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
       if (written < 0) {
         syslog(LOG_WARNING, "lws_write failed");
+        json_decref(root);
         break;
       }
+      json_decref(root);
       break;
     }
 
     /* Expect JSON: { "monitor": "process_name" } */
-    const char *key = "\"monitor\"";
-    char *pos = strstr(msg, key);
-    if (!pos) {
+    json_t *monitor = json_object_get(root, "monitor");
+    if (!monitor) {
+      json_decref(root);
       break;
     }
 
-    char proc_name[MAX_PROC_NAME_LENGTH] = { 0 };
-
-    /* IMPORTANT NOTE:
-     * Incoming JSON is parsed using simple string matching.
-     * This assumes well-formed input from trusted clients.
-     */
-
     /* Explicit stop-monitoring command: { "monitor": "" } */
-    if (strstr(pos, "\"monitor\":\"\"")) {
+    if (json_is_string(monitor) && json_string_value(monitor)[0] == '\0') {
       pss->proc_enabled = false;
       pss->proc_name[0] = '\0';
       pss->prev_proc_utime = 0;
       pss->prev_proc_stime = 0;
       pss->prev_proc_sample_mono_ms = 0;
       syslog(LOG_INFO, "Client stopped process monitoring");
+      json_decref(root);
       break;
     }
 
     /* Normal start-monitoring command */
-    if (sscanf(pos, "\"monitor\"%*[^\"\n]\"%" STR(MAX_PROC_NAME_SCAN_WIDTH) "[^\"]\"", proc_name) == 1) {
-      strncpy(pss->proc_name, proc_name, sizeof(pss->proc_name) - 1);
+    if (json_is_string(monitor)) {
+      strncpy(pss->proc_name, json_string_value(monitor), sizeof(pss->proc_name) - 1);
       pss->proc_name[sizeof(pss->proc_name) - 1] = '\0';
       pss->proc_enabled = true;
       pss->prev_proc_utime = 0;
@@ -1231,7 +1250,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       pss->prev_proc_sample_mono_ms = 0;
       syslog(LOG_INFO, "Client monitoring process: %s", pss->proc_name);
     }
-
+    json_decref(root);
     break;
   }
 
