@@ -75,11 +75,13 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
- * - Processes with spaces or parentheses in comm may not be parsed correctly.
+ * - Process matching is based on /proc/<pid>/comm and may not uniquely identify a process.
  */
 #include <dirent.h>
+#include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -258,6 +260,9 @@ struct per_session_data {
   /* Process monitoring */
   char proc_name[MAX_PROC_NAME_LENGTH];
   bool proc_enabled;
+
+  /* Cached PID of monitored process, -1 if unresolved */
+  pid_t proc_pid;
 
   /* Per-process CPU baseline */
   unsigned long long prev_proc_utime;
@@ -544,7 +549,7 @@ collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
  * - Memory usage is reported as VmRSS in kB.
  *
  * NOTE: Limitations:
- * - Processes with spaces or parentheses in comm may not be parsed correctly
+ * - Process matching is based on /proc/<pid>/comm and may not uniquely identify a process.
  *
  * Returns true on success, false if the process was not found or data
  * could not be read. On failure, outputs are set to 0.
@@ -556,9 +561,7 @@ read_process_stats(const char *proc_name,
                    double *cpu_out,
                    long *rss_kb_out)
 {
-  DIR *proc_dir;
-  struct dirent *ent;
-  pid_t pid = -1;
+  pid_t pid;
   char path[MAX_PROC_PATH_LENGTH];
   char buf[MAX_PROC_LINE_LENGTH];
 
@@ -575,45 +578,72 @@ read_process_stats(const char *proc_name,
   *cpu_out = 0.0;
   *rss_kb_out = 0;
 
-  /* Find PID by scanning /proc */
-  proc_dir = opendir("/proc");
-  if (!proc_dir) {
-    return false;
-  }
+  /* NOTE:
+   * PID is cached for performance.
+   * PID reuse is handled by detecting counter resets and read failures.
+   * At worst, one sampling interval may report incorrect CPU before
+   * baselines are re-established.
+   */
+  pid = pss->proc_pid;
 
-  while ((ent = readdir(proc_dir)) != NULL) {
-    /* /proc entries for processes are numeric */
-    if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
-      continue;
-    }
-
-    char *endptr = NULL;
-    long val = strtol(ent->d_name, &endptr, 10);
-    if (*ent->d_name == '\0' || *endptr != '\0' || val <= 0) {
-      continue;
-    }
-
-    snprintf(path, sizeof(path), "/proc/%ld/comm", val);
-    FILE *f = fopen(path, "r");
-    if (!f) {
-      continue;
-    }
-
-    if (fgets(buf, sizeof(buf), f)) {
-      /* Strip trailing newline */
-      buf[strcspn(buf, "\n")] = '\0';
-      if (strcmp(buf, proc_name) == 0) {
-        pid = (pid_t)val;
-        fclose(f);
-        break;
-      }
-    }
-    fclose(f);
-  }
-  closedir(proc_dir);
-
+  /* Resolve PID once */
   if (pid <= 0) {
-    /* Process not found */
+    /* Scan /proc to find the first PID whose /proc/<pid>/comm matches proc_name */
+    DIR *proc_dir = opendir("/proc");
+    struct dirent *ent;
+
+    if (!proc_dir) {
+      return false;
+    }
+
+    while ((ent = readdir(proc_dir)) != NULL) {
+      /* Only consider numeric /proc entries (PIDs); accept DT_UNKNOWN on some filesystems */
+      if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
+        continue;
+      }
+      /* Parse PID from directory name, skip non-numeric entries */
+      char *endptr = NULL;
+      long val = strtol(ent->d_name, &endptr, 10);
+      if (*ent->d_name == '\0' || *endptr != '\0' || val <= 0) {
+        continue;
+      }
+      /* Compare the short process name from /proc/<pid>/comm */
+      snprintf(path, sizeof(path), "/proc/%ld/comm", val);
+      FILE *f = fopen(path, "r");
+      if (!f) {
+        /* Process may have exited or permission denied: skip */
+        continue;
+      }
+      if (fgets(buf, sizeof(buf), f)) {
+        /* Strip newline so we can strcmp() the name */
+        buf[strcspn(buf, "\n")] = '\0';
+        if (strcmp(buf, proc_name) == 0) {
+          /* Cache the first matching PID for subsequent samples */
+          pid = (pid_t)val;
+          fclose(f);
+          break;
+        }
+      }
+      fclose(f);
+    }
+    /* Close /proc directory handle before returning/continuing */
+    closedir(proc_dir);
+
+    if (pid <= 0) {
+      /* No matching process found: reset cached PID and CPU baseline */
+      pss->proc_pid = -1;
+      pss->prev_proc_utime = 0;
+      pss->prev_proc_stime = 0;
+      pss->prev_proc_sample_mono_ms = 0;
+      return false;
+    }
+    /* Remember resolved PID so we avoid rescanning /proc on every tick */
+    pss->proc_pid = pid;
+  }
+
+  /* Detect exited process */
+  if (kill(pid, 0) != 0 && errno == ESRCH) {
+    pss->proc_pid = -1;
     pss->prev_proc_utime = 0;
     pss->prev_proc_stime = 0;
     pss->prev_proc_sample_mono_ms = 0;
@@ -623,13 +653,21 @@ read_process_stats(const char *proc_name,
   snprintf(path, sizeof(path), "/proc/%d/stat", pid);
   FILE *statf = fopen(path, "r");
   if (!statf) {
+    pss->proc_pid = -1;
     return false;
   }
+  /* Process may have exited while reading /proc/<pid>/stat: force PID re-resolve on next sample */
+  if (!fgets(buf, sizeof(buf), statf)) {
+    fclose(statf);
+    pss->proc_pid = -1;
+    return false;
+  }
+  fclose(statf);
 
   /*
    * Field layout:
    *  1 pid
-   *  2 comm
+   *  2 comm (may contain spaces, so find closing ')')
    *  3 state
    *  ...
    * 14 utime
@@ -637,18 +675,25 @@ read_process_stats(const char *proc_name,
    *
    * Skip everything except utime and stime.
    */
-  unsigned long long dummy;
-  char comm[128];
-  char state;
+  char *rp = strrchr(buf, ')');
+  if (!rp || rp[1] != ' ') {
+    pss->prev_proc_utime = 0;
+    pss->prev_proc_stime = 0;
+    pss->prev_proc_sample_mono_ms = 0;
+    return false;
+  }
 
-  int scanned = fscanf(statf,
-                       "%llu %127s %c "
+  /* Parse fields after comm */
+  char state;
+  unsigned long long dummy; /* Placeholder for unused /proc/<pid>/stat fields */
+
+  int scanned = sscanf(rp + 2,
+                       "%c "
                        "%llu %llu %llu %llu %llu "
                        "%llu %llu %llu %llu %llu "
-                       "%llu %llu",
-                       &dummy,
-                       comm,
+                       "%llu %llu %llu",
                        &state,
+                       &dummy,
                        &dummy,
                        &dummy,
                        &dummy,
@@ -661,10 +706,8 @@ read_process_stats(const char *proc_name,
                        &dummy,
                        &utime,
                        &stime);
-  fclose(statf);
-
-  if (scanned < 15) {
-    /* Malformed /proc/<pid>/stat (comm contains spaces)
+  if (scanned < 14) {
+    /* Malformed /proc/<pid>/stat (unexpected format or truncated read)
      * Reset baseline to avoid bogus deltas on next sample
      */
     pss->prev_proc_utime = 0;
@@ -1254,6 +1297,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (json_is_string(monitor) && json_string_value(monitor)[0] == '\0') {
       pss->proc_enabled = false;
       pss->proc_name[0] = '\0';
+      pss->proc_pid = -1;
       pss->prev_proc_utime = 0;
       pss->prev_proc_stime = 0;
       pss->prev_proc_sample_mono_ms = 0;
@@ -1267,6 +1311,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       strncpy(pss->proc_name, json_string_value(monitor), sizeof(pss->proc_name) - 1);
       pss->proc_name[sizeof(pss->proc_name) - 1] = '\0';
       pss->proc_enabled = true;
+      pss->proc_pid = -1;
       pss->prev_proc_utime = 0;
       pss->prev_proc_stime = 0;
       pss->prev_proc_sample_mono_ms = 0;
@@ -1374,6 +1419,12 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         }
         json_len += ret;
       } else {
+        /* Stop monitoring and reset cached PID/baselines so the client must explicitly re-enable after a not-found */
+        pss->proc_enabled = false;
+        pss->proc_pid = -1;
+        pss->prev_proc_utime = 0;
+        pss->prev_proc_stime = 0;
+        pss->prev_proc_sample_mono_ms = 0;
         /* Process not found */
         json_t *err = json_object();
         if (!err) {
