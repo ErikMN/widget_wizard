@@ -1118,47 +1118,55 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       char proc_names[MAX_PROCESS_COUNT][MAX_PROC_NAME_LENGTH];
       size_t proc_count = collect_process_list(proc_names, MAX_PROCESS_COUNT);
 
-      /* NOTE: large stack array here: */
-      char json[MAX_LIST_JSON_LENGTH];
-      /* Initialize JSON output with the process list array header */
-      int json_len = snprintf(json, sizeof(json), "{ \"processes\": [");
+      json_t *resp = json_object();
+      json_t *arr = json_array();
+      bool truncated = false;
 
-      /* Abort if initial JSON header formatting failed or overflowed the output buffer */
-      if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+      if (!resp || !arr) {
+        if (arr) {
+          json_decref(arr);
+        }
+        if (resp) {
+          json_decref(resp);
+        }
         json_decref(root);
         break;
       }
-      /* Append each collected process name to the JSON array */
+      /* Populate process array */
       for (size_t i = 0; i < proc_count; i++) {
-        /* Append one quoted process name to the JSON array, prefixing with ',' except for the first element */
-        int ret = snprintf(json + json_len, sizeof(json) - json_len, "%s\"%s\"", (i > 0) ? "," : "", proc_names[i]);
-        /* JSON buffer full: send partial process list */
-        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+        if (json_array_append_new(arr, json_string(proc_names[i])) != 0) {
+          syslog(LOG_WARNING, "Failed to append process name to JSON array");
+          truncated = true;
           break;
         }
-        json_len += ret;
       }
+      json_object_set_new(resp, "processes", arr);
 
-      /* Ensure space for closing ']' and '}' characters plus NUL terminator.
-       * We append exactly two bytes (']' and '}') after this check.
-       */
-      if ((size_t)json_len + 2 >= sizeof(json)) {
-        json_decref(root);
-        break;
+      /* Serialize into fixed buffer, truncate by dropping tail entries */
+      for (;;) {
+        /* Serialize JSON into the fixed per-session buffer (fails if it does not fit) */
+        int out_len = json_dumpb(resp, (char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, JSON_COMPACT);
+        /* Write the output */
+        if (out_len >= 0) {
+          int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)out_len, LWS_WRITE_TEXT);
+          if (written < 0) {
+            syslog(LOG_WARNING, "lws_write failed");
+          }
+          break;
+        }
+        /* Too big (or other failure): try truncating the array */
+        size_t n = json_array_size(arr);
+        if (n == 0) {
+          syslog(LOG_WARNING, "Failed to serialize process list JSON (buffer %u bytes)", MAX_LIST_JSON_LENGTH);
+          break;
+        }
+        json_array_remove(arr, n - 1);
+        truncated = true;
       }
-      /* Close the JSON array and object and NUL-terminate the string */
-      json[json_len++] = ']';
-      json[json_len++] = '}';
-      json[json_len] = '\0';
-
-      /* Write the output */
-      memcpy(&pss->list_buf[LWS_PRE], json, (size_t)json_len);
-      int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
-      if (written < 0) {
-        syslog(LOG_WARNING, "lws_write failed");
-        json_decref(root);
-        break;
+      if (truncated) {
+        syslog(LOG_INFO, "Process list response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
       }
+      json_decref(resp);
       json_decref(root);
       break;
     }
@@ -1169,54 +1177,68 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       struct storage_info storage[MAX_STORAGE_MOUNTS];
       size_t storage_count = collect_storage_info(storage, MAX_STORAGE_MOUNTS);
 
-      /* NOTE: large stack array here: */
-      char json[MAX_LIST_JSON_LENGTH];
-      /* Initialize JSON output with the storage list array header */
-      int json_len = snprintf(json, sizeof(json), "{ \"storage\": [");
+      json_t *resp = json_object();
+      json_t *arr = json_array();
+      bool truncated = false;
 
-      /* Abort if initial JSON header formatting failed or overflowed the output buffer */
-      if (json_len < 0 || (size_t)json_len >= sizeof(json)) {
+      if (!resp || !arr) {
+        if (arr) {
+          json_decref(arr);
+        }
+        if (resp) {
+          json_decref(resp);
+        }
         json_decref(root);
         break;
       }
-      /* Append each collected storage point to the JSON array */
+      /* Populate storage array */
       for (size_t i = 0; i < storage_count; i++) {
-        int ret = snprintf(
-            json + json_len,
-            sizeof(json) - json_len,
-            "%s{ \"path\": \"%s\", \"fs\": \"%s\", \"total_kb\": %llu, \"used_kb\": %llu, \"available_kb\": %llu }",
-            (i > 0) ? "," : "",
-            storage[i].path,
-            storage[i].fs_type,
-            storage[i].total_kb,
-            storage[i].used_kb,
-            storage[i].available_kb);
-        /* JSON buffer full: send partial process list */
-        if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
+        json_t *obj = json_object();
+        if (!obj) {
+          truncated = true;
           break;
         }
-        json_len += ret;
-      }
-      /* Ensure space for closing ']' and '}' characters plus NUL terminator.
-       * We append exactly two bytes (']' and '}') after this check.
-       */
-      if ((size_t)json_len + 2 >= sizeof(json)) {
-        json_decref(root);
-        break;
-      }
-      /* Close the JSON array and object and NUL-terminate the string */
-      json[json_len++] = ']';
-      json[json_len++] = '}';
-      json[json_len] = '\0';
+        /* Populate JSON object with storage statistics */
+        json_object_set_new(obj, "path", json_string(storage[i].path));
+        json_object_set_new(obj, "fs", json_string(storage[i].fs_type));
+        json_object_set_new(obj, "total_kb", json_integer(storage[i].total_kb));
+        json_object_set_new(obj, "used_kb", json_integer(storage[i].used_kb));
+        json_object_set_new(obj, "available_kb", json_integer(storage[i].available_kb));
 
-      /* Write the output */
-      memcpy(&pss->list_buf[LWS_PRE], json, (size_t)json_len);
-      int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)json_len, LWS_WRITE_TEXT);
-      if (written < 0) {
-        syslog(LOG_WARNING, "lws_write failed");
-        json_decref(root);
-        break;
+        /* Append one storage object to the JSON array */
+        if (json_array_append_new(arr, obj) != 0) {
+          json_decref(obj);
+          truncated = true;
+          break;
+        }
       }
+      json_object_set_new(resp, "storage", arr);
+
+      /* Serialize into fixed buffer, truncate by dropping tail entries */
+      for (;;) {
+        /* Serialize JSON into the fixed per-session buffer (fails if it does not fit) */
+        int out_len = json_dumpb(resp, (char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, JSON_COMPACT);
+        /* Write the output */
+        if (out_len >= 0) {
+          int written = lws_write(wsi, &pss->list_buf[LWS_PRE], (size_t)out_len, LWS_WRITE_TEXT);
+          if (written < 0) {
+            syslog(LOG_WARNING, "lws_write failed");
+          }
+          break;
+        }
+        /* Too big (or other failure): try truncating the array */
+        size_t n = json_array_size(arr);
+        if (n == 0) {
+          syslog(LOG_WARNING, "Failed to serialize storage JSON (buffer %u bytes)", MAX_LIST_JSON_LENGTH);
+          break;
+        }
+        json_array_remove(arr, n - 1);
+        truncated = true;
+      }
+      if (truncated) {
+        syslog(LOG_INFO, "Storage response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+      }
+      json_decref(resp);
       json_decref(root);
       break;
     }
