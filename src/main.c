@@ -1346,14 +1346,28 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (pss->proc_enabled) {
       double proc_cpu = 0.0;
       long proc_rss_kb = 0;
+
       /* Read the process stats */
       if (read_process_stats(pss->proc_name, pss, latest_stats.monotonic_ms, &proc_cpu, &proc_rss_kb)) {
-        int ret = snprintf(json + json_len,
-                           sizeof(json) - json_len,
-                           ", \"proc\": { \"name\": \"%s\", \"cpu\": %.2f, \"rss_kb\": %ld }",
-                           pss->proc_name,
-                           proc_cpu,
-                           proc_rss_kb);
+        json_t *proc = json_object();
+        if (!proc) {
+          break;
+        }
+        /* Populate process statistics */
+        json_object_set_new(proc, "name", json_string(pss->proc_name));
+        json_object_set_new(proc, "cpu", json_real(proc_cpu));
+        json_object_set_new(proc, "rss_kb", json_integer(proc_rss_kb));
+
+        /* Serialize process object to a temporary JSON buffer */
+        char proc_buf[256];
+        int proc_len = json_dumpb(proc, proc_buf, sizeof(proc_buf), JSON_COMPACT);
+        json_decref(proc);
+
+        if (proc_len < 0 || (size_t)proc_len > sizeof(proc_buf)) {
+          break;
+        }
+        /* Append serialized process JSON fragment to the response buffer */
+        int ret = snprintf(json + json_len, sizeof(json) - json_len, ", \"proc\": %.*s", proc_len, proc_buf);
         if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
           syslog(LOG_ERR, "JSON message truncated, dropping the frame");
           break;
@@ -1361,11 +1375,27 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         json_len += ret;
       } else {
         /* Process not found */
-        int ret = snprintf(json + json_len,
-                           sizeof(json) - json_len,
-                           ", \"error\": { \"type\": \"process_not_found\", "
-                           "\"message\": \"Process '%s' not found\" }",
-                           pss->proc_name);
+        json_t *err = json_object();
+        if (!err) {
+          break;
+        }
+        /* Set error type */
+        json_object_set_new(err, "type", json_string("process_not_found"));
+
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Process '%s' not found", pss->proc_name);
+        json_object_set_new(err, "message", json_string(msg));
+
+        /* Serialize error object to a temporary JSON buffer */
+        char err_buf[256];
+        int err_len = json_dumpb(err, err_buf, sizeof(err_buf), JSON_COMPACT);
+        json_decref(err);
+
+        if (err_len < 0 || (size_t)err_len > sizeof(err_buf)) {
+          break;
+        }
+        /* Append serialized error JSON fragment to the response buffer */
+        int ret = snprintf(json + json_len, sizeof(json) - json_len, ", \"error\": %.*s", err_len, err_buf);
         if (ret < 0 || (size_t)ret >= sizeof(json) - json_len) {
           syslog(LOG_ERR, "JSON message truncated, dropping the frame");
           break;
