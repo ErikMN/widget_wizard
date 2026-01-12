@@ -24,10 +24,19 @@
  * - process_name is matched against the first /proc/<pid>/comm that equals the given string.
  * - Per-process monitoring state is per WebSocket connection (per-session), not global.
  * - The server responds by adding a "proc" object to the periodic JSON snapshots:
- *     "proc": { "name": "<process_name>", "cpu": <percent>, "rss_kb": <kB> }
+ *     "proc": {
+ *       "name": "<process_name>",
+ *       "cpu": <percent>,
+ *       "rss_kb": <kB>,
+ *       "pss_kb": <kB>,
+ *       "uss_kb": <kB>
+ *     }
  * - Process CPU% is computed from (utime + stime) deltas over monotonic time.
  *   Interpretation: 100% = all CPUs fully utilized (system-wide percentage, matches top(1) default).
  * - Process RSS is reported from VmRSS in /proc/<pid>/status (kB).
+ * - Process PSS and USS are reported from /proc/<pid>/smaps_rollup:
+ *     - PSS (Proportional Set Size) is the kernel-accounted RAM cost of the process.
+ *     - USS (Unique Set Size) is the amount of private memory that would be freed if the process exited.
  * - To stop per-process monitoring, the client sends:
  *     { "monitor": "" }
  * - If the process cannot be found, the server includes an "error" object:
@@ -67,7 +76,13 @@
  *   "load5": 0.34,
  *   "load15": 0.26,
  *   "clients": { "connected": 3, "max": 10 },
- *   "proc": { "name": "my_process", "cpu": 12.34, "rss_kb": 11052 }
+ *   "proc": {
+ *     "name": "my_process",
+ *     "cpu": 12.34,
+ *     "rss_kb": 11052,
+ *     "pss_kb": 7421,
+ *     "uss_kb": 5310
+ *   }
  * }
  *
  * Scope and limitations:
@@ -554,7 +569,9 @@ read_process_stats(const char *proc_name,
                    struct per_session_data *pss,
                    uint64_t now_mono_ms,
                    double *cpu_out,
-                   long *rss_kb_out)
+                   long *rss_kb_out,
+                   long *pss_kb_out,
+                   long *uss_kb_out)
 {
   DIR *proc_dir;
   struct dirent *ent;
@@ -574,6 +591,8 @@ read_process_stats(const char *proc_name,
 
   *cpu_out = 0.0;
   *rss_kb_out = 0;
+  *pss_kb_out = 0;
+  *uss_kb_out = 0;
 
   /* Find PID by scanning /proc */
   proc_dir = opendir("/proc");
@@ -686,12 +705,54 @@ read_process_stats(const char *proc_name,
     fclose(statusf);
   }
 
+  long pss_kb = 0;
+  long uss_kb = 0;
+
+  /* Read memory accounting from /proc/<pid>/smaps_rollup.
+   *
+   * smaps_rollup provides per-process memory totals aggregated over all VMAs.
+   *
+   * - PSS (Proportional Set Size):
+   *     Kernel-accounted RAM cost of the process (shared pages divided among
+   *     their users). Unlike RSS, PSS is additive across processes.
+   *
+   * - USS (Unique Set Size):
+   *     Best-effort estimate of memory that would be freed if the process exited.
+   *     Computed as the sum of all "Private_*" categories in kB:
+   *       USS = Private_Clean + Private_Dirty + Private_Hugetlb + Private_Shmem
+   *
+   * NOTE:
+   * - smaps_rollup may be unavailable on older kernels or restricted by permissions.
+   *   In that case, pss_kb and uss_kb remain 0 and RSS from /proc/<pid>/status is used.
+   */
+  snprintf(path, sizeof(path), "/proc/%d/smaps_rollup", pid);
+  FILE *smaps = fopen(path, "r");
+  if (smaps) {
+    while (fgets(buf, sizeof(buf), smaps)) {
+      long v;
+      if (sscanf(buf, "Pss: %ld kB", &v) == 1) {
+        pss_kb = v;
+      } else if (sscanf(buf, "Private_Clean: %ld kB", &v) == 1) {
+        uss_kb += v;
+      } else if (sscanf(buf, "Private_Dirty: %ld kB", &v) == 1) {
+        uss_kb += v;
+      } else if (sscanf(buf, "Private_Hugetlb: %ld kB", &v) == 1) {
+        uss_kb += v;
+      } else if (sscanf(buf, "Private_Shmem: %ld kB", &v) == 1) {
+        uss_kb += v;
+      }
+    }
+    fclose(smaps);
+  }
+
   /* First sample: establish baseline */
   if (pss->prev_proc_sample_mono_ms == 0) {
     pss->prev_proc_utime = utime;
     pss->prev_proc_stime = stime;
     pss->prev_proc_sample_mono_ms = now_mono_ms;
     *rss_kb_out = rss_kb;
+    *pss_kb_out = pss_kb;
+    *uss_kb_out = uss_kb;
     return true;
   }
 
@@ -705,6 +766,8 @@ read_process_stats(const char *proc_name,
     pss->prev_proc_stime = stime;
     pss->prev_proc_sample_mono_ms = now_mono_ms;
     *rss_kb_out = rss_kb;
+    *pss_kb_out = pss_kb;
+    *uss_kb_out = uss_kb;
     return true;
   }
 
@@ -723,7 +786,24 @@ read_process_stats(const char *proc_name,
     *cpu_out = ((double)delta_jiffies / (double)clk_tck / delta_seconds * 100.0) / (double)cpu_core_count;
   }
 
+  /* Return memory metrics to the caller:
+   *
+   * - rss_kb_out:
+   *     Resident Set Size from /proc/<pid>/status (VmRSS).
+   *     This is how large the process appears in RAM, counting all shared pages in full.
+   *
+   * - pss_kb_out:
+   *     Proportional Set Size from /proc/<pid>/smaps_rollup.
+   *     This is the kernel-accounted RAM cost of the process, with shared pages
+   *     divided among their users. PSS is additive across processes.
+   *
+   * - uss_kb_out:
+   *     Unique Set Size computed from the sum of Private_* fields in smaps_rollup.
+   *     This estimates how much memory would be freed if the process exited.
+   */
   *rss_kb_out = rss_kb;
+  *pss_kb_out = pss_kb;
+  *uss_kb_out = uss_kb;
 
   /* Update baselines */
   pss->prev_proc_utime = utime;
@@ -1346,9 +1426,12 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (pss->proc_enabled) {
       double proc_cpu = 0.0;
       long proc_rss_kb = 0;
+      long proc_pss_kb = 0;
+      long proc_uss_kb = 0;
 
       /* Read the process stats */
-      if (read_process_stats(pss->proc_name, pss, latest_stats.monotonic_ms, &proc_cpu, &proc_rss_kb)) {
+      if (read_process_stats(
+              pss->proc_name, pss, latest_stats.monotonic_ms, &proc_cpu, &proc_rss_kb, &proc_pss_kb, &proc_uss_kb)) {
         json_t *proc = json_object();
         if (!proc) {
           break;
@@ -1357,6 +1440,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         json_object_set_new(proc, "name", json_string(pss->proc_name));
         json_object_set_new(proc, "cpu", json_real(proc_cpu));
         json_object_set_new(proc, "rss_kb", json_integer(proc_rss_kb));
+        json_object_set_new(proc, "pss_kb", json_integer(proc_pss_kb));
+        json_object_set_new(proc, "uss_kb", json_integer(proc_uss_kb));
 
         /* Serialize process object to a temporary JSON buffer */
         char proc_buf[256];
