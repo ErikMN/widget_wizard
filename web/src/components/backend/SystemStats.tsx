@@ -38,10 +38,12 @@ interface ProcHistoryPoint {
   ts: number;
   cpu: number;
   mem: number;
+  pid: number;
 }
 
 interface ProcStats {
   name: string;
+  pid: number;
   cpu: number;
   rss_kb: number;
   pss_kb: number;
@@ -238,12 +240,35 @@ const SystemStats: React.FC = () => {
         } else if (data.proc) {
           setProcError(null);
           setProcHistory((prev) => {
+            /* If the monitored process PID changed (process restarted or replaced),
+             * reset the history to avoid mixing different processes into one graph.
+             *
+             * We must compare against the last recorded PID, not React state,
+             * because setStats() is async and stats.proc may be stale here.
+             */
+            if (prev.length > 0) {
+              const last = prev[prev.length - 1];
+              if (
+                (last as any).pid !== undefined &&
+                (last as any).pid !== data.proc.pid
+              ) {
+                return [
+                  {
+                    ts: data.ts,
+                    cpu: data.proc.cpu,
+                    mem: data.proc.pss_kb / 1024,
+                    pid: data.proc.pid
+                  }
+                ];
+              }
+            }
             const next = [
               ...prev,
               {
                 ts: data.ts,
                 cpu: data.proc.cpu,
-                mem: data.proc.pss_kb / 1024
+                mem: data.proc.pss_kb / 1024,
+                pid: data.proc.pid
               }
             ];
             return next.length > MAX_HISTORY_POINTS
@@ -754,6 +779,17 @@ const SystemStats: React.FC = () => {
 
                 {stats?.proc && (
                   <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Tooltip title="Process ID. Changes when the process restarts or is replaced.">
+                      <Chip
+                        size="small"
+                        label={`PID ${stats.proc.pid}`}
+                        sx={{
+                          color: '#fff',
+                          '& .MuiChip-label': { color: '#fff' }
+                        }}
+                      />
+                    </Tooltip>
+
                     <Tooltip title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full.">
                       <Chip
                         size="small"
