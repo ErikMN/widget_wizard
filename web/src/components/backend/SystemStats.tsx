@@ -14,6 +14,7 @@ import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
 import LinearProgress from '@mui/material/LinearProgress';
 import MemoryIcon from '@mui/icons-material/Memory';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 /* MUI X */
 import { LineChart } from '@mui/x-charts/LineChart';
@@ -43,6 +44,8 @@ interface ProcStats {
   name: string;
   cpu: number;
   rss_kb: number;
+  pss_kb: number;
+  uss_kb: number;
 }
 
 interface SysStats {
@@ -234,14 +237,13 @@ const SystemStats: React.FC = () => {
           setProcError(data.error.message);
         } else if (data.proc) {
           setProcError(null);
-          const procMemMb = data.proc.rss_kb / 1024;
           setProcHistory((prev) => {
             const next = [
               ...prev,
               {
                 ts: data.ts,
                 cpu: data.proc.cpu,
-                mem: procMemMb
+                mem: data.proc.pss_kb / 1024
               }
             ];
             return next.length > MAX_HISTORY_POINTS
@@ -750,6 +752,43 @@ const SystemStats: React.FC = () => {
                   </Alert>
                 )}
 
+                {stats?.proc && (
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Tooltip title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full.">
+                      <Chip
+                        size="small"
+                        label={`RSS ${(stats.proc.rss_kb / 1024).toFixed(1)} MB`}
+                        sx={{
+                          color: '#fff',
+                          '& .MuiChip-label': { color: '#fff' }
+                        }}
+                      />
+                    </Tooltip>
+
+                    <Tooltip title="PSS (Proportional Set Size): how much RAM this process really costs the system. Shared pages are divided between all processes using them. This is what the kernel uses for memory accounting.">
+                      <Chip
+                        size="small"
+                        label={`PSS ${(stats.proc.pss_kb / 1024).toFixed(1)} MB`}
+                        sx={{
+                          color: '#fff',
+                          '& .MuiChip-label': { color: '#fff' }
+                        }}
+                      />
+                    </Tooltip>
+
+                    <Tooltip title="USS (Unique Set Size): how much RAM would be freed if this process exited. This is the process's private memory only.">
+                      <Chip
+                        size="small"
+                        label={`USS ${(stats.proc.uss_kb / 1024).toFixed(1)} MB`}
+                        sx={{
+                          color: '#fff',
+                          '& .MuiChip-label': { color: '#fff' }
+                        }}
+                      />
+                    </Tooltip>
+                  </Stack>
+                )}
+
                 {procHistory.length > 1 && (
                   <LineChart
                     height={220}
@@ -764,7 +803,7 @@ const SystemStats: React.FC = () => {
                       },
                       {
                         data: procHistory.map((p) => p.mem),
-                        label: 'RAM MB',
+                        label: 'PSS MB (real memory)',
                         showMark: false,
                         valueFormatter: (v) =>
                           v == null ? '' : `${v.toFixed(1)} MB`
