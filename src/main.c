@@ -92,6 +92,7 @@
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
  */
+#include <stdlib.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -667,10 +668,11 @@ collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
 /* Parse utime and stime from /proc/<pid>/stat safely.
  *
  * /proc/<pid>/stat format:
- *   pid (comm with spaces) state ... utime stime ...
+ *   pid (comm with spaces and ')') state ppid pgrp session ...
  *
- * The command name is enclosed in parentheses and may contain spaces,
- * so we must find the closing ')' and parse fields after it.
+ * The comm field is enclosed in parentheses and may contain ')', so
+ * we must locate the *closing* ") " sequence that precedes the state
+ * field, not the last ')'.
  *
  * Returns true on success.
  */
@@ -678,22 +680,35 @@ static bool
 parse_proc_stat_times(const char *line, unsigned long long *utime_out, unsigned long long *stime_out)
 {
   const char *p;
+  const char *end = NULL;
 
   if (!line || !utime_out || !stime_out) {
     return false;
   }
 
-  /* Find the last ')' which terminates the comm field */
-  p = strrchr(line, ')');
+  /* Find the opening '(' */
+  p = strchr(line, '(');
   if (!p) {
     return false;
   }
-  /* Move past ") " to the state field */
-  p++;
-  if (*p == ' ') {
-    p++;
+  /* Find the closing ')' that is followed by " <state> " */
+  for (const char *q = p + 1; *q; q++) {
+    if (q[0] == ')' && q[1] == ' ' && q[2] != '\0' && q[3] == ' ') {
+      /* Validate that q[2] is a Linux task state letter */
+      if (strchr("RSDZTtWXxKPI", q[2]) != NULL) {
+        end = q;
+        break;
+      }
+    }
   }
-  /* We are now at: state ppid pgrp session tty_nr ... utime stime */
+  /* Invalid /proc/<pid>/stat format */
+  if (!end) {
+    return false;
+  }
+  /* Move to the state field */
+  p = end + 2;
+
+  /* We are now at: state ppid pgrp session tty_nr tpgid flags minflt cminflt majflt cmajflt utime stime */
   char state;
   unsigned long long dummy;
   unsigned long long utime, stime;
