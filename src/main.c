@@ -1258,8 +1258,6 @@ stop_stats_timer(void)
 static int
 ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
-  (void)in;
-
   switch (reason) {
 
   case LWS_CALLBACK_ESTABLISHED: {
