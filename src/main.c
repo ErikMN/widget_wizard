@@ -91,7 +91,6 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
- * - Processes with spaces or parentheses in comm may not be parsed correctly.
  */
 #include <dirent.h>
 #include <getopt.h>
@@ -553,14 +552,72 @@ collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
 
 /******************************************************************************/
 
+/* Parse utime and stime from /proc/<pid>/stat safely.
+ *
+ * /proc/<pid>/stat format:
+ *   pid (comm with spaces) state ... utime stime ...
+ *
+ * The command name is enclosed in parentheses and may contain spaces,
+ * so we must find the closing ')' and parse fields after it.
+ *
+ * Returns true on success.
+ */
+static bool
+parse_proc_stat_times(const char *line, unsigned long long *utime_out, unsigned long long *stime_out)
+{
+  const char *p;
+
+  if (!line || !utime_out || !stime_out) {
+    return false;
+  }
+
+  /* Find the last ')' which terminates the comm field */
+  p = strrchr(line, ')');
+  if (!p) {
+    return false;
+  }
+  /* Move past ") " to the state field */
+  p++;
+  if (*p == ' ') {
+    p++;
+  }
+  /* We are now at: state ppid pgrp session tty_nr ... utime stime */
+  char state;
+  unsigned long long dummy;
+  unsigned long long utime, stime;
+
+  int scanned = sscanf(p,
+                       "%c "
+                       "%llu %llu %llu %llu %llu "
+                       "%llu %llu %llu %llu %llu "
+                       "%llu %llu",
+                       &state,
+                       &dummy, /* ppid */
+                       &dummy, /* pgrp */
+                       &dummy, /* session */
+                       &dummy, /* tty_nr */
+                       &dummy, /* tpgid */
+                       &dummy, /* flags */
+                       &dummy, /* minflt */
+                       &dummy, /* cminflt */
+                       &dummy, /* majflt */
+                       &dummy, /* cmajflt */
+                       &utime,
+                       &stime);
+  if (scanned != 13) {
+    return false;
+  }
+  *utime_out = utime;
+  *stime_out = stime;
+
+  return true;
+}
+
 /* Read CPU and memory usage for a named process.
  *
  * - Matches the first /proc/<pid>/comm equal to proc_name.
  * - CPU usage is computed from utime + stime deltas over monotonic time.
  * - Memory usage is reported as VmRSS in kB.
- *
- * NOTE: Limitations:
- * - Processes with spaces or parentheses in comm may not be parsed correctly
  *
  * Returns true on success, false if the process was not found or data
  * could not be read. On failure, outputs are set to 0.
@@ -656,46 +713,17 @@ read_process_stats(const char *proc_name,
     return false;
   }
 
-  /*
-   * Field layout:
-   *  1 pid
-   *  2 comm
-   *  3 state
-   *  ...
-   * 14 utime
-   * 15 stime
-   *
-   * Skip everything except utime and stime.
-   */
-  unsigned long long dummy;
-  char comm[128];
-  char state;
+  char line[MAX_PROC_LINE_LENGTH];
 
-  int scanned = fscanf(statf,
-                       "%llu %127s %c "
-                       "%llu %llu %llu %llu %llu "
-                       "%llu %llu %llu %llu %llu "
-                       "%llu %llu",
-                       &dummy,
-                       comm,
-                       &state,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &dummy,
-                       &utime,
-                       &stime);
+  if (!fgets(line, sizeof(line), statf)) {
+    fclose(statf);
+    return false;
+  }
   fclose(statf);
 
-  if (scanned < 15) {
-    /* Malformed /proc/<pid>/stat (comm contains spaces)
-     * Reset baseline to avoid bogus deltas on next sample
+  if (!parse_proc_stat_times(line, &utime, &stime)) {
+    /* Malformed or unexpected /proc/<pid>/stat
+     * Reset baseline to avoid bogus deltas
      */
     pss->prev_proc_utime = 0;
     pss->prev_proc_stime = 0;
