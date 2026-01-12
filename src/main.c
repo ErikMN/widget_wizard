@@ -444,6 +444,41 @@ collect_storage_info(struct storage_info *out, size_t max_entries)
 
 /******************************************************************************/
 
+/* Verify that a cached PID still belongs to the given process name.
+ *
+ * This protects against Linux PID reuse: a different process may reuse
+ * the same PID after the original process exits.
+ *
+ * Returns true if /proc/<pid>/comm exists and matches proc_name.
+ */
+static bool
+pid_matches_comm(pid_t pid, const char *proc_name)
+{
+  char path[MAX_PROC_PATH_LENGTH];
+  char buf[MAX_PROC_LINE_LENGTH];
+
+  if (pid <= 0 || !proc_name || proc_name[0] == '\0') {
+    return false;
+  }
+
+  snprintf(path, sizeof(path), "/proc/%d/comm", pid);
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    return false;
+  }
+
+  if (!fgets(buf, sizeof(buf), f)) {
+    fclose(f);
+    return false;
+  }
+  fclose(f);
+
+  /* Strip trailing newline */
+  buf[strcspn(buf, "\n")] = '\0';
+
+  return strcmp(buf, proc_name) == 0;
+}
+
 /* Find the first PID whose /proc/<pid>/comm matches proc_name.
  *
  * Returns PID (>0) on success, 0 if not found.
@@ -734,6 +769,15 @@ read_process_stats(const char *proc_name,
   /* Find PID by scanning /proc */
   if (pss->proc_pid == 0) {
     pss->proc_pid = find_pid_by_comm(proc_name);
+  } else {
+    /* Guard against Linux PID reuse */
+    if (!pid_matches_comm(pss->proc_pid, proc_name)) {
+      pss->proc_pid = 0;
+      pss->prev_proc_utime = 0;
+      pss->prev_proc_stime = 0;
+      pss->prev_proc_sample_mono_ms = 0;
+      pss->proc_pid = find_pid_by_comm(proc_name);
+    }
   }
   pid = pss->proc_pid;
 
