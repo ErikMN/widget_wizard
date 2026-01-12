@@ -278,6 +278,9 @@ struct per_session_data {
   unsigned long long prev_proc_utime;
   unsigned long long prev_proc_stime;
   uint64_t prev_proc_sample_mono_ms;
+
+  /* Cached PID of the monitored process (0 = unknown / needs lookup) */
+  pid_t proc_pid;
 };
 
 /* Struct for collecting system stats */
@@ -440,6 +443,80 @@ collect_storage_info(struct storage_info *out, size_t max_entries)
 }
 
 /******************************************************************************/
+
+/* Find the first PID whose /proc/<pid>/comm matches proc_name.
+ *
+ * Returns PID (>0) on success, 0 if not found.
+ */
+static pid_t
+find_pid_by_comm(const char *proc_name)
+{
+  DIR *proc_dir = NULL;
+  struct dirent *ent; /* Directory entry used when iterating over /proc */
+  char path[MAX_PROC_PATH_LENGTH];
+  char buf[MAX_PROC_LINE_LENGTH];
+
+  if (!proc_name || proc_name[0] == '\0') {
+    return 0;
+  }
+
+  /* Open /proc to iterate over all running processes, return empty result on failure */
+  proc_dir = opendir("/proc");
+  if (!proc_dir) {
+    return 0;
+  }
+
+  /* Iterate all /proc entries (numeric directories correspond to PIDs) */
+  while ((ent = readdir(proc_dir)) != NULL) {
+    /* /proc on some filesystems may not reliably report d_type, so accept DT_UNKNOWN too */
+    if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
+      continue;
+    }
+
+    /* Only consider numeric /proc entries (PIDs)
+     * skip non-numeric names and invalid or non-positive values
+     */
+    char *endptr = NULL;
+    long pid = strtol(ent->d_name, &endptr, 10);
+    if (*ent->d_name == '\0' || *endptr != '\0' || pid <= 0) {
+      continue;
+    }
+
+    /* Read the process name from /proc/<pid>/comm
+     * skip entries that disappear or cannot be opened
+     */
+    snprintf(path, sizeof(path), "/proc/%ld/comm", pid);
+    FILE *f = fopen(path, "r");
+    if (!f) {
+      continue;
+    }
+
+    /* Read one line (process name) and ignore processes that exit mid-read */
+    if (!fgets(buf, sizeof(buf), f)) {
+      fclose(f);
+      continue;
+    }
+    fclose(f);
+
+    /* Strip trailing newline from /proc/<pid>/comm so buf is a clean NUL-terminated name */
+    buf[strcspn(buf, "\n")] = '\0';
+
+    /* Skip kernel threads: in /proc/<pid>/comm they typically appear as "[kthread-name]" */
+    if (buf[0] == '[') {
+      continue;
+    }
+    /* Match the requested process name */
+    if (strcmp(buf, proc_name) == 0) {
+      /* Release the /proc directory handle before returning to avoid leaking an fd */
+      closedir(proc_dir);
+      return (pid_t)pid;
+    }
+  }
+  /* Release the /proc directory handle before returning to avoid leaking an fd */
+  closedir(proc_dir);
+
+  return 0;
+}
 
 /* Collect a unique list of running process names from /proc.
  *
@@ -632,8 +709,6 @@ read_process_stats(const char *proc_name,
                    long *uss_kb_out,
                    pid_t *pid_out)
 {
-  DIR *proc_dir;
-  struct dirent *ent;
   pid_t pid = -1;
   char path[MAX_PROC_PATH_LENGTH];
   char buf[MAX_PROC_LINE_LENGTH];
@@ -657,44 +732,14 @@ read_process_stats(const char *proc_name,
   *uss_kb_out = 0;
 
   /* Find PID by scanning /proc */
-  proc_dir = opendir("/proc");
-  if (!proc_dir) {
-    return false;
+  if (pss->proc_pid == 0) {
+    pss->proc_pid = find_pid_by_comm(proc_name);
   }
+  pid = pss->proc_pid;
 
-  while ((ent = readdir(proc_dir)) != NULL) {
-    /* /proc entries for processes are numeric */
-    if (ent->d_type != DT_DIR && ent->d_type != DT_UNKNOWN) {
-      continue;
-    }
-
-    char *endptr = NULL;
-    long val = strtol(ent->d_name, &endptr, 10);
-    if (*ent->d_name == '\0' || *endptr != '\0' || val <= 0) {
-      continue;
-    }
-
-    snprintf(path, sizeof(path), "/proc/%ld/comm", val);
-    FILE *f = fopen(path, "r");
-    if (!f) {
-      continue;
-    }
-
-    if (fgets(buf, sizeof(buf), f)) {
-      /* Strip trailing newline */
-      buf[strcspn(buf, "\n")] = '\0';
-      if (strcmp(buf, proc_name) == 0) {
-        pid = (pid_t)val;
-        if (pid_out) {
-          *pid_out = pid;
-        }
-        fclose(f);
-        break;
-      }
-    }
-    fclose(f);
+  if (pid_out) {
+    *pid_out = pid;
   }
-  closedir(proc_dir);
 
   if (pid <= 0) {
     /* Process not found */
@@ -704,12 +749,17 @@ read_process_stats(const char *proc_name,
     pss->prev_proc_utime = 0;
     pss->prev_proc_stime = 0;
     pss->prev_proc_sample_mono_ms = 0;
+    pss->proc_pid = 0;
     return false;
   }
   /* Read /proc/<pid>/stat */
   snprintf(path, sizeof(path), "/proc/%d/stat", pid);
   FILE *statf = fopen(path, "r");
   if (!statf) {
+    pss->proc_pid = 0;
+    pss->prev_proc_utime = 0;
+    pss->prev_proc_stime = 0;
+    pss->prev_proc_sample_mono_ms = 0;
     return false;
   }
 
@@ -728,6 +778,7 @@ read_process_stats(const char *proc_name,
     pss->prev_proc_utime = 0;
     pss->prev_proc_stime = 0;
     pss->prev_proc_sample_mono_ms = 0;
+    pss->proc_pid = 0;
     return false;
   }
 
@@ -1376,6 +1427,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       pss->prev_proc_utime = 0;
       pss->prev_proc_stime = 0;
       pss->prev_proc_sample_mono_ms = 0;
+      pss->proc_pid = 0;
       syslog(LOG_INFO, "Client stopped process monitoring");
       json_decref(root);
       break;
@@ -1389,6 +1441,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       pss->prev_proc_utime = 0;
       pss->prev_proc_stime = 0;
       pss->prev_proc_sample_mono_ms = 0;
+      pss->proc_pid = 0;
       syslog(LOG_INFO, "Client monitoring process: %s", pss->proc_name);
     }
     json_decref(root);
