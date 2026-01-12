@@ -78,6 +78,7 @@
  *   "clients": { "connected": 3, "max": 10 },
  *   "proc": {
  *     "name": "my_process",
+ *     "pid": 12857,
  *     "cpu": 12.34,
  *     "rss_kb": 11052,
  *     "pss_kb": 7421,
@@ -571,7 +572,8 @@ read_process_stats(const char *proc_name,
                    double *cpu_out,
                    long *rss_kb_out,
                    long *pss_kb_out,
-                   long *uss_kb_out)
+                   long *uss_kb_out,
+                   pid_t *pid_out)
 {
   DIR *proc_dir;
   struct dirent *ent;
@@ -589,6 +591,9 @@ read_process_stats(const char *proc_name,
     return false;
   }
 
+  if (pid_out) {
+    *pid_out = 0;
+  }
   *cpu_out = 0.0;
   *rss_kb_out = 0;
   *pss_kb_out = 0;
@@ -623,6 +628,9 @@ read_process_stats(const char *proc_name,
       buf[strcspn(buf, "\n")] = '\0';
       if (strcmp(buf, proc_name) == 0) {
         pid = (pid_t)val;
+        if (pid_out) {
+          *pid_out = pid;
+        }
         fclose(f);
         break;
       }
@@ -633,6 +641,9 @@ read_process_stats(const char *proc_name,
 
   if (pid <= 0) {
     /* Process not found */
+    if (pid_out) {
+      *pid_out = 0;
+    }
     pss->prev_proc_utime = 0;
     pss->prev_proc_stime = 0;
     pss->prev_proc_sample_mono_ms = 0;
@@ -1428,10 +1439,17 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       long proc_rss_kb = 0;
       long proc_pss_kb = 0;
       long proc_uss_kb = 0;
+      pid_t proc_pid = 0;
 
       /* Read the process stats */
-      if (read_process_stats(
-              pss->proc_name, pss, latest_stats.monotonic_ms, &proc_cpu, &proc_rss_kb, &proc_pss_kb, &proc_uss_kb)) {
+      if (read_process_stats(pss->proc_name,
+                             pss,
+                             latest_stats.monotonic_ms,
+                             &proc_cpu,
+                             &proc_rss_kb,
+                             &proc_pss_kb,
+                             &proc_uss_kb,
+                             &proc_pid)) {
         json_t *proc = json_object();
         if (!proc) {
           break;
@@ -1442,6 +1460,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         json_object_set_new(proc, "rss_kb", json_integer(proc_rss_kb));
         json_object_set_new(proc, "pss_kb", json_integer(proc_pss_kb));
         json_object_set_new(proc, "uss_kb", json_integer(proc_uss_kb));
+        json_object_set_new(proc, "pid", json_integer(proc_pid));
 
         /* Serialize process object to a temporary JSON buffer */
         char proc_buf[256];
