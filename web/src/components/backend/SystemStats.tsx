@@ -955,44 +955,53 @@ const SystemStats: React.FC = () => {
                   </Typography>
                 )}
 
-                {storageInfo.map((fs) => {
-                  const usedPercent =
-                    fs.total_kb > 0 ? (fs.used_kb / fs.total_kb) * 100 : 0;
+                <Box
+                  sx={{
+                    maxHeight: '240px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  <Stack spacing={1}>
+                    {storageInfo.map((fs) => {
+                      const usedPercent =
+                        fs.total_kb > 0 ? (fs.used_kb / fs.total_kb) * 100 : 0;
 
-                  return (
-                    <Box
-                      key={`${fs.path}:${fs.fs}`}
-                      sx={{
-                        border: '1px solid #333',
-                        padding: '8px',
-                        backgroundColor: '#111'
-                      }}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ marginBottom: '4px' }}
-                      >
-                        {fs.path}
-                      </Typography>
+                      return (
+                        <Box
+                          key={`${fs.path}:${fs.fs}`}
+                          sx={{
+                            border: '1px solid #333',
+                            padding: '8px',
+                            backgroundColor: '#111'
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ marginBottom: '4px' }}
+                          >
+                            {fs.path}
+                          </Typography>
 
-                      <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                        Filesystem: {fs.fs}
-                      </Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            Filesystem: {fs.fs}
+                          </Typography>
 
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(usedPercent, 100)}
-                        sx={{ height: 12, marginBottom: '4px' }}
-                      />
+                          <LinearProgress
+                            variant="determinate"
+                            value={Math.min(usedPercent, 100)}
+                            sx={{ height: 12, marginBottom: '4px' }}
+                          />
 
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                        Used {(fs.used_kb / 1024).toFixed(0)} MB /{' '}
-                        {(fs.total_kb / 1024).toFixed(0)} MB (
-                        {usedPercent.toFixed(1)}%)
-                      </Typography>
-                    </Box>
-                  );
-                })}
+                          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                            Used {(fs.used_kb / 1024).toFixed(0)} MB /{' '}
+                            {(fs.total_kb / 1024).toFixed(0)} MB (
+                            {usedPercent.toFixed(1)}%)
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                </Box>
               </Stack>
             )}
           </Stack>
