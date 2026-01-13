@@ -63,9 +63,9 @@ done
 
 # Detect sed -i flavor (GNU vs BSD):
 if sed --version >/dev/null 2>&1; then
-  SED_INPLACE=(-i)
+  SED_INPLACE=(sed -i)
 else
-  SED_INPLACE=(-i '')
+  SED_INPLACE=(sed -i '')
 fi
 
 echo "*** Set app version: $APP_VERSION"
