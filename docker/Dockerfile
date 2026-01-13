@@ -70,6 +70,7 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
   -D LWS_WITH_SHARED=OFF \
   -D LWS_WITHOUT_TESTAPPS=ON \
   -D LWS_HAVE_LIBCAP=OFF \
+  -D LWS_WITH_LIBCAP=OFF \
   ${LWS_SRC_DIR} && \
   make -j$(nproc) install
 

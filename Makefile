@@ -49,7 +49,7 @@ LWS_STATIC = /opt/app/libwebsockets/libwebsockets.a
 LDLIBS += $(LWS_STATIC)
 
 # Dynamic libs to use:
-PKGS += glib-2.0 axparameter jansson
+PKGS += glib-2.0 axparameter jansson libcap
 ifdef PKGS
   LDLIBS += $(shell pkg-config --libs $(PKGS))
   CFLAGS += $(shell pkg-config --cflags $(PKGS))
