@@ -871,7 +871,20 @@ const SystemStats: React.FC = () => {
 
             {viewMode === 'list' && (
               <Stack spacing={1}>
-                <Typography variant="subtitle2">Running processes</Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="subtitle2">Running processes</Typography>
+                  {processList.length > 0 && (
+                    <Chip
+                      size="small"
+                      label={`${processList.length} processes`}
+                      sx={{
+                        color: '#fff',
+                        '& .MuiChip-label': { color: '#fff' },
+                        opacity: 0.7
+                      }}
+                    />
+                  )}
+                </Stack>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <input
