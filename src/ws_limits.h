@@ -1,5 +1,13 @@
 #pragma once
 
+/* Maximum number of concurrent WebSocket clients.
+ *
+ * Includes both fully established connections and handshakes in progress.
+ * This limit bounds resource usage and prevents unbounded /proc polling
+ * and per-session state allocation.
+ */
+#define MAX_WS_CONNECTED_CLIENTS 10
+
 /* Maximum size of a single JSON WebSocket message.
  *
  * Current worst-case payload is around 320 bytes (including per-process stats),
