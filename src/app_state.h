@@ -13,8 +13,8 @@ struct app_state {
 
   /* WebSocket */
   struct lws_context *lws_ctx;
-  unsigned int ws_connected;
-  unsigned int ws_pending;
+  // unsigned int ws_connected;
+  // unsigned int ws_pending;
 
   /* Timers */
   guint stats_timer_id;

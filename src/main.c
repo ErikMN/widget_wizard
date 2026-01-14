@@ -145,10 +145,9 @@ static guint lws_service_timer_id = 0;
 static gboolean
 on_unix_signal(gpointer user_data)
 {
-  GMainLoop *main_loop = user_data;
+  struct app_state *app = user_data;
 
   /* Stop periodic timers to allow clean shutdown */
-  struct app_state *app = lws_context_user(lws_ctx);
   stop_stats_timer(app);
 
   if (lws_service_timer_id != 0) {
@@ -198,8 +197,8 @@ main(int argc, char **argv)
   main_loop = g_main_loop_new(NULL, FALSE);
 
   /* Handle Unix signals for graceful termination */
-  g_unix_signal_add(SIGINT, on_unix_signal, main_loop);
-  g_unix_signal_add(SIGTERM, on_unix_signal, main_loop);
+  g_unix_signal_add(SIGINT, on_unix_signal, &app);
+  g_unix_signal_add(SIGTERM, on_unix_signal, &app);
 
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "%s starting WebSocket backend.", APP_NAME);
@@ -232,8 +231,8 @@ main(int argc, char **argv)
   /* Set log level to error and warning only */
   lws_set_log_level(LLL_ERR | LLL_WARN, NULL);
 
-  lws_ctx = lws_create_context(&info);
-  if (!lws_ctx) {
+  app.lws_ctx = lws_create_context(&info);
+  if (!app.lws_ctx) {
     syslog(LOG_ERR, "Failed to create libwebsockets context");
     ret = -1;
     goto exit;
@@ -254,7 +253,7 @@ main(int argc, char **argv)
    *   updates latest_stats. This function is started/stopped dynamically based
    *   on whether there are any connected WebSocket clients.
    */
-  lws_service_timer_id = g_timeout_add(10, lws_glib_service, lws_ctx);
+  lws_service_timer_id = g_timeout_add(10, lws_glib_service, app.lws_ctx);
 
   syslog(LOG_INFO, "WebSocket server listening on port %d", ws_port);
 
@@ -273,9 +272,9 @@ main(int argc, char **argv)
 exit:
   syslog(LOG_INFO, "Terminating %s backend.", APP_NAME);
   /* Cleanup WebSocket context */
-  if (lws_ctx) {
-    lws_context_destroy(lws_ctx);
-    lws_ctx = NULL;
+  if (app.lws_ctx) {
+    lws_context_destroy(app.lws_ctx);
+    app.lws_ctx = NULL;
   }
   /* Unref the main loop */
   if (main_loop) {

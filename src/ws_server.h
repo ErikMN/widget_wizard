@@ -5,9 +5,6 @@
 
 #include "app_state.h"
 
-/* WebSocket server state */
-extern struct lws_context *lws_ctx;
-
 /* Connection accounting */
 extern unsigned int ws_connected_client_count;
 extern unsigned int ws_pending_client_count;

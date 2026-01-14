@@ -220,9 +220,9 @@ read_uptime_load(struct sys_stats *stats)
   }
 }
 
-/* Periodic GLib timer callback that updates the global system statistics.
+/* Periodic GLib timer callback that updates the system statistics in app_state.
  *
- * This runs in the GLib main loop thread and refreshes latest_stats.
+ * This runs in the GLib main loop thread and refreshes app_state::stats.
  * The data is later consumed by the WebSocket write
  * callback when sending updates to connected clients.
  *

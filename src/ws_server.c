@@ -16,7 +16,7 @@
 /******************************************************************************/
 
 /* WebSocket server state */
-struct lws_context *lws_ctx = NULL;
+// struct lws_context *lws_ctx = NULL;
 
 /* Connection accounting:
  *
@@ -281,7 +281,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
                                      MAX_WS_CONNECTED_CLIENTS,
                                      pss,
                                      &truncated);
-    if (json_len <= 0) {
+    if (json_len <= 0 || truncated) {
       syslog(LOG_ERR, "JSON message truncated, dropping the frame");
       break;
     }
