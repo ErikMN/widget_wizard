@@ -1,14 +1,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "app_state.h"
 #include "stats.h"
 #include "util.h"
-
-/* latest_stats is accessed only from the GLib main loop thread.
- * No locking is required as long as libwebsockets is serviced
- * exclusively via lws_service() in this loop.
- */
-struct sys_stats latest_stats;
 
 /* Read MemTotal and MemAvailable from /proc/meminfo
  * and return them in stats structure.
@@ -236,26 +231,26 @@ read_uptime_load(struct sys_stats *stats)
 gboolean
 stats_timer_cb(gpointer user_data)
 {
-  (void)user_data;
+  struct app_state *app = user_data;
 
   /* Read stats */
-  read_cpu_stats(&latest_stats);
-  read_mem_stats(&latest_stats);
-  read_uptime_load(&latest_stats);
+  read_cpu_stats(&app->stats);
+  read_mem_stats(&app->stats);
+  read_uptime_load(&app->stats);
   /* Wall-clock timestamp (real time) */
-  latest_stats.timestamp_ms = get_time_ms(CLOCK_REALTIME);
+  app->stats.timestamp_ms = get_time_ms(CLOCK_REALTIME);
   /* Previous monotonic timestamp for delta calculation */
   static uint64_t prev_mono_ms = 0;
   /* Current monotonic timestamp (not affected by clock adjustments) */
   uint64_t now_mono_ms = get_time_ms(CLOCK_MONOTONIC);
   /* Store monotonic time for consumers that need stable timing */
-  latest_stats.monotonic_ms = now_mono_ms;
+  app->stats.monotonic_ms = now_mono_ms;
   /* Compute elapsed time since last sample using monotonic clock */
   if (prev_mono_ms != 0 && now_mono_ms >= prev_mono_ms) {
-    latest_stats.delta_ms = now_mono_ms - prev_mono_ms;
+    app->stats.delta_ms = now_mono_ms - prev_mono_ms;
   } else {
     /* First sample */
-    latest_stats.delta_ms = 0;
+    app->stats.delta_ms = 0;
   }
   /* Update previous monotonic timestamp for next interval */
   prev_mono_ms = now_mono_ms;

@@ -33,6 +33,17 @@ struct per_session_data;
  */
 #define MAX_PROC_PATH_LENGTH 256
 
+/* Cache the number of online CPUs once.
+ *
+ * The value is constant for the lifetime of the process on typical
+ * embedded systems, so caching avoids repeated sysconf() calls.
+ * Fallback to 1 ensures safe division if sysconf() fails.
+ */
+void proc_init_cpu_count(void);
+
+/* Return CPU core count. */
+long proc_get_cpu_core_count(void);
+
 /* Read CPU and memory usage for a named process.
  *
  * - Matches the first /proc/<pid>/comm equal to proc_name.
@@ -78,4 +89,4 @@ bool read_process_stats(const char *proc_name,
  * - Number of unique process names written to the output array.
  * - Returns 0 on failure or if no processes are found.
  */
-size_t collect_process_list(char names[][64], size_t max_names);
+size_t collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names);

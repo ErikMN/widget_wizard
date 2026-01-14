@@ -33,12 +33,6 @@ struct sys_stats {
   uint64_t delta_ms;
 };
 
-/* latest_stats is accessed only from the GLib main loop thread.
- * No locking is required as long as libwebsockets is serviced
- * exclusively via lws_service() in this loop.
- */
-extern struct sys_stats latest_stats;
-
 /* Periodic GLib timer callback that updates the global system statistics.
  *
  * This runs in the GLib main loop thread and refreshes latest_stats.

@@ -5,7 +5,6 @@
 #include <libwebsockets.h>
 #include <glib.h>
 
-#include "globals.h"
 #include "stats.h"
 #include "session.h"
 #include "proc.h"
@@ -36,9 +35,6 @@ struct lws_context *lws_ctx = NULL;
 unsigned int ws_pending_client_count = 0;
 unsigned int ws_connected_client_count = 0;
 
-/* GLib timer that drives libwebsockets */
-static guint lws_service_timer_id = 0;
-
 /******************************************************************************/
 
 /*
@@ -51,23 +47,21 @@ static guint lws_service_timer_id = 0;
  * - Avoid unnecessary /proc polling when no clients are connected.
  * - Sampling frequency is independent of WebSocket send frequency.
  */
-static guint stats_timer_id = 0;
-
 void
-start_stats_timer(void)
+start_stats_timer(struct app_state *app)
 {
-  if (stats_timer_id == 0) {
-    stats_timer_id = g_timeout_add(500, stats_timer_cb, NULL);
+  if (app->stats_timer_id == 0) {
+    app->stats_timer_id = g_timeout_add(500, stats_timer_cb, app);
   }
 }
 
 /* Stop the stats timer */
 void
-stop_stats_timer(void)
+stop_stats_timer(struct app_state *app)
 {
-  if (stats_timer_id != 0) {
-    g_source_remove(stats_timer_id);
-    stats_timer_id = 0;
+  if (app->stats_timer_id != 0) {
+    g_source_remove(app->stats_timer_id);
+    app->stats_timer_id = 0;
   }
 }
 
@@ -101,7 +95,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     /* If at least one connection: start the timer */
     if (ws_connected_client_count == 1) {
-      start_stats_timer();
+      struct app_state *app = lws_context_user(lws_get_context(wsi));
+      start_stats_timer(app);
     }
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     /* Send immediately */
@@ -246,7 +241,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       }
       /* If no connections: Stop the timer */
       if (ws_connected_client_count == 0) {
-        stop_stats_timer();
+        struct app_state *app = lws_context_user(lws_get_context(wsi));
+        stop_stats_timer(app);
       }
     }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
@@ -271,6 +267,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     char json[MAX_WS_MESSAGE_LENGTH];
     int json_len;
     bool truncated = false;
+    struct app_state *app = lws_context_user(lws_get_context(wsi));
 
     if (!pss) {
       break;
@@ -278,8 +275,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     json_len = (int)build_stats_json(json,
                                      sizeof(json),
-                                     &latest_stats,
-                                     cpu_core_count,
+                                     &app->stats,
+                                     proc_get_cpu_core_count(),
                                      ws_connected_client_count,
                                      MAX_WS_CONNECTED_CLIENTS,
                                      pss,

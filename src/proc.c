@@ -2,12 +2,38 @@
 #include <dirent.h>
 #include <string.h>
 #include <unistd.h>
+#include <syslog.h>
 
-#include "globals.h"
 #include "session.h"
 #include "proc.h"
 #include "stats.h"
 #include "util.h"
+
+static long cpu_core_count = 1;
+
+/* Cache the number of online CPUs once.
+ *
+ * The value is constant for the lifetime of the process on typical
+ * embedded systems, so caching avoids repeated sysconf() calls.
+ * Fallback to 1 ensures safe division if sysconf() fails.
+ */
+void
+proc_init_cpu_count(void)
+{
+  cpu_core_count = sysconf(_SC_NPROCESSORS_ONLN);
+  if (cpu_core_count <= 0) {
+    syslog(LOG_WARNING, "sysconf(_SC_NPROCESSORS_ONLN) failed, defaulting to 1 CPU");
+    cpu_core_count = 1;
+  }
+  syslog(LOG_INFO, "Detected %ld CPU core(s)", cpu_core_count);
+}
+
+/* Return CPU core count. */
+long
+proc_get_cpu_core_count(void)
+{
+  return cpu_core_count;
+}
 
 /* Verify that a cached PID still belongs to the given process name.
  *

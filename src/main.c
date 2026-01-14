@@ -7,7 +7,7 @@
  *
  * App overview:
  * - The application runs entirely in a single GLib main loop thread.
- * - System statistics are periodically sampled from /proc and stored in latest_stats.
+ * - System statistics are periodically sampled from /proc and stored in app_state::stats.
  * - libwebsockets is serviced from the same GLib main loop via a timer.
  * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
  * - Each WebSocket client can optionally request per-process monitoring by process name.
@@ -15,8 +15,8 @@
  * - Each WebSocket client can request one-shot filesystem storage information.
  *
  * Data flow:
- *   /proc -> stats_timer_cb() -> latest_stats
- *   latest_stats -> ws_callback() -> WebSocket clients
+ *   /proc -> stats_timer_cb() -> app_state.stats
+ *   app_state.stats -> ws_callback() -> WebSocket clients
  *
  * Per-process monitoring:
  * - The client can send a JSON command to enable monitoring of a single process:
@@ -104,13 +104,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <jansson.h>
-#include <libwebsockets.h>
 #include <glib/gstdio.h>
 #include <glib-unix.h>
 #include <axsdk/axparameter.h>
 
-#include "globals.h"
+#include "app_state.h"
 #include "util.h"
 #include "stats.h"
 #include "session.h"
@@ -130,31 +128,7 @@
  */
 #define WS_PORT_DEFAULT 9000
 
-/* scanf() field widths must be compile-time decimal literals in the format string.
- *
- * The C preprocessor cannot stringify an expression like (MAX_PROC_NAME_LENGTH - 1)
- * into a valid scanf width, so the value is defined explicitly and verified below.
- *
- * This width ensures space for the terminating NUL when scanning into
- * char proc_name[MAX_PROC_NAME_LENGTH].
- */
-#define MAX_PROC_NAME_SCAN_WIDTH 63
-_Static_assert(MAX_PROC_NAME_SCAN_WIDTH == MAX_PROC_NAME_LENGTH - 1,
-               "MAX_PROC_NAME_SCAN_WIDTH must be MAX_PROC_NAME_LENGTH - 1");
-
-/* Macro helpers for turning macro *values* into string literals.
- *
- * Two-step expansion is required so STR(MAX_PROC_NAME_SCAN_WIDTH)
- * expands the macro first (e.g. 5) and then stringifies it ("5").
- *
- * Used to build scanf format strings with compile-time widths.
- */
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
 /******************************************************************************/
-/* Global app variables */
-long cpu_core_count = 1;
 
 /* Global variables for this file */
 static GMainLoop *main_loop = NULL;
@@ -174,7 +148,8 @@ on_unix_signal(gpointer user_data)
   GMainLoop *main_loop = user_data;
 
   /* Stop periodic timers to allow clean shutdown */
-  stop_stats_timer();
+  struct app_state *app = lws_context_user(lws_ctx);
+  stop_stats_timer(app);
 
   if (lws_service_timer_id != 0) {
     g_source_remove(lws_service_timer_id);
@@ -197,6 +172,8 @@ main(int argc, char **argv)
   int ret = 0;
   struct lws_context_creation_info info;
   int ws_port = WS_PORT_DEFAULT;
+  struct app_state app;
+  memset(&app, 0, sizeof(app));
 
   /* Open the syslog to report messages for the app */
   openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
@@ -250,6 +227,7 @@ main(int argc, char **argv)
   info.protocols = protocols;
   info.gid = -1;
   info.uid = -1;
+  info.user = &app; /* Pass the app state */
 
   /* Set log level to error and warning only */
   lws_set_log_level(LLL_ERR | LLL_WARN, NULL);
@@ -260,22 +238,13 @@ main(int argc, char **argv)
     ret = -1;
     goto exit;
   }
-  /* Cache the number of online CPUs once.
-   *
-   * The value is constant for the lifetime of the process on typical
-   * embedded systems, so caching avoids repeated sysconf() calls.
-   * Fallback to 1 ensures safe division if sysconf() fails.
-   */
-  cpu_core_count = sysconf(_SC_NPROCESSORS_ONLN);
-  if (cpu_core_count <= 0) {
-    syslog(LOG_WARNING, "sysconf(_SC_NPROCESSORS_ONLN) failed, defaulting to 1 CPU");
-    cpu_core_count = 1;
-  }
-  syslog(LOG_INFO, "Detected %ld CPU core(s)", cpu_core_count);
+
+  /* Cache the number of online CPUs once. */
+  proc_init_cpu_count();
 
   /* Initialize latest_stats and establish CPU usage baseline */
-  read_cpu_stats(&latest_stats);
-  read_mem_stats(&latest_stats);
+  read_cpu_stats(&app.stats);
+  read_mem_stats(&app.stats);
 
   /* Drive libwebsockets and system statistics from the GLib main loop.
    *
