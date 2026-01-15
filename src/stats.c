@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 
-#include "app_state.h"
 #include "stats.h"
 #include "util.h"
 
@@ -220,40 +220,45 @@ read_uptime_load(struct sys_stats *stats)
   }
 }
 
-/* Periodic GLib timer callback that updates the system statistics in app_state.
+/* Update all system statistics and timestamps.
  *
- * This runs in the GLib main loop thread and refreshes app_state::stats.
- * The data is later consumed by the WebSocket write
- * callback when sending updates to connected clients.
+ * Responsibilities:
+ * - Refresh CPU, memory, uptime, and load fields by reading from /proc.
+ * - Record a wall-clock timestamp (CLOCK_REALTIME) suitable for external correlation.
+ * - Record a monotonic timestamp (CLOCK_MONOTONIC) suitable for measuring intervals.
+ * - Compute delta_ms as the elapsed monotonic time since the previous update.
  *
- * Returning G_SOURCE_CONTINUE keeps the timer active.
+ * Notes:
+ * - delta_ms is 0 on the first call (no previous monotonic baseline).
+ * - This function performs no locking; the caller must ensure single-threaded access.
  */
-gboolean
-stats_timer_cb(gpointer user_data)
+void
+update_sys_stats(struct sys_stats *stats)
 {
-  struct app_state *app = user_data;
-
+  if (!stats) {
+    return;
+  }
   /* Read stats */
-  read_cpu_stats(&app->stats);
-  read_mem_stats(&app->stats);
-  read_uptime_load(&app->stats);
+  read_cpu_stats(stats);
+  read_mem_stats(stats);
+  read_uptime_load(stats);
+
   /* Wall-clock timestamp (real time) */
-  app->stats.timestamp_ms = get_time_ms(CLOCK_REALTIME);
+  stats->timestamp_ms = get_time_ms(CLOCK_REALTIME);
+
   /* Previous monotonic timestamp for delta calculation */
   static uint64_t prev_mono_ms = 0;
   /* Current monotonic timestamp (not affected by clock adjustments) */
   uint64_t now_mono_ms = get_time_ms(CLOCK_MONOTONIC);
   /* Store monotonic time for consumers that need stable timing */
-  app->stats.monotonic_ms = now_mono_ms;
+  stats->monotonic_ms = now_mono_ms;
   /* Compute elapsed time since last sample using monotonic clock */
   if (prev_mono_ms != 0 && now_mono_ms >= prev_mono_ms) {
-    app->stats.delta_ms = now_mono_ms - prev_mono_ms;
+    stats->delta_ms = now_mono_ms - prev_mono_ms;
   } else {
     /* First sample */
-    app->stats.delta_ms = 0;
+    stats->delta_ms = 0;
   }
   /* Update previous monotonic timestamp for next interval */
   prev_mono_ms = now_mono_ms;
-
-  return G_SOURCE_CONTINUE;
 }

@@ -15,9 +15,6 @@
 
 /******************************************************************************/
 
-/* WebSocket server state */
-// struct lws_context *lws_ctx = NULL;
-
 /* Connection accounting:
  *
  * - ws_pending_client_count is incremented in LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION.
@@ -32,8 +29,28 @@
  * that FILTER_PROTOCOL_CONNECTION is paired with ESTABLISHED or CLOSED
  * on all handshake failure paths.
  */
-unsigned int ws_pending_client_count = 0;
-unsigned int ws_connected_client_count = 0;
+static unsigned int ws_pending_client_count = 0;
+static unsigned int ws_connected_client_count = 0;
+
+/******************************************************************************/
+
+/* Periodic GLib timer callback that updates the system statistics in app_state.
+ *
+ * This runs in the GLib main loop thread and refreshes app_state::stats.
+ * The data is later consumed by the WebSocket write
+ * callback when sending updates to connected clients.
+ *
+ * Returning G_SOURCE_CONTINUE keeps the timer active.
+ */
+static gboolean
+stats_timer_cb(gpointer user_data)
+{
+  struct app_state *app = user_data;
+
+  update_sys_stats(&app->stats);
+
+  return G_SOURCE_CONTINUE;
+}
 
 /******************************************************************************/
 
@@ -128,7 +145,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_RECEIVE: {
     /* Log received data */
-    syslog(LOG_INFO, "WebSocket received %zu bytes", len);
+    syslog(LOG_DEBUG, "WebSocket received %zu bytes", len);
     struct per_session_data *pss = user;
 
     if (!pss || len == 0 || len >= 128) {

@@ -15,7 +15,7 @@
  * - Each WebSocket client can request one-shot filesystem storage information.
  *
  * Data flow:
- *   /proc -> stats_timer_cb() -> app_state.stats
+ *   /proc -> app_state.stats
  *   app_state.stats -> ws_callback() -> WebSocket clients
  *
  * Per-process monitoring:
@@ -249,9 +249,8 @@ main(int argc, char **argv)
    *
    * - lws_glib_service(): periodically services libwebsockets so it can
    *   process network events and invoke protocol callbacks.
-   * - stats_timer_cb(): periodically polls system statistics and
-   *   updates latest_stats. This function is started/stopped dynamically based
-   *   on whether there are any connected WebSocket clients.
+   * - ws_server internally starts a statistics timer that periodically
+   *   updates app_state::stats while at least one client is connected.
    */
   lws_service_timer_id = g_timeout_add(10, lws_glib_service, app.lws_ctx);
 

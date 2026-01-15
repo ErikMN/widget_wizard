@@ -5,10 +5,6 @@
 
 #include "app_state.h"
 
-/* Connection accounting */
-extern unsigned int ws_connected_client_count;
-extern unsigned int ws_pending_client_count;
-
 /* Protocol table exported to main.c */
 extern const struct lws_protocols protocols[];
 

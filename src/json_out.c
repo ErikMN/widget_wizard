@@ -25,6 +25,13 @@ build_stats_json(char *out_buf,
     *truncated = false;
   }
 
+  if (!out_buf || out_size == 0 || !stats || !pss) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
   /* Construct the JSON response */
   json_len = snprintf(out_buf,
                       out_size,
@@ -87,7 +94,7 @@ build_stats_json(char *out_buf,
       int proc_len = json_dumpb(proc, proc_buf, sizeof(proc_buf), JSON_COMPACT);
       json_decref(proc);
 
-      if (proc_len < 0 || (size_t)proc_len > sizeof(proc_buf)) {
+      if (proc_len < 0 || (size_t)proc_len >= sizeof(proc_buf)) {
         if (truncated) {
           *truncated = true;
         }
@@ -96,7 +103,6 @@ build_stats_json(char *out_buf,
       /* Append serialized process JSON fragment to the response buffer */
       int ret = snprintf(out_buf + json_len, out_size - json_len, ", \"proc\": %.*s", proc_len, proc_buf);
       if (ret < 0 || (size_t)ret >= out_size - json_len) {
-        syslog(LOG_ERR, "JSON message truncated, dropping the frame");
         if (truncated) {
           *truncated = true;
         }
@@ -124,7 +130,7 @@ build_stats_json(char *out_buf,
       int err_len = json_dumpb(err, err_buf, sizeof(err_buf), JSON_COMPACT);
       json_decref(err);
 
-      if (err_len < 0 || (size_t)err_len > sizeof(err_buf)) {
+      if (err_len < 0 || (size_t)err_len >= sizeof(err_buf)) {
         if (truncated) {
           *truncated = true;
         }
@@ -133,7 +139,6 @@ build_stats_json(char *out_buf,
       /* Append serialized error JSON fragment to the response buffer */
       int ret = snprintf(out_buf + json_len, out_size - json_len, ", \"error\": %.*s", err_len, err_buf);
       if (ret < 0 || (size_t)ret >= out_size - json_len) {
-        syslog(LOG_ERR, "JSON message truncated, dropping the frame");
         if (truncated) {
           *truncated = true;
         }
@@ -144,7 +149,6 @@ build_stats_json(char *out_buf,
   }
   /* Truncated output! */
   if ((size_t)json_len >= out_size) {
-    syslog(LOG_ERR, "JSON message truncated, dropping the frame");
     if (truncated) {
       *truncated = true;
     }
@@ -152,7 +156,6 @@ build_stats_json(char *out_buf,
   }
   /* Close JSON object */
   if ((size_t)json_len + 1 >= out_size) {
-    syslog(LOG_ERR, "JSON message truncated, dropping the frame");
     if (truncated) {
       *truncated = true;
     }

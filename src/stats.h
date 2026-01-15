@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <glib.h>
 
 /* Maximum length of a single line read from /proc text files.
  *
@@ -32,16 +31,6 @@ struct sys_stats {
   uint64_t monotonic_ms;
   uint64_t delta_ms;
 };
-
-/* Periodic GLib timer callback that updates the system statistics in app_state.
- *
- * This runs in the GLib main loop thread and refreshes app_state::stats.
- * The data is later consumed by the WebSocket write
- * callback when sending updates to connected clients.
- *
- * Returning G_SOURCE_CONTINUE keeps the timer active.
- */
-gboolean stats_timer_cb(gpointer user_data);
 
 /* Read MemTotal and MemAvailable from /proc/meminfo
  * and return them in stats structure.
@@ -81,3 +70,9 @@ void read_cpu_stats(struct sys_stats *stats);
  * This function performs no caching and always reads directly from /proc.
  */
 void read_uptime_load(struct sys_stats *stats);
+
+/* Update all fields in stats, including timestamps and delta_ms.
+ *
+ * This is intended to be called periodically by the caller.
+ */
+void update_sys_stats(struct sys_stats *stats);

@@ -7,7 +7,7 @@
 struct app_state {
   /* System statistics are accessed only from the GLib main loop thread.
    * No locking is required as long as libwebsockets is serviced
-   * exclusively via lws_service() in this loop.
+   * exclusively from this loop.
    */
   struct sys_stats stats;
 
