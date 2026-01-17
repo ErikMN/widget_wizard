@@ -102,12 +102,12 @@
 
 #include <glib/gstdio.h>
 #include <glib-unix.h>
-#include <axsdk/axparameter.h>
 
 #include "app_state.h"
 #include "stats.h"
 #include "proc.h"
 #include "ws_server.h"
+#include "platform/platform.h"
 
 /* Axparameters used by this app */
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
@@ -152,8 +152,6 @@ on_unix_signal(gpointer user_data)
 int
 main(int argc, char **argv)
 {
-  AXParameter *parameter = NULL;
-  GError *error = NULL;
   int ret = 0;
   int ws_port = WS_PORT_DEFAULT;
   struct app_state app;
@@ -188,22 +186,8 @@ main(int argc, char **argv)
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "%s starting WebSocket backend.", APP_NAME);
 
-  /* Create AXParameter */
-  parameter = ax_parameter_new(APP_NAME, &error);
-  if (parameter == NULL) {
-    syslog(LOG_WARNING, "Failed to create parameter: %s", error->message);
-    ret = -1;
-    goto exit;
-  }
-
-  /* Set ApplicationRunning to yes */
-  if (!ax_parameter_set(parameter, PARAM_NAME_APPLICATION_RUNNING_PARAM, "yes", true, &error)) {
-    syslog(LOG_WARNING, "Failed to set parameter %s: %s", PARAM_NAME_APPLICATION_RUNNING_PARAM, error->message);
-  }
-  if (error) {
-    g_error_free(error);
-    error = NULL;
-  }
+  /* Platform-specific runtime status (Axis devices only) */
+  platform_status_start();
 
   /* Cache the number of online CPUs once. */
   proc_init_cpu_count();
@@ -222,15 +206,7 @@ main(int argc, char **argv)
   /* Start the main loop */
   g_main_loop_run(main_loop);
 
-  /* Set ApplicationRunning to no */
-  if (!ax_parameter_set(parameter, PARAM_NAME_APPLICATION_RUNNING_PARAM, "no", true, &error)) {
-    syslog(LOG_WARNING, "Failed to set parameter %s: %s", PARAM_NAME_APPLICATION_RUNNING_PARAM, error->message);
-  }
-  if (error) {
-    g_error_free(error);
-    error = NULL;
-  }
-
+  /* Cleanup and exit the app */
 exit:
   syslog(LOG_INFO, "Terminating %s backend.", APP_NAME);
   /* Cleanup WebSocket context */
@@ -240,10 +216,8 @@ exit:
     g_main_loop_unref(main_loop);
     main_loop = NULL;
   }
-  /* Free axparameter */
-  if (parameter) {
-    ax_parameter_free(parameter);
-  }
+  /* Platform-specific runtime status (Axis devices only) */
+  platform_status_stop();
   /* Close application logging to syslog */
   closelog();
 
