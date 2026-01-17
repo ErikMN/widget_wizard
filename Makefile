@@ -44,18 +44,24 @@ DOCKER_CMD := docker run --rm -i -t \
               -v /etc/group:/etc/group:ro \
               -v $(d)/.yarnrc:$(d)/.yarnrc
 
-# Static linking of libwebsockets:
-LWS_STATIC = /opt/app/libwebsockets/libwebsockets.a
-LDLIBS += $(LWS_STATIC)
-
 # Dynamic libs to use:
-PKGS += glib-2.0 axparameter jansson libcap
+PKGS += glib-2.0 jansson libcap
 ifdef PKGS
   LDLIBS += $(shell pkg-config --libs $(PKGS))
   CFLAGS += $(shell pkg-config --cflags $(PKGS))
 endif
 
 SRCS = $(wildcard src/*.c)
+ifneq ($(APPTYPE), host)
+  # Static linking of libwebsockets:
+  LDLIBS += /opt/app/libwebsockets/libwebsockets.a
+  PKGS += axparameter
+  SRCS += src/platform/platform_ax.c
+else
+  # Dynamic linking of libwebsockets:
+  PKGS += libwebsockets
+  SRCS += src/platform/platform_pc.c
+endif
 OBJS = $(SRCS:.c=.o)
 CFLAGS += -DAPP_NAME="\"$(PROGS)\""
 CFLAGS += -W
@@ -197,11 +203,19 @@ else
 	@exit 1
 endif
 
+# Build for host (requires all dependencies installed):
+.PHONY: host
+host: clean
+	@$(MAKE) \
+	  OECORE_SDK_VERSION=host \
+	  APPTYPE=host \
+	  $(PROGS)
+
 # Cleanup:
 .PHONY: clean
 clean:
 	@$(ECHO) "${RED}*** Clean build${NC}"
-	$(RM) $(PROGS) $(OBJS) *.eap *LICENSE.txt
+	$(RM) $(PROGS) $(OBJS) src/platform/*.o *.eap *LICENSE.txt
 
 # Cleanup everything:
 .PHONY: distclean
