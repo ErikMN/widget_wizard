@@ -93,15 +93,11 @@
  * - Not intended as a general-purpose metrics system.
  */
 #include <stdlib.h>
-#include <dirent.h>
 #include <getopt.h>
-#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/statvfs.h>
 #include <syslog.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <glib/gstdio.h>
@@ -109,14 +105,9 @@
 #include <axsdk/axparameter.h>
 
 #include "app_state.h"
-#include "util.h"
 #include "stats.h"
-#include "session.h"
 #include "proc.h"
-#include "storage.h"
-#include "json_out.h"
 #include "ws_server.h"
-#include "ws_limits.h"
 
 /* Axparameters used by this app */
 #define PARAM_NAME_APPLICATION_RUNNING_PARAM "ApplicationRunning"
@@ -132,7 +123,6 @@
 
 /* Global variables for this file */
 static GMainLoop *main_loop = NULL;
-static guint lws_service_timer_id = 0;
 
 /******************************************************************************/
 
@@ -145,15 +135,11 @@ static guint lws_service_timer_id = 0;
 static gboolean
 on_unix_signal(gpointer user_data)
 {
-  struct app_state *app = user_data;
+  (void)user_data;
 
-  /* Stop periodic timers to allow clean shutdown */
-  stop_stats_timer(app);
+  /* Stop WebSocket server and all its timers */
+  ws_server_stop();
 
-  if (lws_service_timer_id != 0) {
-    g_source_remove(lws_service_timer_id);
-    lws_service_timer_id = 0;
-  }
   if (main_loop) {
     g_main_loop_quit(main_loop);
   }
@@ -169,7 +155,6 @@ main(int argc, char **argv)
   AXParameter *parameter = NULL;
   GError *error = NULL;
   int ret = 0;
-  struct lws_context_creation_info info;
   int ws_port = WS_PORT_DEFAULT;
   struct app_state app;
   memset(&app, 0, sizeof(app));
@@ -193,12 +178,12 @@ main(int argc, char **argv)
       return EXIT_FAILURE;
     }
   }
-
+  /* Create the main GLib event loop */
   main_loop = g_main_loop_new(NULL, FALSE);
 
   /* Handle Unix signals for graceful termination */
-  g_unix_signal_add(SIGINT, on_unix_signal, &app);
-  g_unix_signal_add(SIGTERM, on_unix_signal, &app);
+  g_unix_signal_add(SIGINT, on_unix_signal, NULL);
+  g_unix_signal_add(SIGTERM, on_unix_signal, NULL);
 
   /* Choose between { LOG_INFO, LOG_CRIT, LOG_WARN, LOG_ERR } */
   syslog(LOG_INFO, "%s starting WebSocket backend.", APP_NAME);
@@ -220,41 +205,19 @@ main(int argc, char **argv)
     error = NULL;
   }
 
-  /* Create WebSocket context */
-  memset(&info, 0, sizeof(info));
-  info.port = ws_port;
-  info.protocols = protocols;
-  info.gid = -1;
-  info.uid = -1;
-  info.user = &app; /* Pass the app state */
+  /* Cache the number of online CPUs once. */
+  proc_init_cpu_count();
 
-  /* Set log level to error and warning only */
-  lws_set_log_level(LLL_ERR | LLL_WARN, NULL);
-
-  app.lws_ctx = lws_create_context(&info);
-  if (!app.lws_ctx) {
-    syslog(LOG_ERR, "Failed to create libwebsockets context");
+  /* Start the websocket server */
+  if (!ws_server_start(&app, ws_port)) {
     ret = -1;
     goto exit;
   }
-
-  /* Cache the number of online CPUs once. */
-  proc_init_cpu_count();
+  syslog(LOG_INFO, "WebSocket server listening on port %d", ws_port);
 
   /* Initialize latest_stats and establish CPU usage baseline */
   read_cpu_stats(&app.stats);
   read_mem_stats(&app.stats);
-
-  /* Drive libwebsockets and system statistics from the GLib main loop.
-   *
-   * - lws_glib_service(): periodically services libwebsockets so it can
-   *   process network events and invoke protocol callbacks.
-   * - ws_server internally starts a statistics timer that periodically
-   *   updates app_state::stats while at least one client is connected.
-   */
-  lws_service_timer_id = g_timeout_add(10, lws_glib_service, app.lws_ctx);
-
-  syslog(LOG_INFO, "WebSocket server listening on port %d", ws_port);
 
   /* Start the main loop */
   g_main_loop_run(main_loop);
@@ -271,10 +234,7 @@ main(int argc, char **argv)
 exit:
   syslog(LOG_INFO, "Terminating %s backend.", APP_NAME);
   /* Cleanup WebSocket context */
-  if (app.lws_ctx) {
-    lws_context_destroy(app.lws_ctx);
-    app.lws_ctx = NULL;
-  }
+  ws_server_stop();
   /* Unref the main loop */
   if (main_loop) {
     g_main_loop_unref(main_loop);

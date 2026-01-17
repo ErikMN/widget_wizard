@@ -179,7 +179,7 @@ read_cpu_stats(struct sys_stats *stats)
  * On any read or parse failure, the corresponding values remain zero.
  * This function performs no caching and always reads directly from /proc.
  */
-void
+static void
 read_uptime_load(struct sys_stats *stats)
 {
   char line[MAX_PROC_LINE_LENGTH];

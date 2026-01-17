@@ -5,13 +5,26 @@
 #include <libwebsockets.h>
 #include <glib.h>
 
-#include "stats.h"
 #include "session.h"
 #include "proc.h"
-#include "storage.h"
 #include "json_out.h"
 #include "ws_limits.h"
 #include "ws_server.h"
+
+/* Internal WebSocket server state (singleton instance).
+ *
+ * NOTE: This module supports exactly one WebSocket server per process.
+ */
+static struct {
+  /* libwebsockets context */
+  struct lws_context *ctx;
+  /* Application state (not owned) */
+  struct app_state *app;
+  /* System statistics sampling timer */
+  guint stats_timer_id;
+  /* libwebsockets service timer */
+  guint lws_timer_id;
+} ws;
 
 /******************************************************************************/
 
@@ -64,21 +77,21 @@ stats_timer_cb(gpointer user_data)
  * - Avoid unnecessary /proc polling when no clients are connected.
  * - Sampling frequency is independent of WebSocket send frequency.
  */
-void
-start_stats_timer(struct app_state *app)
+static void
+start_stats_timer(void)
 {
-  if (app->stats_timer_id == 0) {
-    app->stats_timer_id = g_timeout_add(500, stats_timer_cb, app);
+  if (ws.stats_timer_id == 0 && ws.app) {
+    ws.stats_timer_id = g_timeout_add(500, stats_timer_cb, ws.app);
   }
 }
 
-/* Stop the stats timer */
-void
-stop_stats_timer(struct app_state *app)
+/* Stop the statistics sampling timer */
+static void
+stop_stats_timer(void)
 {
-  if (app->stats_timer_id != 0) {
-    g_source_remove(app->stats_timer_id);
-    app->stats_timer_id = 0;
+  if (ws.stats_timer_id != 0) {
+    g_source_remove(ws.stats_timer_id);
+    ws.stats_timer_id = 0;
   }
 }
 
@@ -112,8 +125,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     /* If at least one connection: start the timer */
     if (ws_connected_client_count == 1) {
-      struct app_state *app = lws_context_user(lws_get_context(wsi));
-      start_stats_timer(app);
+      start_stats_timer();
     }
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     /* Send immediately */
@@ -258,8 +270,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       }
       /* If no connections: Stop the timer */
       if (ws_connected_client_count == 0) {
-        struct app_state *app = lws_context_user(lws_get_context(wsi));
-        stop_stats_timer(app);
+        stop_stats_timer();
       }
     }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
@@ -347,16 +358,6 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
 /******************************************************************************/
 
-/* Protocol list exported to main.c */
-const struct lws_protocols protocols[] = { {
-                                               .name = "sysstats",
-                                               .callback = ws_callback,
-                                               .per_session_data_size = sizeof(struct per_session_data),
-                                           },
-                                           { NULL, NULL, 0, 0, 0, NULL, 0 } };
-
-/******************************************************************************/
-
 /* Periodic GLib timer callback that drives libwebsockets from the GLib main loop.
  *
  * libwebsockets is not automatically integrated with GLib, so we call
@@ -377,3 +378,72 @@ lws_glib_service(gpointer user_data)
 
   return G_SOURCE_CONTINUE;
 }
+
+/******************************************************************************/
+
+/* Protocol list for this WebSocket server */
+static const struct lws_protocols protocols[] = { {
+                                                      .name = "sysstats",
+                                                      .callback = ws_callback,
+                                                      .per_session_data_size = sizeof(struct per_session_data),
+                                                  },
+                                                  { NULL, NULL, 0, 0, 0, NULL, 0 } };
+
+bool
+ws_server_start(struct app_state *app, int port)
+{
+  struct lws_context_creation_info info;
+
+  if (!app) {
+    return false;
+  }
+  ws.app = app;
+
+  /* Create WebSocket context */
+  memset(&info, 0, sizeof(info));
+  info.port = port;
+  info.protocols = protocols;
+  info.gid = -1;
+  info.uid = -1;
+  info.user = app;
+
+  /* Set log level to error and warning only */
+  lws_set_log_level(LLL_ERR | LLL_WARN, NULL);
+
+  ws.ctx = lws_create_context(&info);
+  if (!ws.ctx) {
+    syslog(LOG_ERR, "Failed to create libwebsockets context");
+    return false;
+  }
+
+  /* Drive libwebsockets from the GLib main loop.
+   *
+   * - lws_glib_service(): periodically services libwebsockets so it can
+   *   process network events and invoke protocol callbacks.
+   * - ws_server internally starts a statistics timer that periodically
+   *   updates app_state::stats while at least one client is connected.
+   */
+  ws.lws_timer_id = g_timeout_add(10, lws_glib_service, ws.ctx);
+
+  return true;
+}
+
+void
+ws_server_stop(void)
+{
+  stop_stats_timer();
+
+  /* Stop the GLib timer that drives libwebsockets servicing */
+  if (ws.lws_timer_id != 0) {
+    g_source_remove(ws.lws_timer_id);
+    ws.lws_timer_id = 0;
+  }
+  /* Destroy the lws_context */
+  if (ws.ctx) {
+    lws_context_destroy(ws.ctx);
+    ws.ctx = NULL;
+  }
+  ws.app = NULL;
+}
+
+/******************************************************************************/

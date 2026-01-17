@@ -54,23 +54,6 @@ void read_mem_stats(struct sys_stats *stats);
  */
 void read_cpu_stats(struct sys_stats *stats);
 
-/* Read system uptime and load averages.
- *
- * Data sources:
- * - /proc/uptime:
- *     First value  -> system uptime in seconds since boot
- *     Second value -> cumulative idle time across all CPUs (ignored)
- *
- * - /proc/loadavg:
- *     load1  -> 1-minute load average
- *     load5  -> 5-minute load average
- *     load15 -> 15-minute load average
- *
- * On any read or parse failure, the corresponding values remain zero.
- * This function performs no caching and always reads directly from /proc.
- */
-void read_uptime_load(struct sys_stats *stats);
-
 /* Update all fields in stats, including timestamps and delta_ms.
  *
  * This is intended to be called periodically by the caller.

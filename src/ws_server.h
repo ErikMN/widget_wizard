@@ -1,16 +1,16 @@
 #pragma once
 
-#include <libwebsockets.h>
-#include <glib.h>
+#include <stdbool.h>
 
 #include "app_state.h"
 
-/* Protocol table exported to main.c */
-extern const struct lws_protocols protocols[];
+/* Initialize and start the WebSocket server.
+ *
+ * Returns true on success, false on failure.
+ */
+bool ws_server_start(struct app_state *app, int port);
 
-/* Starts and stops system sampling based on client count */
-void start_stats_timer(struct app_state *app);
-void stop_stats_timer(struct app_state *app);
-
-/* GLib timer used to drive libwebsockets */
-gboolean lws_glib_service(gpointer user_data);
+/* Stop the WebSocket server and release all resources.
+ * Safe to call multiple times.
+ */
+void ws_server_stop(void);
