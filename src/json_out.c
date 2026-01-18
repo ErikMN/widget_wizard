@@ -19,7 +19,8 @@ build_stats_json(char *out_buf,
                  struct per_session_data *pss,
                  bool *truncated)
 {
-  int json_len;
+  json_t *resp = NULL;
+  json_t *clients = NULL;
 
   if (truncated) {
     *truncated = false;
@@ -32,37 +33,41 @@ build_stats_json(char *out_buf,
     return 0;
   }
 
-  /* Construct the JSON response */
-  json_len = snprintf(out_buf,
-                      out_size,
-                      "{ \"ts\": %" PRIu64 ", \"mono_ms\": %" PRIu64 ", \"delta_ms\": %" PRIu64 ", \"cpu\": %.2f"
-                      ", \"cpu_cores\": %ld"
-                      ", \"mem_total_kb\": %ld"
-                      ", \"mem_available_kb\": %ld"
-                      ", \"uptime_s\": %.0f"
-                      ", \"load1\": %.2f"
-                      ", \"load5\": %.2f"
-                      ", \"load15\": %.2f"
-                      ", \"clients\": { \"connected\": %u, \"max\": %u }",
-                      stats->timestamp_ms,
-                      stats->monotonic_ms,
-                      stats->delta_ms,
-                      stats->cpu_usage,
-                      cpu_core_count,
-                      stats->mem_total_kb,
-                      stats->mem_available_kb,
-                      stats->uptime_s,
-                      stats->load1,
-                      stats->load5,
-                      stats->load15,
-                      connected_clients,
-                      max_clients);
-  if (json_len < 0 || (size_t)json_len >= out_size) {
+  /* Root JSON object */
+  resp = json_object();
+  if (!resp) {
     if (truncated) {
       *truncated = true;
     }
     return 0;
   }
+
+  /* Populate system statistics */
+  json_object_set_new(resp, "ts", json_integer(stats->timestamp_ms));
+  json_object_set_new(resp, "mono_ms", json_integer(stats->monotonic_ms));
+  json_object_set_new(resp, "delta_ms", json_integer(stats->delta_ms));
+  json_object_set_new(resp, "cpu", json_real(stats->cpu_usage));
+  json_object_set_new(resp, "cpu_cores", json_integer(cpu_core_count));
+  json_object_set_new(resp, "mem_total_kb", json_integer(stats->mem_total_kb));
+  json_object_set_new(resp, "mem_available_kb", json_integer(stats->mem_available_kb));
+  json_object_set_new(resp, "uptime_s", json_real(stats->uptime_s));
+  json_object_set_new(resp, "load1", json_real(stats->load1));
+  json_object_set_new(resp, "load5", json_real(stats->load5));
+  json_object_set_new(resp, "load15", json_real(stats->load15));
+
+  /* Clients object */
+  clients = json_object();
+  if (!clients) {
+    json_decref(resp);
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+  json_object_set_new(clients, "connected", json_integer(connected_clients));
+  json_object_set_new(clients, "max", json_integer(max_clients));
+  json_object_set_new(resp, "clients", clients);
+
   /* Monitor a process */
   if (pss->proc_enabled) {
     double proc_cpu = 0.0;
@@ -76,6 +81,8 @@ build_stats_json(char *out_buf,
             pss->proc_name, pss, stats->monotonic_ms, &proc_cpu, &proc_rss_kb, &proc_pss_kb, &proc_uss_kb, &proc_pid)) {
       json_t *proc = json_object();
       if (!proc) {
+        json_decref(resp);
+        /* Truncated output! */
         if (truncated) {
           *truncated = true;
         }
@@ -88,31 +95,13 @@ build_stats_json(char *out_buf,
       json_object_set_new(proc, "pss_kb", json_integer(proc_pss_kb));
       json_object_set_new(proc, "uss_kb", json_integer(proc_uss_kb));
       json_object_set_new(proc, "pid", json_integer(proc_pid));
-
-      /* Serialize process object to a temporary JSON buffer */
-      char proc_buf[256];
-      int proc_len = json_dumpb(proc, proc_buf, sizeof(proc_buf), JSON_COMPACT);
-      json_decref(proc);
-
-      if (proc_len < 0 || (size_t)proc_len >= sizeof(proc_buf)) {
-        if (truncated) {
-          *truncated = true;
-        }
-        return 0;
-      }
-      /* Append serialized process JSON fragment to the response buffer */
-      int ret = snprintf(out_buf + json_len, out_size - json_len, ", \"proc\": %.*s", proc_len, proc_buf);
-      if (ret < 0 || (size_t)ret >= out_size - json_len) {
-        if (truncated) {
-          *truncated = true;
-        }
-        return 0;
-      }
-      json_len += ret;
+      json_object_set_new(resp, "proc", proc);
     } else {
       /* Process not found */
       json_t *err = json_object();
       if (!err) {
+        json_decref(resp);
+        /* Truncated output! */
         if (truncated) {
           *truncated = true;
         }
@@ -124,47 +113,21 @@ build_stats_json(char *out_buf,
       char msg[128];
       snprintf(msg, sizeof(msg), "Process '%s' not found", pss->proc_name);
       json_object_set_new(err, "message", json_string(msg));
-
-      /* Serialize error object to a temporary JSON buffer */
-      char err_buf[256];
-      int err_len = json_dumpb(err, err_buf, sizeof(err_buf), JSON_COMPACT);
-      json_decref(err);
-
-      if (err_len < 0 || (size_t)err_len >= sizeof(err_buf)) {
-        if (truncated) {
-          *truncated = true;
-        }
-        return 0;
-      }
-      /* Append serialized error JSON fragment to the response buffer */
-      int ret = snprintf(out_buf + json_len, out_size - json_len, ", \"error\": %.*s", err_len, err_buf);
-      if (ret < 0 || (size_t)ret >= out_size - json_len) {
-        if (truncated) {
-          *truncated = true;
-        }
-        return 0;
-      }
-      json_len += ret;
+      json_object_set_new(resp, "error", err);
     }
   }
-  /* Truncated output! */
-  if ((size_t)json_len >= out_size) {
+  /* Serialize into output buffer */
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
     if (truncated) {
       *truncated = true;
     }
     return 0;
   }
-  /* Close JSON object */
-  if ((size_t)json_len + 1 >= out_size) {
-    if (truncated) {
-      *truncated = true;
-    }
-    return 0;
-  }
-  out_buf[json_len++] = '}';
-  out_buf[json_len] = '\0';
 
-  return (size_t)json_len;
+  return (size_t)out_len;
 }
 
 size_t
