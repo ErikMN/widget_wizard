@@ -118,6 +118,7 @@ const SystemStats: React.FC = () => {
   const [procName, setProcName] = useState<string>('');
   const [procHistory, setProcHistory] = useState<ProcHistoryPoint[]>([]);
   const [procError, setProcError] = useState<string | null>(null);
+  const [procStats, setProcStats] = useState<ProcStats | null>(null);
 
   const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
@@ -214,6 +215,7 @@ const SystemStats: React.FC = () => {
       /* Server sends JSON snapshots */
       try {
         const data = JSON.parse(event.data);
+        // console.log('has proc:', !!data.proc);
 
         /* One-shot process list */
         if (Array.isArray(data.processes)) {
@@ -227,6 +229,11 @@ const SystemStats: React.FC = () => {
         }
 
         setStats(data);
+
+        /* Set local proc stats state */
+        if (data.proc) {
+          setProcStats(data.proc);
+        }
 
         const memUsedKb = data.mem_total_kb - data.mem_available_kb;
         const memPercent = (memUsedKb / data.mem_total_kb) * 100;
@@ -242,6 +249,10 @@ const SystemStats: React.FC = () => {
         /* Optional per process stats */
         if (data.error && data.error.type === 'process_not_found') {
           setProcError(data.error.message);
+          /* Only clear process state if we are actually monitoring something */
+          if (procName.trim() !== '') {
+            setProcStats(null);
+          }
         } else if (data.proc) {
           setProcError(null);
           setProcHistory((prev) => {
@@ -786,12 +797,12 @@ const SystemStats: React.FC = () => {
                   </Alert>
                 )}
 
-                {stats?.proc && (
+                {procStats && (
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     <Tooltip title="Process ID. Changes when the process restarts or is replaced.">
                       <Chip
                         size="small"
-                        label={`PID ${stats.proc.pid}`}
+                        label={`PID ${procStats.pid}`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' }
@@ -804,7 +815,7 @@ const SystemStats: React.FC = () => {
                         size="small"
                         clickable
                         onClick={() => setProcMemMetric('rss')}
-                        label={`RSS ${(stats.proc.rss_kb / 1024).toFixed(1)} MB`}
+                        label={`RSS ${(procStats.rss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
@@ -822,7 +833,7 @@ const SystemStats: React.FC = () => {
                         size="small"
                         clickable
                         onClick={() => setProcMemMetric('pss')}
-                        label={`PSS ${(stats.proc.pss_kb / 1024).toFixed(1)} MB`}
+                        label={`PSS ${(procStats.pss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
@@ -840,7 +851,7 @@ const SystemStats: React.FC = () => {
                         size="small"
                         clickable
                         onClick={() => setProcMemMetric('uss')}
-                        label={`USS ${(stats.proc.uss_kb / 1024).toFixed(1)} MB`}
+                        label={`USS ${(procStats.uss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
