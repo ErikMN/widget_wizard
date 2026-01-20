@@ -37,7 +37,9 @@ interface StorageInfo {
 interface ProcHistoryPoint {
   ts: number;
   cpu: number;
-  mem: number;
+  rss: number;
+  pss: number;
+  uss: number;
   pid: number;
 }
 
@@ -120,6 +122,9 @@ const SystemStats: React.FC = () => {
   const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
+  const [procMemMetric, setProcMemMetric] = useState<'rss' | 'pss' | 'uss'>(
+    'pss'
+  );
 
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
 
@@ -256,7 +261,9 @@ const SystemStats: React.FC = () => {
                   {
                     ts: data.ts,
                     cpu: data.proc.cpu,
-                    mem: data.proc.pss_kb / 1024,
+                    rss: data.proc.rss_kb / 1024,
+                    pss: data.proc.pss_kb / 1024,
+                    uss: data.proc.uss_kb / 1024,
                     pid: data.proc.pid
                   }
                 ];
@@ -267,7 +274,9 @@ const SystemStats: React.FC = () => {
               {
                 ts: data.ts,
                 cpu: data.proc.cpu,
-                mem: data.proc.pss_kb / 1024,
+                rss: data.proc.rss_kb / 1024,
+                pss: data.proc.pss_kb / 1024,
+                uss: data.proc.uss_kb / 1024,
                 pid: data.proc.pid
               }
             ];
@@ -793,32 +802,53 @@ const SystemStats: React.FC = () => {
                     <Tooltip title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full.">
                       <Chip
                         size="small"
+                        clickable
+                        onClick={() => setProcMemMetric('rss')}
                         label={`RSS ${(stats.proc.rss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
-                          '& .MuiChip-label': { color: '#fff' }
+                          '& .MuiChip-label': { color: '#fff' },
+                          opacity: procMemMetric === 'rss' ? 1 : 0.5,
+                          border:
+                            procMemMetric === 'rss'
+                              ? '1px solid #fff'
+                              : undefined
                         }}
                       />
                     </Tooltip>
 
-                    <Tooltip title="PSS (Proportional Set Size): how much RAM this process really costs the system. Shared pages are divided between all processes using them. This is what the kernel uses for memory accounting.">
+                    <Tooltip title="PSS (Proportional Set Size): how much RAM this process really costs the system.">
                       <Chip
                         size="small"
+                        clickable
+                        onClick={() => setProcMemMetric('pss')}
                         label={`PSS ${(stats.proc.pss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
-                          '& .MuiChip-label': { color: '#fff' }
+                          '& .MuiChip-label': { color: '#fff' },
+                          opacity: procMemMetric === 'pss' ? 1 : 0.5,
+                          border:
+                            procMemMetric === 'pss'
+                              ? '1px solid #fff'
+                              : undefined
                         }}
                       />
                     </Tooltip>
 
-                    <Tooltip title="USS (Unique Set Size): how much RAM would be freed if this process exited. This is the process's private memory only.">
+                    <Tooltip title="USS (Unique Set Size): how much RAM would be freed if this process exited.">
                       <Chip
                         size="small"
+                        clickable
+                        onClick={() => setProcMemMetric('uss')}
                         label={`USS ${(stats.proc.uss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
-                          '& .MuiChip-label': { color: '#fff' }
+                          '& .MuiChip-label': { color: '#fff' },
+                          opacity: procMemMetric === 'uss' ? 1 : 0.5,
+                          border:
+                            procMemMetric === 'uss'
+                              ? '1px solid #fff'
+                              : undefined
                         }}
                       />
                     </Tooltip>
@@ -838,8 +868,13 @@ const SystemStats: React.FC = () => {
                           v == null ? '' : `${v.toFixed(1)} %`
                       },
                       {
-                        data: procHistory.map((p) => p.mem),
-                        label: 'PSS MB (real memory)',
+                        data: procHistory.map((p) => p[procMemMetric]),
+                        label:
+                          procMemMetric === 'rss'
+                            ? 'RSS MB'
+                            : procMemMetric === 'pss'
+                              ? 'PSS MB (real memory)'
+                              : 'USS MB',
                         showMark: false,
                         valueFormatter: (v) =>
                           v == null ? '' : `${v.toFixed(1)} MB`
