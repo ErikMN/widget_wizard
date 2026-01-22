@@ -6,7 +6,7 @@ import { useWidgetContext } from './WidgetContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';
 import ReactJson from 'react-json-view';
-import { diagonalTrianglePatternSx } from '../../helpers/backgrounds.js';
+import { diagonalTrianglePatternSx } from '../../helpers/backgrounds';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';

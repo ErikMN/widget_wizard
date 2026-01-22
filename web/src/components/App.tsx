@@ -11,7 +11,7 @@ import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { playSound } from '../helpers/utils';
-import { diagonalTrianglePatternSx } from '../helpers/backgrounds.js';
+import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';

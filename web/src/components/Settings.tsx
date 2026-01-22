@@ -19,7 +19,7 @@ import {
   CustomContainer
 } from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
-import { diagonalTrianglePatternSx } from '../helpers/backgrounds.js';
+import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
 import VideoPlayer from './VideoPlayer';
 import AlertSnackbar from './AlertSnackbar';
 /* Widgets */

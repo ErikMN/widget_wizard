@@ -6,7 +6,7 @@ import { useOverlayContext } from './OverlayContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import OverlaysDisabled from './OverlaysDisabled';
 import ReactJson from 'react-json-view';
-import { diagonalTrianglePatternSx } from '../../helpers/backgrounds.js';
+import { diagonalTrianglePatternSx } from '../../helpers/backgrounds';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';

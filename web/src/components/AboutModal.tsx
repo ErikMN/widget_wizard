@@ -11,6 +11,7 @@ import { useAppContext } from './AppContext';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
 import { playSound } from '../helpers/utils';
+import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
 /* MUI */
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
@@ -106,6 +107,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
       <Fade in={open}>
         <Box
           sx={{
+            ...diagonalTrianglePatternSx(theme, { sizePx: 18, reverse: true }),
             p: 2,
             position: 'absolute',
             textAlign: 'center',
@@ -129,11 +131,11 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             src={logo}
             alt="Widgy logo"
             style={{
-              width: isMobile ? '150px' : '300px',
+              width: isMobile ? '120px' : '200px',
               marginBottom: '10px'
             }}
           />
-          <Typography id="about-modal-title" variant="h6" component="h2">
+          <Typography id="about-modal-title" variant="h5" component="h2">
             About {import.meta.env.VITE_WEBSITE_NAME}
           </Typography>
 
@@ -219,7 +221,8 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
                 overflowY: 'auto',
                 border: `1px solid ${theme.palette.grey[600]}`,
                 padding: 2,
-                textAlign: 'left'
+                textAlign: 'left',
+                bgcolor: 'background.default'
               })}
             >
               {/* Preserve newlines in license text */}
