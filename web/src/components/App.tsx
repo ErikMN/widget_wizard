@@ -44,6 +44,19 @@ import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
 /******************************************************************************/
 
+const gridPatternSx = (theme: any) => {
+  const lineColor =
+    theme.palette.mode === 'dark'
+      ? theme.palette.grey[500]
+      : theme.palette.grey[400];
+  const alpha = theme.palette.mode === 'dark' ? '10' : '30';
+  return {
+    backgroundColor: 'transparent',
+    backgroundImage: `linear-gradient(45deg, ${lineColor}${alpha} 50%, transparent 50%)`,
+    backgroundSize: '15px 15px'
+  };
+};
+
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<{
@@ -81,8 +94,7 @@ const AppBar = styled(MuiAppBar, {
   overflowX: 'auto',
   WebkitOverflowScrolling: 'touch',
   scrollbarWidth: 'none',
-  backgroundColor: theme.palette.background.paper,
-  backgroundImage: 'none',
+  ...gridPatternSx(theme),
   whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
@@ -459,11 +471,12 @@ const App: React.FC = () => {
           open={isMobile ? true : drawerOpen}
         >
           <DrawerHeader
-            sx={{
+            sx={(theme) => ({
               display: 'flex',
               alignItems: 'center',
-              width: '100%'
-            }}
+              width: '100%',
+              ...gridPatternSx(theme)
+            })}
           >
             {/* Left and center content */}
             <Box
@@ -520,12 +533,12 @@ const App: React.FC = () => {
 
           {/* Fixed bottom navigation */}
           <Box
-            sx={{
+            sx={(theme) => ({
               p: 1,
               borderTop: 1,
               borderColor: 'divider',
-              backgroundColor: theme.palette.background.default
-            }}
+              ...gridPatternSx(theme)
+            })}
           >
             <CustomStyledIconButton
               onClick={() => navigate('/')}
