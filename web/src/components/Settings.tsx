@@ -19,6 +19,7 @@ import {
   CustomContainer
 } from './CustomComponents';
 import { useScreenSizes } from '../helpers/hooks.jsx';
+import { diagonalTrianglePatternSx } from '../helpers/backgrounds.js';
 import VideoPlayer from './VideoPlayer';
 import AlertSnackbar from './AlertSnackbar';
 /* Widgets */
@@ -296,401 +297,408 @@ const Settings: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <CustomContainer
-        sx={{
-          p: 2,
-          bgcolor: 'background.paper',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start',
-          height: isMobile ? 'unset' : '100vh',
-          overflowY: 'auto'
-        }}
+      <Box
+        sx={(theme) => ({
+          ...diagonalTrianglePatternSx(theme),
+          minHeight: '100vh'
+        })}
       >
-        <Box
+        <CustomContainer
           sx={{
+            p: 2,
+            bgcolor: 'background.paper',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            marginBottom: 2
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            height: isMobile ? 'unset' : '100vh',
+            overflowY: 'auto'
           }}
         >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              marginBottom: 2
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <SettingsIcon sx={{ marginRight: 1 }} />
+              <Typography id="settings-modal-title" variant="h5" component="h2">
+                Application settings
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                marginLeft: 'auto'
+              }}
+            >
+              {/* Mute button */}
+              <Tooltip
+                title={appSettings.mute ? 'Unmute audio' : 'Mute audio'}
+                arrow
+              >
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="mute/unmute audio"
+                    onClick={handleToggleMute}
+                    edge="end"
+                    sx={{ p: 0.5 }}
+                  >
+                    {appSettings.mute ? (
+                      <VolumeOffOutlinedIcon
+                        sx={{
+                          width: '20px',
+                          height: '20px',
+                          color: 'text.secondary'
+                        }}
+                      />
+                    ) : (
+                      <VolumeUpOutlinedIcon
+                        sx={{
+                          width: '20px',
+                          height: '20px',
+                          color: 'text.secondary'
+                        }}
+                      />
+                    )}
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
+
+              {/* Theme Toggle CustomButton */}
+              <Tooltip title="Toggle theme" arrow>
+                <div>
+                  <CustomStyledIconButton
+                    color="inherit"
+                    aria-label="toggle theme"
+                    onClick={toggleTheme}
+                    edge="end"
+                    sx={{ marginRight: '0px' }}
+                  >
+                    <ContrastIcon
+                      sx={{
+                        width: '20px',
+                        height: '20px',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  </CustomStyledIconButton>
+                </div>
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {/* Display backend controls if backend is available */}
+          {backendAvailable !== undefined && <BackendControl />}
+
+          {/* Bounding Box settings */}
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
+              Bounding box settings
+            </Typography>
+
+            {/* Switch for rounded bounding box corners */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.roundedBboxCorners}
+                  onChange={handleToggleRoundedCorners}
+                  name="roundedBboxCorners"
+                />
+              }
+              label="Rounded bounding box corners"
+            />
+
+            {/* Switch for bounding box label */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.bboxLabel}
+                  onChange={handleToggleBboxLabel}
+                  name="bboxLabel"
+                />
+              }
+              label="Show bounding box info label"
+            />
+
+            {/* Switch for bounding anchor indicator */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.bboxAnchorIndicator}
+                  onChange={handleToggleBboxAnchorIndicator}
+                  name="bboxAnchorIndicator"
+                />
+              }
+              label="Show bounding box anchor indicator"
+            />
+
+            {/* Switch for only showing active bbox */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.bboxOnlyShowActive}
+                  onChange={handleToggleBboxOnlyShowActive}
+                  name="bboxOnlyShowActive"
+                />
+              }
+              label="Only show bounding box for active widget"
+            />
+
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'space-between'
+              }}
+            >
+              {/* Select bounding box color */}
+              <FormControl sx={{ marginTop: 2, width: '50%' }}>
+                <InputLabel id="bbox-color-label" sx={{ top: '-4px' }}>
+                  Bounding box color
+                </InputLabel>
+                <Select
+                  labelId="bbox-color-label"
+                  value={currentColor}
+                  label="Bounding box color"
+                  onChange={handleColorChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                >
+                  {availableColors.map((color) => (
+                    <MenuItem key={color} value={color}>
+                      {capitalizeFirstLetter(color)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Select bounding box thickness */}
+              <FormControl sx={{ marginTop: 2, width: '50%' }}>
+                <InputLabel id="bbox-thickness-label" sx={{ top: '-4px' }}>
+                  Bounding box thickness
+                </InputLabel>
+                <Select
+                  labelId="bbox-thickness-label"
+                  value={currentThickness}
+                  label="Bounding box thickness"
+                  onChange={handleThicknessChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                >
+                  {availableThicknesses.map((thickness) => (
+                    <MenuItem key={thickness} value={thickness}>
+                      {capitalizeFirstLetter(thickness)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+
+          {/* Widget settings */}
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
+              Widget settings
+            </Typography>
+            {!widgetSupported && (
+              <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
+            )}
+            {!overlaySupported && (
+              <OverlaysDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
+            )}
+            {/* Widget sorting */}
+            <Box
+              sx={{
+                marginTop: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <FormControl sx={{ width: '40%' }}>
+                <InputLabel id="sort-by-label" sx={{ top: '-4px' }}>
+                  Sort widgets by
+                </InputLabel>
+                <Select
+                  labelId="sort-by-label"
+                  value={appSettings.sortBy}
+                  label="Sort widgets by"
+                  onChange={handleSortChange}
+                  sx={{
+                    height: '40px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '100%'
+                    }
+                  }}
+                >
+                  <MenuItem value="id">ID</MenuItem>
+                  <MenuItem value="type">Type</MenuItem>
+                </Select>
+              </FormControl>
+              {/* Toggle for sorting ascending/descending */}
+              <FormControlLabel
+                control={
+                  <CustomSwitch
+                    checked={appSettings.sortAscending}
+                    onChange={handleToggleSortOrder}
+                    name="sortAscending"
+                  />
+                }
+                label="Sort in ascending order"
+                sx={{ marginLeft: 2 }}
+              />
+            </Box>
+            {/* Switch setting double or single click for widget activation */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.widgetDoubleClick}
+                  onChange={handleToggleDoubleClick}
+                  name="widgetDoubleClick"
+                />
+              }
+              label="Use double click for widget activation"
+            />
+            {/* Switch setting auto bring to front */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.widgetAutoBringFront}
+                  onChange={handleToggleAutoBringFront}
+                  name="widgetAutoBringFront"
+                />
+              }
+              label="Widget auto bring to front"
+            />
+            {/* Switch setting handle snap to anchor */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.snapToAnchor}
+                  onChange={handleSnapToAnchor}
+                  name="snapToAnchor"
+                />
+              }
+              label="Widget snap to anchor"
+            />
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}
+          >
+            {/* Switch to enable debug mode */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.debug}
+                  onChange={handleDebugMode}
+                  name="debugMode"
+                />
+              }
+              label={
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  Enable debug mode
+                  <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
+                </span>
+              }
+            />
+            {/* Open parameter list */}
+            <CustomButton
+              variant="outlined"
+              onClick={() => {
+                const url = `${window.location.protocol}//${window.location.host}${P_CGI}`;
+                window.open(url, '_blank');
+              }}
+            >
+              Parameters list
+            </CustomButton>
+          </Box>
+
+          {/* Back and Reset Defaults buttons */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: 2,
+              marginBottom: 2
+            }}
+          >
+            <CustomButton onClick={handleResetDefaults} variant="outlined">
+              Reset defaults
+            </CustomButton>
+            <CustomButton
+              onClick={handleBack}
+              variant="contained"
+              startIcon={<ArrowBackIcon />}
+            >
+              Back
+            </CustomButton>
+          </Box>
+
+          {/* Video preview */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <SettingsIcon sx={{ marginRight: 1 }} />
-            <Typography id="settings-modal-title" variant="h5" component="h2">
-              Application settings
+            <TvIcon sx={{ marginRight: 1 }} />
+            <Typography id="preview" variant="h5" component="h2">
+              Preview
             </Typography>
           </Box>
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              marginLeft: 'auto'
-            }}
-          >
-            {/* Mute button */}
-            <Tooltip
-              title={appSettings.mute ? 'Unmute audio' : 'Mute audio'}
-              arrow
-            >
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="mute/unmute audio"
-                  onClick={handleToggleMute}
-                  edge="end"
-                  sx={{ p: 0.5 }}
-                >
-                  {appSettings.mute ? (
-                    <VolumeOffOutlinedIcon
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        color: 'text.secondary'
-                      }}
-                    />
-                  ) : (
-                    <VolumeUpOutlinedIcon
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        color: 'text.secondary'
-                      }}
-                    />
-                  )}
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-
-            {/* Theme Toggle CustomButton */}
-            <Tooltip title="Toggle theme" arrow>
-              <div>
-                <CustomStyledIconButton
-                  color="inherit"
-                  aria-label="toggle theme"
-                  onClick={toggleTheme}
-                  edge="end"
-                  sx={{ marginRight: '0px' }}
-                >
-                  <ContrastIcon
-                    sx={{
-                      width: '20px',
-                      height: '20px',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </CustomStyledIconButton>
-              </div>
-            </Tooltip>
-          </Box>
-        </Box>
-
-        {/* Display backend controls if backend is available */}
-        {backendAvailable !== undefined && <BackendControl />}
-
-        {/* Bounding Box settings */}
-        <Box
-          sx={(theme) => ({
-            border: `1px solid ${theme.palette.grey[600]}`,
-            padding: 2,
-            borderRadius: 1,
-            marginBottom: 2,
-            textAlign: 'left'
-          })}
-        >
-          <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Bounding box settings
-          </Typography>
-
-          {/* Switch for rounded bounding box corners */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.roundedBboxCorners}
-                onChange={handleToggleRoundedCorners}
-                name="roundedBboxCorners"
-              />
-            }
-            label="Rounded bounding box corners"
-          />
-
-          {/* Switch for bounding box label */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.bboxLabel}
-                onChange={handleToggleBboxLabel}
-                name="bboxLabel"
-              />
-            }
-            label="Show bounding box info label"
-          />
-
-          {/* Switch for bounding anchor indicator */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.bboxAnchorIndicator}
-                onChange={handleToggleBboxAnchorIndicator}
-                name="bboxAnchorIndicator"
-              />
-            }
-            label="Show bounding box anchor indicator"
-          />
-
-          {/* Switch for only showing active bbox */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.bboxOnlyShowActive}
-                onChange={handleToggleBboxOnlyShowActive}
-                name="bboxOnlyShowActive"
-              />
-            }
-            label="Only show bounding box for active widget"
-          />
-
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              justifyContent: 'space-between'
-            }}
-          >
-            {/* Select bounding box color */}
-            <FormControl sx={{ marginTop: 2, width: '50%' }}>
-              <InputLabel id="bbox-color-label" sx={{ top: '-4px' }}>
-                Bounding box color
-              </InputLabel>
-              <Select
-                labelId="bbox-color-label"
-                value={currentColor}
-                label="Bounding box color"
-                onChange={handleColorChange}
-                sx={{
-                  height: '40px',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%'
-                  }
-                }}
-              >
-                {availableColors.map((color) => (
-                  <MenuItem key={color} value={color}>
-                    {capitalizeFirstLetter(color)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Select bounding box thickness */}
-            <FormControl sx={{ marginTop: 2, width: '50%' }}>
-              <InputLabel id="bbox-thickness-label" sx={{ top: '-4px' }}>
-                Bounding box thickness
-              </InputLabel>
-              <Select
-                labelId="bbox-thickness-label"
-                value={currentThickness}
-                label="Bounding box thickness"
-                onChange={handleThicknessChange}
-                sx={{
-                  height: '40px',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%'
-                  }
-                }}
-              >
-                {availableThicknesses.map((thickness) => (
-                  <MenuItem key={thickness} value={thickness}>
-                    {capitalizeFirstLetter(thickness)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        </Box>
-
-        {/* Widget settings */}
-        <Box
-          sx={(theme) => ({
-            border: `1px solid ${theme.palette.grey[600]}`,
-            padding: 2,
-            borderRadius: 1,
-            marginBottom: 2,
-            textAlign: 'left'
-          })}
-        >
-          <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-            Widget settings
-          </Typography>
-          {!widgetSupported && (
-            <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
-          )}
-          {!overlaySupported && (
-            <OverlaysDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
-          )}
-          {/* Widget sorting */}
-          <Box
-            sx={{
+              minHeight: isMobile ? '240px' : '540px',
               marginTop: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2
+              borderRadius: 1,
+              border: 1,
+              borderColor: 'divider',
+              overflow: 'hidden'
             }}
           >
-            <FormControl sx={{ width: '40%' }}>
-              <InputLabel id="sort-by-label" sx={{ top: '-4px' }}>
-                Sort widgets by
-              </InputLabel>
-              <Select
-                labelId="sort-by-label"
-                value={appSettings.sortBy}
-                label="Sort widgets by"
-                onChange={handleSortChange}
-                sx={{
-                  height: '40px',
-                  '& .MuiOutlinedInput-root': {
-                    height: '100%'
-                  }
-                }}
-              >
-                <MenuItem value="id">ID</MenuItem>
-                <MenuItem value="type">Type</MenuItem>
-              </Select>
-            </FormControl>
-            {/* Toggle for sorting ascending/descending */}
-            <FormControlLabel
-              control={
-                <CustomSwitch
-                  checked={appSettings.sortAscending}
-                  onChange={handleToggleSortOrder}
-                  name="sortAscending"
-                />
-              }
-              label="Sort in ascending order"
-              sx={{ marginLeft: 2 }}
-            />
+            <VideoPlayer />
           </Box>
-          {/* Switch setting double or single click for widget activation */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.widgetDoubleClick}
-                onChange={handleToggleDoubleClick}
-                name="widgetDoubleClick"
-              />
-            }
-            label="Use double click for widget activation"
-          />
-          {/* Switch setting auto bring to front */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.widgetAutoBringFront}
-                onChange={handleToggleAutoBringFront}
-                name="widgetAutoBringFront"
-              />
-            }
-            label="Widget auto bring to front"
-          />
-          {/* Switch setting handle snap to anchor */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.snapToAnchor}
-                onChange={handleSnapToAnchor}
-                name="snapToAnchor"
-              />
-            }
-            label="Widget snap to anchor"
-          />
-        </Box>
 
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between'
-          }}
-        >
-          {/* Switch to enable debug mode */}
-          <FormControlLabel
-            control={
-              <CustomSwitch
-                checked={appSettings.debug}
-                onChange={handleDebugMode}
-                name="debugMode"
-              />
-            }
-            label={
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                Enable debug mode
-                <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
-              </span>
-            }
+          {/* Alert Snackbar */}
+          <AlertSnackbar
+            openAlert={openAlert}
+            alertSeverity={alertSeverity}
+            alertContent={alertContent}
+            handleCloseAlert={handleCloseAlert}
           />
-          {/* Open parameter list */}
-          <CustomButton
-            variant="outlined"
-            onClick={() => {
-              const url = `${window.location.protocol}//${window.location.host}${P_CGI}`;
-              window.open(url, '_blank');
-            }}
-          >
-            Parameters list
-          </CustomButton>
-        </Box>
-
-        {/* Back and Reset Defaults buttons */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: 2,
-            marginBottom: 2
-          }}
-        >
-          <CustomButton onClick={handleResetDefaults} variant="outlined">
-            Reset defaults
-          </CustomButton>
-          <CustomButton
-            onClick={handleBack}
-            variant="contained"
-            startIcon={<ArrowBackIcon />}
-          >
-            Back
-          </CustomButton>
-        </Box>
-
-        {/* Video preview */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <TvIcon sx={{ marginRight: 1 }} />
-          <Typography id="preview" variant="h5" component="h2">
-            Preview
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            minHeight: isMobile ? '240px' : '540px',
-            marginTop: 2,
-            borderRadius: 1,
-            border: 1,
-            borderColor: 'divider',
-            overflow: 'hidden'
-          }}
-        >
-          <VideoPlayer />
-        </Box>
-
-        {/* Alert Snackbar */}
-        <AlertSnackbar
-          openAlert={openAlert}
-          alertSeverity={alertSeverity}
-          alertContent={alertContent}
-          handleCloseAlert={handleCloseAlert}
-        />
-      </CustomContainer>
+        </CustomContainer>
+      </Box>
     </ThemeProvider>
   );
 };

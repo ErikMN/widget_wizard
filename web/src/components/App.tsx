@@ -11,6 +11,7 @@ import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { playSound } from '../helpers/utils';
+import { diagonalTrianglePatternSx } from '../helpers/backgrounds.js';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
@@ -43,19 +44,6 @@ import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
 import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
 /******************************************************************************/
-
-const gridPatternSx = (theme: any) => {
-  const lineColor =
-    theme.palette.mode === 'dark'
-      ? theme.palette.grey[500]
-      : theme.palette.grey[400];
-  const alpha = theme.palette.mode === 'dark' ? '10' : '30';
-  return {
-    backgroundColor: 'transparent',
-    backgroundImage: `linear-gradient(45deg, ${lineColor}${alpha} 50%, transparent 50%)`,
-    backgroundSize: '15px 15px'
-  };
-};
 
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
@@ -94,7 +82,7 @@ const AppBar = styled(MuiAppBar, {
   overflowX: 'auto',
   WebkitOverflowScrolling: 'touch',
   scrollbarWidth: 'none',
-  ...gridPatternSx(theme),
+  ...diagonalTrianglePatternSx(theme, { reverse: false }),
   whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
@@ -475,7 +463,7 @@ const App: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               width: '100%',
-              ...gridPatternSx(theme)
+              ...diagonalTrianglePatternSx(theme, { reverse: true })
             })}
           >
             {/* Left and center content */}
@@ -537,7 +525,7 @@ const App: React.FC = () => {
               p: 1,
               borderTop: 1,
               borderColor: 'divider',
-              ...gridPatternSx(theme)
+              ...diagonalTrianglePatternSx(theme, { reverse: true })
             })}
           >
             <CustomStyledIconButton
