@@ -5,6 +5,7 @@
 
 /* MUI */
 import type { Theme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 export const diagonalTrianglePatternSx = (
   theme: Theme,
@@ -99,50 +100,48 @@ export const gridLinePatternSx = (
 export const crossGridPatternSx = (
   theme: Theme,
   options?: {
-    opacity?: number;
+    patternAlpha?: number;
     majorSizePx?: number;
     minorSizePx?: number;
     lineWidthPx?: number;
-    offsetPx?: number;
   }
 ) => {
-  const opacity = options?.opacity ?? 0.8;
-
+  const patternAlpha = options?.patternAlpha ?? 0.2;
   const majorSizePx = options?.majorSizePx ?? 50;
   const minorSizePx = options?.minorSizePx ?? 25;
   const lineWidthPx = options?.lineWidthPx ?? 2;
-  const offsetPx = options?.offsetPx ?? 1;
 
   const bgColor =
     theme.palette.mode === 'dark'
       ? theme.palette.background.default
       : theme.palette.grey[100];
 
-  const lineColor =
+  const baseLineColor =
     theme.palette.mode === 'dark'
       ? theme.palette.grey[600]
       : theme.palette.grey[500];
 
+  const lineColor = alpha(baseLineColor, patternAlpha);
+
   return {
     backgroundColor: bgColor,
-    opacity,
     backgroundImage: `
       radial-gradient(circle, transparent 20%, ${bgColor} 20%, ${bgColor} 80%, transparent 80%, transparent),
       radial-gradient(circle, transparent 20%, ${bgColor} 20%, ${bgColor} 80%, transparent 80%, transparent),
       linear-gradient(${lineColor} ${lineWidthPx}px, transparent ${lineWidthPx}px),
       linear-gradient(90deg, ${lineColor} ${lineWidthPx}px, ${bgColor} ${lineWidthPx}px)
     `,
-    backgroundPosition: `
-      0 0,
-      ${minorSizePx}px ${minorSizePx}px,
-      0 -${offsetPx}px,
-      -${offsetPx}px 0
-    `,
     backgroundSize: `
       ${majorSizePx}px ${majorSizePx}px,
       ${majorSizePx}px ${majorSizePx}px,
       ${minorSizePx}px ${minorSizePx}px,
       ${minorSizePx}px ${minorSizePx}px
+    `,
+    backgroundPosition: `
+      0 0,
+      ${minorSizePx}px ${minorSizePx}px,
+      0 -${lineWidthPx}px,
+      -${lineWidthPx}px 0
     `
   };
 };
