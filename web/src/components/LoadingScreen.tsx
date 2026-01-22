@@ -9,6 +9,8 @@ import React, { useEffect, useState } from 'react';
 import { useAppContext } from './AppContext';
 import { useParameters } from './ParametersContext';
 import { jsonRequest } from '../helpers/cgihelper';
+import { crossGridPatternSx } from '../helpers/backgrounds';
+import { useScreenSizes } from '../helpers/hooks.jsx';
 import { lightTheme, darkTheme } from '../theme';
 import { SR_CGI } from './constants';
 /* MUI */
@@ -30,6 +32,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
+
+  /* Screen size */
+  const { isMobile } = useScreenSizes();
 
   /* App mount calls */
   useEffect(() => {
@@ -72,6 +77,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
     <ThemeProvider theme={theme}>
       <Box
         sx={{
+          ...(isMobile ? {} : crossGridPatternSx(theme)),
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
