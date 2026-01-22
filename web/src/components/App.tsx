@@ -522,7 +522,8 @@ const App: React.FC = () => {
           {/* Fixed bottom navigation */}
           <Box
             sx={(theme) => ({
-              p: 1,
+              px: 1,
+              py: 0.8,
               borderTop: 1,
               borderColor: 'divider',
               ...diagonalTrianglePatternSx(theme, { reverse: true })
