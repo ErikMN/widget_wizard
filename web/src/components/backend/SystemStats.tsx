@@ -135,6 +135,14 @@ const SystemStats: React.FC = () => {
     uss: false
   });
 
+  const [sysChartMetrics, setSysChartMetrics] = useState<{
+    cpu: boolean;
+    mem: boolean;
+  }>({
+    cpu: true,
+    mem: true
+  });
+
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
 
   /* Refs */
@@ -183,6 +191,18 @@ const SystemStats: React.FC = () => {
       [key]: !prev[key]
     }));
   };
+
+  /* Toggle which total system metric to show */
+  const toggleSysChartMetric = (key: keyof typeof sysChartMetrics) => {
+    setSysChartMetrics((prev) => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  /* Recreate the Y-axis only when at least one system metric is enabled, so the chart rescales correctly when toggling */
+  const sysChartYAxis =
+    sysChartMetrics.cpu || sysChartMetrics.mem ? [{ min: 0, max: 100 }] : [];
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
    *
@@ -712,41 +732,88 @@ const SystemStats: React.FC = () => {
 
             {/* Use MUI X LineChart for overall system stats */}
             {viewMode === 'chart' && (
-              <LineChart
-                height={220}
-                margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
-                series={[
-                  {
-                    data: history.map((h) => h.cpu),
-                    label: 'CPU %',
-                    showMark: false,
-                    valueFormatter: (v) =>
-                      v == null ? '' : `${v.toFixed(1)} %`
-                  },
-                  {
-                    data: history.map((h) => h.mem),
-                    label: 'RAM %',
-                    showMark: false,
-                    valueFormatter: (v) =>
-                      v == null ? '' : `${v.toFixed(1)} %`
-                  }
-                ]}
-                yAxis={[{ min: 0, max: 100 }]}
-                sx={{
-                  '& .MuiChartsAxis-line': {
-                    stroke: '#fff !important'
-                  },
-                  '& .MuiChartsAxis-tick': {
-                    stroke: '#fff !important'
-                  },
-                  '& .MuiChartsAxis-tickLabel': {
-                    fill: '#fff !important'
-                  },
-                  '& .MuiChartsLegend-root': {
-                    color: '#fff !important'
-                  }
-                }}
-              />
+              <>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Tooltip title="Total system CPU usage.">
+                    <Chip
+                      size="small"
+                      clickable
+                      onClick={() => toggleSysChartMetric('cpu')}
+                      label={`CPU ${cpuPercent.toFixed(1)} %`}
+                      sx={{
+                        color: '#fff',
+                        '& .MuiChip-label': { color: '#fff' },
+                        opacity: sysChartMetrics.cpu ? 1 : 0.5,
+                        border: sysChartMetrics.cpu
+                          ? '1px solid #fff'
+                          : undefined
+                      }}
+                    />
+                  </Tooltip>
+
+                  <Tooltip title="Total system RAM usage.">
+                    <Chip
+                      size="small"
+                      clickable
+                      onClick={() => toggleSysChartMetric('mem')}
+                      label={`RAM ${(memUsedKb / 1024).toFixed(0)} / ${(stats.mem_total_kb / 1024).toFixed(0)} MB`}
+                      sx={{
+                        color: '#fff',
+                        '& .MuiChip-label': { color: '#fff' },
+                        opacity: sysChartMetrics.mem ? 1 : 0.5,
+                        border: sysChartMetrics.mem
+                          ? '1px solid #fff'
+                          : undefined
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
+
+                <LineChart
+                  height={220}
+                  margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
+                  series={[
+                    ...(sysChartMetrics.cpu
+                      ? [
+                          {
+                            data: history.map((h) => h.cpu),
+                            label: 'CPU %',
+                            showMark: false,
+                            valueFormatter: (v: number | null) =>
+                              v == null ? '' : `${v.toFixed(1)} %`
+                          }
+                        ]
+                      : []),
+
+                    ...(sysChartMetrics.mem
+                      ? [
+                          {
+                            data: history.map((h) => h.mem),
+                            label: 'RAM %',
+                            showMark: false,
+                            valueFormatter: (v: number | null) =>
+                              v == null ? '' : `${v.toFixed(1)} %`
+                          }
+                        ]
+                      : [])
+                  ]}
+                  yAxis={sysChartYAxis}
+                  sx={{
+                    '& .MuiChartsAxis-line': {
+                      stroke: '#fff !important'
+                    },
+                    '& .MuiChartsAxis-tick': {
+                      stroke: '#fff !important'
+                    },
+                    '& .MuiChartsAxis-tickLabel': {
+                      fill: '#fff !important'
+                    },
+                    '& .MuiChartsLegend-root': {
+                      color: '#fff !important'
+                    }
+                  }}
+                />
+              </>
             )}
 
             {/* Use MUI X LineChart for per-process stats */}
