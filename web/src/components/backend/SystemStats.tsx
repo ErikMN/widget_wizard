@@ -123,9 +123,17 @@ const SystemStats: React.FC = () => {
   const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
-  const [procMemMetric, setProcMemMetric] = useState<'rss' | 'pss' | 'uss'>(
-    'pss'
-  );
+  const [procMetrics, setProcMetrics] = useState<{
+    cpu: boolean;
+    rss: boolean;
+    pss: boolean;
+    uss: boolean;
+  }>({
+    cpu: true,
+    rss: false,
+    pss: true,
+    uss: false
+  });
 
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
 
@@ -166,6 +174,14 @@ const SystemStats: React.FC = () => {
       return;
     }
     wsRef.current.send(JSON.stringify({ storage: true }));
+  };
+
+  /* Toggle which per-process metric to show */
+  const toggleProcMetric = (key: keyof typeof procMetrics) => {
+    setProcMetrics((prev) => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
@@ -810,20 +826,32 @@ const SystemStats: React.FC = () => {
                       />
                     </Tooltip>
 
+                    <Tooltip title="Total CPU usage for this process.">
+                      <Chip
+                        size="small"
+                        clickable
+                        onClick={() => toggleProcMetric('cpu')}
+                        label={`CPU ${procStats.cpu.toFixed(1)} %`}
+                        sx={{
+                          color: '#fff',
+                          '& .MuiChip-label': { color: '#fff' },
+                          opacity: procMetrics.cpu ? 1 : 0.5,
+                          border: procMetrics.cpu ? '1px solid #fff' : undefined
+                        }}
+                      />
+                    </Tooltip>
+
                     <Tooltip title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full.">
                       <Chip
                         size="small"
                         clickable
-                        onClick={() => setProcMemMetric('rss')}
+                        onClick={() => toggleProcMetric('rss')}
                         label={`RSS ${(procStats.rss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
-                          opacity: procMemMetric === 'rss' ? 1 : 0.5,
-                          border:
-                            procMemMetric === 'rss'
-                              ? '1px solid #fff'
-                              : undefined
+                          opacity: procMetrics.rss ? 1 : 0.5,
+                          border: procMetrics.rss ? '1px solid #fff' : undefined
                         }}
                       />
                     </Tooltip>
@@ -832,16 +860,13 @@ const SystemStats: React.FC = () => {
                       <Chip
                         size="small"
                         clickable
-                        onClick={() => setProcMemMetric('pss')}
+                        onClick={() => toggleProcMetric('pss')}
                         label={`PSS ${(procStats.pss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
-                          opacity: procMemMetric === 'pss' ? 1 : 0.5,
-                          border:
-                            procMemMetric === 'pss'
-                              ? '1px solid #fff'
-                              : undefined
+                          opacity: procMetrics.pss ? 1 : 0.5,
+                          border: procMetrics.pss ? '1px solid #fff' : undefined
                         }}
                       />
                     </Tooltip>
@@ -850,46 +875,72 @@ const SystemStats: React.FC = () => {
                       <Chip
                         size="small"
                         clickable
-                        onClick={() => setProcMemMetric('uss')}
+                        onClick={() => toggleProcMetric('uss')}
                         label={`USS ${(procStats.uss_kb / 1024).toFixed(1)} MB`}
                         sx={{
                           color: '#fff',
                           '& .MuiChip-label': { color: '#fff' },
-                          opacity: procMemMetric === 'uss' ? 1 : 0.5,
-                          border:
-                            procMemMetric === 'uss'
-                              ? '1px solid #fff'
-                              : undefined
+                          opacity: procMetrics.uss ? 1 : 0.5,
+                          border: procMetrics.uss ? '1px solid #fff' : undefined
                         }}
                       />
                     </Tooltip>
                   </Stack>
                 )}
 
+                {/* Use MUI X LineChart for per-process stats */}
                 {procHistory.length > 1 && (
                   <LineChart
                     height={220}
                     margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
                     series={[
-                      {
-                        data: procHistory.map((p) => p.cpu),
-                        label: 'Process CPU %',
-                        showMark: false,
-                        valueFormatter: (v) =>
-                          v == null ? '' : `${v.toFixed(1)} %`
-                      },
-                      {
-                        data: procHistory.map((p) => p[procMemMetric]),
-                        label:
-                          procMemMetric === 'rss'
-                            ? 'RSS MB'
-                            : procMemMetric === 'pss'
-                              ? 'PSS MB (real memory)'
-                              : 'USS MB',
-                        showMark: false,
-                        valueFormatter: (v) =>
-                          v == null ? '' : `${v.toFixed(1)} MB`
-                      }
+                      ...(procMetrics.cpu
+                        ? [
+                            {
+                              data: procHistory.map((p) => p.cpu),
+                              label: 'CPU %',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} %`
+                            }
+                          ]
+                        : []),
+
+                      ...(procMetrics.rss
+                        ? [
+                            {
+                              data: procHistory.map((p) => p.rss),
+                              label: 'RSS MB',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} MB`
+                            }
+                          ]
+                        : []),
+
+                      ...(procMetrics.pss
+                        ? [
+                            {
+                              data: procHistory.map((p) => p.pss),
+                              label: 'PSS MB (real memory)',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} MB`
+                            }
+                          ]
+                        : []),
+
+                      ...(procMetrics.uss
+                        ? [
+                            {
+                              data: procHistory.map((p) => p.uss),
+                              label: 'USS MB',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} MB`
+                            }
+                          ]
+                        : [])
                     ]}
                     yAxis={[
                       {
