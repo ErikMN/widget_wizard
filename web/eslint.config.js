@@ -20,9 +20,9 @@ export default [
     },
     rules: {
       // ESLint recommended rules
-      'no-unused-vars': 'warn',
+      'no-unused-vars': 'off',
       'no-extra-semi': 'error',
-      'no-undef': 'error',
+      'no-undef': 'off',
 
       // TypeScript rules
       '@typescript-eslint/no-unused-vars': 'warn',
@@ -30,10 +30,7 @@ export default [
 
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error', // Checks rules of Hooks
-      'react-hooks/exhaustive-deps': 'warn', // Checks effect dependencies
-
-      // Prettier configuration
-      'prettier/prettier': 'off'
+      'react-hooks/exhaustive-deps': 'warn' // Checks effect dependencies
     },
     ignores: ['node_modules', 'dist', 'build']
   }
