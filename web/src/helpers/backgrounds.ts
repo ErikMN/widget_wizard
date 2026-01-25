@@ -122,6 +122,7 @@ export const crossGridPatternSx = (
       : theme.palette.grey[500];
 
   const lineColor = alpha(baseLineColor, patternAlpha);
+  const halfMajor = majorSizePx / 2;
 
   return {
     backgroundColor: bgColor,
@@ -139,9 +140,9 @@ export const crossGridPatternSx = (
     `,
     backgroundPosition: `
       0 0,
-      ${minorSizePx}px ${minorSizePx}px,
-      0 -${lineWidthPx}px,
-      -${lineWidthPx}px 0
+      ${halfMajor}px ${halfMajor}px,
+      0 -${lineWidthPx / 2}px,
+      -${lineWidthPx / 2}px 0
     `
   };
 };
