@@ -153,7 +153,7 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
 
     if (isImageOverlay && overlay.scalable) {
       /* Scalable image overlays */
-      const scaleFactor = dimensions.pixelWidth / baseWidth;
+      const scaleFactor = Math.min(scaleX, scaleY);
       wPx = wStream * scaleFactor;
       hPx = hStream * scaleFactor;
     } else if (isTextOverlay) {
