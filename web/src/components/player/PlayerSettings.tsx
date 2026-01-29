@@ -2,7 +2,7 @@
  * PlayerSettings
  *
  * Handle the settings for the video player:
- *   - Camera selection
+ *   - Camera
  *   - Video format
  *   - Resolution
  *   - Compression
@@ -16,10 +16,11 @@ import { useParameters } from '../ParametersContext';
 import { useAppContext } from '../AppContext';
 import { darkTheme } from '../../theme';
 /* MUI */
-import { useTheme, alpha } from '@mui/material/styles';
 import { ThemeProvider } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
@@ -51,6 +52,10 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const { appSettings, setCurrentChannel } = useAppContext();
 
   /* Local state */
+  const [cameraValue, setCameraValue] = React.useState<string>(
+    vapixParameters['camera'] ?? ''
+  );
+  const [cameraError, setCameraError] = React.useState<string>('');
   const [fpsValue, setFpsValue] = React.useState<string>(
     vapixParameters['fps'] ?? ''
   );
@@ -63,6 +68,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const [compressionError, setCompressionError] = React.useState<string>('');
 
   /* Refs */
+  const cameraTimerRef = React.useRef<number | null>(null);
   const fpsTimerRef = React.useRef<number | null>(null);
   const compressionTimerRef = React.useRef<number | null>(null);
 
@@ -73,9 +79,10 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const Resolution = parameters?.['root.Properties.Image.Resolution'];
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
   const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
-  const cameraOptions = isNaN(NbrOfSources)
-    ? [1]
-    : Array.from({ length: NbrOfSources }, (_, i) => i + 1);
+
+  useEffect(() => {
+    setCameraValue(vapixParameters['camera'] ?? '');
+  }, [vapixParameters['camera']]);
 
   useEffect(() => {
     setFpsValue(vapixParameters['fps'] ?? '');
@@ -116,7 +123,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       const raw = e.target.value;
       /* Update local value immediately for realtime typing */
       setCompressionValue(raw);
-
       /* Allow empty for "default" */
       if (raw === '') {
         setCompressionError('');
@@ -154,9 +160,39 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
     HTMLTextAreaElement | HTMLInputElement
   > = useCallback(
     (e) => {
-      const value = e.target.value;
-      onVapix('camera', value);
-      setCurrentChannel(value);
+      const raw = e.target.value;
+      /* Update local value immediately for realtime typing */
+      setCameraValue(raw);
+      /* Allow empty for "default" */
+      if (raw === '') {
+        setCameraError('');
+        if (cameraTimerRef.current !== null) {
+          clearTimeout(cameraTimerRef.current);
+        }
+        onVapix('camera', '');
+        /* If no camera is selected we default to 1 for currentChannel state */
+        setCurrentChannel('1');
+        return;
+      }
+      /* Only digits */
+      if (!/^\d+$/.test(raw)) {
+        setCameraError('Only digits 0-9 allowed');
+        return;
+      }
+      const num = Number(raw);
+      if (num < 0) {
+        setCameraError('Value must be 0 or higher');
+        return;
+      }
+      setCameraError('');
+      /* Debounce actual apply by 1s */
+      if (cameraTimerRef.current !== null) {
+        clearTimeout(cameraTimerRef.current);
+      }
+      cameraTimerRef.current = window.setTimeout(() => {
+        onVapix('camera', raw);
+        setCurrentChannel(raw);
+      }, 1000);
     },
     [onVapix, setCurrentChannel]
   );
@@ -167,7 +203,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         const raw = e.target.value;
         /* Update local value immediately for realtime typing */
         setFpsValue(raw);
-
         /* Allow empty for "default" */
         if (raw === '') {
           setFpsError('');
@@ -265,19 +300,32 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         alignItems: 'center' /* center labels with controls */
       }}
     >
-      <div>Camera</div>
-      <TextField
-        select
-        size="small"
-        value={vapixParameters['camera'] ?? '1'}
-        onChange={changeCamera}
-      >
-        {cameraOptions.map((num) => (
-          <MenuItem disableRipple key={num} value={String(num)}>
-            Camera {num}
-          </MenuItem>
-        ))}
-      </TextField>
+      <div>
+        Camera
+        <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
+          Sources: {NbrOfSources}
+        </Typography>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <TextField
+          variant="outlined"
+          size="small"
+          value={cameraValue}
+          onChange={changeCamera}
+          placeholder="Default camera"
+          error={cameraError !== ''}
+          slotProps={{
+            htmlInput: {
+              inputMode: 'numeric'
+            }
+          }}
+        />
+        {cameraError && (
+          <div style={{ color: theme.palette.error.main, fontSize: '12px' }}>
+            {cameraError}
+          </div>
+        )}
+      </div>
 
       <div>Format</div>
       <TextField select size="small" value={format} onChange={changeFormat}>
