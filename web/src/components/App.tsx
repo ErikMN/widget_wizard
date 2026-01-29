@@ -414,6 +414,7 @@ const App: React.FC = () => {
           sx={{
             flexShrink: 0,
             '& .MuiDrawer-paper': {
+              border: 'none',
               borderTopRightRadius: isMobile ? 0 : '12px',
               borderBottomRightRadius: isMobile ? 0 : '12px',
               boxShadow: theme.shadows[2],
