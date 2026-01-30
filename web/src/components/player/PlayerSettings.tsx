@@ -382,14 +382,23 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <TextField
           variant="outlined"
           size="small"
+          type="number"
           value={compressionValue}
           onChange={changeCompression}
           placeholder="Default compression"
           error={compressionError !== ''}
           slotProps={{
             htmlInput: {
+              min: 0,
+              max: 100,
+              step: 1,
               inputMode: 'numeric',
-              maxLength: 3
+              pattern: '[0-9]*',
+              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key.length === 1 && !/[0-9]/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }
             }
           }}
         />
@@ -405,14 +414,23 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <TextField
           variant="outlined"
           size="small"
+          type="number"
           value={fpsValue}
           onChange={changeFps}
           placeholder="Default FPS"
           error={fpsError !== ''}
           slotProps={{
             htmlInput: {
+              min: 0,
+              max: 999,
+              step: 1,
               inputMode: 'numeric',
-              maxLength: 3
+              pattern: '[0-9]*',
+              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key.length === 1 && !/[0-9]/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }
             }
           }}
         />
