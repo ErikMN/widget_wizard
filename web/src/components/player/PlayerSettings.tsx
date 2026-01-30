@@ -310,13 +310,22 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <TextField
           variant="outlined"
           size="small"
+          type="number"
           value={cameraValue}
           onChange={changeCamera}
-          placeholder="Default camera"
+          placeholder="Default camera: 1"
           error={cameraError !== ''}
           slotProps={{
             htmlInput: {
-              inputMode: 'numeric'
+              min: 1,
+              step: 1,
+              inputMode: 'numeric',
+              pattern: '[0-9]*',
+              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key.length === 1 && !/[0-9]/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }
             }
           }}
         />
