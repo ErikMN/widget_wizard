@@ -141,6 +141,11 @@ const BackendControl: React.FC = () => {
     }
   }, []);
 
+  /* Clear backend application log */
+  const clearLog = useCallback(() => {
+    setLogText('');
+  }, []);
+
   /* Toggle handler for CustomSwitch */
   const handleToggleBackend = () => {
     if (backendState === 'running') {
@@ -209,13 +214,28 @@ const BackendControl: React.FC = () => {
           }
         />
 
-        <Box sx={{ marginTop: 1, marginBottom: 1 }}>
+        <Box sx={{ marginTop: 1, marginBottom: 1, display: 'flex', gap: 1 }}>
           <CustomButton
             variant="outlined"
             disabled={isLoading || isProbing}
             onClick={fetchLog}
           >
             Refresh backend log
+          </CustomButton>
+
+          <CustomButton
+            variant="outlined"
+            disabled={isLoading || isProbing || !logText}
+            onClick={clearLog}
+            sx={{
+              color: 'error.main',
+              borderColor: 'error.main',
+              '&:hover': {
+                borderColor: 'error.dark'
+              }
+            }}
+          >
+            Clear
           </CustomButton>
         </Box>
 
