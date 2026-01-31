@@ -18,6 +18,9 @@ export interface AppSettings {
   widgetAutoBringFront: boolean;
   wsDefault: boolean;
   snapToAnchor: boolean;
+  /* WebSocket stats backend */
+  wsAddress?: string;
+  wsPort?: number;
 }
 
 /* Application settings default values */
@@ -35,7 +38,10 @@ export const defaultAppSettings: AppSettings = {
   widgetDoubleClick: false,
   widgetAutoBringFront: false,
   wsDefault: false,
-  snapToAnchor: true
+  snapToAnchor: true,
+  /* WebSocket stats backend defaults (not set here) */
+  wsAddress: undefined,
+  wsPort: undefined
 };
 
 /* VideoBox dimensions interface */

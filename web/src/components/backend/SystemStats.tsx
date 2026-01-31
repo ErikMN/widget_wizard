@@ -19,13 +19,6 @@ import Typography from '@mui/material/Typography';
 /* MUI X */
 import { LineChart } from '@mui/x-charts/LineChart';
 
-const WS_PORT = 9000;
-
-const WS_ADDRESS =
-  import.meta.env.MODE === 'development'
-    ? `ws://${import.meta.env.VITE_TARGET_IP}:${WS_PORT}`
-    : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:${WS_PORT}`;
-
 interface StorageInfo {
   path: string;
   fs: string;
@@ -106,6 +99,18 @@ const SystemStats: React.FC = () => {
   /* Global context */
   const { appSettings } = useAppContext();
 
+  const wsAddress =
+    appSettings.wsAddress && appSettings.wsAddress.trim() !== ''
+      ? appSettings.wsAddress
+      : import.meta.env.MODE === 'development'
+        ? import.meta.env.VITE_TARGET_IP
+        : window.location.hostname;
+
+  const wsPort =
+    typeof appSettings.wsPort === 'number' ? appSettings.wsPort : 9000;
+
+  const WS_ADDRESS = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wsAddress}:${wsPort}`;
+
   /* Local state */
   const [stats, setStats] = useState<SysStats | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
@@ -150,6 +155,7 @@ const SystemStats: React.FC = () => {
   const reconnectTimerRef = useRef<number | null>(null);
   const isUnmountedRef = useRef<boolean>(false);
   const intentionalCloseRef = useRef<boolean>(false);
+  const connectionIdRef = useRef<number>(0);
 
   enableLogging(false);
 
@@ -230,11 +236,20 @@ const SystemStats: React.FC = () => {
     /* This is a normal (non-teardown) connection attempt. */
     intentionalCloseRef.current = false;
 
+    /* New connection attempt generation */
+    const myConnectionId = ++connectionIdRef.current;
+
     /* Create a new WebSocket and remember it for cleanup. */
     const ws = new WebSocket(WS_ADDRESS);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      /* Ignore stale sockets */
+      if (myConnectionId !== connectionIdRef.current) {
+        ws.close();
+        return;
+      }
+
       /* If the component was unmounted while the socket was CONNECTING,
        * the socket may still complete the handshake and become OPEN.
        * In that case, immediately close it to avoid a leaked connection.
@@ -248,6 +263,11 @@ const SystemStats: React.FC = () => {
     };
 
     ws.onmessage = (event) => {
+      /* Ignore stale sockets */
+      if (myConnectionId !== connectionIdRef.current) {
+        return;
+      }
+
       /* Server sends JSON snapshots */
       try {
         const data = JSON.parse(event.data);
@@ -338,6 +358,11 @@ const SystemStats: React.FC = () => {
     };
 
     ws.onerror = () => {
+      /* Ignore stale sockets */
+      if (myConnectionId !== connectionIdRef.current) {
+        return;
+      }
+
       /* Suppress errors during intentional teardown */
       if (intentionalCloseRef.current) {
         return;
@@ -347,6 +372,11 @@ const SystemStats: React.FC = () => {
     };
 
     ws.onclose = () => {
+      /* Ignore stale sockets */
+      if (myConnectionId !== connectionIdRef.current) {
+        return;
+      }
+
       /* Suppress reconnect during intentional teardown */
       if (intentionalCloseRef.current) {
         return;
@@ -359,14 +389,32 @@ const SystemStats: React.FC = () => {
   };
 
   const scheduleReconnect = () => {
+    /* Do not reconnect if the component has been unmounted */
     if (isUnmountedRef.current) {
       return;
     }
+    /* Avoid scheduling multiple reconnect timers in parallel */
     if (reconnectTimerRef.current !== null) {
       return;
     }
+
+    /* Capture the current connection generation to detect stale reconnects */
+    const scheduledConnectionId = connectionIdRef.current;
+
+    /* Schedule a delayed reconnect attempt */
     reconnectTimerRef.current = window.setTimeout(() => {
+      /* Clear the timer reference once it fires */
       reconnectTimerRef.current = null;
+
+      /* Abort if the component was unmounted while waiting */
+      if (isUnmountedRef.current) {
+        return;
+      }
+      /* Abort if a newer connection attempt was started meanwhile */
+      if (scheduledConnectionId !== connectionIdRef.current) {
+        return;
+      }
+      /* Reconnect using the current WebSocket configuration */
       connect();
     }, 2000);
   };
@@ -393,6 +441,9 @@ const SystemStats: React.FC = () => {
     connect();
 
     return () => {
+      /* Invalidate any in-flight connection and its callbacks/timers */
+      connectionIdRef.current += 1;
+
       /* Component is unmounting, prevent reconnects */
       isUnmountedRef.current = true;
       intentionalCloseRef.current = true;
@@ -408,6 +459,8 @@ const SystemStats: React.FC = () => {
         /* Detach handlers to avoid scheduling reconnect from close/error during teardown */
         wsRef.current.onclose = null;
         wsRef.current.onerror = null;
+        wsRef.current.onopen = null;
+        wsRef.current.onmessage = null;
 
         /* Close only if already OPEN. If CONNECTING, we avoid calling close()
          * here to prevent "closed before the connection is established" noise.
@@ -422,6 +475,28 @@ const SystemStats: React.FC = () => {
       }
     };
   }, []);
+
+  /* Reconnect when WS settings change */
+  useEffect(() => {
+    /* Invalidate any in-flight connection + reconnect attempts */
+    connectionIdRef.current += 1;
+
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    intentionalCloseRef.current = true;
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onopen = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    intentionalCloseRef.current = false;
+    connect();
+  }, [appSettings.wsAddress, appSettings.wsPort]);
 
   const clearMonitorInput = () => {
     /* Clear UI state */

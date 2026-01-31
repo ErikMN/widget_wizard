@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 /* Constants */
@@ -21,7 +22,7 @@ type BackendState = 'running' | 'stopped' | 'unknown';
 
 const BackendControl: React.FC = () => {
   /* Global app context */
-  const { handleOpenAlert } = useAppContext();
+  const { handleOpenAlert, appSettings, setAppSettings } = useAppContext();
 
   /* Local state */
   const [backendState, setBackendState] = useState<BackendState>('unknown');
@@ -29,6 +30,17 @@ const BackendControl: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [logText, setLogText] = useState<string>('');
   const [isProbing, setIsProbing] = useState<boolean>(true);
+  const [wsAddressDraft, setWsAddressDraft] = useState<string>('');
+  const [wsPortDraft, setWsPortDraft] = useState<string>('');
+
+  useEffect(() => {
+    /* Sync local draft address from active application settings */
+    setWsAddressDraft(appSettings.wsAddress ?? '');
+    /* Sync local draft port from active application settings */
+    setWsPortDraft(
+      typeof appSettings.wsPort === 'number' ? String(appSettings.wsPort) : ''
+    );
+  }, [appSettings.wsAddress, appSettings.wsPort]);
 
   /* Probe backend state on mount */
   useEffect(() => {
@@ -155,6 +167,45 @@ const BackendControl: React.FC = () => {
     }
   };
 
+  const applyWsSettings = () => {
+    /* Resolve the next WebSocket address: empty input means use default */
+    const nextAddress =
+      wsAddressDraft.trim() === '' ? undefined : wsAddressDraft.trim();
+
+    /* Resolve the next WebSocket port: empty input means use default */
+    const nextPort =
+      wsPortDraft.trim() === '' ? undefined : Number(wsPortDraft);
+
+    /* Validate port number */
+    if (
+      nextPort !== undefined &&
+      (!Number.isInteger(nextPort) || nextPort <= 0)
+    ) {
+      setError('Invalid WebSocket port');
+      return;
+    }
+    /* Apply the settings as the active WebSocket configuration */
+    setAppSettings((prev) => ({
+      ...prev,
+      wsAddress: nextAddress,
+      wsPort: nextPort
+    }));
+    handleOpenAlert('WebSocket settings applied', 'success');
+  };
+
+  const clearWsSettings = () => {
+    /* Reset drafts to defaults (empty means use default) */
+    setWsAddressDraft('');
+    setWsPortDraft('');
+    /* Apply defaults to active settings */
+    setAppSettings((prev) => ({
+      ...prev,
+      wsAddress: undefined,
+      wsPort: undefined
+    }));
+    handleOpenAlert('WebSocket settings cleared', 'success');
+  };
+
   return (
     <Box
       sx={(theme) => ({
@@ -235,7 +286,7 @@ const BackendControl: React.FC = () => {
               }
             }}
           >
-            Clear
+            Clear logs
           </CustomButton>
         </Box>
 
@@ -256,6 +307,59 @@ const BackendControl: React.FC = () => {
             {logText}
           </Box>
         )}
+
+        <Box
+          sx={{
+            marginTop: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1
+          }}
+        >
+          <Typography variant="subtitle2">
+            System monitor WebSocket settings
+          </Typography>
+
+          <TextField
+            size="small"
+            label="Address"
+            value={wsAddressDraft}
+            placeholder={
+              import.meta.env.MODE === 'development'
+                ? import.meta.env.VITE_TARGET_IP
+                : window.location.hostname
+            }
+            onChange={(e) => setWsAddressDraft(e.target.value)}
+          />
+
+          <TextField
+            size="small"
+            label="Port"
+            type="number"
+            value={wsPortDraft}
+            placeholder="9000"
+            onChange={(e) => setWsPortDraft(e.target.value)}
+          />
+
+          <Box sx={{ display: 'flex', gap: 1, marginTop: 1 }}>
+            <CustomButton variant="outlined" onClick={applyWsSettings}>
+              Apply
+            </CustomButton>
+            <CustomButton
+              variant="outlined"
+              onClick={clearWsSettings}
+              sx={{
+                color: 'error.main',
+                borderColor: 'error.main',
+                '&:hover': {
+                  borderColor: 'error.dark'
+                }
+              }}
+            >
+              Reset to default
+            </CustomButton>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
