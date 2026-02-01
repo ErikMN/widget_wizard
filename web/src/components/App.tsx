@@ -11,7 +11,7 @@ import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { playSound } from '../helpers/utils';
-import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
+import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { log, enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
@@ -82,7 +82,7 @@ const AppBar = styled(MuiAppBar, {
   overflowX: 'auto',
   WebkitOverflowScrolling: 'touch',
   scrollbarWidth: 'none',
-  ...diagonalTrianglePatternSx(theme, { reverse: false }),
+  ...horizontalStripePatternSx(theme),
   whiteSpace: 'nowrap',
   transition: theme.transitions.create(
     isMobile ? 'margin' : ['margin', 'width'],
@@ -464,7 +464,7 @@ const App: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               width: '100%',
-              ...diagonalTrianglePatternSx(theme, { reverse: true })
+              ...horizontalStripePatternSx(theme)
             })}
           >
             {/* Left and center content */}
@@ -527,7 +527,7 @@ const App: React.FC = () => {
               py: 0.8,
               borderTop: 1,
               borderColor: 'divider',
-              ...diagonalTrianglePatternSx(theme, { reverse: true })
+              ...horizontalStripePatternSx(theme)
             })}
           >
             <CustomStyledIconButton

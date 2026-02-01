@@ -146,3 +146,30 @@ export const crossGridPatternSx = (
     `
   };
 };
+
+export const horizontalStripePatternSx = (
+  theme: Theme,
+  options?: { opacity?: number; sizePx?: number }
+) => {
+  const opacity = options?.opacity ?? 0.2;
+  const sizePx = options?.sizePx ?? 6;
+
+  const baseBgColor =
+    theme.palette.mode === 'dark'
+      ? theme.palette.background.default
+      : theme.palette.grey[100];
+
+  const baseLineColor =
+    theme.palette.mode === 'dark'
+      ? theme.palette.grey[600]
+      : theme.palette.grey[500];
+
+  const bgColor = alpha(baseBgColor, opacity);
+  const lineColor = alpha(baseLineColor, opacity);
+
+  return {
+    backgroundColor: bgColor,
+    backgroundImage: `linear-gradient(0deg, ${bgColor} 75%, ${lineColor} 50%)`,
+    backgroundSize: `${sizePx}px ${sizePx}px`
+  };
+};
