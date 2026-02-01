@@ -167,6 +167,15 @@ const BackendControl: React.FC = () => {
     }
   };
 
+  const isValidWsHost = (host: string): boolean => {
+    try {
+      new URL(`ws://${host}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const applyWsSettings = () => {
     /* Resolve the next WebSocket address: empty input means use default */
     const nextAddress =
@@ -184,6 +193,12 @@ const BackendControl: React.FC = () => {
       setError('Invalid WebSocket port');
       return;
     }
+    /* Validate WebSocket address */
+    if (nextAddress !== undefined && !isValidWsHost(nextAddress)) {
+      setError('Invalid WebSocket address');
+      return;
+    }
+    setError(null);
     /* Apply the settings as the active WebSocket configuration */
     setAppSettings((prev) => ({
       ...prev,
