@@ -118,13 +118,11 @@ const SystemStats: React.FC = () => {
   const [viewMode, setViewMode] = useState<
     'bars' | 'chart' | 'process' | 'list' | 'storage'
   >('bars');
-
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [procName, setProcName] = useState<string>('');
   const [procHistory, setProcHistory] = useState<ProcHistoryPoint[]>([]);
   const [procError, setProcError] = useState<string | null>(null);
   const [procStats, setProcStats] = useState<ProcStats | null>(null);
-
   const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
@@ -367,7 +365,7 @@ const SystemStats: React.FC = () => {
       if (intentionalCloseRef.current) {
         return;
       }
-      setError('WebSocket disconnected');
+      setError('System monitor disconnected');
       setConnected(false);
     };
 
@@ -579,7 +577,10 @@ const SystemStats: React.FC = () => {
               color: '#fff'
             }}
           >
-            Connecting to statistics backend...
+            <Typography>Connecting to system monitor...</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+              {WS_ADDRESS}
+            </Typography>
           </Alert>
         )}
 
