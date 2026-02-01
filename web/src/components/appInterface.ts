@@ -16,7 +16,6 @@ export interface AppSettings {
   sortAscending: boolean;
   widgetDoubleClick: boolean;
   widgetAutoBringFront: boolean;
-  wsDefault: boolean;
   snapToAnchor: boolean;
   /* WebSocket stats backend */
   wsAddress?: string;
@@ -37,7 +36,6 @@ export const defaultAppSettings: AppSettings = {
   sortAscending: true,
   widgetDoubleClick: false,
   widgetAutoBringFront: false,
-  wsDefault: false,
   snapToAnchor: true,
   /* WebSocket stats backend defaults (not set here) */
   wsAddress: undefined,
