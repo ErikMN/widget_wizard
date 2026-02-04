@@ -151,8 +151,8 @@ export const horizontalStripePatternSx = (
   theme: Theme,
   options?: { opacity?: number; sizePx?: number }
 ) => {
-  const opacity = options?.opacity ?? 0.2;
-  const sizePx = options?.sizePx ?? 6;
+  const opacity = options?.opacity ?? 0.25;
+  const sizePx = options?.sizePx ?? 4;
 
   const baseBgColor =
     theme.palette.mode === 'dark'
