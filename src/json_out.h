@@ -40,3 +40,10 @@ size_t build_process_list_json(char *out_buf, size_t out_size, bool *truncated);
  * The list may be truncated to fit into out_buf.
  */
 size_t build_storage_json(char *out_buf, size_t out_size, bool *truncated);
+
+/* Build one-shot system info JSON.
+ *
+ * Output format:
+ *   { "system": { ... } }
+ */
+size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);

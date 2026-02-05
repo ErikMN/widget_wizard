@@ -6,6 +6,7 @@
 
 #include "json_out.h"
 #include "storage.h"
+#include "system_info.h"
 #include "proc.h"
 #include "ws_limits.h"
 
@@ -260,4 +261,56 @@ build_storage_json(char *out_buf, size_t out_size, bool *truncated)
       *truncated = true;
     }
   }
+}
+
+size_t
+build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
+{
+  json_t *resp = NULL;
+  json_t *sys = NULL;
+  struct system_info info;
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!out_buf || out_size == 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  if (!read_system_info(&info)) {
+    return 0;
+  }
+
+  resp = json_object();
+  sys = json_object();
+  if (!resp || !sys) {
+    if (resp) {
+      json_decref(resp);
+    }
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  json_object_set_new(sys, "kernel_release", json_string(info.kernel_release));
+  json_object_set_new(sys, "kernel_version", json_string(info.kernel_version));
+  json_object_set_new(sys, "machine", json_string(info.machine));
+  json_object_set_new(resp, "system", sys);
+
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  return (size_t)out_len;
 }

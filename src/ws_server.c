@@ -226,6 +226,26 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       break;
     }
 
+    /* One-shot system info request: { "system_info": true } */
+    json_t *sysinfo_req = json_object_get(root, "system_info");
+    if (json_is_true(sysinfo_req)) {
+      bool truncated = false;
+      size_t out_len = build_system_info_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
+
+      if (out_len > 0) {
+        int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
+        if (written < 0) {
+          syslog(LOG_WARNING, "lws_write failed");
+        }
+      }
+      if (truncated) {
+        syslog(LOG_INFO, "System info response truncated");
+      }
+
+      json_decref(root);
+      break;
+    }
+
     /* Expect JSON: { "monitor": "process_name" } */
     json_t *monitor = json_object_get(root, "monitor");
     if (!monitor) {
