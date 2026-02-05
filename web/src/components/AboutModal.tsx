@@ -11,7 +11,7 @@ import { useAppContext } from './AppContext';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
 import { playSound } from '../helpers/utils';
-import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
+import { horizontalStripePatternSx } from '../helpers/backgrounds';
 /* MUI */
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
@@ -107,7 +107,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
       <Fade in={open}>
         <Box
           sx={{
-            ...diagonalTrianglePatternSx(theme, { sizePx: 18, reverse: true }),
+            ...horizontalStripePatternSx(theme),
             p: 2,
             position: 'absolute',
             textAlign: 'center',
