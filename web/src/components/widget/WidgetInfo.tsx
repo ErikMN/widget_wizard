@@ -4,6 +4,7 @@ import { useScreenSizes } from '../../helpers/hooks.jsx';
 import { useWidgetContext } from './WidgetContext';
 import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
@@ -13,7 +14,7 @@ const WidgetInfo: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   /* Global context */
-  const { activeWidgets, widgetSupported } = useWidgetContext();
+  const { activeWidgets, widgetSupported, listWidgets } = useWidgetContext();
 
   /* Navigation */
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ const WidgetInfo: React.FC = () => {
   const handleNavigateToCapabilities = useCallback(() => {
     navigate('/widgetcapabilities');
   }, [navigate]);
+
+  const handleRefreshWidgets = useCallback(() => {
+    listWidgets();
+  }, [listWidgets]);
 
   /* Early return must be after hooks */
   if (!widgetSupported) {
@@ -46,6 +51,26 @@ const WidgetInfo: React.FC = () => {
             disableRipple
           >
             <WidgetsOutlinedIcon
+              sx={{
+                width: '20px',
+                height: '20px',
+                color: 'text.secondary'
+              }}
+            />
+          </CustomStyledIconButton>
+        </div>
+      </Tooltip>
+
+      {/* Refresh icon */}
+      <Tooltip title="Refresh active widgets" arrow>
+        <div>
+          <CustomStyledIconButton
+            color="inherit"
+            aria-label="Refresh active widgets"
+            onClick={handleRefreshWidgets}
+            disableRipple
+          >
+            <RefreshOutlinedIcon
               sx={{
                 width: '20px',
                 height: '20px',
