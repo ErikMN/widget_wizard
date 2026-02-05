@@ -27,6 +27,12 @@ interface StorageInfo {
   available_kb: number;
 }
 
+interface SystemInfo {
+  kernel_release: string;
+  kernel_version: string;
+  machine: string;
+}
+
 interface ProcHistoryPoint {
   ts: number;
   cpu: number;
@@ -116,7 +122,7 @@ const SystemStats: React.FC = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<
-    'bars' | 'chart' | 'process' | 'list' | 'storage'
+    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system'
   >('bars');
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [procName, setProcName] = useState<string>('');
@@ -137,7 +143,6 @@ const SystemStats: React.FC = () => {
     pss: true,
     uss: false
   });
-
   const [sysChartMetrics, setSysChartMetrics] = useState<{
     cpu: boolean;
     mem: boolean;
@@ -145,8 +150,8 @@ const SystemStats: React.FC = () => {
     cpu: true,
     mem: true
   });
-
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -186,6 +191,14 @@ const SystemStats: React.FC = () => {
       return;
     }
     wsRef.current.send(JSON.stringify({ storage: true }));
+  };
+
+  /* Request one-shot system information */
+  const requestSystemInfo = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ system_info: true }));
   };
 
   /* Toggle which per-process metric to show */
@@ -279,6 +292,11 @@ const SystemStats: React.FC = () => {
         /* One-shot storage list */
         if (Array.isArray(data.storage)) {
           setStorageInfo(data.storage);
+          return;
+        }
+        /* One-shot system info */
+        if (data.system && typeof data.system === 'object') {
+          setSystemInfo(data.system);
           return;
         }
 
@@ -672,6 +690,22 @@ const SystemStats: React.FC = () => {
                 }}
               >
                 Storage
+              </CustomButton>
+
+              <CustomButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setViewMode('system');
+                  requestSystemInfo();
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  opacity: viewMode === 'system' ? 1 : 0.5
+                }}
+              >
+                System
               </CustomButton>
             </Stack>
 
@@ -1291,6 +1325,34 @@ const SystemStats: React.FC = () => {
                     })}
                   </Stack>
                 </Box>
+              </Stack>
+            )}
+
+            {viewMode === 'system' && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">System information</Typography>
+
+                {!systemInfo && (
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                    No system information received yet
+                  </Typography>
+                )}
+
+                {systemInfo && (
+                  <Box
+                    sx={{
+                      backgroundColor: '#111',
+                      border: '1px solid #333',
+                      padding: '8px',
+                      fontFamily: 'monospace',
+                      fontSize: '12px'
+                    }}
+                  >
+                    <div>Kernel release: {systemInfo.kernel_release}</div>
+                    <div>Kernel version: {systemInfo.kernel_version}</div>
+                    <div>Architecture: {systemInfo.machine}</div>
+                  </Box>
+                )}
               </Stack>
             )}
           </Stack>
