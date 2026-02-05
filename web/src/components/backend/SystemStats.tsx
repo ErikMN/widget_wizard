@@ -1340,12 +1340,14 @@ const SystemStats: React.FC = () => {
 
                 {systemInfo && (
                   <Box
+                    className="selectable-text"
                     sx={{
                       backgroundColor: '#111',
                       border: '1px solid #333',
                       padding: '8px',
                       fontFamily: 'monospace',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      userSelect: 'text'
                     }}
                   >
                     <div>Kernel release: {systemInfo.kernel_release}</div>
