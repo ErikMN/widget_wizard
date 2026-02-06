@@ -578,6 +578,9 @@ const SystemStats: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        maxHeight: '80vh',
+        maxWidth: '90vw',
+        overflow: 'hidden',
         padding: '6px',
         color: '#fff',
         '& .MuiTypography-root': { color: '#fff' },
@@ -617,8 +620,20 @@ const SystemStats: React.FC = () => {
         )}
 
         {connected && stats && (
-          <Stack spacing={2}>
-            <Stack direction="row" spacing={1}>
+          <Stack
+            spacing={2}
+            sx={{
+              overflowY: 'auto',
+              maxHeight: 'calc(80vh - 64px)'
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1
+              }}
+            >
               <CustomButton
                 size="small"
                 variant="outlined"
@@ -707,7 +722,7 @@ const SystemStats: React.FC = () => {
               >
                 System
               </CustomButton>
-            </Stack>
+            </Box>
 
             {/* Use standard MUI components */}
             {viewMode === 'bars' && (
@@ -754,7 +769,13 @@ const SystemStats: React.FC = () => {
                 </Box>
 
                 {/* Load average */}
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1
+                  }}
+                >
                   <Chip
                     size="small"
                     variant="filled"
@@ -785,14 +806,16 @@ const SystemStats: React.FC = () => {
                       '& .MuiChip-label': { color: '#fff' }
                     }}
                   />
-                </Stack>
+                </Box>
 
                 {/* Timestamp */}
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  flexWrap="wrap"
-                  sx={{ alignSelf: 'flex-start' }}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    alignSelf: 'flex-start'
+                  }}
                 >
                   <Chip
                     size="small"
@@ -812,10 +835,17 @@ const SystemStats: React.FC = () => {
                       '& .MuiChip-label': { color: '#fff' }
                     }}
                   />
-                </Stack>
+                </Box>
 
                 {/* System info */}
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    alignSelf: 'flex-start'
+                  }}
+                >
                   <Chip
                     size="small"
                     variant="filled"
@@ -836,15 +866,22 @@ const SystemStats: React.FC = () => {
                       '& .MuiChip-label': { color: '#fff' }
                     }}
                   />
-                </Stack>
+                </Box>
               </>
             )}
 
             {/* Use MUI X LineChart for overall system stats */}
             {viewMode === 'chart' && (
               <>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Tooltip title="Total system CPU usage.">
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    alignSelf: 'flex-start'
+                  }}
+                >
+                  <Tooltip title="Total system CPU usage." arrow>
                     <Chip
                       size="small"
                       clickable
@@ -861,7 +898,7 @@ const SystemStats: React.FC = () => {
                     />
                   </Tooltip>
 
-                  <Tooltip title="Total system RAM usage.">
+                  <Tooltip title="Total system RAM usage." arrow>
                     <Chip
                       size="small"
                       clickable
@@ -877,52 +914,54 @@ const SystemStats: React.FC = () => {
                       }}
                     />
                   </Tooltip>
-                </Stack>
+                </Box>
 
-                <LineChart
-                  height={220}
-                  margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
-                  series={[
-                    ...(sysChartMetrics.cpu
-                      ? [
-                          {
-                            data: history.map((h) => h.cpu),
-                            label: 'CPU %',
-                            showMark: false,
-                            valueFormatter: (v: number | null) =>
-                              v == null ? '' : `${v.toFixed(1)} %`
-                          }
-                        ]
-                      : []),
+                <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+                  <LineChart
+                    height={220}
+                    margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
+                    series={[
+                      ...(sysChartMetrics.cpu
+                        ? [
+                            {
+                              data: history.map((h) => h.cpu),
+                              label: 'CPU %',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} %`
+                            }
+                          ]
+                        : []),
 
-                    ...(sysChartMetrics.mem
-                      ? [
-                          {
-                            data: history.map((h) => h.mem),
-                            label: 'RAM %',
-                            showMark: false,
-                            valueFormatter: (v: number | null) =>
-                              v == null ? '' : `${v.toFixed(1)} %`
-                          }
-                        ]
-                      : [])
-                  ]}
-                  yAxis={sysChartYAxis}
-                  sx={{
-                    '& .MuiChartsAxis-line': {
-                      stroke: '#fff !important'
-                    },
-                    '& .MuiChartsAxis-tick': {
-                      stroke: '#fff !important'
-                    },
-                    '& .MuiChartsAxis-tickLabel': {
-                      fill: '#fff !important'
-                    },
-                    '& .MuiChartsLegend-root': {
-                      color: '#fff !important'
-                    }
-                  }}
-                />
+                      ...(sysChartMetrics.mem
+                        ? [
+                            {
+                              data: history.map((h) => h.mem),
+                              label: 'RAM %',
+                              showMark: false,
+                              valueFormatter: (v: number | null) =>
+                                v == null ? '' : `${v.toFixed(1)} %`
+                            }
+                          ]
+                        : [])
+                    ]}
+                    yAxis={sysChartYAxis}
+                    sx={{
+                      '& .MuiChartsAxis-line': {
+                        stroke: '#fff !important'
+                      },
+                      '& .MuiChartsAxis-tick': {
+                        stroke: '#fff !important'
+                      },
+                      '& .MuiChartsAxis-tickLabel': {
+                        fill: '#fff !important'
+                      },
+                      '& .MuiChartsLegend-root': {
+                        color: '#fff !important'
+                      }
+                    }}
+                  />
+                </Box>
               </>
             )}
 
@@ -936,6 +975,9 @@ const SystemStats: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <input
                     type="text"
+                    inputMode="text"
+                    autoCorrect="off"
+                    autoCapitalize="none"
                     value={procName}
                     onChange={(e) => setProcName(e.target.value)}
                     onKeyDown={(e) => {
@@ -991,8 +1033,18 @@ const SystemStats: React.FC = () => {
                 )}
 
                 {procStats && (
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    <Tooltip title="Process ID. Changes when the process restarts or is replaced.">
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 1,
+                      alignSelf: 'flex-start'
+                    }}
+                  >
+                    <Tooltip
+                      title="Process ID. Changes when the process restarts or is replaced."
+                      arrow
+                    >
                       <Chip
                         size="small"
                         label={`PID ${procStats.pid}`}
@@ -1003,7 +1055,7 @@ const SystemStats: React.FC = () => {
                       />
                     </Tooltip>
 
-                    <Tooltip title="Total CPU usage for this process.">
+                    <Tooltip title="Total CPU usage for this process." arrow>
                       <Chip
                         size="small"
                         clickable
@@ -1018,7 +1070,10 @@ const SystemStats: React.FC = () => {
                       />
                     </Tooltip>
 
-                    <Tooltip title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full.">
+                    <Tooltip
+                      title="RSS (Resident Set Size): how much RAM this process currently has mapped. Shared memory is counted in full."
+                      arrow
+                    >
                       <Chip
                         size="small"
                         clickable
@@ -1033,7 +1088,10 @@ const SystemStats: React.FC = () => {
                       />
                     </Tooltip>
 
-                    <Tooltip title="PSS (Proportional Set Size): how much RAM this process really costs the system.">
+                    <Tooltip
+                      title="PSS (Proportional Set Size): how much RAM this process really costs the system."
+                      arrow
+                    >
                       <Chip
                         size="small"
                         clickable
@@ -1048,7 +1106,10 @@ const SystemStats: React.FC = () => {
                       />
                     </Tooltip>
 
-                    <Tooltip title="USS (Unique Set Size): how much RAM would be freed if this process exited.">
+                    <Tooltip
+                      title="USS (Unique Set Size): how much RAM would be freed if this process exited."
+                      arrow
+                    >
                       <Chip
                         size="small"
                         clickable
@@ -1062,83 +1123,85 @@ const SystemStats: React.FC = () => {
                         }}
                       />
                     </Tooltip>
-                  </Stack>
+                  </Box>
                 )}
 
                 {/* Use MUI X LineChart for per-process stats */}
                 {procHistory.length > 1 && (
-                  <LineChart
-                    height={220}
-                    margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
-                    series={[
-                      ...(procMetrics.cpu
-                        ? [
-                            {
-                              data: procHistory.map((p) => p.cpu),
-                              label: 'CPU %',
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} %`
-                            }
-                          ]
-                        : []),
+                  <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+                    <LineChart
+                      height={220}
+                      margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
+                      series={[
+                        ...(procMetrics.cpu
+                          ? [
+                              {
+                                data: procHistory.map((p) => p.cpu),
+                                label: 'CPU %',
+                                showMark: false,
+                                valueFormatter: (v: number | null) =>
+                                  v == null ? '' : `${v.toFixed(1)} %`
+                              }
+                            ]
+                          : []),
 
-                      ...(procMetrics.rss
-                        ? [
-                            {
-                              data: procHistory.map((p) => p.rss),
-                              label: 'RSS MB',
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} MB`
-                            }
-                          ]
-                        : []),
+                        ...(procMetrics.rss
+                          ? [
+                              {
+                                data: procHistory.map((p) => p.rss),
+                                label: 'RSS MB',
+                                showMark: false,
+                                valueFormatter: (v: number | null) =>
+                                  v == null ? '' : `${v.toFixed(1)} MB`
+                              }
+                            ]
+                          : []),
 
-                      ...(procMetrics.pss
-                        ? [
-                            {
-                              data: procHistory.map((p) => p.pss),
-                              label: 'PSS MB (real memory)',
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} MB`
-                            }
-                          ]
-                        : []),
+                        ...(procMetrics.pss
+                          ? [
+                              {
+                                data: procHistory.map((p) => p.pss),
+                                label: 'PSS MB (real memory)',
+                                showMark: false,
+                                valueFormatter: (v: number | null) =>
+                                  v == null ? '' : `${v.toFixed(1)} MB`
+                              }
+                            ]
+                          : []),
 
-                      ...(procMetrics.uss
-                        ? [
-                            {
-                              data: procHistory.map((p) => p.uss),
-                              label: 'USS MB',
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} MB`
-                            }
-                          ]
-                        : [])
-                    ]}
-                    yAxis={[
-                      {
-                        min: 0
-                      }
-                    ]}
-                    sx={{
-                      '& .MuiChartsAxis-line': {
-                        stroke: '#fff !important'
-                      },
-                      '& .MuiChartsAxis-tick': {
-                        stroke: '#fff !important'
-                      },
-                      '& .MuiChartsAxis-tickLabel': {
-                        fill: '#fff !important'
-                      },
-                      '& .MuiChartsLegend-root': {
-                        color: '#fff !important'
-                      }
-                    }}
-                  />
+                        ...(procMetrics.uss
+                          ? [
+                              {
+                                data: procHistory.map((p) => p.uss),
+                                label: 'USS MB',
+                                showMark: false,
+                                valueFormatter: (v: number | null) =>
+                                  v == null ? '' : `${v.toFixed(1)} MB`
+                              }
+                            ]
+                          : [])
+                      ]}
+                      yAxis={[
+                        {
+                          min: 0
+                        }
+                      ]}
+                      sx={{
+                        '& .MuiChartsAxis-line': {
+                          stroke: '#fff !important'
+                        },
+                        '& .MuiChartsAxis-tick': {
+                          stroke: '#fff !important'
+                        },
+                        '& .MuiChartsAxis-tickLabel': {
+                          fill: '#fff !important'
+                        },
+                        '& .MuiChartsLegend-root': {
+                          color: '#fff !important'
+                        }
+                      }}
+                    />
+                  </Box>
                 )}
               </Stack>
             )}
@@ -1163,6 +1226,9 @@ const SystemStats: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <input
                     type="text"
+                    inputMode="text"
+                    autoCorrect="off"
+                    autoCapitalize="none"
                     value={processFilter}
                     onChange={(e) => setProcessFilter(e.target.value)}
                     placeholder="filter processes"
