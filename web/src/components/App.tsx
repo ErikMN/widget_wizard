@@ -415,9 +415,7 @@ const App: React.FC = () => {
             flexShrink: 0,
             '& .MuiDrawer-paper': {
               border: 'none',
-              borderTopRightRadius: isMobile ? 0 : '12px',
-              borderBottomRightRadius: isMobile ? 0 : '12px',
-              boxShadow: theme.shadows[2],
+              boxShadow: theme.shadows[4],
               boxSizing: 'border-box',
               overflow: isMobile && !drawerOpen ? 'hidden' : 'auto',
               /* Prevent horizontal overflow */
@@ -505,7 +503,7 @@ const App: React.FC = () => {
           </DrawerHeader>
 
           {/* Drawer content here */}
-          <Divider />
+          {/* <Divider /> */}
 
           {/* Scrollable drawer content */}
           <Box
@@ -549,10 +547,7 @@ const App: React.FC = () => {
                   flexShrink: 0
                 }}
               />
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', pt: '1px' }}
-              >
+              <Typography variant="h6" sx={{ whiteSpace: 'nowrap', pt: '1px' }}>
                 Back to main menu
               </Typography>
             </CustomStyledIconButton>
