@@ -268,7 +268,7 @@ const App: React.FC = () => {
             >
               {/* Widget loading progress */}
               <CircularProgress
-                size={30}
+                size={24}
                 sx={{
                   marginRight: 2,
                   visibility: widgetLoading ? 'visible' : 'hidden'
