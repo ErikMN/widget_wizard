@@ -12,7 +12,8 @@
  * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
  * - Each WebSocket client can optionally request per-process monitoring by process name.
  * - Each WebSocket client can request a one-shot list of running process names.
- * - Each WebSocket client can request one-shot filesystem storage information.
+ * - Each WebSocket client can request a one-shot filesystem storage summary.
+ * - Each WebSocket client can request a one-shot system information summary.
  *
  * Data flow:
  *   /proc -> app_state.stats
@@ -61,6 +62,18 @@
  *   mounted filesystem visible at that path (df-style view, e.g. "overlay",
  *   "tmpfs", "ext4"), not necessarily the underlying backing store.
  * - Storage information is returned only on explicit request and is not streamed.
+ *
+ * One-shot system information:
+ * - The client can request a summary of static system information:
+ *     { "system_info": true }
+ * - The server responds with a single JSON object:
+ *     { "system": { ... } }
+ * - Returned fields include:
+ *     - Kernel release and version (uname)
+ *     - Machine architecture
+ *     - Hostname
+ *     - OS identification (best-effort)
+ * - System information is returned only on explicit request and is not streamed.
  *
  * Returned JSON message format example:
  * {
