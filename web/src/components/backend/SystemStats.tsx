@@ -35,6 +35,8 @@ interface SystemInfo {
   os_name?: string;
   os_version?: string;
   os_pretty_name?: string;
+
+  hostname?: string;
 }
 
 interface ProcHistoryPoint {
@@ -1440,6 +1442,9 @@ const SystemStats: React.FC = () => {
                       const osLabel = formatOsName(systemInfo);
                       return (
                         <>
+                          {systemInfo.hostname && (
+                            <div>Hostname: {systemInfo.hostname}</div>
+                          )}
                           {osLabel && <div>OS: {osLabel}</div>}
                           <div>Kernel release: {systemInfo.kernel_release}</div>
                           <div>Kernel version: {systemInfo.kernel_version}</div>
