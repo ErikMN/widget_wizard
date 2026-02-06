@@ -25,6 +25,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* Local state */
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
+  const [progress, setProgress] = useState<number>(0);
 
   /* Global context */
   const { currentTheme, handleOpenAlert } = useAppContext();
@@ -38,6 +39,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
 
   /* App mount calls */
   useEffect(() => {
+    let progressTimer: number | null = null;
+
     /* Check system state */
     const fetchSystemReady = async () => {
       setAppLoading(true);
@@ -58,6 +61,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
           }, 2000); /* Wait before retrying */
         } else {
           setSystemReady(systemReadyState);
+          setProgress(100);
         }
       } catch (error) {
         console.error(error);
@@ -66,7 +70,19 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
         setAppLoading(false);
       }
     };
+
+    /* Fake determinate progress based on wait time (because it looks cool) */
+    progressTimer = window.setInterval(() => {
+      setProgress((prev) => (prev >= 95 ? prev : prev + 5));
+    }, 1000);
+
     fetchSystemReady();
+
+    return () => {
+      if (progressTimer !== null) {
+        clearInterval(progressTimer);
+      }
+    };
   }, []);
 
   if (!appLoading && !paramsLoading && systemReady === 'yes') {
@@ -92,7 +108,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             {import.meta.env.VITE_WEBSITE_NAME} is getting ready
           </Typography>
         </Fade>
-        <CircularProgress size={30} />
+        <CircularProgress size={30} variant="determinate" value={progress} />
       </Box>
     </ThemeProvider>
   );
