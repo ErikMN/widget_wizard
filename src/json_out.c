@@ -311,6 +311,10 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
       json_object_set_new(sys, "os_version", json_string(info.os_version));
     }
   }
+  /* Hostname */
+  if (info.hostname[0] != '\0') {
+    json_object_set_new(sys, "hostname", json_string(info.hostname));
+  }
   json_object_set_new(resp, "system", sys);
 
   int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);

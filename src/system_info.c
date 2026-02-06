@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/utsname.h>
 
 #include "system_info.h"
@@ -94,6 +95,14 @@ read_system_info(struct system_info *out)
   strncpy(out->kernel_release, u.release, sizeof(out->kernel_release) - 1);
   strncpy(out->kernel_version, u.version, sizeof(out->kernel_version) - 1);
   strncpy(out->machine, u.machine, sizeof(out->machine) - 1);
+
+  /* Read system hostname */
+  if (gethostname(out->hostname, sizeof(out->hostname)) != 0) {
+    out->hostname[0] = '\0';
+  } else {
+    /* Ensure NUL termination if truncated */
+    out->hostname[sizeof(out->hostname) - 1] = '\0';
+  }
 
   /* Best-effort OS identification */
   read_os_release(out);

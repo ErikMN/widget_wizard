@@ -14,6 +14,9 @@ struct system_info {
   char os_name[MAX_SYSINFO_FIELD];
   char os_version[MAX_SYSINFO_FIELD];
   char os_pretty_name[MAX_SYSINFO_FIELD];
+
+  /* System hostname */
+  char hostname[MAX_SYSINFO_FIELD];
 };
 
 /* Read one-shot system information.
