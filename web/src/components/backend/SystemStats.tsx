@@ -31,6 +31,10 @@ interface SystemInfo {
   kernel_release: string;
   kernel_version: string;
   machine: string;
+
+  os_name?: string;
+  os_version?: string;
+  os_pretty_name?: string;
 }
 
 interface ProcHistoryPoint {
@@ -99,6 +103,22 @@ const formatUptime = (seconds: number): string => {
   parts.push(`${secs}s`);
 
   return parts.join(' ');
+};
+
+const formatOsName = (info: SystemInfo): string | null => {
+  if (info.os_pretty_name && info.os_pretty_name.trim() !== '') {
+    return info.os_pretty_name;
+  }
+
+  if (info.os_name && info.os_version) {
+    return `${info.os_name} ${info.os_version}`;
+  }
+
+  if (info.os_name) {
+    return info.os_name;
+  }
+
+  return null;
 };
 
 const SystemStats: React.FC = () => {
@@ -1416,9 +1436,17 @@ const SystemStats: React.FC = () => {
                       userSelect: 'text'
                     }}
                   >
-                    <div>Kernel release: {systemInfo.kernel_release}</div>
-                    <div>Kernel version: {systemInfo.kernel_version}</div>
-                    <div>Architecture: {systemInfo.machine}</div>
+                    {(() => {
+                      const osLabel = formatOsName(systemInfo);
+                      return (
+                        <>
+                          {osLabel && <div>OS: {osLabel}</div>}
+                          <div>Kernel release: {systemInfo.kernel_release}</div>
+                          <div>Kernel version: {systemInfo.kernel_version}</div>
+                          <div>Architecture: {systemInfo.machine}</div>
+                        </>
+                      );
+                    })()}
                   </Box>
                 )}
               </Stack>
