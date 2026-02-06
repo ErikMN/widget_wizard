@@ -300,6 +300,17 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
   json_object_set_new(sys, "kernel_release", json_string(info.kernel_release));
   json_object_set_new(sys, "kernel_version", json_string(info.kernel_version));
   json_object_set_new(sys, "machine", json_string(info.machine));
+  /* OS identification (best-effort) */
+  if (info.os_pretty_name[0] != '\0') {
+    json_object_set_new(sys, "os_pretty_name", json_string(info.os_pretty_name));
+  } else {
+    if (info.os_name[0] != '\0') {
+      json_object_set_new(sys, "os_name", json_string(info.os_name));
+    }
+    if (info.os_version[0] != '\0') {
+      json_object_set_new(sys, "os_version", json_string(info.os_version));
+    }
+  }
   json_object_set_new(resp, "system", sys);
 
   int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
