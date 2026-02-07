@@ -29,7 +29,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
 
   /* Global context */
   const { currentTheme, handleOpenAlert } = useAppContext();
-  const { paramsLoading } = useParameters();
+  const { paramsInitialized } = useParameters();
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
@@ -85,7 +85,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
     };
   }, []);
 
-  if (!appLoading && !paramsLoading && systemReady === 'yes') {
+  if (!appLoading && paramsInitialized && systemReady === 'yes') {
     return <Component />;
   }
 

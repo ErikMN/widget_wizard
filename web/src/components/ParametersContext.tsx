@@ -14,6 +14,7 @@ interface ParametersContextType {
   parameters: { [key: string]: string } | null;
   paramsLoading: boolean;
   error: string | null;
+  paramsInitialized: boolean;
   fetchParameters: () => Promise<void>;
   updateParameters: (params: { [key: string]: string }) => Promise<void>;
 }
@@ -30,6 +31,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
     [key: string]: string;
   } | null>(null);
   const [paramsLoading, setParamsLoading] = useState<boolean>(true);
+  const [paramsInitialized, setParamsInitialized] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   /* Parses param.cgi key=value output into a string-to-string map */
@@ -59,6 +61,8 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
       const parsedParameters = parseParameters(text);
       setParameters(parsedParameters);
       setError(null);
+      /* The parameters are initialized */
+      setParamsInitialized(true);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -115,6 +119,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         parameters,
         paramsLoading,
+        paramsInitialized,
         error,
         fetchParameters,
         updateParameters
