@@ -17,6 +17,9 @@ struct system_info {
 
   /* System hostname */
   char hostname[MAX_SYSINFO_FIELD];
+
+  /* CPU count (from proc.c) */
+  long cpu_core_count;
 };
 
 /* Read one-shot system information.

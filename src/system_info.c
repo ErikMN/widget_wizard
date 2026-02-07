@@ -4,6 +4,7 @@
 #include <sys/utsname.h>
 
 #include "system_info.h"
+#include "proc.h"
 
 /* Strip surrounding double quotes if present */
 static void
@@ -106,6 +107,9 @@ read_system_info(struct system_info *out)
 
   /* Best-effort OS identification */
   read_os_release(out);
+
+  /* Also set the CPU core count in system info for good measure */
+  out->cpu_core_count = proc_get_cpu_core_count();
 
   return true;
 }

@@ -296,7 +296,7 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
     }
     return 0;
   }
-
+  /* Populate JSON object with system info */
   json_object_set_new(sys, "kernel_release", json_string(info.kernel_release));
   json_object_set_new(sys, "kernel_version", json_string(info.kernel_version));
   json_object_set_new(sys, "machine", json_string(info.machine));
@@ -315,6 +315,8 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
   if (info.hostname[0] != '\0') {
     json_object_set_new(sys, "hostname", json_string(info.hostname));
   }
+  /* CPU core count */
+  json_object_set_new(sys, "cpu_cores", json_integer(info.cpu_core_count));
   json_object_set_new(resp, "system", sys);
 
   int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
