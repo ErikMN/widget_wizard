@@ -30,7 +30,9 @@ interface StorageInfo {
 interface SystemInfo {
   kernel_release: string;
   kernel_version: string;
+
   machine: string;
+  cpu_cores: number;
 
   os_name?: string;
   os_version?: string;
@@ -1449,6 +1451,7 @@ const SystemStats: React.FC = () => {
                           <div>Kernel release: {systemInfo.kernel_release}</div>
                           <div>Kernel version: {systemInfo.kernel_version}</div>
                           <div>Architecture: {systemInfo.machine}</div>
+                          <div>CPU cores: {systemInfo.cpu_cores}</div>
                         </>
                       );
                     })()}
