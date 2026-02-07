@@ -1,7 +1,7 @@
 /* CGI endpoints */
 export const SR_CGI = '/axis-cgi/systemready.cgi';
 export const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
-export const P_CGI = '/axis-cgi/param.cgi?action=list';
+export const P_CGI = '/axis-cgi/param.cgi';
 export const O_CGI = '/axis-cgi/dynamicoverlay/dynamicoverlay.cgi';
 
 /* Drawer width and height */

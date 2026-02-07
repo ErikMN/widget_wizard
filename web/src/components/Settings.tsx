@@ -640,7 +640,7 @@ const Settings: React.FC = () => {
             <CustomButton
               variant="outlined"
               onClick={() => {
-                const url = `${window.location.protocol}//${window.location.host}${P_CGI}`;
+                const url = `${window.location.protocol}//${window.location.host}${P_CGI}?action=list`;
                 window.open(url, '_blank');
               }}
             >

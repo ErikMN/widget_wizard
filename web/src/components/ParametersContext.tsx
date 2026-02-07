@@ -15,6 +15,7 @@ interface ParametersContextType {
   paramsLoading: boolean;
   error: string | null;
   fetchParameters: () => Promise<void>;
+  updateParameters: (params: { [key: string]: string }) => Promise<void>;
 }
 
 const ParametersContext = createContext<ParametersContextType | undefined>(
@@ -31,6 +32,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   const [paramsLoading, setParamsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  /* Parses param.cgi key=value output into a string-to-string map */
   const parseParameters = (text: string): { [key: string]: string } => {
     const paramMap: { [key: string]: string } = {};
     const lines = text.split('\n');
@@ -43,16 +45,54 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
     return paramMap;
   };
 
+  /*
+   * Fetch parameters from param.cgi with action=list and parse the response
+   */
   const fetchParameters = async () => {
     setParamsLoading(true);
     try {
-      const response = await fetch(P_CGI);
+      const response = await fetch(`${P_CGI}?action=list`);
       if (!response.ok) {
         throw new Error(`Error fetching parameters: ${response.statusText}`);
       }
       const text = await response.text();
       const parsedParameters = parseParameters(text);
       setParameters(parsedParameters);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
+    } finally {
+      setParamsLoading(false);
+    }
+  };
+
+  /*
+   * Update parameters by sending a request to param.cgi with action=update
+   * Example:
+   *
+   * await updateParameters({
+   * 'root.ImageSource.I0.AutoRotationEnabled': 'no',
+   * 'root.ImageSource.I0.Rotation': '0'
+   *});
+   */
+  const updateParameters = async (params: { [key: string]: string }) => {
+    setParamsLoading(true);
+    try {
+      const searchParams = new URLSearchParams();
+      searchParams.append('action', 'update');
+      for (const [key, value] of Object.entries(params)) {
+        searchParams.append(key, value);
+      }
+      const response = await fetch(`${P_CGI}?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Error updating parameters: ${response.statusText}`);
+      }
+      /* Re-fetch parameters to keep local state in sync */
+      await fetchParameters();
       setError(null);
     } catch (err) {
       if (err instanceof Error) {
@@ -72,7 +112,13 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <ParametersContext.Provider
-      value={{ parameters, paramsLoading, error, fetchParameters }}
+      value={{
+        parameters,
+        paramsLoading,
+        error,
+        fetchParameters,
+        updateParameters
+      }}
     >
       {children}
     </ParametersContext.Provider>
