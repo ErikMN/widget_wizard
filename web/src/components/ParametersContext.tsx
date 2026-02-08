@@ -16,7 +16,10 @@ interface ParametersContextType {
   error: string | null;
   paramsInitialized: boolean;
   fetchParameters: () => Promise<void>;
-  updateParameters: (params: { [key: string]: string }) => Promise<void>;
+  updateParameters: (
+    params: { [key: string]: string },
+    refetch?: boolean
+  ) => Promise<void>;
 }
 
 const ParametersContext = createContext<ParametersContextType | undefined>(
@@ -76,14 +79,21 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /*
    * Update parameters by sending a request to param.cgi with action=update
+   *
+   * @param params   Key/value map of parameters to update
+   * @param refetch  Whether to re-fetch parameters after update (default: true)
+   *
    * Example:
    *
    * await updateParameters({
-   * 'root.ImageSource.I0.AutoRotationEnabled': 'no',
-   * 'root.ImageSource.I0.Rotation': '0'
-   *});
+   *   'root.ImageSource.I0.AutoRotationEnabled': 'no',
+   *   'root.ImageSource.I0.Rotation': '0'
+   * }, false);
    */
-  const updateParameters = async (params: { [key: string]: string }) => {
+  const updateParameters = async (
+    params: { [key: string]: string },
+    refetch: boolean = true
+  ) => {
     setParamsLoading(true);
     try {
       const searchParams = new URLSearchParams();
@@ -96,7 +106,9 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(`Error updating parameters: ${response.statusText}`);
       }
       /* Re-fetch parameters to keep local state in sync */
-      await fetchParameters();
+      if (refetch) {
+        await fetchParameters();
+      }
       setError(null);
     } catch (err) {
       if (err instanceof Error) {
