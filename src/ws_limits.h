@@ -31,3 +31,6 @@
  * for list responses (pss->list_buf).
  */
 #define MAX_LIST_JSON_LENGTH 8192
+
+/* Maximum number of CGI entries returned in discovery */
+#define MAX_CGI_COUNT 256

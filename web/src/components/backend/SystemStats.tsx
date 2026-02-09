@@ -146,7 +146,7 @@ const SystemStats: React.FC = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<
-    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system'
+    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system' | 'cgi'
   >('bars');
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [procName, setProcName] = useState<string>('');
@@ -176,6 +176,9 @@ const SystemStats: React.FC = () => {
   });
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [cgiList, setCgiList] = useState<string[]>([]);
+  const [cgiFilter, setCgiFilter] = useState<string>('');
+  const [selectedCgi, setSelectedCgi] = useState<string | null>(null);
 
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
@@ -207,6 +210,14 @@ const SystemStats: React.FC = () => {
       return;
     }
     wsRef.current.send(JSON.stringify({ list_processes: true }));
+  };
+
+  /* Request one-shot CGI list */
+  const requestCgiList = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify({ list_cgi: true }));
   };
 
   /* Request one-shot storage information */
@@ -321,6 +332,11 @@ const SystemStats: React.FC = () => {
         /* One-shot system info */
         if (data.system && typeof data.system === 'object') {
           setSystemInfo(data.system);
+          return;
+        }
+        /* One-shot CGI list */
+        if (Array.isArray(data.cgi)) {
+          setCgiList(data.cgi.map((e: { path: string }) => e.path));
           return;
         }
 
@@ -596,6 +612,11 @@ const SystemStats: React.FC = () => {
     .filter((name) => name.toLowerCase().includes(processFilter.toLowerCase()))
     .sort((a, b) => a.localeCompare(b));
 
+  /* Filter and sort CGI list alphabetically */
+  const filteredCgis = cgiList
+    .filter((p) => p.toLowerCase().includes(cgiFilter.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b));
+
   return (
     <Box
       sx={{
@@ -745,6 +766,22 @@ const SystemStats: React.FC = () => {
                 }}
               >
                 System
+              </CustomButton>
+
+              <CustomButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setViewMode('cgi');
+                  requestCgiList();
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  opacity: viewMode === 'cgi' ? 1 : 0.5
+                }}
+              >
+                CGI
               </CustomButton>
             </Box>
 
@@ -1457,6 +1494,120 @@ const SystemStats: React.FC = () => {
                     })()}
                   </Box>
                 )}
+              </Stack>
+            )}
+
+            {viewMode === 'cgi' && (
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="subtitle2">CGI endpoints</Typography>
+                  {cgiList.length > 0 && (
+                    <Chip
+                      size="small"
+                      label={`${cgiList.length} CGI`}
+                      sx={{
+                        color: '#fff',
+                        '& .MuiChip-label': { color: '#fff' },
+                        opacity: 0.7
+                      }}
+                    />
+                  )}
+                </Stack>
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <input
+                    type="text"
+                    inputMode="text"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    value={cgiFilter}
+                    onChange={(e) => setCgiFilter(e.target.value)}
+                    placeholder="filter CGI paths"
+                    style={{
+                      flex: 1,
+                      padding: '6px',
+                      background: '#222',
+                      color: '#fff',
+                      border: '1px solid #555'
+                    }}
+                  />
+
+                  <Chip
+                    size="small"
+                    label="Refresh"
+                    onClick={requestCgiList}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+
+                  <Chip
+                    size="small"
+                    label="Clear"
+                    onClick={() => setCgiFilter('')}
+                    sx={{
+                      cursor: 'pointer',
+                      color: '#fff',
+                      '& .MuiChip-label': { color: '#fff' }
+                    }}
+                  />
+                </Box>
+
+                <Box
+                  sx={{
+                    maxHeight: '240px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    backgroundColor: '#111',
+                    color: '#fff',
+                    padding: '8px',
+                    border: '1px solid #333'
+                  }}
+                >
+                  {filteredCgis.map((path) => (
+                    <div
+                      key={path}
+                      className="process-row"
+                      onClick={() => setSelectedCgi(path)}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor:
+                          selectedCgi === path ? '#333' : 'transparent'
+                      }}
+                    >
+                      <span>{path}</span>
+
+                      {selectedCgi === path && (
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          {canCopyToClipboard && (
+                            <CustomStyledIconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(path);
+                              }}
+                              sx={{
+                                minWidth: 0,
+                                padding: '2px',
+                                marginRight: '4px'
+                              }}
+                            >
+                              <ContentCopyIcon fontSize="small" />
+                            </CustomStyledIconButton>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </Box>
               </Stack>
             )}
           </Stack>

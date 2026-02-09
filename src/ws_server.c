@@ -241,7 +241,22 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       if (truncated) {
         syslog(LOG_INFO, "System info response truncated");
       }
+      json_decref(root);
+      break;
+    }
 
+    /* One-shot CGI discovery request: { "list_cgi": true } */
+    json_t *cgi_req = json_object_get(root, "list_cgi");
+    if (json_is_true(cgi_req)) {
+      bool truncated = false;
+      size_t out_len = build_cgi_list_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
+
+      if (out_len > 0) {
+        lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
+      }
+      if (truncated) {
+        syslog(LOG_INFO, "CGI list truncated");
+      }
       json_decref(root);
       break;
     }

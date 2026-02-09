@@ -47,3 +47,10 @@ size_t build_storage_json(char *out_buf, size_t out_size, bool *truncated);
  *   { "system": { ... } }
  */
 size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);
+
+/* Build one-shot CGI discovery JSON.
+ *
+ * Output format:
+ *   { "cgi": [ { "path": "..." }, ... ] }
+ */
+size_t build_cgi_list_json(char *out_buf, size_t out_size, bool *truncated);

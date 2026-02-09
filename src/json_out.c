@@ -9,6 +9,7 @@
 #include "system_info.h"
 #include "proc.h"
 #include "ws_limits.h"
+#include "cgi_discovery.h"
 
 size_t
 build_stats_json(char *out_buf,
@@ -330,4 +331,68 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
   }
 
   return (size_t)out_len;
+}
+
+size_t
+build_cgi_list_json(char *out_buf, size_t out_size, bool *truncated)
+{
+  /* Get a list of CGIs */
+  char cgi[MAX_CGI_COUNT][MAX_PROC_PATH_LENGTH];
+  size_t count = collect_cgi_list(cgi, MAX_CGI_COUNT);
+
+  json_t *resp = json_object();
+  json_t *arr = json_array();
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!resp || !arr) {
+    if (resp) {
+      json_decref(resp);
+    }
+    if (arr) {
+      json_decref(arr);
+    }
+    return 0;
+  }
+
+  for (size_t i = 0; i < count; i++) {
+    json_t *obj = json_object();
+    if (!obj) {
+      if (truncated) {
+        *truncated = true;
+      }
+      break;
+    }
+    /* Populate JSON object with CGI paths */
+    json_object_set_new(obj, "path", json_string(cgi[i]));
+    if (json_array_append_new(arr, obj) != 0) {
+      json_decref(obj);
+      if (truncated) {
+        *truncated = true;
+      }
+      break;
+    }
+  }
+  json_object_set_new(resp, "cgi", arr);
+
+  for (;;) {
+    int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+    if (out_len >= 0) {
+      json_decref(resp);
+      return (size_t)out_len;
+    }
+
+    size_t n = json_array_size(arr);
+    if (n == 0) {
+      json_decref(resp);
+      return 0;
+    }
+
+    json_array_remove(arr, n - 1);
+    if (truncated) {
+      *truncated = true;
+    }
+  }
 }

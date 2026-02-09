@@ -1,0 +1,1163 @@
+Add text overlays
+
+// request
+
+Add a text overlay at the top left corner that shows the timestamp. If fontsize is not specified a suitable fontsize will be
+selected by the camera depending on resolution, the fontsize will then have to be read back with a list command if needed
+by the client.
+
+{
+"apiVersion": "1.8",
+"context": "321",
+"method": "addText",
+"params": {
+"camera": 1,
+"text": "%c",
+"position": "topLeft",
+"textColor": "white"
+}
+
+// response
+
+a. Success response example. The response returns the identity of the overlay created.
+
+{
+"apiVersion": "1.8",
+"context": "321",
+"method": "addText",
+"data": {
+"camera": 1,
+"identity": 0
+}
+
+b. Success response example with a scene reference. This example creates a text overlay with an indicator. IndicatorText
+is present for zoom values in the interval 1-500, OverlayT
+
+{
+"apiVersion": "1.6",
+"context": "321",
+"method": "addText",
+"data": {
+"camera": 1,
+"identity": 0,
+"text": "OverlayText",
+"reference": "scene",
+"zoomInterval": "500,1000",
+"indicator": "IndicatorText",
+"indicatorSize": 100
+}
+}
+
+c. Failure response example.
+{
+"apiVersion": "1.8",
+"context": "321",
+"method": "addText",
+"error": {
+"code": 304,
+"message": "Invalid value for parameter text"
+}
+}
+
+3. Add a text overlay at the bottom right corner that shows the address using a specified fontsize.
+{
+"apiVersion": "1.0",
+"context": "456",
+"method": "addText",
+"params": {
+"camera": 1,
+"text": "TEST",
+"position": "bottomRight",
+"fontSize": 14,
+"textColor": "white"
+}
+
+4. Parse the JSON response.
+
+a. Success response example. The response returns the identity of the overlay created.
+{
+"apiVersion": "1.0",
+"context": "456",
+"method": "addText",
+"data": {
+"camera": 1,
+"identity": 1
+}
+}
+
+b. Failure response example.
+{
+"apiVersion": "1.0",
+"context": "456",
+"method": "addText",
+"error": {
+"code": 300,
+"message": "Unable to create overlay (limit reached)"
+}
+}
+
+********************************************************************************
+
+Add image overlay
+
+1. Add an image overlay at the default location with a company logo.
+{
+"apiVersion": "1.0",
+"context": "789",
+"method": "addImage",
+"params": {
+"camera": 1,
+"overlayPath": "logo.ovl"
+}
+
+2. Parse the JSON response.
+a. Success response example. The response returns the identity of the overlay created.
+{
+"apiVersion": "1.0",
+"context": "789",
+"method": "addImage",
+"data": {
+"camera": 1,
+"identity": 2
+}
+
+********************************************************************************
+
+List overlays
+
+1. List all overlays previously created by add methods.
+{
+"apiVersion": "1.0",
+"context": "123",
+"method": "list",
+"params": {
+}
+}
+
+2. Parse the JSON response.
+
+a. Success response example. The response gives a list of overlays with all corresponding properties. Note that scale-
+to-resolution overlays are only listed as a single directory as described in Section 4.2.3, “General preparations” for
+the add image overlay usecase. If the overlay is scaled based on resolution the scalable property will be set to true.
+{
+"apiVersion": "1.0",
+"context": "123",
+"method": "list",
+"data": {
+"imageFiles": [
+"/etc/overlays/axis(128x44).ovl",
+"/etc/overlays/logo.ovl"
+],
+"imageOverlays": [
+{
+"camera": 1,
+"identity": 2,
+"overlayPath": "logo.ovl",
+"position": "top",
+"zIndex": 0,
+"visiable": true,
+"scalable": true
+}
+],
+"textOverlays": [
+{
+"camera": 1,
+"fontSize": 72,
+"identity": 1,
+"indicator": "",
+"indicatorBG": "transparent",
+"indicatorColor": "white",
+"indicatorOL": "black",
+"indicatorSize": 72,
+"position": "topRight",
+"ptPosition": [
+0.0,
+0.0
+],
+"reference": "channel",
+"rotation": 0,
+"scalable": true,
+"scrollSpeed": 0,
+"size": [
+288,
+72
+],
+"text": "some string",
+"textBGColor": "transparent",
+"textColor": "white",
+"textLength": 0,
+"textOLColor": "black",
+"visible": true,
+"zIndex": 0,
+"zoomInterval": [
+1.0,
+19999.0
+]
+}
+]
+}
+}
+
+
+Set text overlay
+
+1. Set text color to white and background to red.
+{
+"apiVersion": "1.8",
+"context": "456",
+"method": "setText",
+"params": {
+"identity": 0,
+"textBGColor": "red"
+}
+}
+
+2. Parse the JSON response.
+a. Success response example.
+{
+"apiVersion": "1.8",
+"context": "456",
+"method": "setText",
+"data": {}
+}
+
+Set image overlay
+1. Update overlay image (please refer to the Overlay API section on uploading images [ref_upload_file] for instruction on
+how to upload new images).
+{
+"apiVersion": "1.0",
+"context": "333",
+"method": "setImage",
+"params": {
+"identity": 2,
+"camera": 1,
+"overlayPath": "redlogo.ovl"
+}
+}
+2. Parse the JSON response.
+a. Success response example.
+{
+"apiVersion": "1.0",
+"context": "333",
+"method": "setImage",
+"data": {}
+}
+
+********************************************************************************
+
+Remove overlays
+
+1. Remove the overlay with a specified identity.
+{
+"apiVersion": "1.0",
+"context": "444",
+"method": "remove",
+"params": {
+"camera": 1,
+"identity": 1
+}
+}
+2. Parse the JSON response.
+a. Success response example.
+{
+"apiVersion": "1.0",
+"context": "444",
+"method": "remove",
+"data": {}
+}
+
+********************************************************************************
+
+Get supported versions
+1. Get a list of supported JSON API versions. Note that no apiVersion is supposed to be defined in the request.
+{
+"context": "123",
+"method": "getSupportedVersions"
+}
+2. Parse the JSON response to find out whether the operation was successful or not.
+a. Success response example.
+{
+"context": "123",
+"method": "getSupportedVersions",
+"data": {
+"apiVersions": [
+"1.0",
+"1.6",
+"1.7"
+]
+}
+}
+
+********************************************************************************
+
+Get overlay capabilities
+1. Get the overlay capabilities for this camera.
+{
+"apiVersion": "1.0",
+"context": "123",
+"method": "getOverlayCapabilities"
+}
+2. Parse the JSON response to find out whether the operation was successful or not.
+a. Success response example.
+{
+"apiVersion": "1.6",
+"context": "123",
+"method": "getOverlayCapabilities",
+"data": {
+"maxFontSize": 200,
+"minFontSize": 16,
+"maxImageHeight": 1080,
+"maxImageSize": 3801600,
+"maxImageWidth": 1920,
+"maxTextLength": 512,
+"numAvailableSlots": 8,
+"slotsPerImageOverlay": 2,
+"slotsPerOverlay": 1,
+"slotsPerTextOverlay": 1,
+"supportedReferences": [ "channel", "source", "sensor", "scene" ]
+}
+}
+
+
+
+********************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+server input outputs
+
+0 degrees:
+
+{"apiVersion":"1.8","method":"setText","params":{"identity":5,"text":"TEST HELLO 321","position":[-0.082897,-0.437988],"textColor":"white","textBGColor":"transparent","textOLColor":"black","fontSize":70,"reference":"channel","rotation":0,"indicator":"","indicatorColor":"semiTransparent","indicatorBG":"transparent","indicatorOL":"black","indicatorSize":48,"zoomInterval":"1,19999"}}
+
+
+{
+    "apiVersion": "1.8",
+    "data": {
+        "imageFiles": [
+            "/etc/overlays/easter1(500x536).ovl",
+            "/etc/overlays/2ram.ovl",
+            "/etc/overlays/snowman2(512x656).ovl"
+        ],
+        "imageOverlays": [
+            {
+                "camera": 1,
+                "identity": 3,
+                "overlayPath": "/etc/overlays/snowman2(512x656).ovl",
+                "position": [
+                    -0.69944,
+                    -0.809575
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    512,
+                    656
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 4,
+                "overlayPath": "/etc/overlays/easter1(500x536).ovl",
+                "position": [
+                    0.090727,
+                    0.055105
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    500,
+                    536
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 6,
+                "overlayPath": "/etc/overlays/2ram.ovl",
+                "position": [
+                    0.673453,
+                    0.24031
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": true,
+                "size": [
+                    320,
+                    320
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ],
+        "textOverlays": [
+            {
+                "camera": 1,
+                "fontSize": 70,
+                "identity": 5,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "semiTransparent",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": [
+                    -0.082897,
+                    -0.437988
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    384,
+                    70
+                ],
+                "text": "TEST HELLO 321",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "fontSize": 64,
+                "identity": 2,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "white",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": "bottomLeft",
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    176,
+                    64
+                ],
+                "text": "Test123",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ]
+    },
+    "method": "list"
+}
+
+
+45 degrees
+{"apiVersion":"1.8","method":"setText","params":{"identity":5,"text":"TEST HELLO 321","position":[-0.082897,-0.437988],"textColor":"white","textBGColor":"transparent","textOLColor":"black","fontSize":70,"reference":"channel","rotation":45,"indicator":"","indicatorColor":"semiTransparent","indicatorBG":"transparent","indicatorOL":"black","indicatorSize":48,"zoomInterval":"1,19999"}}
+
+
+{
+    "apiVersion": "1.8",
+    "data": {
+        "imageFiles": [
+            "/etc/overlays/easter1(500x536).ovl",
+            "/etc/overlays/2ram.ovl",
+            "/etc/overlays/snowman2(512x656).ovl"
+        ],
+        "imageOverlays": [
+            {
+                "camera": 1,
+                "identity": 3,
+                "overlayPath": "/etc/overlays/snowman2(512x656).ovl",
+                "position": [
+                    -0.69944,
+                    -0.809575
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    512,
+                    656
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 4,
+                "overlayPath": "/etc/overlays/easter1(500x536).ovl",
+                "position": [
+                    0.090727,
+                    0.055105
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    500,
+                    536
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 6,
+                "overlayPath": "/etc/overlays/2ram.ovl",
+                "position": [
+                    0.673453,
+                    0.24031
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": true,
+                "size": [
+                    320,
+                    320
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ],
+        "textOverlays": [
+            {
+                "camera": 1,
+                "fontSize": 70,
+                "identity": 5,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "semiTransparent",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": [
+                    -0.082897,
+                    -0.437988
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 45,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    384,
+                    74
+                ],
+                "text": "TEST HELLO 321",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "fontSize": 64,
+                "identity": 2,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "white",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": "bottomLeft",
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    176,
+                    64
+                ],
+                "text": "Test123",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ]
+    },
+    "method": "list"
+}
+
+90 degrees
+
+{"apiVersion":"1.8","method":"setText","params":{"identity":5,"text":"TEST HELLO 321","position":[-0.082897,-0.437988],"textColor":"white","textBGColor":"transparent","textOLColor":"black","fontSize":70,"reference":"channel","rotation":90,"indicator":"","indicatorColor":"semiTransparent","indicatorBG":"transparent","indicatorOL":"black","indicatorSize":48,"zoomInterval":"1,19999"}}
+
+
+{
+    "apiVersion": "1.8",
+    "data": {
+        "imageFiles": [
+            "/etc/overlays/easter1(500x536).ovl",
+            "/etc/overlays/2ram.ovl",
+            "/etc/overlays/snowman2(512x656).ovl"
+        ],
+        "imageOverlays": [
+            {
+                "camera": 1,
+                "identity": 3,
+                "overlayPath": "/etc/overlays/snowman2(512x656).ovl",
+                "position": [
+                    -0.69944,
+                    -0.809575
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    512,
+                    656
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 4,
+                "overlayPath": "/etc/overlays/easter1(500x536).ovl",
+                "position": [
+                    0.090727,
+                    0.055105
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    500,
+                    536
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 6,
+                "overlayPath": "/etc/overlays/2ram.ovl",
+                "position": [
+                    0.673453,
+                    0.24031
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": true,
+                "size": [
+                    320,
+                    320
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ],
+        "textOverlays": [
+            {
+                "camera": 1,
+                "fontSize": 70,
+                "identity": 5,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "semiTransparent",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": [
+                    -0.082897,
+                    -0.437988
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 90,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    384,
+                    74
+                ],
+                "text": "TEST HELLO 321",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "fontSize": 64,
+                "identity": 2,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "white",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": "bottomLeft",
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    176,
+                    64
+                ],
+                "text": "Test123",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ]
+    },
+    "method": "list"
+}
+
+
+
+-90 degrees
+
+{"apiVersion":"1.8","method":"setText","params":{"identity":5,"text":"TEST HELLO 321","position":[-0.082897,-0.437988],"textColor":"white","textBGColor":"transparent","textOLColor":"black","fontSize":70,"reference":"channel","rotation":-90,"indicator":"","indicatorColor":"semiTransparent","indicatorBG":"transparent","indicatorOL":"black","indicatorSize":48,"zoomInterval":"1,19999"}}
+
+
+{
+    "apiVersion": "1.8",
+    "data": {
+        "imageFiles": [
+            "/etc/overlays/easter1(500x536).ovl",
+            "/etc/overlays/2ram.ovl",
+            "/etc/overlays/snowman2(512x656).ovl"
+        ],
+        "imageOverlays": [
+            {
+                "camera": 1,
+                "identity": 3,
+                "overlayPath": "/etc/overlays/snowman2(512x656).ovl",
+                "position": [
+                    -0.69944,
+                    -0.809575
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    512,
+                    656
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 4,
+                "overlayPath": "/etc/overlays/easter1(500x536).ovl",
+                "position": [
+                    0.090727,
+                    0.055105
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    500,
+                    536
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 6,
+                "overlayPath": "/etc/overlays/2ram.ovl",
+                "position": [
+                    0.673453,
+                    0.24031
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": true,
+                "size": [
+                    320,
+                    320
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ],
+        "textOverlays": [
+            {
+                "camera": 1,
+                "fontSize": 70,
+                "identity": 5,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "semiTransparent",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": [
+                    -0.082897,
+                    -0.437988
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": -90,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    384,
+                    74
+                ],
+                "text": "TEST HELLO 321",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "fontSize": 64,
+                "identity": 2,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "white",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": "bottomLeft",
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    176,
+                    64
+                ],
+                "text": "Test123",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ]
+    },
+    "method": "list"
+}
+
+
+-180 degrees
+
+{"apiVersion":"1.8","method":"setText","params":{"identity":5,"text":"TEST HELLO 321","position":[-0.082897,-0.437988],"textColor":"white","textBGColor":"transparent","textOLColor":"black","fontSize":70,"reference":"channel","rotation":-180,"indicator":"","indicatorColor":"semiTransparent","indicatorBG":"transparent","indicatorOL":"black","indicatorSize":48,"zoomInterval":"1,19999"}}
+
+
+{
+    "apiVersion": "1.8",
+    "data": {
+        "imageFiles": [
+            "/etc/overlays/easter1(500x536).ovl",
+            "/etc/overlays/2ram.ovl",
+            "/etc/overlays/snowman2(512x656).ovl"
+        ],
+        "imageOverlays": [
+            {
+                "camera": 1,
+                "identity": 3,
+                "overlayPath": "/etc/overlays/snowman2(512x656).ovl",
+                "position": [
+                    -0.69944,
+                    -0.809575
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    512,
+                    656
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 4,
+                "overlayPath": "/etc/overlays/easter1(500x536).ovl",
+                "position": [
+                    0.090727,
+                    0.055105
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": false,
+                "size": [
+                    500,
+                    536
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "identity": 6,
+                "overlayPath": "/etc/overlays/2ram.ovl",
+                "position": [
+                    0.673453,
+                    0.24031
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "scalable": true,
+                "size": [
+                    320,
+                    320
+                ],
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ],
+        "textOverlays": [
+            {
+                "camera": 1,
+                "fontSize": 70,
+                "identity": 5,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "semiTransparent",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": [
+                    -0.082897,
+                    -0.437988
+                ],
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": -180,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    384,
+                    74
+                ],
+                "text": "TEST HELLO 321",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            },
+            {
+                "camera": 1,
+                "fontSize": 64,
+                "identity": 2,
+                "indicator": "",
+                "indicatorBG": "transparent",
+                "indicatorColor": "white",
+                "indicatorOL": "black",
+                "indicatorSize": 48,
+                "position": "bottomLeft",
+                "ptPosition": [
+                    0.0,
+                    0.0
+                ],
+                "reference": "channel",
+                "rotation": 0,
+                "scalable": true,
+                "scrollSpeed": 0,
+                "size": [
+                    176,
+                    64
+                ],
+                "text": "Test123",
+                "textBGColor": "transparent",
+                "textColor": "white",
+                "textLength": 0,
+                "textOLColor": "black",
+                "visible": true,
+                "zIndex": 0,
+                "zoomInterval": [
+                    1.0,
+                    19999.0
+                ]
+            }
+        ]
+    },
+    "method": "list"
+}
