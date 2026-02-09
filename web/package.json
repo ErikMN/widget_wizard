@@ -27,7 +27,7 @@
     "react-json-view": "^1.21.3",
     "react-router-dom": "^7.13.0",
     "react-syntax-highlighter": "^16.1.0",
-    "rehype-prism-plus": "^2.0.1",
+    "rehype-prism-plus": "^2.0.2",
     "styled-components": "^6.3.8",
     "typescript": "^5.9.3"
   },
