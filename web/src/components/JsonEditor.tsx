@@ -28,6 +28,15 @@ interface JsonEditorProps {
   updateLabel?: string;
 }
 
+/* Safe JSON parser */
+export const safeParseJson = (json: string) => {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
+
 const JsonEditor: React.FC<JsonEditorProps> = ({
   jsonInput,
   setJsonInput,
@@ -64,15 +73,6 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
     }),
     [isDarkMode, theme, jsonError]
   );
-
-  /* Safe JSON parser */
-  const safeParseJson = (json: string) => {
-    try {
-      return JSON.parse(json);
-    } catch {
-      return null;
-    }
-  };
 
   const toggleJsonVisibility = useCallback(() => {
     setJsonVisible((prev) => !prev);

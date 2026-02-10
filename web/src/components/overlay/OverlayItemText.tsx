@@ -9,7 +9,7 @@ import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import messageSoundUrl from '../../assets/audio/message.oga';
-import JsonEditor from '../JsonEditor';
+import JsonEditor, { safeParseJson } from '../JsonEditor';
 import { useAppContext } from '../AppContext';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
@@ -238,7 +238,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   }, [overlay]);
 
   const handleUpdateJSON = useCallback(() => {
-    const parsed = parsedJSON;
+    const parsed = safeParseJson(jsonInput);
     if (parsed == null) {
       setJsonError('Invalid JSON format');
       return;
@@ -270,6 +270,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
       )
     ) {
       setPosition(parsed.position);
+      setCustomPosition(null);
     }
   }, [jsonInput, overlay.identity, updateTextOverlay]);
 

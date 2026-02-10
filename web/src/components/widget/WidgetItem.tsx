@@ -6,7 +6,7 @@ import { Widget } from './widgetInterfaces';
 import { useWidgetContext } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
-import JsonEditor from '../JsonEditor';
+import JsonEditor, { safeParseJson } from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
 import messageSoundUrl from '../../assets/audio/message.oga';
@@ -77,16 +77,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const backupCount = loadWidgetBackups().length;
 
-  /* Safe JSON parser */
-  const safeParseJson = (json: string) => {
-    try {
-      return JSON.parse(json);
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  };
-
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
     /* Store the widget's id */
@@ -152,15 +142,23 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const handleUpdateJSON = () => {
     try {
-      const parsedWidget = parsedJSON;
-      if (parsedWidget == null) {
+      const parsed = safeParseJson(jsonInput);
+      if (parsed == null) {
         setJsonError('Invalid JSON format');
         return;
       }
       /* Re-attach the widget ID */
-      if (widgetState.widgetId !== null) {
-        parsedWidget.generalParams.id = widgetState.widgetId;
+      if (widgetState.widgetId == null) {
+        setJsonError('Missing widget ID');
+        return;
       }
+      const parsedWidget = {
+        ...parsed,
+        generalParams: {
+          ...parsed.generalParams,
+          id: widgetState.widgetId
+        }
+      };
       updateWidget(parsedWidget);
       setJsonError(null);
       /* NOTE: Update UI controls for manual JSON updates */
