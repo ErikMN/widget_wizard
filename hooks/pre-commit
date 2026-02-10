@@ -9,5 +9,10 @@ yarn --cwd web lint
 echo "*** Build web"
 yarn --cwd web build
 
+if command -v clang-format >/dev/null 2>&1; then
+  echo "*** Format C sources"
+  find ./src -name "*.[ch]" -type f -exec clang-format -style=file -i -fallback-style=none {} +
+fi
+
 echo
 echo "*** Git hook done"
