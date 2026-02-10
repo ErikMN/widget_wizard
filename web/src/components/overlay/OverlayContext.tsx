@@ -8,9 +8,7 @@ import React, {
   useCallback,
   ReactNode
 } from 'react';
-import { O_CGI } from '../constants';
 import { log } from '../../helpers/logger';
-import { jsonRequest } from '../../helpers/cgihelper.jsx';
 import { useTabVisibility } from '../../helpers/hooks.jsx';
 import {
   ImageOverlay,
@@ -22,9 +20,15 @@ import { playSound } from '../../helpers/utils';
 import newSoundUrl from '../../assets/audio/new.oga';
 import warningSoundUrl from '../../assets/audio/warning.oga';
 import trashSoundUrl from '../../assets/audio/trash.oga';
-
-// DANGER ZONE: Changing API version may break stuff
-const API_VERSION = '1.8';
+import {
+  apiListOverlayCapabilities,
+  apiListOverlays,
+  apiAddImageOverlay,
+  apiAddTextOverlay,
+  apiRemoveOverlay,
+  apiUpdateImageOverlay,
+  apiUpdateTextOverlay
+} from './overlayApi';
 
 /* Interface defining the structure of the context */
 interface OverlayContextProps {
@@ -113,14 +117,12 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   const listOverlayCapabilities = useCallback(async () => {
     try {
       setWidgetLoading(true);
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'getOverlayCapabilities'
-      };
-      const resp = await jsonRequest(O_CGI, payload);
+      const resp = await apiListOverlayCapabilities();
       setWidgetLoading(false);
 
-      log('[Overlay] getOverlayCapabilities:', resp);
+      if (resp) {
+        log('[Overlay] getOverlayCapabilities:', resp);
+      }
 
       if (resp?.error) {
         throw new Error(resp.error.message);
@@ -139,18 +141,13 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       handleOpenAlert('Failed to fetch overlay capabilities', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert]);
+  }, [handleOpenAlert, setWidgetLoading]);
 
   /* List overlays */
   const listOverlays = useCallback(async () => {
     try {
       setWidgetLoading(true);
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'list',
-        params: {}
-      };
-      const resp = await jsonRequest(O_CGI, payload);
+      const resp = await apiListOverlays();
       setWidgetLoading(false);
 
       log('[Overlay] list:', resp);
@@ -171,7 +168,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to list overlays', 'error');
     }
-  }, [handleOpenAlert]);
+  }, [handleOpenAlert, setWidgetLoading]);
 
   /* List overlays on tab switch */
   useTabVisibility(listOverlays);
@@ -181,23 +178,18 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     async (params?: Partial<ImageOverlay>) => {
       try {
         setWidgetLoading(true);
-        const payload = {
-          apiVersion: API_VERSION,
-          method: 'addImage',
-          params: {
-            camera: params?.camera ?? 1,
-            /* Adding an image overlay required an overlayPath */
-            overlayPath: params?.overlayPath,
-            position: params?.position ?? 'bottomRight'
-          }
-        };
-
-        /* Prevent invalid requests if missing overlayPath */
-        if (!payload.params.overlayPath) {
+        /* Adding an image overlay requires an overlayPath */
+        if (!params?.overlayPath) {
           throw new Error('Missing overlayPath for image overlay');
         }
-
-        const resp = await jsonRequest(O_CGI, payload);
+        const resp = await apiAddImageOverlay({
+          camera: params.camera ?? 1,
+          overlayPath: params.overlayPath,
+          position:
+            typeof params.position === 'string'
+              ? params.position
+              : 'bottomRight'
+        });
         setWidgetLoading(false);
 
         log('[Overlay] addImage:', resp);
@@ -215,7 +207,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         handleOpenAlert('Failed to add image overlay', 'error');
       }
     },
-    [listOverlays, handleOpenAlert]
+    [listOverlays, handleOpenAlert, setWidgetLoading]
   );
 
   /* Add a text overlay */
@@ -223,21 +215,17 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     async (params?: Partial<TextOverlay>) => {
       try {
         setWidgetLoading(true);
-        const payload = {
-          apiVersion: API_VERSION,
-          method: 'addText',
-          params: {
-            camera: params?.camera ?? 1,
-            text: params?.text ?? 'Hello World!',
-            position: params?.position ?? 'topLeft',
-            textColor: params?.textColor ?? 'white',
-            textBGColor: params?.textBGColor ?? 'transparent',
-            textOLColor: params?.textOLColor ?? 'black',
-            ...(params?.fontSize ? { fontSize: params.fontSize } : {}),
-            reference: params?.reference ?? 'channel'
-          }
-        };
-        const resp = await jsonRequest(O_CGI, payload);
+        const resp = await apiAddTextOverlay({
+          camera: params?.camera ?? 1,
+          text: params?.text ?? 'Hello World!',
+          position:
+            typeof params?.position === 'string' ? params.position : 'topLeft',
+          textColor: params?.textColor ?? 'white',
+          textBGColor: params?.textBGColor ?? 'transparent',
+          textOLColor: params?.textOLColor ?? 'black',
+          ...(params?.fontSize ? { fontSize: params.fontSize } : {}),
+          reference: params?.reference ?? 'channel'
+        });
         setWidgetLoading(false);
 
         log('[Overlay] addText:', resp);
@@ -255,7 +243,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         handleOpenAlert('Failed to add text overlay', 'error');
       }
     },
-    [listOverlays, handleOpenAlert]
+    [listOverlays, handleOpenAlert, setWidgetLoading]
   );
 
   /* Remove an overlay */
@@ -263,12 +251,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     async (id: number) => {
       try {
         setWidgetLoading(true);
-        const payload = {
-          apiVersion: API_VERSION,
-          method: 'remove',
-          params: { identity: id }
-        };
-        const resp = await jsonRequest(O_CGI, payload);
+        const resp = await apiRemoveOverlay(id);
         setWidgetLoading(false);
 
         log('[Overlay] remove:', resp);
@@ -290,7 +273,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         handleOpenAlert(`Failed to remove overlay #${id}`, 'error');
       }
     },
-    [listOverlays, handleOpenAlert]
+    [listOverlays, handleOpenAlert, setWidgetLoading]
   );
 
   /* Remove all overlays (by looping removeOverlay) */
@@ -311,23 +294,14 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to remove all overlays', 'error');
     }
-  }, [activeOverlays, removeOverlay, handleOpenAlert]);
+  }, [activeOverlays, removeOverlay, handleOpenAlert, setWidgetLoading]);
 
   /* Update an image overlay */
   const updateImageOverlay = useCallback(
     async (overlay: ImageOverlay) => {
       try {
         setWidgetLoading(true);
-        const payload = {
-          apiVersion: API_VERSION,
-          method: 'setImage',
-          params: {
-            identity: overlay.identity,
-            overlayPath: overlay.overlayPath,
-            position: overlay.position
-          }
-        };
-        const resp = await jsonRequest(O_CGI, payload);
+        const resp = await apiUpdateImageOverlay(overlay);
         setWidgetLoading(false);
 
         log('[Overlay] setImage:', resp);
@@ -347,7 +321,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         );
       }
     },
-    [listOverlays, handleOpenAlert]
+    [listOverlays, handleOpenAlert, setWidgetLoading]
   );
 
   /* Update a text overlay */
@@ -355,28 +329,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     async (overlay: TextOverlay) => {
       try {
         setWidgetLoading(true);
-        const payload = {
-          apiVersion: API_VERSION,
-          method: 'setText',
-          params: {
-            identity: overlay.identity,
-            text: overlay.text,
-            position: overlay.position,
-            textColor: overlay.textColor,
-            textBGColor: overlay.textBGColor,
-            textOLColor: overlay.textOLColor,
-            fontSize: overlay.fontSize,
-            reference: overlay.reference,
-            rotation: overlay.rotation,
-            indicator: overlay.indicator ?? '',
-            indicatorColor: overlay.indicatorColor ?? 'white',
-            indicatorBG: overlay.indicatorBG ?? 'transparent',
-            indicatorOL: overlay.indicatorOL ?? 'black',
-            indicatorSize: overlay.indicatorSize ?? overlay.fontSize ?? 100,
-            zoomInterval: overlay.zoomInterval?.join(',') ?? '1,19999'
-          }
-        };
-        const json = await jsonRequest(O_CGI, payload);
+        const json = await apiUpdateTextOverlay(overlay);
         setWidgetLoading(false);
 
         log('[Overlay] setText:', json);
@@ -396,7 +349,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         );
       }
     },
-    [listOverlays, handleOpenAlert]
+    [listOverlays, handleOpenAlert, setWidgetLoading]
   );
 
   /* Duplicates an existing overlay (using accepted fields) */
