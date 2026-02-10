@@ -4,7 +4,6 @@
  */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useTabVisibility } from '../../helpers/hooks.jsx';
-import { jsonRequest } from '../../helpers/cgihelper.jsx';
 import { log, enableLogging } from '../../helpers/logger.js';
 import { playSound } from '../../helpers/utils';
 import warningSoundUrl from '../../assets/audio/warning.oga';
@@ -12,10 +11,15 @@ import trashSoundUrl from '../../assets/audio/trash.oga';
 import newSoundUrl from '../../assets/audio/new.oga';
 import { useAppContext } from '../AppContext';
 import { ApiResponse, Widget, WidgetCapabilities } from './widgetInterfaces.js';
-import { W_CGI } from '../constants.js';
-
-// DANGER ZONE: Changing API version may break stuff
-const API_VERSION = '2.0';
+import {
+  apiUpdateWidget,
+  apiListWidgets,
+  apiListWidgetCapabilities,
+  apiAddWidget,
+  apiAddCustomWidget,
+  apiRemoveWidget,
+  apiRemoveAllWidgets
+} from './widgetApi';
 
 /* Interface defining the structure of the context */
 interface WidgetContextProps {
@@ -98,18 +102,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Updates the parameters of a widget */
   const updateWidget = useCallback(
     async (widgetItem: Widget) => {
-      const { type, ...updatedGeneralParams } = widgetItem.generalParams;
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'updateWidget',
-        params: {
-          generalParams: updatedGeneralParams,
-          widgetParams: widgetItem.widgetParams
-        }
-      };
       try {
         setWidgetLoading(true);
-        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        const resp: ApiResponse = await apiUpdateWidget(widgetItem);
         setWidgetLoading(false);
         if (resp.error) {
           playSound(warningSoundUrl);
@@ -144,13 +139,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
    * NOTE: This needs to be done after add, remove, update
    */
   const listWidgets = useCallback(async () => {
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'listWidgets'
-    };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse | null = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse | null = await apiListWidgets();
       setWidgetLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -185,13 +176,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Lists all available widget types and their parameters */
   const listWidgetCapabilities = useCallback(async () => {
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'listCapabilities'
-    };
     try {
       setWidgetLoading(true);
-      const resp: WidgetCapabilities | null = await jsonRequest(W_CGI, payload);
+      const resp: WidgetCapabilities | null = await apiListWidgetCapabilities();
       setWidgetLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -229,46 +216,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Adds a new widget and refreshes the widget list */
   const addWidget = useCallback(
     async (widgetType: string) => {
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'addWidget',
-        params: {
-          /* Default general widget parameter settings
-           * NOTE: We might not want defaults for _every_ general params here
-           * because they would overwrite custom per widget defaults.
-           */
-          generalParams: {
-            type: widgetType,
-            datasource: '#D0',
-            /* anchor: 'none', */
-            channel: parseInt(currentChannel, 10),
-            isVisible: true,
-            position: { x: 0, y: 0 },
-            size: 'medium',
-            transparency: 0,
-            updateTime: 1
-          },
-          widgetParams: {} as {
-            minAlarmThreshold?: { value: number; enabled: boolean };
-            maxAlarmThreshold?: { value: number; enabled: boolean };
-          }
-        }
-      };
-      /* NOTE: HACK: Official web UI seems to need these to move the bbox */
-      if (widgetType === 'linegraph' || widgetType === 'meter') {
-        payload.params.widgetParams.minAlarmThreshold = {
-          value: 0,
-          enabled: false
-        };
-        payload.params.widgetParams.maxAlarmThreshold = {
-          value: 100,
-          enabled: false
-        };
-      }
-
       try {
         setWidgetLoading(true);
-        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        const resp: ApiResponse = await apiAddWidget(
+          widgetType,
+          currentChannel
+        );
         setWidgetLoading(false);
         log('*** ADD WIDGET', { resp });
         if (resp.error) {
@@ -294,20 +247,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addCustomWidget = useCallback(
     async (params: Widget) => {
-      /* Strip stuff not accepted by addWidget */
-      const { height, width, generalParams, ...restParams } = params;
-      const { id, ...restGeneralParams } = generalParams || {};
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'addWidget',
-        params: {
-          ...restParams,
-          generalParams: restGeneralParams
-        }
-      };
       try {
         setWidgetLoading(true);
-        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        const resp: ApiResponse = await apiAddCustomWidget(params);
         setWidgetLoading(false);
         log('*** ADD WIDGET', { resp });
         if (resp.error) {
@@ -334,18 +276,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Removes a specified widget */
   const removeWidget = useCallback(
     async (widgetID: number) => {
-      const payload = {
-        apiVersion: API_VERSION,
-        method: 'removeWidget',
-        params: {
-          generalParams: {
-            id: widgetID
-          }
-        }
-      };
       try {
         setWidgetLoading(true);
-        const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+        const resp: ApiResponse = await apiRemoveWidget(widgetID);
         setWidgetLoading(false);
         log('*** REMOVE WIDGET', { resp });
         if (resp.error) {
@@ -371,13 +304,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Removes all currently active widgets */
   const removeAllWidgets = useCallback(async () => {
-    const payload = {
-      apiVersion: API_VERSION,
-      method: 'removeAllWidgets'
-    };
     try {
       setWidgetLoading(true);
-      const resp: ApiResponse = await jsonRequest(W_CGI, payload);
+      const resp: ApiResponse = await apiRemoveAllWidgets();
       setWidgetLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
