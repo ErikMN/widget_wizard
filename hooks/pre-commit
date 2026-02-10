@@ -1,14 +1,29 @@
 #!/bin/sh
+# Presubmit hook:
+# - Runs the web checks only when something under ./web has changed
+#   (based on staged files, falls back to unstaged files if nothing is staged).
+# - If clang-format is installed, formats all .c/.h files under ./src.
+# - Make sure to run setuptarget.sh to setup the git hooks path before using this.
 
-echo "*** Format web"
-yarn --cwd web format
+CHANGED_FILES="$(git diff --name-only --cached 2>/dev/null)"
 
-echo "*** Lint web"
-yarn --cwd web lint
+if [ -z "$CHANGED_FILES" ]; then
+  CHANGED_FILES="$(git diff --name-only 2>/dev/null)"
+fi
 
-echo "*** Build web"
-yarn --cwd web build
+# Web checks are expensive: skip them unless the change touches ./web
+if echo "$CHANGED_FILES" | grep -q '^web/' >/dev/null 2>&1; then
+  echo "*** Format web"
+  yarn --cwd web format
 
+  echo "*** Lint web"
+  yarn --cwd web lint
+
+  echo "*** Build web"
+  yarn --cwd web build
+fi
+
+# Format C sources if clang-format is available:
 if command -v clang-format >/dev/null 2>&1; then
   echo "*** Format C sources"
   find ./src -name "*.[ch]" -type f -exec clang-format -style=file -i -fallback-style=none {} +
