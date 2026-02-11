@@ -106,7 +106,7 @@ export const crossGridPatternSx = (
     lineWidthPx?: number;
   }
 ) => {
-  const patternAlpha = options?.patternAlpha ?? 0.2;
+  const patternAlpha = options?.patternAlpha ?? 0.15;
   const majorSizePx = options?.majorSizePx ?? 50;
   const minorSizePx = options?.minorSizePx ?? 25;
   const lineWidthPx = options?.lineWidthPx ?? 2;
