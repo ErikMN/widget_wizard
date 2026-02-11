@@ -25,10 +25,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* Local state */
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
-  const [progress, setProgress] = useState<number>(0);
+  const [statusMessage, setStatusMessage] = useState<string>('Initializing...');
 
   /* Global context */
-  const { currentTheme, handleOpenAlert } = useAppContext();
+  const { currentTheme } = useAppContext();
   const { paramsInitialized } = useParameters();
 
   /* Theme */
@@ -37,13 +37,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* Screen size */
   const { isMobile } = useScreenSizes();
 
-  /* App mount calls */
+  /* On app mount */
   useEffect(() => {
-    let progressTimer: number | null = null;
-
+    let retryTimer: number | null = null;
     /* Check system state */
     const fetchSystemReady = async () => {
       setAppLoading(true);
+      setStatusMessage('Checking system ready...');
       const payload = {
         apiVersion: '1.0',
         method: 'systemready',
@@ -56,31 +56,27 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
         const systemReadyState = resp.data.systemready;
         /* If the system is not ready, wait a couple of seconds and retry */
         if (systemReadyState !== 'yes') {
-          setTimeout(() => {
-            fetchSystemReady();
-          }, 2000); /* Wait before retrying */
+          setStatusMessage('System not ready yet. Retrying...');
+          retryTimer = window.setTimeout(
+            fetchSystemReady,
+            2000
+          ); /* Wait before retrying */
         } else {
+          setStatusMessage('System is ready. Starting application...');
           setSystemReady(systemReadyState);
-          setProgress(100);
+          setAppLoading(false); /* Only stop loading when ready */
         }
       } catch (error) {
         console.error(error);
-        handleOpenAlert('Failed to check system status', 'error');
-      } finally {
-        setAppLoading(false);
+        setStatusMessage('Failed to check system status.');
+        /* We don't continue from here */
       }
     };
-
-    /* Fake determinate progress based on wait time (because it looks cool) */
-    progressTimer = window.setInterval(() => {
-      setProgress((prev) => (prev >= 95 ? prev : prev + 5));
-    }, 1000);
-
     fetchSystemReady();
 
     return () => {
-      if (progressTimer !== null) {
-        clearInterval(progressTimer);
+      if (retryTimer !== null) {
+        clearTimeout(retryTimer);
       }
     };
   }, []);
@@ -108,7 +104,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             {import.meta.env.VITE_WEBSITE_NAME} is getting ready
           </Typography>
         </Fade>
-        <CircularProgress size={30} variant="determinate" value={progress} />
+        <Typography variant="body2" sx={{ marginBottom: 2 }}>
+          {statusMessage}
+        </Typography>
+        <CircularProgress size={30} />
       </Box>
     </ThemeProvider>
   );
