@@ -81,18 +81,18 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
    * Update parameters by sending a request to param.cgi with action=update
    *
    * @param params   Key/value map of parameters to update
-   * @param refetch  Whether to re-fetch parameters after update (default: true)
+   * @param refetch  Whether to re-fetch parameters after update (default: false)
    *
    * Example:
    *
    * await updateParameters({
    *   'root.ImageSource.I0.AutoRotationEnabled': 'no',
    *   'root.ImageSource.I0.Rotation': '0'
-   * }, false);
+   * }, true);
    */
   const updateParameters = async (
     params: { [key: string]: string },
-    refetch: boolean = true
+    refetch: boolean = false
   ) => {
     setParamsLoading(true);
     try {
