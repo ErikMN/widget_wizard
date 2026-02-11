@@ -486,10 +486,10 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
     onSelect(isCurrentlyOpen ? null : overlayId);
   }, [activeOverlayId, onSelect, overlay.identity, setActiveDraggableOverlay]);
 
-  const handleClick = !appSettings.widgetDoubleClick
+  const handleClick = !appSettings.activateDoubleClick
     ? () => handleBBoxClick()
     : undefined;
-  const handleDoubleClick = appSettings.widgetDoubleClick
+  const handleDoubleClick = appSettings.activateDoubleClick
     ? () => handleBBoxClick()
     : undefined;
 

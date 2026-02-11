@@ -14,7 +14,7 @@ export interface AppSettings {
   bboxOnlyShowActive: boolean;
   sortBy: 'id' | 'type';
   sortAscending: boolean;
-  widgetDoubleClick: boolean;
+  activateDoubleClick: boolean;
   widgetAutoBringFront: boolean;
   snapToAnchor: boolean;
   /* WebSocket stats backend */
@@ -34,7 +34,7 @@ export const defaultAppSettings: AppSettings = {
   bboxOnlyShowActive: false,
   sortBy: 'id',
   sortAscending: true,
-  widgetDoubleClick: false,
+  activateDoubleClick: false,
   widgetAutoBringFront: false,
   snapToAnchor: true,
   /* WebSocket stats backend defaults (not set here) */

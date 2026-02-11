@@ -236,10 +236,10 @@ const Settings: React.FC = () => {
   const handleToggleDoubleClick = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
-      widgetDoubleClick: !prevSettings.widgetDoubleClick
+      activateDoubleClick: !prevSettings.activateDoubleClick
     }));
     handleOpenAlert(
-      `Double click to activate widget: ${!appSettings.widgetDoubleClick}`,
+      `Double click to activate widget: ${!appSettings.activateDoubleClick}`,
       'success'
     );
   };
@@ -529,7 +529,7 @@ const Settings: React.FC = () => {
             })}
           >
             <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
-              Widget settings
+              Widget and overlay settings
             </Typography>
             {!widgetSupported && (
               <WidgetsDisabled sx={{ ml: 0, mr: 0, mt: 1, mb: 3 }} />
@@ -548,12 +548,12 @@ const Settings: React.FC = () => {
             >
               <FormControl sx={{ width: '40%' }}>
                 <InputLabel id="sort-by-label" sx={{ top: '-4px' }}>
-                  Sort widgets by
+                  Sort by
                 </InputLabel>
                 <Select
                   labelId="sort-by-label"
                   value={appSettings.sortBy}
-                  label="Sort widgets by"
+                  label="Sort by"
                   onChange={handleSortChange}
                   sx={{
                     height: '40px',
@@ -583,12 +583,12 @@ const Settings: React.FC = () => {
             <FormControlLabel
               control={
                 <CustomSwitch
-                  checked={appSettings.widgetDoubleClick}
+                  checked={appSettings.activateDoubleClick}
                   onChange={handleToggleDoubleClick}
-                  name="widgetDoubleClick"
+                  name="doubleClick"
                 />
               }
-              label="Use double click for widget activation"
+              label="Use double click for activation"
             />
             {/* Switch setting auto bring to front */}
             <FormControlLabel
@@ -610,7 +610,7 @@ const Settings: React.FC = () => {
                   name="snapToAnchor"
                 />
               }
-              label="Widget snap to anchor"
+              label="Snap to anchor"
             />
           </Box>
 

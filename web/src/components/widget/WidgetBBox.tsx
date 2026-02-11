@@ -523,10 +523,10 @@ export const WidgetBox = React.memo(
     ]
   );
 
-  const handleClick = !appSettings.widgetDoubleClick
+  const handleClick = !appSettings.activateDoubleClick
     ? () => handleBBoxClick(widget)
     : undefined;
-  const handleDoubleClick = appSettings.widgetDoubleClick
+  const handleDoubleClick = appSettings.activateDoubleClick
     ? () => handleBBoxClick(widget)
     : undefined;
 
