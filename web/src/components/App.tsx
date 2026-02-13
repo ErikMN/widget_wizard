@@ -296,8 +296,13 @@ const App: React.FC = () => {
                       }}
                     />
                   )}
-                  {/* Website Name and Product Full Name */}
-                  {import.meta.env.VITE_WEBSITE_NAME} @{' '}
+                  {/* Website Name */}
+                  {import.meta.env.VITE_WEBSITE_NAME}
+                  {/* App logo */}
+                  <Box sx={{ mx: 1, display: 'block' }}>
+                    <Logo style={{ height: '40px' }} />
+                  </Box>
+                  {/* Product Full Name */}
                   {isMobile ? ProdShortName : ProdFullName}
                   {/* Product variant (on desktop) */}
                   {!isMobile && ProdVariant !== '' && (
@@ -305,12 +310,6 @@ const App: React.FC = () => {
                       <Chip label={ProdVariant} size="small" sx={{ ml: 1 }} />
                     </Tooltip>
                   )}
-                  {/* App logo (on desktop only) */}
-                  <Box
-                    sx={{ marginLeft: 1, display: { xs: 'none', md: 'block' } }}
-                  >
-                    <Logo style={{ height: '40px' }} />
-                  </Box>
                 </Typography>
               </Fade>
             </Box>
