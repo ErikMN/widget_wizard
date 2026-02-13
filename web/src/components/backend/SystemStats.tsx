@@ -907,6 +907,7 @@ const SystemStats: React.FC = () => {
                 >
                   <Tooltip title="Total system CPU usage." arrow>
                     <Chip
+                      disableRipple
                       size="small"
                       clickable
                       onClick={() => toggleSysChartMetric('cpu')}
@@ -924,6 +925,7 @@ const SystemStats: React.FC = () => {
 
                   <Tooltip title="Total system RAM usage." arrow>
                     <Chip
+                      disableRipple
                       size="small"
                       clickable
                       onClick={() => toggleSysChartMetric('mem')}
@@ -1019,6 +1021,7 @@ const SystemStats: React.FC = () => {
                     }}
                   />
                   <Chip
+                    disableRipple
                     size="small"
                     label="Start"
                     onClick={sendMonitorRequest}
@@ -1029,6 +1032,7 @@ const SystemStats: React.FC = () => {
                     }}
                   />
                   <Chip
+                    disableRipple
                     size="small"
                     label="Clear"
                     onClick={clearMonitorInput}
@@ -1081,6 +1085,7 @@ const SystemStats: React.FC = () => {
 
                     <Tooltip title="Total CPU usage for this process." arrow>
                       <Chip
+                        disableRipple
                         size="small"
                         clickable
                         onClick={() => toggleProcMetric('cpu')}
@@ -1099,6 +1104,7 @@ const SystemStats: React.FC = () => {
                       arrow
                     >
                       <Chip
+                        disableRipple
                         size="small"
                         clickable
                         onClick={() => toggleProcMetric('rss')}
@@ -1117,6 +1123,7 @@ const SystemStats: React.FC = () => {
                       arrow
                     >
                       <Chip
+                        disableRipple
                         size="small"
                         clickable
                         onClick={() => toggleProcMetric('pss')}
@@ -1135,6 +1142,7 @@ const SystemStats: React.FC = () => {
                       arrow
                     >
                       <Chip
+                        disableRipple
                         size="small"
                         clickable
                         onClick={() => toggleProcMetric('uss')}
@@ -1266,6 +1274,7 @@ const SystemStats: React.FC = () => {
                   />
 
                   <Chip
+                    disableRipple
                     size="small"
                     label="Refresh"
                     onClick={requestProcessList}
@@ -1277,6 +1286,7 @@ const SystemStats: React.FC = () => {
                   />
 
                   <Chip
+                    disableRipple
                     size="small"
                     label="Clear"
                     onClick={clearProcessList}
