@@ -86,7 +86,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             severity: 'info'
           });
           setSystemReady(systemReadyState);
-          setAppLoading(false); /* Only stop loading when ready */
         }
       } catch (error) {
         console.error(error);
@@ -94,6 +93,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
           message: 'Failed to check system status.',
           severity: 'error'
         });
+        setAppLoading(false);
         /* We don't continue from here */
       }
     };
@@ -106,7 +106,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
     };
   }, []);
 
-  if (!appLoading && paramsInitialized && systemReady === 'yes') {
+  if (paramsInitialized && systemReady === 'yes') {
     return <Component />;
   }
 
@@ -150,7 +150,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
           variant="outlined"
           sx={{ marginBottom: 2 }}
         />
-        <CircularProgress size={30} />
+        {appLoading && <CircularProgress size={30} />}
       </Box>
     </ThemeProvider>
   );
