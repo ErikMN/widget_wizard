@@ -6,6 +6,7 @@
  * until the system is ready before rendering the main application component.
  */
 import React, { useEffect, useState } from 'react';
+import Logo from './Logo';
 import { useAppContext } from './AppContext';
 import { useParameters } from './ParametersContext';
 import { jsonRequest } from '../helpers/cgihelper';
@@ -15,7 +16,13 @@ import { lightTheme, darkTheme } from '../theme';
 import { SR_CGI } from './constants';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import { Box, CircularProgress, Fade, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Fade from '@mui/material/Fade';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Typography from '@mui/material/Typography';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 
 interface LoadingScreenProps {
   Component: React.ComponentType;
@@ -25,7 +32,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* Local state */
   const [appLoading, setAppLoading] = useState<boolean>(true);
   const [systemReady, setSystemReady] = useState<string>('no');
-  const [statusMessage, setStatusMessage] = useState<string>('Initializing...');
+  const [status, setStatus] = useState<{
+    message: string;
+    severity: 'info' | 'error';
+  }>({
+    message: 'Initializing...',
+    severity: 'info'
+  });
 
   /* Global context */
   const { currentTheme } = useAppContext();
@@ -43,7 +56,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
     /* Check system state */
     const fetchSystemReady = async () => {
       setAppLoading(true);
-      setStatusMessage('Checking system ready...');
+      setStatus({
+        message: 'Checking system ready...',
+        severity: 'info'
+      });
       const payload = {
         apiVersion: '1.0',
         method: 'systemready',
@@ -56,19 +72,28 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
         const systemReadyState = resp.data.systemready;
         /* If the system is not ready, wait a couple of seconds and retry */
         if (systemReadyState !== 'yes') {
-          setStatusMessage('System not ready yet. Retrying...');
+          setStatus({
+            message: 'System not ready yet. Retrying...',
+            severity: 'info'
+          });
           retryTimer = window.setTimeout(
             fetchSystemReady,
             2000
           ); /* Wait before retrying */
         } else {
-          setStatusMessage('System is ready. Starting application...');
+          setStatus({
+            message: 'System is ready. Starting application...',
+            severity: 'info'
+          });
           setSystemReady(systemReadyState);
           setAppLoading(false); /* Only stop loading when ready */
         }
       } catch (error) {
         console.error(error);
-        setStatusMessage('Failed to check system status.');
+        setStatus({
+          message: 'Failed to check system status.',
+          severity: 'error'
+        });
         /* We don't continue from here */
       }
     };
@@ -100,13 +125,31 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
       >
         <CssBaseline />
         <Fade in={true} timeout={1000} mountOnEnter unmountOnExit>
-          <Typography variant="h6" sx={{ marginBottom: 2 }}>
-            {import.meta.env.VITE_WEBSITE_NAME} is getting ready
-          </Typography>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            <Logo style={{ height: '60px' }} />
+            <Typography variant="h6" sx={{ marginBottom: 1 }}>
+              {import.meta.env.VITE_WEBSITE_NAME} is getting ready
+            </Typography>
+          </div>
         </Fade>
-        <Typography variant="body2" sx={{ marginBottom: 2 }}>
-          {statusMessage}
-        </Typography>
+        <Chip
+          icon={
+            status.severity === 'error' ? (
+              <WarningAmberOutlinedIcon />
+            ) : (
+              <InfoOutlinedIcon />
+            )
+          }
+          label={status.message}
+          variant="outlined"
+          sx={{ marginBottom: 2 }}
+        />
         <CircularProgress size={30} />
       </Box>
     </ThemeProvider>
