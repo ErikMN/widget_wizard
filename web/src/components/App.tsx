@@ -24,6 +24,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import Divider from '@mui/material/Divider';
@@ -165,6 +166,7 @@ const App: React.FC = () => {
   const { parameters } = useParameters();
   const ProdFullName = parameters?.['root.Brand.ProdFullName'];
   const ProdShortName = parameters?.['root.Brand.ProdShortName'];
+  const ProdVariant = parameters?.['root.Brand.ProdVariant'];
 
   /* Theme */
   const theme = currentTheme === 'dark' ? darkTheme : lightTheme;
@@ -297,6 +299,12 @@ const App: React.FC = () => {
                   {/* Website Name and Product Full Name */}
                   {import.meta.env.VITE_WEBSITE_NAME} @{' '}
                   {isMobile ? ProdShortName : ProdFullName}
+                  {/* Product variant (on desktop) */}
+                  {!isMobile && ProdVariant !== '' && (
+                    <Tooltip title="Product variant" arrow>
+                      <Chip label={ProdVariant} size="small" sx={{ ml: 1 }} />
+                    </Tooltip>
+                  )}
                   {/* App logo (on desktop only) */}
                   <Box
                     sx={{ marginLeft: 1, display: { xs: 'none', md: 'block' } }}
