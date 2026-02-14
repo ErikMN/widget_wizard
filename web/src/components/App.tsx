@@ -292,14 +292,12 @@ const App: React.FC = () => {
                 >
                   {/* Debug Icon */}
                   {appSettings.debug && (
-                    <ScienceOutlinedIcon
-                      titleAccess="Debug mode enabled"
-                      sx={{
-                        marginRight: '8px',
-                        width: '20px',
-                        height: '20px',
-                        color: 'text.secondary'
-                      }}
+                    <Chip
+                      size="small"
+                      color="warning"
+                      icon={<ScienceOutlinedIcon />}
+                      label={'Debug mode'}
+                      sx={{ marginRight: '8px' }}
                     />
                   )}
                   {/* Website Name */}
