@@ -46,6 +46,9 @@ import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 
 /******************************************************************************/
 
+{
+  /* Main content */
+}
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<{
@@ -77,6 +80,9 @@ interface AppBarProps extends MuiAppBarProps {
   isMobile?: boolean;
 }
 
+{
+  /* Application header bar */
+}
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'isMobile'
 })<AppBarProps>(({ theme, open, isMobile }) => ({

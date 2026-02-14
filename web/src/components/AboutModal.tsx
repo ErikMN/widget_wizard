@@ -122,7 +122,10 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             minWidth: '300px',
             maxHeight: isMobile ? '100%' : '90vh',
             overflowY: 'auto',
-            bgcolor: 'background.paper',
+            bgcolor:
+              theme.palette.mode === 'dark'
+                ? 'secondary.main'
+                : 'background.paper',
             boxShadow: 24,
             borderRadius: isMobile ? 0 : 1
           }}

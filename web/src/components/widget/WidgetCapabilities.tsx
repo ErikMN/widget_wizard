@@ -116,7 +116,10 @@ const WidgetCapabilities: React.FC = () => {
         <CustomContainer
           sx={{
             p: 2,
-            bgcolor: 'background.paper',
+            bgcolor:
+              theme.palette.mode === 'dark'
+                ? 'secondary.main'
+                : 'background.paper',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-start',

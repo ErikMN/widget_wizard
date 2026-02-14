@@ -120,8 +120,8 @@ const darkTheme = createTheme({
       main: '#292929' // Secondary color
     },
     background: {
-      default: grey[900], // Background color for the whole app
-      paper: '#292929' // Background color for cards, dialogs, etc.
+      default: '#151515', // Background color for the whole app
+      paper: '#000000' // Background color for cards, dialogs, etc.
     },
     text: {
       primary: '#fff', // Text color for the default dark background

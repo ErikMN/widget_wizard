@@ -154,10 +154,7 @@ export const horizontalStripePatternSx = (
   const opacity = options?.opacity ?? 0.25;
   const sizePx = options?.sizePx ?? 4;
 
-  const baseBgColor =
-    theme.palette.mode === 'dark'
-      ? theme.palette.background.default
-      : theme.palette.grey[100];
+  const baseBgColor = theme.palette.background.paper;
 
   const baseLineColor =
     theme.palette.mode === 'dark'
