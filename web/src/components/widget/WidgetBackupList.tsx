@@ -270,10 +270,7 @@ const WidgetBackupList: React.FC<{
                         borderRadius: '4px',
                         borderBottomLeftRadius: isExpanded ? '0px' : '4px',
                         borderBottomRightRadius: isExpanded ? '0px' : '4px',
-                        backgroundColor: (theme) =>
-                          theme.palette.mode === 'dark'
-                            ? theme.palette.grey[800]
-                            : theme.palette.grey[200],
+                        backgroundColor: 'background.paper',
                         border: (theme) => {
                           let color = theme.palette.grey[600];
                           if (isMarked) {
