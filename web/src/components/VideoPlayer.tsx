@@ -306,7 +306,7 @@ const VideoPlayer: React.FC = () => {
       style={{
         flexGrow: 1,
         backgroundColor:
-          currentTheme === 'dark' ? 'rgb(61, 61, 61)' : 'rgb(0, 0, 0)',
+          currentTheme === 'dark' ? 'rgb(31, 31, 31)' : 'rgb(0, 0, 0)',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
