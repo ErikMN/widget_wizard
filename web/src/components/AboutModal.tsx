@@ -17,6 +17,8 @@ import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Box from '@mui/material/Box';
+import BuildIcon from '@mui/icons-material/Build';
+import Chip from '@mui/material/Chip';
 import Fade from '@mui/material/Fade';
 import Modal from '@mui/material/Modal';
 import MuiLink from '@mui/material/Link';
@@ -134,11 +136,16 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             src={logo}
             alt="Widgy logo"
             style={{
-              width: isMobile ? '120px' : '200px',
+              width: isMobile ? '120px' : '180px',
               marginBottom: '10px'
             }}
           />
-          <Typography id="about-modal-title" variant="h5" component="h2">
+          <Typography
+            color="text.primary"
+            id="about-modal-title"
+            variant="h5"
+            component="h2"
+          >
             About {import.meta.env.VITE_WEBSITE_NAME}
           </Typography>
 
@@ -148,8 +155,21 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             sx={{ marginTop: 2, marginBottom: 2 }}
           >
             Version: {import.meta.env.VITE_VERSION}
-            {appSettings.debug ? <AppVersion /> : <br />}
-            Copyright © {new Date().getFullYear()} Widget Wizard
+            <br />
+            {appSettings.debug ? (
+              <>
+                <Chip
+                  color="warning"
+                  size="small"
+                  label={<AppVersion />}
+                  icon={<BuildIcon />}
+                  sx={{ mt: 1, mb: 1 }}
+                />
+                <br />
+              </>
+            ) : null}
+            Copyright © {new Date().getFullYear()}{' '}
+            {import.meta.env.VITE_WEBSITE_NAME}
           </Typography>
 
           {/* New app version available alert */}
@@ -215,7 +235,9 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
           {/* License box */}
           <Box>
             <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="h6">License</Typography>
+              <Typography color="text.primary" variant="h6">
+                License
+              </Typography>
             </Box>
             {/* Scrollable license box */}
             <CustomBox
