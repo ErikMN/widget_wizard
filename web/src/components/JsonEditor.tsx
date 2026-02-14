@@ -5,7 +5,7 @@
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAppContext } from './AppContext';
-import { CustomButton } from './CustomComponents';
+import { CustomButton, CustomSwitch } from './CustomComponents';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
 import ReactJson from 'react-json-view';
@@ -16,7 +16,6 @@ import Collapse from '@mui/material/Collapse';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ImageIcon from '@mui/icons-material/Image';
 
 interface JsonEditorProps {
   jsonInput: string;
@@ -197,14 +196,22 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
             </Alert>
           )}
           {appSettings.debug && (
-            <CustomButton
-              onClick={toggleJsonEditor}
-              variant="contained"
-              startIcon={<ImageIcon />}
-              sx={{ marginTop: 1, width: '100%', height: '30px' }}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 8
+              }}
             >
-              {useJsonEditorPro ? 'JSON editor' : 'JSON editor PRO'}
-            </CustomButton>
+              <span style={{ color: theme.palette.text.primary }}>
+                JSON editor PRO
+              </span>
+              <CustomSwitch
+                checked={useJsonEditorPro}
+                onChange={toggleJsonEditor}
+              />
+            </div>
           )}
           <CustomButton
             onClick={onUpdate}
