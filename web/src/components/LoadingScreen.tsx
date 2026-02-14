@@ -133,7 +133,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             }}
           >
             <Logo style={{ height: '60px' }} />
-            <Typography variant="h6" sx={{ marginBottom: 1 }}>
+            <Typography
+              variant="h6"
+              color="text.primary"
+              sx={{ marginBottom: 1 }}
+            >
               {import.meta.env.VITE_WEBSITE_NAME} is getting ready
             </Typography>
           </div>
@@ -147,7 +151,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
             )
           }
           label={status.message}
-          variant="outlined"
+          color={status.severity === 'error' ? 'error' : 'default'}
+          variant={status.severity === 'error' ? 'filled' : 'outlined'}
           sx={{ marginBottom: 2 }}
         />
         {appLoading && <CircularProgress size={30} />}
