@@ -12,11 +12,11 @@ const lightTheme = createTheme({
       contrastText: '#525252' // Text color on primary elements
     },
     secondary: {
-      main: '#ffffff' // Secondary color (accents, floating action buttons)
+      main: '#ebebeb' // Secondary color (accents, floating action buttons)
     },
     background: {
       default: grey[50], // Main background color
-      paper: grey[200] // Background color for cards, dialogs, etc.
+      paper: '#ebebeb' // Background color for cards, dialogs, etc.
     },
     text: {
       primary: grey[900], // Text color on the default background

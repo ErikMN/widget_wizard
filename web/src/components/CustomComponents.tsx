@@ -213,6 +213,7 @@ export const CustomSlider: React.FC<CustomSliderProps> = (props) => {
 /** Custom Button */
 const CustomStyledButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px'
+  // backgroundColor: theme.palette.primary.main
 }));
 
 export interface CustomButtonProps extends ButtonProps {}
