@@ -328,7 +328,12 @@ const Settings: React.FC = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <SettingsIcon sx={{ marginRight: 1 }} />
-              <Typography id="settings-modal-title" variant="h5" component="h2">
+              <Typography
+                id="settings-modal-title"
+                color="text.primary"
+                variant="h5"
+                component="h2"
+              >
                 Application settings
               </Typography>
             </Box>
@@ -675,7 +680,12 @@ const Settings: React.FC = () => {
           {/* Video preview */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <TvIcon sx={{ marginRight: 1 }} />
-            <Typography id="preview" variant="h5" component="h2">
+            <Typography
+              id="preview"
+              color="text.primary"
+              variant="h5"
+              component="h2"
+            >
               Preview
             </Typography>
           </Box>
