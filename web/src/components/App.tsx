@@ -1,11 +1,6 @@
 /* Widget Wizard main component */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import Logo from './Logo';
-import VideoPlayer from './VideoPlayer';
-import AboutModal from './AboutModal';
-import AlertSnackbar from './AlertSnackbar';
 import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
@@ -13,13 +8,18 @@ import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
 import { playSound } from '../helpers/utils';
 import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
-import { log, enableLogging } from '../helpers/logger';
+import { enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
-import messageSoundUrl from '../assets/audio/message.oga';
+import AboutModal from './AboutModal';
+import AlertSnackbar from './AlertSnackbar';
 import DrawerHeaderContent from './DrawerHeaderContent';
+import Logo from './Logo';
 import MainMenu from './MainMenu';
+import VideoPlayer from './VideoPlayer';
+import messageSoundUrl from '../assets/audio/message.oga';
 /* MUI */
 import { styled } from '@mui/material/styles';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -227,7 +227,6 @@ const App: React.FC = () => {
   };
 
   const contentMain = () => {
-    // log('MAIN CONTENT');
     return (
       <>
         {/* Application header bar */}
@@ -473,8 +472,7 @@ const App: React.FC = () => {
             sx={(theme) => ({
               display: 'flex',
               alignItems: 'center',
-              width: '100%',
-              ...horizontalStripePatternSx(theme)
+              width: '100%'
             })}
           >
             {/* Left and center content */}
@@ -514,8 +512,8 @@ const App: React.FC = () => {
             </Tooltip>
           </DrawerHeader>
 
-          {/* Drawer content here */}
-          {/* <Divider /> */}
+          {/* Drawer content starts here */}
+          <Divider />
 
           {/* Scrollable drawer content */}
           <Box
@@ -588,6 +586,7 @@ const App: React.FC = () => {
         {/* Scroll-to-Top Button for mobile */}
         {isMobile && drawerOpen && (
           <Fab
+            disableRipple
             color="primary"
             size="small"
             onClick={() => {
