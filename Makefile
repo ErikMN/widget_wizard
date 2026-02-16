@@ -177,13 +177,13 @@ dockersetup: checkdocker
 # Build ACAP for ARM64 using Docker:
 .PHONY: acap
 acap: checkdocker
-	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build_aarch64.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
+	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
 
 # Fast build (only binary file) using Docker:
 .PHONY: build
 build: checkdocker
 ifeq ($(APPTYPE), aarch64)
-	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh $(FINAL)
+	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh 0 $(PROGS) $(ACAP_NAME) $(FINAL)
 else
 	@echo "Error: Unsupported APPTYPE"
 	@exit 1

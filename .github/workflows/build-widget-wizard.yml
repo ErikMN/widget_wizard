@@ -102,7 +102,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             widget_wizard_img_aarch64 \
-            ./docker/build_aarch64.sh 1 widget_wizard "Widget Wizard" y
+            ./docker/build.sh 1 widget_wizard "Widget Wizard" y
 
       # Detect the .eap file produced by the build:
       - name: Find EAP file
