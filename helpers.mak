@@ -41,12 +41,7 @@ endif
 .PHONY: deploygdb
 deploygdb:
 ifdef TARGET_IP
-ifeq ($(APPTYPE), aarch64)
 	@sshpass -p $(TARGET_PWD) scp $(SSH_OPTS) -P $(TARGET_SSH_PORT) ./gdb/gdbserver $(TARGET_USR)@$(TARGET_IP):/tmp/gdbserver
-else
-	@echo "Error: Unsupported APPTYPE"
-	@exit 1
-endif
 else
 	$(error Please source setuptarget.sh first)
 endif
@@ -108,13 +103,7 @@ release:
 # Extract ACAP SDK from Docker image (needs to be run as root):
 .PHONY: getsdk
 getsdk: checkdocker
-ifeq ($(APPTYPE), aarch64)
-	@$(call setup_aarch64)
 	@./scripts/dockercopy.sh -i $(DOCKER_X64_IMG) -f /opt/axis/acapsdk
-else
-	@echo "Error: Unsupported APPTYPE"
-	@exit 1
-endif
 
 #==============================================================================#
 # Docker helpers
@@ -131,15 +120,10 @@ dockerlist: checkdocker
 	@echo
 	@docker image list $(DOCKER_X64_IMG)
 
-# Run current Docker image:
+# Run ARM64 Docker image:
 .PHONY: dockerrun
 dockerrun: checkdocker
-ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG)
-else
-	@echo "Error: Unsupported APPTYPE"
-	@exit 1
-endif
 
 #==============================================================================#
 # Code helpers
@@ -160,5 +144,47 @@ indent:
 	@$(ECHO) "${PURPLE}*** Formatting code${NC}"
 	@clang-format $(shell find . -name "*.[ch]") \
 		-style=file -i -fallback-style=none
+
+#==============================================================================#
+# Build for host PC (requires all dependencies installed):
+
+.PHONY: host
+host: clean
+	@$(MAKE) \
+	  OECORE_SDK_VERSION=host \
+	  APPTYPE=host \
+	  $(PROGS)
+
+#==============================================================================#
+# NOTE: Build for legacy 32-bit products for testing (not release):
+
+# Create Docker image to build 32-bit app in:
+.PHONY: dockersetup32
+dockersetup32: checkdocker
+	@docker build -f docker/Dockerfile.armv7hf ./docker -t $(DOCKER_X32_IMG)
+
+# Build ACAP for ARM32 using Docker:
+.PHONY: acap32
+acap32: checkdocker
+	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
+
+# Fast build 32-bit app (only binary file) using Docker:
+.PHONY: build32
+build32: checkdocker
+	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build.sh 0 $(PROGS) $(ACAP_NAME) $(FINAL)
+
+# Fast target to setup Docker image and build the 32-bit ACAP:
+.PHONY: app32
+app32: dockersetup32 acap32
+
+# Install 32-bit ACAP using Docker:
+.PHONY: install32
+install32: checkdocker acap32
+	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/eap-install.sh
+
+# Run ARM32 Docker image:
+.PHONY: dockerrun32
+dockerrun32: checkdocker
+	@$(DOCKER_CMD) $(DOCKER_X32_IMG)
 
 #==============================================================================#

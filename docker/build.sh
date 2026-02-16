@@ -40,9 +40,24 @@ else
 fi
 echo
 
-# Set APPTYPE/architecture from OECORE_TARGET_ARCH:
-sed -i "s/APPTYPE=\"[^\"]*\"/APPTYPE=\"${OECORE_TARGET_ARCH}\"/" package.conf
-sed -i "s/\"architecture\": \"[^\"]*\"/\"architecture\": \"${OECORE_TARGET_ARCH}\"/" manifest.json
+# Translate OECORE_TARGET_ARCH to packaging architecture:
+case "${OECORE_TARGET_ARCH}" in
+aarch64)
+  TARGET_ARCH="aarch64"
+  ;;
+arm)
+  # 32-bit ACAP SDK reports "arm" but packaging requires "armv7hf":
+  TARGET_ARCH="armv7hf"
+  ;;
+*)
+  echo -e "${FMT_RED}Error: Unsupported OECORE_TARGET_ARCH: ${OECORE_TARGET_ARCH}${FMT_RESET}"
+  exit 1
+  ;;
+esac
+
+# Set APPTYPE/architecture from translated arch:
+sed -i "s/APPTYPE=\"[^\"]*\"/APPTYPE=\"${TARGET_ARCH}\"/" package.conf
+sed -i "s/\"architecture\": \"[^\"]*\"/\"architecture\": \"${TARGET_ARCH}\"/" manifest.json
 # Set PACKAGENAME/friendlyName:
 sed -i "s/PACKAGENAME=\"[^\"]*\"/PACKAGENAME=\"${ACAP_NAME}\"/" package.conf
 sed -i "s/\"friendlyName\": \"[^\"]*\"/\"friendlyName\": \"${ACAP_NAME}\"/" manifest.json

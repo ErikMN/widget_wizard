@@ -14,7 +14,10 @@ PROGS = widget_wizard
 ACAP_NAME = "Widget Wizard"
 LDLIBS = -lm
 
+# Docker image tags:
 DOCKER_X64_IMG := widget_wizard_img_aarch64
+DOCKER_X32_IMG := widget_wizard_img_armv7hf
+
 APPTYPE := $(shell grep "^APPTYPE=" package.conf | cut -d "=" -f 2 | sed 's/"//g')
 DOCKER := $(shell command -v docker 2> /dev/null)
 NODE := $(shell command -v node 2> /dev/null)
@@ -182,12 +185,7 @@ acap: checkdocker
 # Fast build (only binary file) using Docker:
 .PHONY: build
 build: checkdocker
-ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh 0 $(PROGS) $(ACAP_NAME) $(FINAL)
-else
-	@echo "Error: Unsupported APPTYPE"
-	@exit 1
-endif
 
 # Fast target to setup Docker image and build the ACAP:
 .PHONY: app
@@ -196,20 +194,7 @@ app: dockersetup acap
 # Install ACAP using Docker:
 .PHONY: install
 install: checkdocker acap
-ifeq ($(APPTYPE), aarch64)
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/eap-install.sh
-else
-	@echo "Error: Unsupported APPTYPE"
-	@exit 1
-endif
-
-# Build for host (requires all dependencies installed):
-.PHONY: host
-host: clean
-	@$(MAKE) \
-	  OECORE_SDK_VERSION=host \
-	  APPTYPE=host \
-	  $(PROGS)
 
 # Cleanup:
 .PHONY: clean
