@@ -25,9 +25,9 @@ import { useAppContext } from '../AppContext';
 import { useParameters } from '../ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
-import { Container, Layer } from './Container';
+import { Container, Layer } from './PlayerContainer';
 import { Limiter } from './Limiter';
-import { Controls } from './Controls';
+import { PlayerControls } from './PlayerControls';
 import { getImageURL } from './GetImageURL';
 import SystemStats from '../backend/SystemStats';
 import Draggable from 'react-draggable';
@@ -445,7 +445,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           </Limiter>
         </div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <Controls
+          <PlayerControls
             play={play}
             videoProperties={videoProperties}
             src={host}

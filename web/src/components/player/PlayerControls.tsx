@@ -1,5 +1,5 @@
 /**
- * Controls
+ * PlayerControls
  *
  * Handle the controls for the video player:
  *  - Play and pause (actually stop)
@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
 import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
 import { PlayerSettings } from './PlayerSettings';
-import { CustomStyledIconButton, CustomSlider } from './../CustomComponents';
+import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 import { darkTheme } from '../../theme';
 /* MUI */
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
@@ -117,7 +117,7 @@ const progressIndicatorStyle = {
   whiteSpace: 'nowrap'
 } as const;
 
-interface ControlsProps {
+interface PlayerControlsProps {
   readonly play?: boolean;
   readonly videoProperties?: VideoProperties;
   readonly startTime?: string; // 2021-02-03T12:21:57.465715Z
@@ -152,7 +152,7 @@ interface ControlsProps {
   readonly waiting?: boolean;
 }
 
-export const Controls: React.FC<ControlsProps> = ({
+export const PlayerControls: React.FC<PlayerControlsProps> = ({
   play,
   videoProperties,
   duration,
