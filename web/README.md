@@ -5,6 +5,14 @@
 - Node.js
 - Yarn (classic 1.22)
 
+### Install Node.js and Yarn on host
+
+Recommended to use [Node Version Manager](https://github.com/nvm-sh/nvm) for Node.js install
+
+```shell
+npm install -g yarn
+```
+
 ## How to build the UI
 
 ```shell
@@ -25,7 +33,7 @@ Then run:
 yarn start
 ```
 
-## Lind and format
+## Lint and format
 
 ```shell
 yarn lint
