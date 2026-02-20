@@ -399,7 +399,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                   ref={systemStatsRef}
                   style={{
                     position: 'absolute',
-                    bottom: '60px',
+                    bottom: '20px',
                     left: '20px',
                     zIndex: 10,
                     background: 'rgba(0, 0, 0, 0.4)',
