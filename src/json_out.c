@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 #include <syslog.h>
 #include <jansson.h>
 
@@ -288,6 +287,9 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
   resp = json_object();
   sys = json_object();
   if (!resp || !sys) {
+    if (sys) {
+      json_decref(sys);
+    }
     if (resp) {
       json_decref(resp);
     }
