@@ -31,3 +31,13 @@
  * for list responses (pss->list_buf).
  */
 #define MAX_LIST_JSON_LENGTH 8192
+
+/* Maximum size (bytes) of a single incoming control message.
+ *
+ * This bounds:
+ * - JSON control commands received from clients (monitor, list_processes, etc.)
+ * - Temporary stack buffer used for parsing
+ *
+ * Messages larger than this limit are rejected.
+ */
+#define MAX_CONTROL_MESSAGE_LENGTH 128

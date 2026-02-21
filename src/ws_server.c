@@ -100,7 +100,6 @@ stop_stats_timer(void)
 /* WebSocket protocol callback
  *
  * - Server sends periodic JSON snapshots.
- * - NOTE: Messages are write-only: incoming messages are ignored.
  * - Update rate is approximately 500 ms per client.
  * - CPU usage is reported as a percentage [0.0 - 100.0].
  * - Memory values are reported in kilobytes.
@@ -160,11 +159,23 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     syslog(LOG_DEBUG, "WebSocket received %zu bytes", len);
     struct per_session_data *pss = user;
 
-    if (!pss || len == 0 || len >= 128) {
+    if (!pss) {
+      syslog(LOG_WARNING, "WebSocket receive: missing per-session data");
+      break;
+    }
+    if (len == 0) {
+      syslog(LOG_WARNING, "WebSocket receive: empty message");
+      break;
+    }
+    if (len >= MAX_CONTROL_MESSAGE_LENGTH) {
+      syslog(LOG_WARNING,
+             "WebSocket receive: control message too large (%zu bytes, limit %u)",
+             len,
+             MAX_CONTROL_MESSAGE_LENGTH - 1);
       break;
     }
 
-    char msg[128 + 1];
+    char msg[MAX_CONTROL_MESSAGE_LENGTH + 1];
     memcpy(msg, in, len);
     msg[len] = '\0';
 
