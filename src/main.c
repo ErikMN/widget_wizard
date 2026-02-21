@@ -174,23 +174,36 @@ main(int argc, char **argv)
   openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
 
   /* Parse input options */
+  opterr = 0;
   int opt;
   while ((opt = getopt(argc, argv, "p:")) != -1) {
     switch (opt) {
-    case 'p':
-      ws_port = atoi(optarg);
-      if (ws_port <= 0 || ws_port > 65535) {
+    case 'p': {
+      char *endptr = NULL;
+      long port = strtol(optarg, &endptr, 10);
+      if (optarg[0] == '\0' || *endptr != '\0' || port <= 0 || port > 65535) {
         syslog(LOG_ERR, "Invalid port: %s", optarg);
-        return EXIT_FAILURE;
+        fprintf(stderr, "Invalid port: %s\n", optarg);
+        ret = -1;
+        goto exit;
       }
+      ws_port = (int)port;
       break;
+    }
     default:
       syslog(LOG_ERR, "Usage: %s [-p port]", argv[0]);
-      return EXIT_FAILURE;
+      fprintf(stderr, "Usage: %s [-p port]\n", argv[0]);
+      ret = -1;
+      goto exit;
     }
   }
   /* Create the main GLib event loop */
   main_loop = g_main_loop_new(NULL, FALSE);
+  if (!main_loop) {
+    syslog(LOG_ERR, "Failed to create GLib main loop");
+    ret = -1;
+    goto exit;
+  }
 
   /* Handle Unix signals for graceful termination */
   g_unix_signal_add(SIGINT, on_unix_signal, NULL);
