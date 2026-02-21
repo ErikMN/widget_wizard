@@ -1,4 +1,8 @@
-# Widget Wizard <img src="files/images/wiz_hat.png" width="50" alt="widgy"/>
+# Widget Wizard <img src="files/images/wiz_hat.png" width="50" alt="Widget Wizard logo"/>
+
+> **⚠️ IMPORTANT ⚠️** \
+> Requires a device that supports widgets or overlay capabilities.\
+> **UNOFFICIAL APP:** Requires "Allow unsigned apps" to be enabled on the device.
 
 ## What is this?
 
@@ -22,15 +26,11 @@ The backend application needs to be running for this feature to be working.
 * Optional WebSocket backend for real-time system metrics
 * Responsive and easy to use
 
-> **⚠️ IMPORTANT** \
-> Requires a device that supports widgets or overlay capabilities.\
-> **UNOFFICIAL APP:** Requires "Allow unsigned apps" to be enabled.
-
 ## Get the latest pre-built release under [Releases](https://github.com/ErikMN/widget_wizard/releases)
 
 ## How to build 🛠️
 
-Make sure you have Docker and Make installed.
+Make sure you have [Docker](https://www.docker.com/) and Make installed.
 
 Then run:
 
@@ -42,14 +42,14 @@ This produces an installable ACAP `.eap` file for installation on the device.
 
 ## Screenshot
 
-<img src="files/images/latest_screenshot.jpg" width="800" alt="screenshot"/>
+<img src="files/images/latest_screenshot.jpg" width="800" alt="Widget Wizard screenshot"/>
 
 ## Purpose
 
 Hobby project to learn about modern UI development against a moving target. \
 Axis cameras are advanced devices with a lot of features and a built-in
 configuration web UI. \
-Recreating the full official UI is outside the scope of this project.
+**Recreating the full official UI is outside the scope of this project.**
 
 This frontend is deployed by using the [ACAP](https://www.axis.com/products/acap)
 framework which allows for installing custom applications on an Axis device.
@@ -57,3 +57,6 @@ framework which allows for installing custom applications on an Axis device.
 Standalone web deployment isn’t possible because the device does not expose the
 [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
 headers required for browser access.
+
+The system-monitor is an embedded C WebSocket server bundled with the ACAP. \
+Starting the ACAP on the device will start the WebSocket server for realtime system analytics.
