@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/statvfs.h>
 
 #include "storage.h"
@@ -40,7 +41,7 @@ get_fs_type_for_path(const char *path, char *fs_type, size_t fs_type_len)
   bool found = false;
 
   /* Parse one /proc/self/mounts entry: device, mount point, filesystem type */
-  while (fscanf(f, "%127s %255s %31s %*s %*d %*d\n", mount_dev, mount_point, type) == 3) {
+  while (fscanf(f, "%127s %255s %31s %*s %*d %*d", mount_dev, mount_point, type) == 3) {
     size_t len = strlen(mount_point);
     /* Select the longest mount point that is a proper prefix of the path */
     if (len > best_len && strncmp(path, mount_point, len) == 0 && (path[len] == '/' || path[len] == '\0')) {
@@ -81,6 +82,10 @@ read_storage_for_path(const char *path, struct storage_info *out)
 
   /* f_frsize is the fragment size (preferred over f_bsize) */
   unsigned long long block_size = vfs.f_frsize;
+  if (block_size == 0) {
+    /* Some filesystems report f_frsize as 0: fall back to f_bsize in that case */
+    block_size = vfs.f_bsize;
+  }
 
   unsigned long long total = vfs.f_blocks * block_size;
   unsigned long long free = vfs.f_bfree * block_size;
@@ -117,6 +122,9 @@ collect_storage_info(struct storage_info *out, size_t max_entries)
   size_t count = 0;
   size_t path_count = sizeof(storage_paths) / sizeof(storage_paths[0]);
 
+  if (!out || max_entries == 0) {
+    return 0;
+  }
   for (size_t i = 0; i < path_count; i++) {
     if (count >= max_entries) {
       break;
