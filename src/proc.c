@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
 #include <unistd.h>
@@ -7,7 +8,6 @@
 #include "session.h"
 #include "proc.h"
 #include "stats.h"
-#include "util.h"
 
 static long cpu_core_count = 1;
 
@@ -248,7 +248,7 @@ read_process_stats(const char *proc_name,
 
   const long clk_tck = sysconf(_SC_CLK_TCK);
 
-  if (!proc_name || !pss || !cpu_out || !rss_kb_out || clk_tck <= 0) {
+  if (!proc_name || !pss || !cpu_out || !rss_kb_out || !pss_kb_out || !uss_kb_out || clk_tck <= 0) {
     return false;
   }
 
