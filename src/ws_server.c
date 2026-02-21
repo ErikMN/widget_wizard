@@ -113,7 +113,11 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_ESTABLISHED: {
     struct per_session_data *pss = user;
-
+    if (!pss) {
+      syslog(LOG_ERR, "LWS_CALLBACK_ESTABLISHED: missing per-session data");
+      /* Abort the connection */
+      return -1;
+    }
     /* Convert one pending slot to active */
     if (ws_pending_client_count > 0) {
       ws_pending_client_count--;
