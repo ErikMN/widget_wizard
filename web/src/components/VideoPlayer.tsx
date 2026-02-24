@@ -51,27 +51,6 @@ const authorize = async (): Promise<void> => {
   }
 };
 
-/* OPTIONAL: Set default Vapix params if not already set */
-const setDefaultParams = (): void => {
-  const existingVapixJSON = localStorage.getItem('vapix');
-  if (!existingVapixJSON) {
-    /* Detect the browser using userAgent */
-    const userAgent =
-      typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
-    let vapixConfig: Partial<VapixConfig> = {};
-    /* Set specific parameters based on the browser */
-    if (userAgent.includes('firefox')) {
-      vapixConfig = {
-        compression: '20',
-        resolution: '1920x1080'
-      };
-    }
-    const vapixJSON = JSON.stringify(vapixConfig);
-    localStorage.setItem('vapix', vapixJSON);
-    console.log('Setting Vapix params for browser:', userAgent, vapixJSON);
-  }
-};
-
 const VideoPlayer: React.FC = () => {
   /* Local state */
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -358,7 +337,6 @@ const VideoPlayer: React.FC = () => {
       .catch((err) => {
         console.error(err);
       });
-    setDefaultParams();
 
     return () => {
       /* Reset dimensions to 0 on unmount */
