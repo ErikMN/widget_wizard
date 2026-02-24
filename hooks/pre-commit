@@ -19,6 +19,9 @@ if echo "$CHANGED_FILES" | grep -q '^web/' >/dev/null 2>&1; then
   echo "*** Lint web"
   yarn --cwd web lint
 
+  echo "*** Lint style"
+  yarn --cwd web stylelint
+
   echo "*** Build web"
   yarn --cwd web build
 fi
