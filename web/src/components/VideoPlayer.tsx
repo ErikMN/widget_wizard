@@ -11,11 +11,29 @@ import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';
 import BBoxSurface from './BBoxSurface';
+import { serverGet } from '../helpers/cgihelper';
 
 interface VapixConfig {
   compression: string;
   resolution: string;
 }
+
+/* PTZ speed value used for each arrow key direction (pan, tilt) */
+const PTZ_SPEED = 30;
+
+/* Map each arrow key to a [pan, tilt] speed tuple for continuouspantiltmove */
+const PTZ_KEY_MAP: Record<string, [number, number]> = {
+  ArrowLeft:  [-PTZ_SPEED, 0],
+  ArrowRight: [ PTZ_SPEED, 0],
+  ArrowUp:    [0,  PTZ_SPEED],
+  ArrowDown:  [0, -PTZ_SPEED]
+};
+
+const sendPtzMove = (pan: number, tilt: number): void => {
+  serverGet(
+    `/axis-cgi/com/ptz.cgi?camera=1&continuouspantiltmove=${pan},${tilt}`
+  ).catch((err) => console.error('PTZ command failed:', err));
+};
 
 /* Force a login by fetching usergroup */
 const authorize = async (): Promise<void> => {
@@ -125,6 +143,64 @@ const VideoPlayer: React.FC = () => {
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  /* PTZ keyboard control
+   *
+   * Arrow keys start continuous pan/tilt movement via continuouspantiltmove.
+   * The camera moves until a keyup sends the stop command (0,0).
+   * Repeated keydown events (key held) are ignored — the device keeps moving
+   * after the initial start command is issued.
+   */
+  useEffect(() => {
+    const activeKeys = new Set<string>();
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const move = PTZ_KEY_MAP[event.key];
+      if (!move) return;
+
+      /* Ignore if typing in an input/textarea/contenteditable */
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      /* Only send the start command on the first press, not on key-repeat */
+      if (!activeKeys.has(event.key)) {
+        activeKeys.add(event.key);
+        sendPtzMove(move[0], move[1]);
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent): void => {
+      if (!PTZ_KEY_MAP[event.key]) return;
+      if (!activeKeys.has(event.key)) return;
+
+      activeKeys.delete(event.key);
+
+      /* Stop movement only when all PTZ keys are released */
+      if (activeKeys.size === 0) {
+        sendPtzMove(0, 0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      /* Ensure the camera stops if the component unmounts while a key is held */
+      if (activeKeys.size > 0) {
+        sendPtzMove(0, 0);
+      }
     };
   }, []);
 
