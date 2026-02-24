@@ -165,6 +165,22 @@ const VideoPlayer: React.FC = () => {
    */
   useEffect(() => {
     const activeKeys = new Set<string>();
+    /* Compute combined pan/tilt vector from all active keys */
+    const sendCombinedMove = () => {
+      if (!currentChannelRef.current) {
+        return;
+      }
+      let pan = 0;
+      let tilt = 0;
+      activeKeys.forEach((key) => {
+        const move = PTZ_KEY_MAP[key];
+        if (move) {
+          pan += move[0];
+          tilt += move[1];
+        }
+      });
+      sendPtzMove(pan, tilt, currentChannelRef.current);
+    };
     /* Start moving when key is pressed */
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (!currentChannelRef.current) {
@@ -187,7 +203,7 @@ const VideoPlayer: React.FC = () => {
       /* Only send the start command on the first press, not on key-repeat */
       if (!activeKeys.has(event.key)) {
         activeKeys.add(event.key);
-        sendPtzMove(move[0], move[1], currentChannelRef.current);
+        sendCombinedMove();
       }
     };
     /* Stop movement when key is released */
@@ -203,9 +219,7 @@ const VideoPlayer: React.FC = () => {
       }
       activeKeys.delete(event.key);
       /* Stop movement only when all PTZ keys are released */
-      if (activeKeys.size === 0) {
-        sendPtzMove(0, 0, currentChannelRef.current);
-      }
+      sendCombinedMove();
     };
     /* Stop movement when window loses focus */
     const handleBlur = () => {
