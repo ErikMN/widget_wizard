@@ -23,15 +23,19 @@ const PTZ_SPEED = 30;
 
 /* Map each arrow key to a [pan, tilt] speed tuple for continuouspantiltmove */
 const PTZ_KEY_MAP: Record<string, [number, number]> = {
-  ArrowLeft:  [-PTZ_SPEED, 0],
-  ArrowRight: [ PTZ_SPEED, 0],
-  ArrowUp:    [0,  PTZ_SPEED],
-  ArrowDown:  [0, -PTZ_SPEED]
+  ArrowLeft: [-PTZ_SPEED, 0],
+  ArrowRight: [PTZ_SPEED, 0],
+  ArrowUp: [0, PTZ_SPEED],
+  ArrowDown: [0, -PTZ_SPEED]
 };
 
-const sendPtzMove = (pan: number, tilt: number): void => {
+const sendPtzMove = (
+  pan: number,
+  tilt: number,
+  currentChannel: string
+): void => {
   serverGet(
-    `/axis-cgi/com/ptz.cgi?camera=1&continuouspantiltmove=${pan},${tilt}`
+    `/axis-cgi/com/ptz.cgi?camera=${currentChannel}&continuouspantiltmove=${pan},${tilt}`
   ).catch((err) => console.error('PTZ command failed:', err));
 };
 
@@ -82,12 +86,13 @@ const VideoPlayer: React.FC = () => {
   });
 
   /* Global context */
-  const { appSettings, currentTheme } = useAppContext();
+  const { appSettings, currentTheme, currentChannel } = useAppContext();
 
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<PlayerNativeElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const currentChannelRef = useRef(currentChannel);
 
   /* Navigation */
   const location = useLocation();
@@ -146,20 +151,29 @@ const VideoPlayer: React.FC = () => {
     };
   }, []);
 
+  /* Sync currentChannel ref so keyboard handlers always use latest value */
+  useEffect(() => {
+    currentChannelRef.current = currentChannel;
+  }, [currentChannel]);
+
   /* PTZ keyboard control
    *
-   * Arrow keys start continuous pan/tilt movement via continuouspantiltmove.
+   * Arrow keys start continuous pan/tilt movement via "continuouspantiltmove".
    * The camera moves until a keyup sends the stop command (0,0).
-   * Repeated keydown events (key held) are ignored — the device keeps moving
+   * Repeated keydown events (key held) are ignored - the device keeps moving
    * after the initial start command is issued.
    */
   useEffect(() => {
     const activeKeys = new Set<string>();
-
+    /* Start moving when key is pressed */
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (!currentChannelRef.current) {
+        return;
+      }
       const move = PTZ_KEY_MAP[event.key];
-      if (!move) return;
-
+      if (!move) {
+        return;
+      }
       /* Ignore if typing in an input/textarea/contenteditable */
       const target = event.target as HTMLElement;
       if (
@@ -169,37 +183,48 @@ const VideoPlayer: React.FC = () => {
       ) {
         return;
       }
-
       event.preventDefault();
-
       /* Only send the start command on the first press, not on key-repeat */
       if (!activeKeys.has(event.key)) {
         activeKeys.add(event.key);
-        sendPtzMove(move[0], move[1]);
+        sendPtzMove(move[0], move[1], currentChannelRef.current);
       }
     };
-
+    /* Stop movement when key is released */
     const handleKeyUp = (event: KeyboardEvent): void => {
-      if (!PTZ_KEY_MAP[event.key]) return;
-      if (!activeKeys.has(event.key)) return;
-
+      if (!currentChannelRef.current) {
+        return;
+      }
+      if (!PTZ_KEY_MAP[event.key]) {
+        return;
+      }
+      if (!activeKeys.has(event.key)) {
+        return;
+      }
       activeKeys.delete(event.key);
-
       /* Stop movement only when all PTZ keys are released */
       if (activeKeys.size === 0) {
-        sendPtzMove(0, 0);
+        sendPtzMove(0, 0, currentChannelRef.current);
       }
     };
-
+    /* Stop movement when window loses focus */
+    const handleBlur = () => {
+      if (activeKeys.size > 0 && currentChannelRef.current) {
+        activeKeys.clear();
+        sendPtzMove(0, 0, currentChannelRef.current);
+      }
+    };
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
+      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       /* Ensure the camera stops if the component unmounts while a key is held */
-      if (activeKeys.size > 0) {
-        sendPtzMove(0, 0);
+      if (activeKeys.size > 0 && currentChannelRef.current) {
+        sendPtzMove(0, 0, currentChannelRef.current);
       }
     };
   }, []);
