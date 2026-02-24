@@ -408,7 +408,7 @@ const VideoPlayer: React.FC = () => {
         }
       };
     }
-  }, [authorized, videoRef.current]);
+  }, [authorized]);
 
   /* Not authorized: return */
   if (!authorized) {
