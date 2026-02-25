@@ -21,12 +21,23 @@ interface VapixConfig {
 /* PTZ speed value used for each arrow key direction (pan, tilt) */
 const PTZ_SPEED = 30;
 
+/* Zoom speed value for +/- keys */
+const ZOOM_SPEED = 4000;
+
 /* Map each arrow key to a [pan, tilt] speed tuple for continuouspantiltmove */
 const PTZ_KEY_MAP: Record<string, [number, number]> = {
   ArrowLeft: [-PTZ_SPEED, 0],
   ArrowRight: [PTZ_SPEED, 0],
   ArrowUp: [0, PTZ_SPEED],
   ArrowDown: [0, -PTZ_SPEED]
+};
+
+/* Map zoom keys to speed values for continuouszoommove */
+const ZOOM_KEY_MAP: Record<string, number> = {
+  '+': ZOOM_SPEED,
+  '=': ZOOM_SPEED,
+  '-': -ZOOM_SPEED,
+  _: -ZOOM_SPEED
 };
 
 const sendPtzMove = (
@@ -37,6 +48,12 @@ const sendPtzMove = (
   serverGet(
     `/axis-cgi/com/ptz.cgi?camera=${currentChannel}&continuouspantiltmove=${pan},${tilt}`
   ).catch((err) => console.error('PTZ command failed:', err));
+};
+
+const sendPtzZoom = (speed: number, currentChannel: string): void => {
+  serverGet(
+    `/axis-cgi/com/ptz.cgi?camera=${currentChannel}&continuouszoommove=${speed}`
+  ).catch((err) => console.error('PTZ zoom command failed:', err));
 };
 
 /* Force a login by fetching usergroup */
@@ -139,11 +156,13 @@ const VideoPlayer: React.FC = () => {
    *
    * Arrow keys start continuous pan/tilt movement via "continuouspantiltmove".
    * The camera moves until a keyup sends the stop command (0,0).
+   * +/- keys control zoom via "continuouszoommove".
    * Repeated keydown events (key held) are ignored - the device keeps moving
    * after the initial start command is issued.
    */
   useEffect(() => {
     const activeKeys = new Set<string>();
+    let activeZoomKey: string | null = null;
     /* Compute combined pan/tilt vector from all active keys */
     const sendCombinedMove = () => {
       if (!currentChannelRef.current) {
@@ -165,10 +184,6 @@ const VideoPlayer: React.FC = () => {
       if (!currentChannelRef.current) {
         return;
       }
-      const move = PTZ_KEY_MAP[event.key];
-      if (!move) {
-        return;
-      }
       /* Ignore if typing in an input/textarea/contenteditable */
       const target = event.target as HTMLElement;
       if (
@@ -176,6 +191,22 @@ const VideoPlayer: React.FC = () => {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
       ) {
+        return;
+      }
+      /* Handle zoom keys */
+      const zoomSpeed = ZOOM_KEY_MAP[event.key];
+      if (zoomSpeed !== undefined) {
+        event.preventDefault();
+        /* Only send the zoom command on the first press, not on key-repeat */
+        if (!activeZoomKey) {
+          activeZoomKey = event.key;
+          sendPtzZoom(zoomSpeed, currentChannelRef.current);
+        }
+        return;
+      }
+      /* Handle pan/tilt keys */
+      const move = PTZ_KEY_MAP[event.key];
+      if (!move) {
         return;
       }
       event.preventDefault();
@@ -190,6 +221,15 @@ const VideoPlayer: React.FC = () => {
       if (!currentChannelRef.current) {
         return;
       }
+      /* Handle zoom key release */
+      if (ZOOM_KEY_MAP[event.key] !== undefined) {
+        if (activeZoomKey === event.key) {
+          activeZoomKey = null;
+          sendPtzZoom(0, currentChannelRef.current);
+        }
+        return;
+      }
+      /* Handle pan/tilt key release */
       if (!PTZ_KEY_MAP[event.key]) {
         return;
       }
@@ -202,9 +242,16 @@ const VideoPlayer: React.FC = () => {
     };
     /* Stop movement when window loses focus */
     const handleBlur = () => {
-      if (activeKeys.size > 0 && currentChannelRef.current) {
+      if (!currentChannelRef.current) {
+        return;
+      }
+      if (activeKeys.size > 0) {
         activeKeys.clear();
         sendPtzMove(0, 0, currentChannelRef.current);
+      }
+      if (activeZoomKey) {
+        activeZoomKey = null;
+        sendPtzZoom(0, currentChannelRef.current);
       }
     };
     window.addEventListener('blur', handleBlur);
@@ -216,8 +263,13 @@ const VideoPlayer: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       /* Ensure the camera stops if the component unmounts while a key is held */
-      if (activeKeys.size > 0 && currentChannelRef.current) {
-        sendPtzMove(0, 0, currentChannelRef.current);
+      if (currentChannelRef.current) {
+        if (activeKeys.size > 0) {
+          sendPtzMove(0, 0, currentChannelRef.current);
+        }
+        if (activeZoomKey) {
+          sendPtzZoom(0, currentChannelRef.current);
+        }
       }
     };
   }, []);
