@@ -255,13 +255,13 @@ const VideoPlayer: React.FC = () => {
       }
     };
     window.addEventListener('blur', handleBlur);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     return () => {
       window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
       /* Ensure the camera stops if the component unmounts while a key is held */
       if (currentChannelRef.current) {
         if (activeKeys.size > 0) {
