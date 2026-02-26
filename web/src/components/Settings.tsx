@@ -620,6 +620,26 @@ const Settings: React.FC = () => {
               }
               label="Snap to anchor"
             />
+            {/* Switch for enabling PTZ crosshair */}
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.enablePTZCrosshair}
+                  onChange={() => {
+                    setAppSettings((prevSettings: AppSettings) => ({
+                      ...prevSettings,
+                      enablePTZCrosshair: !prevSettings.enablePTZCrosshair
+                    }));
+                    handleOpenAlert(
+                      `PTZ crosshair: ${!appSettings.enablePTZCrosshair ? 'Enabled' : 'Disabled'}`,
+                      'success'
+                    );
+                  }}
+                  name="enablePTZCrosshair"
+                />
+              }
+              label="Enable PTZ crosshair control"
+            />
           </Box>
 
           <Box
