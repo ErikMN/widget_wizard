@@ -255,6 +255,17 @@ const Settings: React.FC = () => {
     );
   };
 
+  const handleToggleOnScreenMessages = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      enableOnScreenMessages: !prevSettings.enableOnScreenMessages
+    }));
+    handleOpenAlert(
+      `On-screen messages: ${!appSettings.enableOnScreenMessages}`,
+      'success'
+    );
+  };
+
   const handleSnapToAnchor = () => {
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
@@ -619,6 +630,16 @@ const Settings: React.FC = () => {
                 />
               }
               label="Snap to anchor"
+            />
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={appSettings.enableOnScreenMessages}
+                  onChange={handleToggleOnScreenMessages}
+                  name="enableOnScreenMessages"
+                />
+              }
+              label="Enable on-screen messages"
             />
           </Box>
 

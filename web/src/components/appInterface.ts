@@ -6,6 +6,7 @@
 export interface AppSettings {
   debug: boolean;
   mute: boolean;
+  enableOnScreenMessages: boolean;
   roundedBboxCorners: boolean;
   bboxColor: string;
   bboxThickness: 'small' | 'medium' | 'large';
@@ -26,6 +27,7 @@ export interface AppSettings {
 export const defaultAppSettings: AppSettings = {
   debug: false,
   mute: false,
+  enableOnScreenMessages: true,
   roundedBboxCorners: false,
   bboxColor: 'yellow',
   bboxThickness: 'medium',
