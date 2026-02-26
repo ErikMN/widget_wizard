@@ -9,27 +9,36 @@ import { sendPtzMove, sendPtzZoom } from '../helpers/usePTZControl';
 interface PtzCrosshairControlProps {
   currentChannel: string;
   enabled: boolean;
+  surfaceWidth: number;
+  surfaceHeight: number;
 }
 
 const PTZ_CROSSHAIR_RADIUS_PX = 72;
-const PTZ_MAX_DRAG_DISTANCE_PX = 220;
-const PTZ_CONTROL_SIZE_PX = PTZ_MAX_DRAG_DISTANCE_PX * 2 + 44;
+const PTZ_KNOB_SIZE_PX = 44;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
 const PTZ_ZOOM_STOP_DELAY_MS = 140;
 const PTZ_ZOOM_RESEND_INTERVAL_MS = 90;
 const PTZ_MOVE_DEAD_ZONE_PX = 6;
 const PTZ_SEND_INTERVAL_MS = 80;
+const PTZ_RETICLE_COLOR = '#ffcc33';
+const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
+const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   currentChannel,
-  enabled
+  enabled,
+  surfaceWidth,
+  surfaceHeight
 }) => {
   const hasChannel = currentChannel.trim() !== '';
+  const halfWidth = surfaceWidth / 2;
+  const halfHeight = surfaceHeight / 2;
 
+  /* Refs */
   const controlRootRef = useRef<HTMLDivElement | null>(null);
   const ptzHandleRef = useRef<HTMLDivElement | null>(null);
   const ptzPointerIdRef = useRef<number | null>(null);
@@ -43,6 +52,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     tilt: 0
   });
 
+  /* Local state */
   const [ptzVector, setPtzVector] = useState({ x: 0, y: 0 });
   const [ptzDragging, setPtzDragging] = useState(false);
 
@@ -122,24 +132,22 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
 
       const dx = clientX - centerX;
       const dy = clientY - centerY;
-      const distance = Math.hypot(dx, dy);
-      const clampedDistance = clamp(distance, 0, PTZ_MAX_DRAG_DISTANCE_PX);
-      const scale = distance > 0 ? clampedDistance / distance : 0;
-
-      const x = dx * scale;
-      const y = dy * scale;
+      const x = clamp(dx, -halfWidth, halfWidth);
+      const y = clamp(dy, -halfHeight, halfHeight);
       setPtzVector({ x, y });
 
-      if (clampedDistance < PTZ_MOVE_DEAD_ZONE_PX) {
+      if (Math.hypot(x, y) < PTZ_MOVE_DEAD_ZONE_PX) {
         queuePtzPanTilt(0, 0);
         return;
       }
 
-      const pan = Math.round((x / PTZ_MAX_DRAG_DISTANCE_PX) * PTZ_MAX_SPEED);
-      const tilt = Math.round((-y / PTZ_MAX_DRAG_DISTANCE_PX) * PTZ_MAX_SPEED);
+      const panDenominator = Math.max(1, halfWidth);
+      const tiltDenominator = Math.max(1, halfHeight);
+      const pan = Math.round((x / panDenominator) * PTZ_MAX_SPEED);
+      const tilt = Math.round((-y / tiltDenominator) * PTZ_MAX_SPEED);
       queuePtzPanTilt(pan, tilt);
     },
-    [queuePtzPanTilt]
+    [queuePtzPanTilt, halfWidth, halfHeight]
   );
 
   const handlePtzPointerDown = useCallback(
@@ -313,19 +321,18 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       data-ptz-crosshair="true"
       style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        width: `${PTZ_CONTROL_SIZE_PX}px`,
-        height: `${PTZ_CONTROL_SIZE_PX}px`,
-        transform: 'translate(-50%, -50%)',
+        top: 0,
+        left: 0,
+        width: `${surfaceWidth}px`,
+        height: `${surfaceHeight}px`,
         pointerEvents: 'none',
         zIndex: 0,
         userSelect: 'none'
       }}
     >
       <svg
-        width={PTZ_CONTROL_SIZE_PX}
-        height={PTZ_CONTROL_SIZE_PX}
+        width={surfaceWidth}
+        height={surfaceHeight}
         style={{
           position: 'absolute',
           inset: 0,
@@ -333,45 +340,45 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         }}
       >
         <circle
-          cx={PTZ_CONTROL_SIZE_PX / 2}
-          cy={PTZ_CONTROL_SIZE_PX / 2}
+          cx={halfWidth}
+          cy={halfHeight}
           r={PTZ_CROSSHAIR_RADIUS_PX}
           fill="rgba(0, 0, 0, 0.15)"
-          stroke="rgba(255, 255, 255, 0.3)"
+          stroke={PTZ_RETICLE_COLOR_SOFT}
           strokeWidth={1}
         />
         <line
-          x1={PTZ_CONTROL_SIZE_PX / 2 - PTZ_CROSSHAIR_RADIUS_PX}
-          y1={PTZ_CONTROL_SIZE_PX / 2}
-          x2={PTZ_CONTROL_SIZE_PX / 2 + PTZ_CROSSHAIR_RADIUS_PX}
-          y2={PTZ_CONTROL_SIZE_PX / 2}
-          stroke="rgba(255, 255, 255, 0.22)"
+          x1={halfWidth - PTZ_CROSSHAIR_RADIUS_PX}
+          y1={halfHeight}
+          x2={halfWidth + PTZ_CROSSHAIR_RADIUS_PX}
+          y2={halfHeight}
+          stroke={PTZ_RETICLE_COLOR_DIM}
           strokeWidth={1}
         />
         <line
-          x1={PTZ_CONTROL_SIZE_PX / 2}
-          y1={PTZ_CONTROL_SIZE_PX / 2 - PTZ_CROSSHAIR_RADIUS_PX}
-          x2={PTZ_CONTROL_SIZE_PX / 2}
-          y2={PTZ_CONTROL_SIZE_PX / 2 + PTZ_CROSSHAIR_RADIUS_PX}
-          stroke="rgba(255, 255, 255, 0.22)"
+          x1={halfWidth}
+          y1={halfHeight - PTZ_CROSSHAIR_RADIUS_PX}
+          x2={halfWidth}
+          y2={halfHeight + PTZ_CROSSHAIR_RADIUS_PX}
+          stroke={PTZ_RETICLE_COLOR_DIM}
           strokeWidth={1}
         />
         {(Math.abs(ptzVector.x) > 0 || Math.abs(ptzVector.y) > 0) && (
           <>
             <line
-              x1={PTZ_CONTROL_SIZE_PX / 2}
-              y1={PTZ_CONTROL_SIZE_PX / 2}
-              x2={PTZ_CONTROL_SIZE_PX / 2 + ptzVector.x}
-              y2={PTZ_CONTROL_SIZE_PX / 2 + ptzVector.y}
-              stroke="rgba(60, 240, 255, 0.95)"
+              x1={halfWidth}
+              y1={halfHeight}
+              x2={halfWidth + ptzVector.x}
+              y2={halfHeight + ptzVector.y}
+              stroke={PTZ_RETICLE_COLOR}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
             <circle
-              cx={PTZ_CONTROL_SIZE_PX / 2 + ptzVector.x}
-              cy={PTZ_CONTROL_SIZE_PX / 2 + ptzVector.y}
+              cx={halfWidth + ptzVector.x}
+              cy={halfHeight + ptzVector.y}
               r={3}
-              fill="rgba(60, 240, 255, 1)"
+              fill={PTZ_RETICLE_COLOR}
             />
           </>
         )}
@@ -390,14 +397,14 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
           position: 'absolute',
           left: '50%',
           top: '50%',
-          width: '44px',
-          height: '44px',
+          width: `${PTZ_KNOB_SIZE_PX}px`,
+          height: `${PTZ_KNOB_SIZE_PX}px`,
           borderRadius: '50%',
-          border: '2px solid rgba(255, 255, 255, 0.82)',
+          border: `2px solid ${PTZ_RETICLE_COLOR}`,
           background: 'rgba(8, 14, 18, 0.64)',
           boxShadow: ptzDragging
-            ? '0 0 0 4px rgba(60, 240, 255, 0.24)'
-            : '0 2px 10px rgba(0,0,0,0.35)',
+            ? '0 0 0 4px rgba(255, 204, 51, 0.32)'
+            : '0 0 0 2px rgba(0,0,0,0.28), 0 2px 10px rgba(0,0,0,0.35)',
           transform: `translate(calc(-50% + ${ptzVector.x}px), calc(-50% + ${ptzVector.y}px))`,
           cursor: hasChannel
             ? ptzDragging
@@ -417,7 +424,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
             width: '18px',
             height: '2px',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: PTZ_RETICLE_COLOR,
             borderRadius: '2px'
           }}
         />
@@ -429,7 +436,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
             width: '2px',
             height: '18px',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: PTZ_RETICLE_COLOR,
             borderRadius: '2px'
           }}
         />

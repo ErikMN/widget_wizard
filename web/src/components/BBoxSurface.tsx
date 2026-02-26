@@ -249,6 +249,8 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
       <PtzCrosshairControl
         currentChannel={currentChannel}
         enabled={!!appSettings.enablePtzCrosshair}
+        surfaceWidth={surfaceDimensions.pixelWidth}
+        surfaceHeight={surfaceDimensions.pixelHeight}
       />
     </div>
   );
