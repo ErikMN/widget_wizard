@@ -462,6 +462,24 @@ const SystemStats: React.FC = () => {
     }, 2000);
   };
 
+  const closeSocket = (socket: WebSocket | null) => {
+    if (!socket) {
+      return;
+    }
+    /* Detach handlers so teardown does not trigger reconnect/error flows. */
+    socket.onclose = null;
+    socket.onerror = null;
+    socket.onopen = null;
+    socket.onmessage = null;
+    /* Close both CONNECTING and OPEN sockets to avoid leaked connections. */
+    if (
+      socket.readyState === WebSocket.CONNECTING ||
+      socket.readyState === WebSocket.OPEN
+    ) {
+      socket.close();
+    }
+  };
+
   /* Show on-screen message when connected */
   useEffect(() => {
     if (mountMessageShownRef.current) {
@@ -516,21 +534,7 @@ const SystemStats: React.FC = () => {
 
       /* Stop the WebSocket connection */
       if (wsRef.current) {
-        /* Detach handlers to avoid scheduling reconnect from close/error during teardown */
-        wsRef.current.onclose = null;
-        wsRef.current.onerror = null;
-        wsRef.current.onopen = null;
-        wsRef.current.onmessage = null;
-
-        /* Close only if already OPEN. If CONNECTING, we avoid calling close()
-         * here to prevent "closed before the connection is established" noise.
-         * The ws.onopen handler handles the CONNECTING -> OPEN after unmount case
-         * by immediately closing the socket.
-         */
-        if (wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.close();
-        }
-
+        closeSocket(wsRef.current);
         wsRef.current = null;
       }
     };
@@ -547,11 +551,7 @@ const SystemStats: React.FC = () => {
     }
     intentionalCloseRef.current = true;
     if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.onerror = null;
-      wsRef.current.onopen = null;
-      wsRef.current.onmessage = null;
-      wsRef.current.close();
+      closeSocket(wsRef.current);
       wsRef.current = null;
     }
     intentionalCloseRef.current = false;
