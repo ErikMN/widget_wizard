@@ -10,6 +10,7 @@ import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { enableLogging } from '../helpers/logger';
 import { useAppContext } from './AppContext';
+import { useAppGreeting } from '../helpers/useAppGreeting';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
 import DrawerHeaderContent from './DrawerHeaderContent';
@@ -179,6 +180,9 @@ const App: React.FC = () => {
 
   /* Screen size */
   const { isMobile } = useScreenSizes();
+
+  /* First time greeting */
+  useAppGreeting();
 
   enableLogging(true);
 
