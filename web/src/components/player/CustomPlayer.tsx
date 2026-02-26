@@ -122,6 +122,13 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       globalParameters?.['root.Widget_wizard.ApplicationRunning'];
 
     const systemStatsRef = useRef<HTMLDivElement>(null);
+    const onStreamChangeRef = useRef(onStreamChange);
+    const skipNextStreamChangeRef = useRef(false);
+
+    /* Keep the latest onStreamChange callback available to delayed callbacks. */
+    useEffect(() => {
+      onStreamChangeRef.current = onStreamChange;
+    }, [onStreamChange]);
 
     const [format, setFormat] = useLocalStorage(
       'streamFormat',
@@ -193,6 +200,21 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         setVideoProperties(props);
         setWaiting(false);
         setVolume(props.volume);
+        /* Give the browser two frames to finish drawing the video
+         * before running onStreamChange.
+         */
+        skipNextStreamChangeRef.current = true;
+        if (onStreamChangeRef.current) {
+          /* One frame waits for the next paint
+           * the second runs after that paint has happened.
+           */
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              /* Run onStreamChange */
+              onStreamChangeRef.current?.();
+            });
+          });
+        }
       },
       [setWaiting]
     );
@@ -334,6 +356,19 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         videoEl.volume = volume;
       }
     }, [videoProperties, volume]);
+
+    /* Keep overlay dimensions in sync when stream dimensions change */
+    useEffect(() => {
+      if (!videoProperties) {
+        return;
+      }
+      /* Skip the first size update because onPlaying already scheduled a delayed one. */
+      if (skipNextStreamChangeRef.current) {
+        skipNextStreamChangeRef.current = false;
+        return;
+      }
+      onStreamChangeRef.current?.();
+    }, [videoProperties?.width, videoProperties?.height]);
 
     /**
      * Refresh on stream end
