@@ -277,6 +277,17 @@ const Settings: React.FC = () => {
     );
   };
 
+  const handleTogglePtzCrosshair = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      enablePtzCrosshair: !prevSettings.enablePtzCrosshair
+    }));
+    handleOpenAlert(
+      `PTZ crosshair control: ${!appSettings.enablePtzCrosshair}`,
+      'success'
+    );
+  };
+
   /* Handle navigation back */
   const handleBack = () => {
     /* Navigate back to previous screen */
@@ -640,6 +651,16 @@ const Settings: React.FC = () => {
                 />
               }
               label="Enable on-screen messages"
+            />
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={!!appSettings.enablePtzCrosshair}
+                  onChange={handleTogglePtzCrosshair}
+                  name="enablePtzCrosshair"
+                />
+              }
+              label="Enable PTZ crosshair control"
             />
           </Box>
 
