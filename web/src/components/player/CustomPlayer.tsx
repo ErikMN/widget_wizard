@@ -122,6 +122,11 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       globalParameters?.['root.Widget_wizard.ApplicationRunning'];
 
     const systemStatsRef = useRef<HTMLDivElement>(null);
+    const onStreamChangeRef = useRef(onStreamChange);
+
+    useEffect(() => {
+      onStreamChangeRef.current = onStreamChange;
+    }, [onStreamChange]);
 
     const [format, setFormat] = useLocalStorage(
       'streamFormat',
@@ -193,6 +198,17 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         setVideoProperties(props);
         setWaiting(false);
         setVolume(props.volume);
+
+        /* Recompute overlay dimensions after playback becomes active.
+         * Two RAFs give layout/object-fit a frame to settle.
+         */
+        if (onStreamChangeRef.current) {
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              onStreamChangeRef.current?.();
+            });
+          });
+        }
       },
       [setWaiting]
     );
@@ -334,6 +350,16 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         videoEl.volume = volume;
       }
     }, [videoProperties, volume]);
+
+    /* Keep overlay dimensions in sync when stream dimensions change
+     * (e.g. after VAPIX rotation updates).
+     */
+    useEffect(() => {
+      if (!videoProperties) {
+        return;
+      }
+      onStreamChangeRef.current?.();
+    }, [videoProperties?.width, videoProperties?.height]);
 
     /**
      * Refresh on stream end
