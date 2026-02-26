@@ -2,9 +2,10 @@
  * Overlay Wizard
  * OverlayHandler: Handler of overlays.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { useOverlayContext } from './OverlayContext';
+import { useOnScreenMessage } from '../OnScreenMessageContext';
 import OverlayBackupList from './OverlayBackupList';
 import { loadOverlayBackups } from './overlayBackupStorage';
 import OverlayItemImage from './OverlayItemImage';
@@ -24,6 +25,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
+import LayersIcon from '@mui/icons-material/Layers';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
@@ -45,12 +47,14 @@ const OverlayHandler: React.FC = () => {
     imageFiles
   } = useOverlayContext();
   const { appSettings } = useAppContext();
+  const { showMessage } = useOnScreenMessage();
 
   /* Local state */
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedType, setSelectedType] = useState<'image' | 'text'>('image');
   const [selectedImageFile, setSelectedImageFile] = useState<string>('');
   const [backupList, setBackupList] = useState(loadOverlayBackups());
+  const overlayHotkeysShownRef = useRef(false);
 
   /* Component mount: Calls listOverlayCapabilities and listOverlays */
   useEffect(() => {
@@ -60,6 +64,29 @@ const OverlayHandler: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  /* Show overlay hotkeys hint on mount (only once) */
+  useEffect(() => {
+    if (overlayHotkeysShownRef.current) {
+      return;
+    }
+    overlayHotkeysShownRef.current = true;
+    showMessage({
+      title: 'Overlay Hotkeys',
+      icon: <LayersIcon fontSize="small" />,
+      content: (
+        <div>
+          <div style={{ marginBottom: '8px' }}>
+            <strong>Delete:</strong> Remove active overlay
+          </div>
+          <div>
+            <strong>Shift + Delete:</strong> Remove all overlays
+          </div>
+        </div>
+      ),
+      duration: 8000
+    });
+  }, [showMessage]);
 
   /* Keyboard Shift+Delete shortcut: remove all overlays (but not when typing) */
   useEffect(() => {

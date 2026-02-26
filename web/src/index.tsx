@@ -5,6 +5,7 @@ import { AppProvider } from './components/AppContext';
 import { WidgetProvider } from './components/widget/WidgetContext';
 import { OverlayProvider } from './components/overlay/OverlayContext';
 import { ParametersProvider } from './components/ParametersContext';
+import { OnScreenMessageProvider } from './components/OnScreenMessageContext';
 
 import './assets/css/index.css';
 
@@ -21,7 +22,9 @@ root.render(
       <ParametersProvider>
         <WidgetProvider>
           <OverlayProvider>
-            <AppRoutes />
+            <OnScreenMessageProvider>
+              <AppRoutes />
+            </OnScreenMessageProvider>
           </OverlayProvider>
         </WidgetProvider>
       </ParametersProvider>
