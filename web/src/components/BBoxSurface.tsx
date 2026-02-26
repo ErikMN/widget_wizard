@@ -4,9 +4,10 @@
  * A unified bounding-box surface for both Widgets and Overlays.
  * Replaces the separate WidgetBBox and OverlayBBox surfaces.
  */
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Dimensions } from './appInterface';
 import { useAppContext } from './AppContext';
+import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */
 import { useWidgetContext } from './widget/WidgetContext';
@@ -28,7 +29,7 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   showOverlays
 }) => {
   /* App context */
-  const { currentChannel } = useAppContext();
+  const { currentChannel, appSettings } = useAppContext();
 
   /* Widget context */
   const {
@@ -49,6 +50,9 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   /* Refs */
   const widgetRefs = useRef<Map<number, HTMLElement>>(new Map());
   const overlayRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const [stableDimensions, setStableDimensions] = useState<Dimensions | null>(
+    null
+  );
 
   /* Only one bbox system should have an active bbox at any time:
    * If widget activates: deactivate overlay.
@@ -106,9 +110,30 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
     onSelectOverlay
   ]);
 
+  const liveHasRenderArea =
+    dimensions.pixelWidth > 0 && dimensions.pixelHeight > 0;
+  const liveHasStreamDimensions =
+    dimensions.videoWidth > 0 && dimensions.videoHeight > 0;
+
+  /* Keep the last known-good stream dimensions so UI overlays remain stable
+   * during brief invalid samples (e.g. tab visibility switches).
+   */
+  useEffect(() => {
+    if (!liveHasRenderArea || !liveHasStreamDimensions) {
+      return;
+    }
+    setStableDimensions(dimensions);
+  }, [dimensions, liveHasRenderArea, liveHasStreamDimensions]);
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     /* Ignore while dragging */
     if (activeDraggableWidget?.active || activeDraggableOverlay?.active) {
+      return;
+    }
+
+    /* Ignore PTZ crosshair interactions */
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-ptz-crosshair="true"]')) {
       return;
     }
 
@@ -143,7 +168,13 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
     onSelectOverlay(null);
   };
 
-  if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
+  const surfaceDimensions =
+    liveHasRenderArea && liveHasStreamDimensions
+      ? dimensions
+      : (stableDimensions ?? (liveHasRenderArea ? dimensions : null));
+  const hasStreamDimensions = liveHasStreamDimensions;
+
+  if (!surfaceDimensions) {
     return null;
   }
 
@@ -152,16 +183,17 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
       onPointerDown={handlePointerDown}
       style={{
         position: 'absolute',
-        top: `${dimensions.offsetY}px`,
-        left: `${dimensions.offsetX}px`,
-        width: `${dimensions.pixelWidth}px`,
-        height: `${dimensions.pixelHeight}px`,
+        top: `${surfaceDimensions.offsetY}px`,
+        left: `${surfaceDimensions.offsetX}px`,
+        width: `${surfaceDimensions.pixelWidth}px`,
+        height: `${surfaceDimensions.pixelHeight}px`,
         zIndex: 5 /* Must be above the video player */,
         pointerEvents: 'auto'
       }}
     >
       {/* Render widget bboxes */}
-      {showWidgets &&
+      {hasStreamDimensions &&
+        showWidgets &&
         activeWidgets.map((widget) => {
           if (
             widget.generalParams.isVisible &&
@@ -173,7 +205,7 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
               <WidgetBox
                 key={widgetId}
                 widget={widget}
-                dimensions={dimensions}
+                dimensions={surfaceDimensions}
                 registerRef={(el) => {
                   if (el) {
                     widgetRefs.current.set(widgetId, el);
@@ -188,7 +220,8 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
         })}
 
       {/* Render overlay bboxes */}
-      {showOverlays &&
+      {hasStreamDimensions &&
+        showOverlays &&
         activeOverlays
           .filter(
             (overlay) =>
@@ -200,7 +233,7 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
             <OverlayBox
               key={overlay.identity}
               overlay={overlay}
-              dimensions={dimensions}
+              dimensions={surfaceDimensions}
               onSelect={onSelectOverlay}
               registerRef={(el) => {
                 if (el) {
@@ -211,6 +244,14 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
               }}
             />
           ))}
+
+      {/* PTZ crosshair control */}
+      <PtzCrosshairControl
+        currentChannel={currentChannel}
+        enabled={!!appSettings.enablePtzCrosshair}
+        surfaceWidth={surfaceDimensions.pixelWidth}
+        surfaceHeight={surfaceDimensions.pixelHeight}
+      />
     </div>
   );
 };
