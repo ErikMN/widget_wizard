@@ -13,7 +13,8 @@ interface PtzCrosshairControlProps {
   surfaceHeight: number;
 }
 
-const PTZ_CROSSHAIR_RADIUS_PX = 72;
+/* PTZ interaction tuning */
+const PTZ_CROSSHAIR_RADIUS_PX = 60;
 const PTZ_KNOB_SIZE_PX = 44;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
@@ -56,6 +57,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   const [ptzVector, setPtzVector] = useState({ x: 0, y: 0 });
   const [ptzDragging, setPtzDragging] = useState(false);
 
+  /* Send pan/tilt immediately, but skip exact duplicates to avoid CGI spam. */
   const sendPtzPanTiltNow = useCallback(
     (pan: number, tilt: number) => {
       if (!hasChannel) {
@@ -75,6 +77,9 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [currentChannel, hasChannel]
   );
 
+  /* Queue pan/tilt updates and flush at a fixed cadence.
+   * This keeps pointer interaction smooth while limiting request rate.
+   */
   const queuePtzPanTilt = useCallback(
     (pan: number, tilt: number) => {
       pendingMoveRef.current = { pan, tilt };
@@ -103,6 +108,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [sendPtzPanTiltNow]
   );
 
+  /* Clear any pending throttled pan/tilt work. */
   const clearQueuedPtzPanTilt = useCallback(() => {
     if (moveSendTimerRef.current !== null) {
       clearTimeout(moveSendTimerRef.current);
@@ -111,6 +117,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     pendingMoveRef.current = null;
   }, []);
 
+  /* Reset drag state and send a final stop command. */
   const stopPanTilt = useCallback(() => {
     ptzPointerIdRef.current = null;
     setPtzDragging(false);
@@ -119,6 +126,9 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     sendPtzPanTiltNow(0, 0);
   }, [clearQueuedPtzPanTilt, sendPtzPanTiltNow]);
 
+  /* Convert pointer position to a bounded vector centered in the surface,
+   * then map that vector to pan/tilt speed percentages.
+   */
   const updatePtzVector = useCallback(
     (clientX: number, clientY: number) => {
       const root = controlRootRef.current;
@@ -150,6 +160,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [queuePtzPanTilt, halfWidth, halfHeight]
   );
 
+  /* Capture pointer on press so dragging keeps control even if pointer leaves the knob. */
   const handlePtzPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!hasChannel || !enabled) {
@@ -167,6 +178,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [enabled, hasChannel, updatePtzVector]
   );
 
+  /* Track only the active captured pointer. */
   const handlePtzPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (ptzPointerIdRef.current !== e.pointerId) {
@@ -180,6 +192,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [updatePtzVector]
   );
 
+  /* Release pointer capture and stop movement on pointer up/cancel. */
   const handlePtzPointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (ptzPointerIdRef.current !== e.pointerId) {
@@ -196,6 +209,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [stopPanTilt]
   );
 
+  /* Safety stop for edge cases where pointer capture is dropped by the browser. */
   const handlePtzLostPointerCapture = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (ptzPointerIdRef.current === e.pointerId) {
@@ -205,6 +219,9 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [stopPanTilt]
   );
 
+  /* Wheel zoom sends directional zoom commands with throttled repeats,
+   * then schedules a stop shortly after input ends.
+   */
   const handlePtzWheel = useCallback(
     (event: WheelEvent) => {
       if (!hasChannel || !enabled) {
@@ -241,6 +258,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [currentChannel, enabled, hasChannel]
   );
 
+  /* Reticle-local wheel gating: zoom only when cursor is inside the center reticle. */
   const isInsideReticle = useCallback((clientX: number, clientY: number) => {
     const root = controlRootRef.current;
     if (!root) {
@@ -273,7 +291,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     };
   }, [handlePtzWheel, isInsideReticle]);
 
-  /* Stop active PTZ actions if the control gets disabled. */
+  /* Stop active PTZ actions when control gets disabled. */
   useEffect(() => {
     if (enabled) {
       return;
@@ -293,7 +311,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     }
   }, [enabled, currentChannel, hasChannel, clearQueuedPtzPanTilt, stopPanTilt]);
 
-  /* Cleanup PTZ movement/zoom state on unmount and channel changes. */
+  /* Cleanup PTZ state on unmount and channel changes. */
   useEffect(() => {
     return () => {
       if (zoomStopTimerRef.current !== null) {
@@ -316,6 +334,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   }
 
   return (
+    /* Full-surface root keeps vector math simple and allows long drags. */
     <div
       ref={controlRootRef}
       data-ptz-crosshair="true"
@@ -330,6 +349,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         userSelect: 'none'
       }}
     >
+      {/* Reticle visualization + active movement arrow */}
       <svg
         width={surfaceWidth}
         height={surfaceHeight}
@@ -384,6 +404,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         )}
       </svg>
 
+      {/* Draggable PTZ knob */}
       <div
         ref={ptzHandleRef}
         data-ptz-crosshair="true"
