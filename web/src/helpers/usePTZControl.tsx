@@ -138,11 +138,13 @@ export const usePTZControl = () => {
       if (!currentChannelRef.current) {
         return;
       }
-      /* Ignore if typing in an input/textarea/contenteditable */
+
+      /* Ignore if typing in an input/textarea/select/contenteditable */
       const target = event.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
         target.isContentEditable
       ) {
         return;
