@@ -17,8 +17,9 @@ const PTZ_CONTROL_SIZE_PX = PTZ_MAX_DRAG_DISTANCE_PX * 2 + 44;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
 const PTZ_ZOOM_STOP_DELAY_MS = 140;
+const PTZ_ZOOM_RESEND_INTERVAL_MS = 90;
 const PTZ_MOVE_DEAD_ZONE_PX = 6;
-const PTZ_SEND_INTERVAL_MS = 40;
+const PTZ_SEND_INTERVAL_MS = 80;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -33,6 +34,8 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   const ptzHandleRef = useRef<HTMLDivElement | null>(null);
   const ptzPointerIdRef = useRef<number | null>(null);
   const zoomStopTimerRef = useRef<number | null>(null);
+  const activeZoomSpeedRef = useRef<number>(0);
+  const lastZoomSentAtRef = useRef<number>(0);
   const moveSendTimerRef = useRef<number | null>(null);
   const pendingMoveRef = useRef<{ pan: number; tilt: number } | null>(null);
   const lastSentMoveRef = useRef<{ pan: number; tilt: number }>({
@@ -204,14 +207,27 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       event.stopPropagation();
 
       const zoomSpeed = event.deltaY < 0 ? PTZ_WHEEL_SPEED : -PTZ_WHEEL_SPEED;
-      sendPtzZoom(zoomSpeed, currentChannel);
+      const now = Date.now();
+      const zoomChanged = activeZoomSpeedRef.current !== zoomSpeed;
+      const shouldResend =
+        now - lastZoomSentAtRef.current >= PTZ_ZOOM_RESEND_INTERVAL_MS;
+
+      if (zoomChanged || shouldResend) {
+        activeZoomSpeedRef.current = zoomSpeed;
+        lastZoomSentAtRef.current = now;
+        sendPtzZoom(zoomSpeed, currentChannel);
+      }
 
       if (zoomStopTimerRef.current !== null) {
         clearTimeout(zoomStopTimerRef.current);
       }
       zoomStopTimerRef.current = window.setTimeout(() => {
         zoomStopTimerRef.current = null;
-        sendPtzZoom(0, currentChannel);
+        if (activeZoomSpeedRef.current !== 0) {
+          activeZoomSpeedRef.current = 0;
+          lastZoomSentAtRef.current = Date.now();
+          sendPtzZoom(0, currentChannel);
+        }
       }, PTZ_ZOOM_STOP_DELAY_MS);
     },
     [currentChannel, enabled, hasChannel]
@@ -259,6 +275,8 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       clearTimeout(zoomStopTimerRef.current);
       zoomStopTimerRef.current = null;
     }
+    activeZoomSpeedRef.current = 0;
+    lastZoomSentAtRef.current = 0;
     clearQueuedPtzPanTilt();
 
     stopPanTilt();
@@ -274,6 +292,8 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         clearTimeout(zoomStopTimerRef.current);
         zoomStopTimerRef.current = null;
       }
+      activeZoomSpeedRef.current = 0;
+      lastZoomSentAtRef.current = 0;
       clearQueuedPtzPanTilt();
 
       if (hasChannel) {
