@@ -1,7 +1,7 @@
 /**
  * OnScreenMessageContext
  *
- * A context for managing on-screen messages displayed over the video player.
+ * A context for managing a single on-screen message displayed over the video player.
  * Components or hooks can call showMessage() to display a message with optional auto-dismiss.
  */
 import React, {
@@ -23,7 +23,7 @@ export interface OnScreenMessage {
 }
 
 interface OnScreenMessageContextType {
-  messages: OnScreenMessage[];
+  message: OnScreenMessage | null;
   showMessage: (options: {
     title?: string;
     content: string | React.ReactNode;
@@ -40,7 +40,7 @@ const OnScreenMessageContext = createContext<
 export const OnScreenMessageProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [messages, setMessages] = useState<OnScreenMessage[]>([]);
+  const [message, setMessage] = useState<OnScreenMessage | null>(null);
 
   /* Store timeout for the currently active message */
   const timeoutRef = useRef<number | null>(null);
@@ -54,7 +54,7 @@ export const OnScreenMessageProvider: React.FC<{
 
   const dismissMessage = useCallback((id: string) => {
     clearCurrentTimeout();
-    setMessages((prev) => prev.filter((msg) => msg.id !== id));
+    setMessage((prev) => (prev?.id === id ? null : prev));
   }, []);
 
   const showMessage = useCallback(
@@ -64,12 +64,12 @@ export const OnScreenMessageProvider: React.FC<{
       icon?: React.ReactNode;
       duration?: number;
     }) => {
-      /* Clear any existing timeout since we enforce ONE message */
+      /* Clear any existing timeout since we enforce a single message */
       clearCurrentTimeout();
 
       const id = Math.random().toString(36).substr(2, 9);
 
-      const message: OnScreenMessage = {
+      const newMessage: OnScreenMessage = {
         id,
         title: options.title,
         content: options.content,
@@ -78,8 +78,8 @@ export const OnScreenMessageProvider: React.FC<{
         timestamp: Date.now()
       };
 
-      /* Enforce single-message model */
-      setMessages([message]);
+      /* Replace any existing message */
+      setMessage(newMessage);
 
       /* Auto-dismiss if duration is specified */
       if (options.duration && options.duration > 0) {
@@ -100,7 +100,7 @@ export const OnScreenMessageProvider: React.FC<{
 
   return (
     <OnScreenMessageContext.Provider
-      value={{ messages, showMessage, dismissMessage }}
+      value={{ message, showMessage, dismissMessage }}
     >
       {children}
     </OnScreenMessageContext.Provider>

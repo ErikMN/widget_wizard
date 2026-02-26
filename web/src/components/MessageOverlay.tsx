@@ -1,8 +1,8 @@
 /**
  * MessageOverlay
  *
- * Renders on-screen messages from the OnScreenMessageContext.
- * Messages can be manually dismissed by clicking.
+ * Renders the current on-screen message from the OnScreenMessageContext.
+ * The message can be manually dismissed by clicking.
  */
 import React, { useEffect, useState } from 'react';
 import { useOnScreenMessage } from './OnScreenMessageContext';
@@ -12,13 +12,13 @@ import { useScreenSizes } from '../helpers/hooks.jsx';
 import { Fade } from '@mui/material';
 
 const MessageOverlay: React.FC = () => {
-  const { messages, dismissMessage } = useOnScreenMessage();
+  const { message, dismissMessage } = useOnScreenMessage();
   const { appSettings } = useAppContext();
 
   /* Screen size */
   const { isMobile } = useScreenSizes();
 
-  const message = messages[0];
+  /* Local state */
   const [visible, setVisible] = useState<boolean>(false);
 
   useEffect(() => {
