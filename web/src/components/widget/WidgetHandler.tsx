@@ -1,12 +1,13 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useAppContext } from '../AppContext';
 import { useWidgetContext } from './WidgetContext';
+import { useOnScreenMessage } from '../OnScreenMessageContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
 import { CustomButton } from './../CustomComponents';
@@ -31,11 +32,13 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import WidgetsIcon from '@mui/icons-material/Widgets';
 
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [backupList, setBackupList] = useState(loadWidgetBackups());
+  const widgetHotkeysShownRef = useRef(false);
 
   /* Global context */
   const {
@@ -55,6 +58,7 @@ const WidgetHandler: React.FC = () => {
     updateWidget
   } = useWidgetContext();
   const { appSettings } = useAppContext();
+  const { showMessage } = useOnScreenMessage();
 
   enableLogging(false);
 
@@ -66,6 +70,29 @@ const WidgetHandler: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  /* Show widget hotkeys hint on mount (only once) */
+  useEffect(() => {
+    if (widgetHotkeysShownRef.current) {
+      return;
+    }
+    widgetHotkeysShownRef.current = true;
+    showMessage({
+      title: 'Widget Hotkeys',
+      icon: <WidgetsIcon fontSize="small" />,
+      content: (
+        <div>
+          <div style={{ marginBottom: '8px' }}>
+            <strong>Delete:</strong> Remove active widget
+          </div>
+          <div>
+            <strong>Shift + Delete:</strong> Remove all widgets
+          </div>
+        </div>
+      ),
+      duration: 8000
+    });
+  }, [showMessage]);
 
   /* Keyboard Shift+Delete shortcut: remove all widgets (but not when typing) */
   useEffect(() => {
