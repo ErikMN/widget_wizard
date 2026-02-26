@@ -12,7 +12,8 @@ interface PtzCrosshairControlProps {
 }
 
 const PTZ_CROSSHAIR_RADIUS_PX = 72;
-const PTZ_CONTROL_SIZE_PX = PTZ_CROSSHAIR_RADIUS_PX * 2 + 44;
+const PTZ_MAX_DRAG_DISTANCE_PX = 220;
+const PTZ_CONTROL_SIZE_PX = PTZ_MAX_DRAG_DISTANCE_PX * 2 + 44;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
 const PTZ_ZOOM_STOP_DELAY_MS = 140;
@@ -119,7 +120,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       const dx = clientX - centerX;
       const dy = clientY - centerY;
       const distance = Math.hypot(dx, dy);
-      const clampedDistance = clamp(distance, 0, PTZ_CROSSHAIR_RADIUS_PX);
+      const clampedDistance = clamp(distance, 0, PTZ_MAX_DRAG_DISTANCE_PX);
       const scale = distance > 0 ? clampedDistance / distance : 0;
 
       const x = dx * scale;
@@ -131,8 +132,8 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         return;
       }
 
-      const pan = Math.round((x / PTZ_CROSSHAIR_RADIUS_PX) * PTZ_MAX_SPEED);
-      const tilt = Math.round((-y / PTZ_CROSSHAIR_RADIUS_PX) * PTZ_MAX_SPEED);
+      const pan = Math.round((x / PTZ_MAX_DRAG_DISTANCE_PX) * PTZ_MAX_SPEED);
+      const tilt = Math.round((-y / PTZ_MAX_DRAG_DISTANCE_PX) * PTZ_MAX_SPEED);
       queuePtzPanTilt(pan, tilt);
     },
     [queuePtzPanTilt]
@@ -216,18 +217,37 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     [currentChannel, enabled, hasChannel]
   );
 
-  /* Use a non-passive wheel listener so preventDefault() is honored. */
-  useEffect(() => {
-    const handle = ptzHandleRef.current;
-    if (!handle) {
-      return;
+  const isInsideReticle = useCallback((clientX: number, clientY: number) => {
+    const root = controlRootRef.current;
+    if (!root) {
+      return false;
     }
 
-    handle.addEventListener('wheel', handlePtzWheel, { passive: false });
-    return () => {
-      handle.removeEventListener('wheel', handlePtzWheel);
+    const rect = root.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    return (
+      Math.hypot(clientX - centerX, clientY - centerY) <=
+      PTZ_CROSSHAIR_RADIUS_PX
+    );
+  }, []);
+
+  /* Use a non-passive global wheel listener so zoom works across
+   * the whole reticle area, not only on the center knob.
+   */
+  useEffect(() => {
+    const onWindowWheel = (event: WheelEvent) => {
+      if (!isInsideReticle(event.clientX, event.clientY)) {
+        return;
+      }
+      handlePtzWheel(event);
     };
-  }, [handlePtzWheel]);
+
+    window.addEventListener('wheel', onWindowWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', onWindowWheel);
+    };
+  }, [handlePtzWheel, isInsideReticle]);
 
   /* Stop active PTZ actions if the control gets disabled. */
   useEffect(() => {
@@ -279,7 +299,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         height: `${PTZ_CONTROL_SIZE_PX}px`,
         transform: 'translate(-50%, -50%)',
         pointerEvents: 'none',
-        zIndex: 20,
+        zIndex: 0,
         userSelect: 'none'
       }}
     >
