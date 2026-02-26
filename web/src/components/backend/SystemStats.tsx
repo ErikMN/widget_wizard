@@ -5,6 +5,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import { useAppContext } from '../AppContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
+import { useOnScreenMessage } from '../OnScreenMessageContext';
 /* MUI */
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -128,6 +129,7 @@ const formatOsName = (info: SystemInfo): string | null => {
 const SystemStats: React.FC = () => {
   /* Global context */
   const { appSettings } = useAppContext();
+  const { showMessage } = useOnScreenMessage();
 
   const wsAddress =
     appSettings.wsAddress && appSettings.wsAddress.trim() !== ''
@@ -183,6 +185,7 @@ const SystemStats: React.FC = () => {
   const isUnmountedRef = useRef<boolean>(false);
   const intentionalCloseRef = useRef<boolean>(false);
   const connectionIdRef = useRef<number>(0);
+  const mountMessageShownRef = useRef<boolean>(false);
 
   enableLogging(false);
 
@@ -458,6 +461,23 @@ const SystemStats: React.FC = () => {
       connect();
     }, 2000);
   };
+
+  /* Show on-screen message when connected */
+  useEffect(() => {
+    if (mountMessageShownRef.current) {
+      return;
+    }
+    if (!connected) {
+      return;
+    }
+    mountMessageShownRef.current = true;
+    showMessage({
+      title: 'System Monitor',
+      icon: <DeveloperBoardIcon fontSize="small" />,
+      content: 'Live system statistics are now streaming.',
+      duration: 5000
+    });
+  }, [connected, showMessage]);
 
   /* Manage the WebSocket connection lifecycle for this route-scoped component.
    *
