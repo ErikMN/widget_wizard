@@ -22,6 +22,8 @@ const PTZ_ZOOM_STOP_DELAY_MS = 140;
 const PTZ_ZOOM_RESEND_INTERVAL_MS = 120;
 const PTZ_MOVE_DEAD_ZONE_PX = 6;
 const PTZ_SEND_INTERVAL_MS = 160;
+const PTZ_STOP_RETRY_INTERVAL_MS = 200;
+const PTZ_STOP_MAX_RETRIES = 10;
 const PTZ_RETICLE_COLOR = '#ffcc33';
 const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
 const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
@@ -52,6 +54,8 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     pan: 0,
     tilt: 0
   });
+  const stopRetryTimerRef = useRef<number | null>(null);
+  const stopRetryCountRef = useRef<number>(0);
 
   /* Local state */
   const [ptzVector, setPtzVector] = useState({ x: 0, y: 0 });
@@ -117,14 +121,41 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     pendingMoveRef.current = null;
   }, []);
 
-  /* Reset drag state and send a final stop command. */
+  /* Clear any pending stop retries. */
+  const clearStopRetry = useCallback(() => {
+    if (stopRetryTimerRef.current !== null) {
+      clearTimeout(stopRetryTimerRef.current);
+      stopRetryTimerRef.current = null;
+    }
+    stopRetryCountRef.current = 0;
+  }, []);
+
+  /* Send stop command with retries for bad connections. */
+  const sendStopWithRetry = useCallback(() => {
+    if (!hasChannel) {
+      return;
+    }
+    sendPtzPanTiltNow(0, 0);
+    stopRetryCountRef.current += 1;
+
+    /* Keep retrying stop until max retries reached. */
+    if (stopRetryCountRef.current < PTZ_STOP_MAX_RETRIES) {
+      stopRetryTimerRef.current = window.setTimeout(
+        sendStopWithRetry,
+        PTZ_STOP_RETRY_INTERVAL_MS
+      );
+    }
+  }, [hasChannel, sendPtzPanTiltNow]);
+
+  /* Reset drag state and send a final stop command with retries. */
   const stopPanTilt = useCallback(() => {
     ptzPointerIdRef.current = null;
     setPtzDragging(false);
     setPtzVector({ x: 0, y: 0 });
     clearQueuedPtzPanTilt();
-    sendPtzPanTiltNow(0, 0);
-  }, [clearQueuedPtzPanTilt, sendPtzPanTiltNow]);
+    clearStopRetry();
+    sendStopWithRetry();
+  }, [clearQueuedPtzPanTilt, clearStopRetry, sendStopWithRetry]);
 
   /* Convert pointer position to a bounded vector centered in the surface,
    * then map that vector to pan/tilt speed percentages.
@@ -304,12 +335,20 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     activeZoomSpeedRef.current = 0;
     lastZoomSentAtRef.current = 0;
     clearQueuedPtzPanTilt();
+    clearStopRetry();
 
     stopPanTilt();
     if (hasChannel) {
       sendPtzZoom(0, currentChannel);
     }
-  }, [enabled, currentChannel, hasChannel, clearQueuedPtzPanTilt, stopPanTilt]);
+  }, [
+    enabled,
+    currentChannel,
+    hasChannel,
+    clearQueuedPtzPanTilt,
+    clearStopRetry,
+    stopPanTilt
+  ]);
 
   /* Cleanup PTZ state on unmount and channel changes. */
   useEffect(() => {
@@ -318,8 +357,13 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         clearTimeout(zoomStopTimerRef.current);
         zoomStopTimerRef.current = null;
       }
+      if (stopRetryTimerRef.current !== null) {
+        clearTimeout(stopRetryTimerRef.current);
+        stopRetryTimerRef.current = null;
+      }
       activeZoomSpeedRef.current = 0;
       lastZoomSentAtRef.current = 0;
+      stopRetryCountRef.current = 0;
       clearQueuedPtzPanTilt();
 
       if (hasChannel) {
