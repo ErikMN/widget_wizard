@@ -14,14 +14,14 @@ interface PtzCrosshairControlProps {
 }
 
 /* PTZ interaction tuning */
-const PTZ_CROSSHAIR_RADIUS_PX = 60;
-const PTZ_KNOB_SIZE_PX = 44;
+const PTZ_CROSSHAIR_RADIUS_PX = 50;
+const PTZ_KNOB_SIZE_PX = 40;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
 const PTZ_ZOOM_STOP_DELAY_MS = 140;
-const PTZ_ZOOM_RESEND_INTERVAL_MS = 90;
+const PTZ_ZOOM_RESEND_INTERVAL_MS = 120;
 const PTZ_MOVE_DEAD_ZONE_PX = 6;
-const PTZ_SEND_INTERVAL_MS = 80;
+const PTZ_SEND_INTERVAL_MS = 160;
 const PTZ_RETICLE_COLOR = '#ffcc33';
 const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
 const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
