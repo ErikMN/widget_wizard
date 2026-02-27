@@ -23,7 +23,7 @@ const PTZ_ZOOM_RESEND_INTERVAL_MS = 120;
 const PTZ_MOVE_DEAD_ZONE_PX = 6;
 const PTZ_SEND_INTERVAL_MS = 160;
 const PTZ_STOP_RETRY_INTERVAL_MS = 200;
-const PTZ_STOP_MAX_RETRIES = 10;
+const PTZ_STOP_MAX_RETRIES = 3;
 const PTZ_RETICLE_COLOR = '#ffcc33';
 const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
 const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
@@ -43,7 +43,6 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
 
   /* Refs */
   const controlRootRef = useRef<HTMLDivElement | null>(null);
-  const ptzHandleRef = useRef<HTMLDivElement | null>(null);
   const ptzPointerIdRef = useRef<number | null>(null);
   const zoomStopTimerRef = useRef<number | null>(null);
   const activeZoomSpeedRef = useRef<number>(0);
@@ -56,6 +55,9 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   });
   const stopRetryTimerRef = useRef<number | null>(null);
   const stopRetryCountRef = useRef<number>(0);
+  const zoomStopRetryTimerRef = useRef<number | null>(null);
+  const zoomStopRetryCountRef = useRef<number>(0);
+  const lastSentZoomRef = useRef<number>(0);
 
   /* Local state */
   const [ptzVector, setPtzVector] = useState({ x: 0, y: 0 });
@@ -130,6 +132,15 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     stopRetryCountRef.current = 0;
   }, []);
 
+  /* Clear any pending zoom stop retries. */
+  const clearZoomStopRetry = useCallback(() => {
+    if (zoomStopRetryTimerRef.current !== null) {
+      clearTimeout(zoomStopRetryTimerRef.current);
+      zoomStopRetryTimerRef.current = null;
+    }
+    zoomStopRetryCountRef.current = 0;
+  }, []);
+
   /* Send stop command with retries for bad connections. */
   const sendStopWithRetry = useCallback(() => {
     if (!hasChannel) {
@@ -146,6 +157,45 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       );
     }
   }, [hasChannel, sendPtzPanTiltNow]);
+
+  /* Send zoom command, skipping duplicates to avoid spam. */
+  const sendZoomNow = useCallback(
+    (speed: number) => {
+      if (!hasChannel) {
+        return;
+      }
+
+      if (speed === lastSentZoomRef.current) {
+        return;
+      }
+
+      lastSentZoomRef.current = speed;
+      sendPtzZoom(speed, currentChannel);
+    },
+    [currentChannel, hasChannel]
+  );
+
+  /* Send zoom stop command with retries for bad connections.
+   * Retries are cancelled if new zoom activity occurs (proving connection works).
+   */
+  const sendZoomStopWithRetry = useCallback(() => {
+    if (!hasChannel) {
+      return;
+    }
+
+    /* Send stop unconditionally on retries for bad connection resilience */
+    sendPtzZoom(0, currentChannel);
+    lastSentZoomRef.current = 0;
+    zoomStopRetryCountRef.current += 1;
+
+    /* Keep retrying zoom stop until max retries reached. */
+    if (zoomStopRetryCountRef.current < PTZ_STOP_MAX_RETRIES) {
+      zoomStopRetryTimerRef.current = window.setTimeout(
+        sendZoomStopWithRetry,
+        PTZ_STOP_RETRY_INTERVAL_MS
+      );
+    }
+  }, [currentChannel, hasChannel]);
 
   /* Reset drag state and send a final stop command with retries. */
   const stopPanTilt = useCallback(() => {
@@ -268,10 +318,13 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
       const shouldResend =
         now - lastZoomSentAtRef.current >= PTZ_ZOOM_RESEND_INTERVAL_MS;
 
+      /* Cancel any pending stop retries - new zoom activity means connection works */
+      clearZoomStopRetry();
+
       if (zoomChanged || shouldResend) {
         activeZoomSpeedRef.current = zoomSpeed;
         lastZoomSentAtRef.current = now;
-        sendPtzZoom(zoomSpeed, currentChannel);
+        sendZoomNow(zoomSpeed);
       }
 
       if (zoomStopTimerRef.current !== null) {
@@ -282,11 +335,20 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         if (activeZoomSpeedRef.current !== 0) {
           activeZoomSpeedRef.current = 0;
           lastZoomSentAtRef.current = Date.now();
-          sendPtzZoom(0, currentChannel);
+          clearZoomStopRetry();
+          zoomStopRetryCountRef.current = 0;
+          sendZoomStopWithRetry();
         }
       }, PTZ_ZOOM_STOP_DELAY_MS);
     },
-    [currentChannel, enabled, hasChannel]
+    [
+      currentChannel,
+      enabled,
+      hasChannel,
+      clearZoomStopRetry,
+      sendZoomNow,
+      sendZoomStopWithRetry
+    ]
   );
 
   /* Reticle-local wheel gating: zoom only when cursor is inside the center reticle. */
@@ -336,6 +398,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     lastZoomSentAtRef.current = 0;
     clearQueuedPtzPanTilt();
     clearStopRetry();
+    clearZoomStopRetry();
 
     stopPanTilt();
     if (hasChannel) {
@@ -347,6 +410,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     hasChannel,
     clearQueuedPtzPanTilt,
     clearStopRetry,
+    clearZoomStopRetry,
     stopPanTilt
   ]);
 
@@ -361,9 +425,15 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         clearTimeout(stopRetryTimerRef.current);
         stopRetryTimerRef.current = null;
       }
+      if (zoomStopRetryTimerRef.current !== null) {
+        clearTimeout(zoomStopRetryTimerRef.current);
+        zoomStopRetryTimerRef.current = null;
+      }
       activeZoomSpeedRef.current = 0;
       lastZoomSentAtRef.current = 0;
+      lastSentZoomRef.current = 0;
       stopRetryCountRef.current = 0;
+      zoomStopRetryCountRef.current = 0;
       clearQueuedPtzPanTilt();
 
       if (hasChannel) {
@@ -450,7 +520,6 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
 
       {/* Draggable PTZ knob */}
       <div
-        ref={ptzHandleRef}
         data-ptz-crosshair="true"
         title="Drag to steer PTZ. Scroll to zoom."
         onPointerDown={handlePtzPointerDown}
