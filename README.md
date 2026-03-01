@@ -29,6 +29,7 @@ The backend application needs to be running for this feature to be working.
 * Customizable bounding boxes for easy repositioning of widgets and overlays
 * Backup and restore widgets and overlays to browser local storage
 * Built-in video-player with support for (almost) all resolutions and formats offered by the device
+* Live PTZ controls
 * Optional WebSocket backend for real-time system metrics
 * Responsive and easy to use
 
