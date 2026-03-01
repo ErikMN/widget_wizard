@@ -973,6 +973,8 @@ const SystemStats: React.FC = () => {
                             {
                               data: history.map((h) => h.cpu),
                               label: 'CPU %',
+                              area: true,
+                              baseline: 'min' as const,
                               showMark: false,
                               valueFormatter: (v: number | null) =>
                                 v == null ? '' : `${v.toFixed(1)} %`
@@ -985,6 +987,8 @@ const SystemStats: React.FC = () => {
                             {
                               data: history.map((h) => h.mem),
                               label: 'RAM %',
+                              area: true,
+                              baseline: 'min' as const,
                               showMark: false,
                               valueFormatter: (v: number | null) =>
                                 v == null ? '' : `${v.toFixed(1)} %`
@@ -994,6 +998,9 @@ const SystemStats: React.FC = () => {
                     ]}
                     yAxis={sysChartYAxis}
                     sx={{
+                      '& .MuiAreaElement-root': {
+                        fillOpacity: 0.12
+                      },
                       '& .MuiChartsAxis-line': {
                         stroke: '#fff !important'
                       },
@@ -1192,6 +1199,8 @@ const SystemStats: React.FC = () => {
                               {
                                 data: procHistory.map((p) => p.cpu),
                                 label: 'CPU %',
+                                area: true,
+                                baseline: 'min' as const,
                                 showMark: false,
                                 valueFormatter: (v: number | null) =>
                                   v == null ? '' : `${v.toFixed(1)} %`
@@ -1204,6 +1213,8 @@ const SystemStats: React.FC = () => {
                               {
                                 data: procHistory.map((p) => p.rss),
                                 label: 'RSS MB',
+                                area: true,
+                                baseline: 'min' as const,
                                 showMark: false,
                                 valueFormatter: (v: number | null) =>
                                   v == null ? '' : `${v.toFixed(1)} MB`
@@ -1216,6 +1227,8 @@ const SystemStats: React.FC = () => {
                               {
                                 data: procHistory.map((p) => p.pss),
                                 label: 'PSS MB (real memory)',
+                                area: true,
+                                baseline: 'min' as const,
                                 showMark: false,
                                 valueFormatter: (v: number | null) =>
                                   v == null ? '' : `${v.toFixed(1)} MB`
@@ -1228,6 +1241,8 @@ const SystemStats: React.FC = () => {
                               {
                                 data: procHistory.map((p) => p.uss),
                                 label: 'USS MB',
+                                area: true,
+                                baseline: 'min' as const,
                                 showMark: false,
                                 valueFormatter: (v: number | null) =>
                                   v == null ? '' : `${v.toFixed(1)} MB`
@@ -1241,6 +1256,9 @@ const SystemStats: React.FC = () => {
                         }
                       ]}
                       sx={{
+                        '& .MuiAreaElement-root': {
+                          fillOpacity: 0.12
+                        },
                         '& .MuiChartsAxis-line': {
                           stroke: '#fff !important'
                         },
