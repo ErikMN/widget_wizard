@@ -94,8 +94,11 @@ export const usePTZControl = () => {
             <div style={{ marginBottom: '8px' }}>
               <strong>Arrow Keys:</strong> Pan & Tilt
             </div>
-            <div>
+            <div style={{ marginBottom: '8px' }}>
               <strong>+ / -:</strong> Zoom In & Out
+            </div>
+            <div>
+              <strong>P:</strong> Toggle PTZ crosshair control
             </div>
           </div>
         ),

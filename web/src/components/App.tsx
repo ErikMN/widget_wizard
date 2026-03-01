@@ -5,6 +5,7 @@ import { useParameters } from './ParametersContext';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
+import { useAppSettingsShortcuts } from '../helpers/useAppSettingsShortcuts';
 import { playSound } from '../helpers/utils';
 import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
@@ -183,6 +184,9 @@ const App: React.FC = () => {
 
   /* First time greeting */
   useAppGreeting();
+
+  /* App settings keyboard-shortcuts */
+  useAppSettingsShortcuts();
 
   enableLogging(true);
 
