@@ -20,7 +20,7 @@ import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 const PTZ_SPEED = 30;
 
 /* Zoom speed value for +/- keys */
-const ZOOM_SPEED = 4000;
+const ZOOM_SPEED = 6000;
 
 /* Map each arrow key to a [pan, tilt] speed tuple for continuouspantiltmove */
 const PTZ_KEY_MAP: Record<string, [number, number]> = {
