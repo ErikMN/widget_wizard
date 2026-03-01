@@ -66,7 +66,7 @@ const MessageOverlay: React.FC = () => {
   const hasTimedDuration = durationMs > 0;
   const fillRatio =
     durationMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / durationMs)) : 0;
-  const pieChartSize = isMobile ? 34 : 40;
+  const pieChartSize = isMobile ? 22 : 30;
   const cardBackgroundColor = alpha(
     theme.palette.background.paper,
     theme.palette.mode === 'dark' ? 0.9 : 0.94
