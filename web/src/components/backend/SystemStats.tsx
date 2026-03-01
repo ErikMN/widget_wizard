@@ -964,6 +964,7 @@ const SystemStats: React.FC = () => {
 
                 <Box sx={{ width: '100%', overflowX: 'hidden' }}>
                   <LineChart
+                    skipAnimation
                     height={220}
                     margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
                     series={[
@@ -1182,6 +1183,7 @@ const SystemStats: React.FC = () => {
                 {procHistory.length > 1 && (
                   <Box sx={{ width: '100%', overflowX: 'hidden' }}>
                     <LineChart
+                      skipAnimation
                       height={220}
                       margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
                       series={[
