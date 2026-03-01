@@ -1,14 +1,17 @@
 # Widget Wizard <img src="files/images/wiz_hat.png" width="50" alt="Widget Wizard logo"/>
 
-<table border="2" cellpadding="10" cellspacing="0" width="100%">
-  <tr>
-    <td align="center">
-      <strong>⚠️ IMPORTANT ⚠️</strong><br/>
-      Requires a device that supports widget or overlay capabilities.<br/>
-      <strong>UNOFFICIAL APP:</strong> Requires "Allow unsigned apps" to be enabled on the device.
-    </td>
-  </tr>
-</table>
+<div align="center">
+  <table border="2" cellpadding="10" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <strong>⚠️ IMPORTANT ⚠️</strong><br/>
+        Requires a device that supports widget or overlay capabilities.<br/>
+        <strong>UNOFFICIAL APP</strong><br/>
+        Requires "Allow unsigned apps" to be enabled on the device.
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## What is this?
 
