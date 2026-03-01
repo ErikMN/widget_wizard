@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
 import { useAppContext } from './AppContext';
+import { useParameters } from './ParametersContext';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
 import { playSound } from '../helpers/utils';
@@ -56,9 +57,12 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
 
   /* Global context */
   const { appSettings } = useAppContext();
+  const { parameters } = useParameters();
 
   /* Local state */
   const [latestReleaseTag, setLatestReleaseTag] = useState('');
+  const [showProductImage, setShowProductImage] = useState(false);
+  const [productImageAvailable, setProductImageAvailable] = useState(true);
 
   const theme = useTheme();
   const githubLogo =
@@ -67,10 +71,17 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
   const currentVersion = import.meta.env.VITE_VERSION;
   const showNewVersionAlert =
     latestReleaseTag && isVersionNewer(currentVersion, latestReleaseTag);
+  const productImageSrc = '/img/product-image.png';
+  const productImageAlt =
+    parameters?.['root.Brand.ProdFullName'] ||
+    parameters?.['root.Brand.ProdShortName'] ||
+    'Product image';
 
   /* Fetch the latest release info from GitHub on mount */
   useEffect(() => {
     if (open) {
+      setShowProductImage(false);
+      setProductImageAvailable(true);
       fetch('https://api.github.com/repos/ErikMN/widget_wizard/releases', {
         headers: {
           Accept: 'application/vnd.github+json',
@@ -132,14 +143,59 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
             borderRadius: isMobile ? 0 : 1
           }}
         >
-          <img
-            src={logo}
-            alt="Widgy logo"
-            style={{
-              width: isMobile ? '120px' : '180px',
-              marginBottom: '10px'
+          <Box
+            onClick={() => {
+              if (!productImageAvailable && !showProductImage) {
+                return;
+              }
+              setShowProductImage((current) => !current);
             }}
-          />
+            sx={{
+              position: 'relative',
+              width: isMobile ? '120px' : '180px',
+              height: isMobile ? '120px' : '180px',
+              margin: '0 auto 10px',
+              cursor: productImageAvailable ? 'pointer' : 'default'
+            }}
+          >
+            <Fade
+              in={!showProductImage || !productImageAvailable}
+              timeout={220}
+            >
+              <Box
+                component="img"
+                src={logo}
+                alt="Widgy logo"
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </Fade>
+            {productImageAvailable && (
+              <Fade in={showProductImage} timeout={220}>
+                <Box
+                  component="img"
+                  src={productImageSrc}
+                  alt={productImageAlt}
+                  onError={() => {
+                    setProductImageAvailable(false);
+                    setShowProductImage(false);
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </Fade>
+            )}
+          </Box>
           <Typography
             color="text.primary"
             id="about-modal-title"
