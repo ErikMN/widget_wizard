@@ -16,6 +16,7 @@ import { useAppContext } from './AppContext';
 interface PtzCrosshairControlProps {
   currentChannel: string;
   enabled: boolean;
+  renderInFront: boolean;
   surfaceWidth: number;
   surfaceHeight: number;
 }
@@ -77,6 +78,7 @@ const elementHasScrollableOverflow = (element: HTMLElement) => {
 const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   currentChannel,
   enabled,
+  renderInFront,
   surfaceWidth,
   surfaceHeight
 }) => {
@@ -553,7 +555,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
         width: `${surfaceWidth}px`,
         height: `${surfaceHeight}px`,
         pointerEvents: 'none',
-        zIndex: 0,
+        zIndex: renderInFront ? 10001 : 0,
         userSelect: 'none'
       }}
     >

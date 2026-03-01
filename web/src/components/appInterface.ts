@@ -19,6 +19,7 @@ export interface AppSettings {
   widgetAutoBringFront: boolean;
   snapToAnchor: boolean;
   enablePtzCrosshair: boolean;
+  ptzCrosshairInFront: boolean;
   /* WebSocket stats backend */
   wsAddress?: string;
   wsPort?: number;
@@ -41,6 +42,7 @@ export const defaultAppSettings: AppSettings = {
   widgetAutoBringFront: false,
   snapToAnchor: true,
   enablePtzCrosshair: false,
+  ptzCrosshairInFront: true,
   /* WebSocket stats backend defaults (not set here) */
   wsAddress: undefined,
   wsPort: undefined

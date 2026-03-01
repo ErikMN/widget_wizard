@@ -288,6 +288,17 @@ const Settings: React.FC = () => {
     );
   };
 
+  const handleTogglePtzCrosshairInFront = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      ptzCrosshairInFront: !prevSettings.ptzCrosshairInFront
+    }));
+    handleOpenAlert(
+      `PTZ crosshair in front: ${!appSettings.ptzCrosshairInFront}`,
+      'success'
+    );
+  };
+
   /* Handle navigation back */
   const handleBack = () => {
     /* Navigate back to previous screen */
@@ -642,6 +653,20 @@ const Settings: React.FC = () => {
               }
               label="Snap to anchor"
             />
+          </Box>
+
+          <Box
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.grey[600]}`,
+              padding: 2,
+              borderRadius: 1,
+              marginBottom: 2,
+              textAlign: 'left'
+            })}
+          >
+            <Typography variant="subtitle1" sx={{ marginBottom: 1 }}>
+              Misc
+            </Typography>
             <FormControlLabel
               control={
                 <CustomSwitch
@@ -661,6 +686,16 @@ const Settings: React.FC = () => {
                 />
               }
               label="Enable PTZ crosshair control"
+            />
+            <FormControlLabel
+              control={
+                <CustomSwitch
+                  checked={!!appSettings.ptzCrosshairInFront}
+                  onChange={handleTogglePtzCrosshairInFront}
+                  name="ptzCrosshairInFront"
+                />
+              }
+              label="Show PTZ crosshair above bounding boxes"
             />
           </Box>
 
