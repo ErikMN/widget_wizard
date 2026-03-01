@@ -3,8 +3,15 @@
  *
  * Optional PTZ control overlay for drag-to-steer and wheel-to-zoom.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { sendPtzMove, sendPtzZoom } from '../helpers/usePTZControl';
+import { useAppContext } from './AppContext';
 
 interface PtzCrosshairControlProps {
   currentChannel: string;
@@ -15,6 +22,7 @@ interface PtzCrosshairControlProps {
 
 /* PTZ interaction tuning */
 const PTZ_CROSSHAIR_RADIUS_PX = 50;
+const PTZ_CROSSHAIR_LINE_EXTENSION_PX = 18;
 const PTZ_KNOB_SIZE_PX = 40;
 const PTZ_MAX_SPEED = 100;
 const PTZ_WHEEL_SPEED = 4000;
@@ -24,13 +32,35 @@ const PTZ_MOVE_DEAD_ZONE_PX = 6;
 const PTZ_SEND_INTERVAL_MS = 160;
 const PTZ_STOP_RETRY_INTERVAL_MS = 200;
 const PTZ_STOP_MAX_RETRIES = 3;
-const PTZ_RETICLE_COLOR = '#ffcc33';
-const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
-const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
+const DEFAULT_PTZ_RETICLE_COLOR = '#ffcc33';
 const SCROLLABLE_OVERFLOW_VALUES = new Set(['auto', 'scroll', 'overlay']);
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const parseHexColor = (hex: string) => {
+  const normalizedHex = hex.replace('#', '');
+  const expandedHex =
+    normalizedHex.length === 3
+      ? normalizedHex
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : normalizedHex;
+  if (!/^[\da-fA-F]{6}$/.test(expandedHex)) {
+    return null;
+  }
+  const red = parseInt(expandedHex.slice(0, 2), 16);
+  const green = parseInt(expandedHex.slice(2, 4), 16);
+  const blue = parseInt(expandedHex.slice(4, 6), 16);
+
+  return { red, green, blue };
+};
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const rgb = parseHexColor(hex) ?? parseHexColor(DEFAULT_PTZ_RETICLE_COLOR)!;
+  return `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${alpha})`;
+};
 
 const elementHasScrollableOverflow = (element: HTMLElement) => {
   const styles = window.getComputedStyle(element);
@@ -50,9 +80,23 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   surfaceWidth,
   surfaceHeight
 }) => {
+  const { appSettings } = useAppContext();
   const hasChannel = currentChannel.trim() !== '';
   const halfWidth = surfaceWidth / 2;
   const halfHeight = surfaceHeight / 2;
+  const ptzReticleColor = useMemo(() => {
+    const colorMappings: Record<string, string> = {
+      yellow: '#ffcc33',
+      blue: '#00aaff',
+      red: '#ff4444',
+      green: '#00cc00',
+      purple: '#d633ff'
+    };
+    return colorMappings[appSettings.bboxColor] || DEFAULT_PTZ_RETICLE_COLOR;
+  }, [appSettings.bboxColor]);
+  const ptzReticleColorSoft = hexToRgba(ptzReticleColor, 0.58);
+  const ptzReticleColorDim = hexToRgba(ptzReticleColor, 0.44);
+  const ptzReticleGlow = hexToRgba(ptzReticleColor, 0.22);
 
   /* Refs */
   const controlRootRef = useRef<HTMLDivElement | null>(null);
@@ -528,23 +572,39 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
           cy={halfHeight}
           r={PTZ_CROSSHAIR_RADIUS_PX}
           fill="rgba(0, 0, 0, 0.08)"
-          stroke={PTZ_RETICLE_COLOR_SOFT}
+          stroke={ptzReticleColorSoft}
           strokeWidth={1}
         />
         <line
-          x1={halfWidth - PTZ_CROSSHAIR_RADIUS_PX}
+          x1={
+            halfWidth -
+            PTZ_CROSSHAIR_RADIUS_PX -
+            PTZ_CROSSHAIR_LINE_EXTENSION_PX
+          }
           y1={halfHeight}
-          x2={halfWidth + PTZ_CROSSHAIR_RADIUS_PX}
+          x2={
+            halfWidth +
+            PTZ_CROSSHAIR_RADIUS_PX +
+            PTZ_CROSSHAIR_LINE_EXTENSION_PX
+          }
           y2={halfHeight}
-          stroke={PTZ_RETICLE_COLOR_DIM}
+          stroke={ptzReticleColorDim}
           strokeWidth={1}
         />
         <line
           x1={halfWidth}
-          y1={halfHeight - PTZ_CROSSHAIR_RADIUS_PX}
+          y1={
+            halfHeight -
+            PTZ_CROSSHAIR_RADIUS_PX -
+            PTZ_CROSSHAIR_LINE_EXTENSION_PX
+          }
           x2={halfWidth}
-          y2={halfHeight + PTZ_CROSSHAIR_RADIUS_PX}
-          stroke={PTZ_RETICLE_COLOR_DIM}
+          y2={
+            halfHeight +
+            PTZ_CROSSHAIR_RADIUS_PX +
+            PTZ_CROSSHAIR_LINE_EXTENSION_PX
+          }
+          stroke={ptzReticleColorDim}
           strokeWidth={1}
         />
         {(Math.abs(ptzVector.x) > 0 || Math.abs(ptzVector.y) > 0) && (
@@ -554,7 +614,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
               y1={halfHeight}
               x2={halfWidth + ptzVector.x}
               y2={halfHeight + ptzVector.y}
-              stroke={PTZ_RETICLE_COLOR}
+              stroke={ptzReticleColor}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
@@ -562,7 +622,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
               cx={halfWidth + ptzVector.x}
               cy={halfHeight + ptzVector.y}
               r={3}
-              fill={PTZ_RETICLE_COLOR}
+              fill={ptzReticleColor}
             />
           </>
         )}
@@ -584,10 +644,10 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
           width: `${PTZ_KNOB_SIZE_PX}px`,
           height: `${PTZ_KNOB_SIZE_PX}px`,
           borderRadius: '50%',
-          border: `2px solid ${PTZ_RETICLE_COLOR}`,
+          border: `2px solid ${ptzReticleColor}`,
           background: 'rgba(8, 14, 18, 0.42)',
           boxShadow: ptzDragging
-            ? '0 0 0 4px rgba(255, 204, 51, 0.22)'
+            ? `0 0 0 4px ${ptzReticleGlow}`
             : '0 0 0 2px rgba(0,0,0,0.18), 0 2px 10px rgba(0,0,0,0.24)',
           transform: `translate(calc(-50% + ${ptzVector.x}px), calc(-50% + ${ptzVector.y}px))`,
           cursor: hasChannel
