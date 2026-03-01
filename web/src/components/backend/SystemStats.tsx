@@ -246,7 +246,7 @@ const SystemStats: React.FC = () => {
 
   /* Recreate the Y-axis only when at least one system metric is enabled, so the chart rescales correctly when toggling */
   const sysChartYAxis =
-    sysChartMetrics.cpu || sysChartMetrics.mem ? [{ min: 0, max: 100 }] : [];
+    sysChartMetrics.cpu || sysChartMetrics.mem ? [{ min: 0 }] : [];
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
    *
