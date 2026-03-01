@@ -7,8 +7,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import Logo from './Logo';
-import { useAppContext } from './AppContext';
-import { useParameters } from './ParametersContext';
+import { useAppContext } from './context/AppContext.js';
+import { useParameters } from './context/ParametersContext.js';
 import { jsonRequest } from '../helpers/cgihelper';
 import { crossGridPatternSx } from '../helpers/backgrounds';
 import { useScreenSizes } from '../helpers/hooks.jsx';

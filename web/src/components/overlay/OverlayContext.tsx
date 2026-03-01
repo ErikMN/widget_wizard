@@ -15,7 +15,7 @@ import {
   TextOverlay,
   OverlayCapabilities
 } from './overlayInterfaces';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext.js';
 import { playSound } from '../../helpers/utils';
 import newSoundUrl from '../../assets/audio/new.oga';
 import warningSoundUrl from '../../assets/audio/warning.oga';

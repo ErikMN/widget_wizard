@@ -12,12 +12,12 @@ import React, {
   useState
 } from 'react';
 import Draggable from 'react-draggable';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { ImageOverlay, TextOverlay } from './overlayInterfaces';
 import { Dimensions } from '../appInterface';
 import { capitalizeFirstLetter } from '../../helpers/utils';
-import { useParameters } from '../ParametersContext';
+import { useParameters } from '../context/ParametersContext';
 import { normalizedToPixel, pixelToNormalized } from '../../helpers/bboxhelper';
 import { playSound } from '../../helpers/utils';
 import lockSoundUrl from '../../assets/audio/lock.oga';

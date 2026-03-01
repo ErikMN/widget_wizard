@@ -2,7 +2,7 @@
  * Start or stop the ACAP backend and fetch application logs.
  */
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { CustomSwitch, CustomButton } from '../CustomComponents';
 /* MUI */
 import Alert from '@mui/material/Alert';

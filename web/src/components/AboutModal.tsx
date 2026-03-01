@@ -7,8 +7,8 @@
 import React, { useEffect, useState } from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
-import { useAppContext } from './AppContext';
-import { useParameters } from './ParametersContext';
+import { useAppContext } from './context/AppContext.js';
+import { useParameters } from './context/ParametersContext.js';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
 import { playSound } from '../helpers/utils';

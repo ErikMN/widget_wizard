@@ -21,7 +21,7 @@ import {
   getNormalizedCoordinateRanges,
   getAlignmentFlags
 } from '../../helpers/bboxhelper';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';

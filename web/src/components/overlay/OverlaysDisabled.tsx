@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { lightTheme, darkTheme } from '../../theme';
 /* MUI */
 import Alert from '@mui/material/Alert';

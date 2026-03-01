@@ -21,8 +21,8 @@ import {
   VideoProperties,
   VapixParameters
 } from 'media-stream-player';
-import { useAppContext } from '../AppContext';
-import { useParameters } from '../ParametersContext';
+import { useAppContext } from '../context/AppContext';
+import { useParameters } from '../context/ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
 import { Container, Layer } from './PlayerContainer';

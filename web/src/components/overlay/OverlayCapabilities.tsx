@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import OverlaysDisabled from './OverlaysDisabled';

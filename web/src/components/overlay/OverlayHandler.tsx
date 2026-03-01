@@ -3,9 +3,9 @@
  * OverlayHandler: Handler of overlays.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
-import { useOnScreenMessage } from '../OnScreenMessageContext';
+import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import OverlayBackupList from './OverlayBackupList';
 import { loadOverlayBackups } from './overlayBackupStorage';
 import OverlayItemImage from './OverlayItemImage';

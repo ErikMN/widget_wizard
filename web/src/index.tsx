@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AppRoutes from './components/AppRoutes';
-import { AppProvider } from './components/AppContext';
+import { AppProvider } from './components/context/AppContext';
 import { WidgetProvider } from './components/widget/WidgetContext';
 import { OverlayProvider } from './components/overlay/OverlayContext';
-import { ParametersProvider } from './components/ParametersContext';
-import { OnScreenMessageProvider } from './components/OnScreenMessageContext';
+import { ParametersProvider } from './components/context/ParametersContext';
+import { OnScreenMessageProvider } from './components/context/OnScreenMessageContext';
 
 import './assets/css/index.css';
 

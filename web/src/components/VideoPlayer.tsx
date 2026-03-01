@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAppContext } from './AppContext';
+import { useAppContext } from './context/AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';

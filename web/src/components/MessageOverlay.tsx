@@ -5,8 +5,8 @@
  * The message can be manually dismissed by clicking.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { useOnScreenMessage } from './OnScreenMessageContext';
-import { useAppContext } from './AppContext';
+import { useOnScreenMessage } from './context/OnScreenMessageContext.js';
+import { useAppContext } from './context/AppContext.js';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 /* MUI */
 import { Fade } from '@mui/material';

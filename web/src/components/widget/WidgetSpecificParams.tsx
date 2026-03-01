@@ -1,6 +1,6 @@
 /* WidgetSpecificParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';

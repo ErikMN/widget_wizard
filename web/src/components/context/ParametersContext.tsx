@@ -8,7 +8,7 @@
  * NOTE: Try to NOT rely too much on these parameters in the app!
  */
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { P_CGI } from './constants';
+import { P_CGI } from '../constants';
 
 interface ParametersContextType {
   parameters: { [key: string]: string } | null;

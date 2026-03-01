@@ -4,7 +4,7 @@
  * https://github.com/PrismJS/prism-themes
  */
 import React, { useState, useCallback, useMemo } from 'react';
-import { useAppContext } from './AppContext';
+import { useAppContext } from './context/AppContext';
 import { CustomButton, CustomSwitch } from './CustomComponents';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';

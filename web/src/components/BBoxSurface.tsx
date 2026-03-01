@@ -6,7 +6,7 @@
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { Dimensions } from './appInterface';
-import { useAppContext } from './AppContext';
+import { useAppContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */

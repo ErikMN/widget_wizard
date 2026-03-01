@@ -11,7 +11,7 @@ import React, {
   useState
 } from 'react';
 import { sendPtzMove, sendPtzZoom } from '../helpers/usePTZControl';
-import { useAppContext } from './AppContext';
+import { useAppContext } from './context/AppContext';
 
 interface PtzCrosshairControlProps {
   currentChannel: string;

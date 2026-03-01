@@ -3,9 +3,9 @@
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
-import { useOnScreenMessage } from '../OnScreenMessageContext';
+import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 /* MUI */
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';

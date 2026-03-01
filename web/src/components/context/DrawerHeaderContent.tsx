@@ -10,9 +10,9 @@ import { useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 
 /* Widgets */
-import WidgetInfo from './widget/WidgetInfo';
+import WidgetInfo from '../widget/WidgetInfo';
 /* Overlays */
-import OverlayInfo from './overlay/OverlayInfo';
+import OverlayInfo from '../overlay/OverlayInfo';
 
 const DrawerHeaderContent: React.FC = () => {
   /* Navigation */

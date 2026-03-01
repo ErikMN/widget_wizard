@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';

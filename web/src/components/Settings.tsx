@@ -6,8 +6,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
-import { useAppContext } from './AppContext';
-import { useParameters } from './ParametersContext';
+import { useAppContext } from './context/AppContext.js';
+import { useParameters } from './context/ParametersContext.js';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
 import { P_CGI } from './constants';

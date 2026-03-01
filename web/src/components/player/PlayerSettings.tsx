@@ -12,8 +12,8 @@
 import React, { ChangeEventHandler, useCallback, useEffect } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
-import { useParameters } from '../ParametersContext';
-import { useAppContext } from '../AppContext';
+import { useParameters } from '../context/ParametersContext';
+import { useAppContext } from '../context/AppContext';
 import { darkTheme } from '../../theme';
 /* MUI */
 import { ThemeProvider } from '@mui/material';

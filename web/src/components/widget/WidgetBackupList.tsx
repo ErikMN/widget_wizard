@@ -9,7 +9,7 @@ import {
 } from './widgetBackupStorage';
 import { useWidgetContext } from './WidgetContext';
 import { CustomButton, CustomStyledIconButton } from './../CustomComponents';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */

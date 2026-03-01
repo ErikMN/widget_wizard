@@ -4,7 +4,7 @@
  * Global keyboard shortcuts for app settings.
  */
 import { useEffect } from 'react';
-import { useAppContext } from '../components/AppContext';
+import { useAppContext } from '../components/context/AppContext';
 
 const isTypeableTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) {

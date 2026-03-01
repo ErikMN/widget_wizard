@@ -2,10 +2,10 @@
  * This context manages application-level operations and state throughout the app.
  */
 import React, { createContext, useContext, useState } from 'react';
-import { useLocalStorage } from '../helpers/hooks.jsx';
-import { playSound } from '../helpers/utils';
-import warningSoundUrl from '../assets/audio/warning.oga';
-import { AppSettings, defaultAppSettings } from './appInterface.js';
+import { useLocalStorage } from '../../helpers/hooks.jsx';
+import { playSound } from '../../helpers/utils.js';
+import warningSoundUrl from '../../assets/audio/warning.oga';
+import { AppSettings, defaultAppSettings } from '../appInterface.js';
 
 type Severity = 'info' | 'success' | 'error' | 'warning';
 

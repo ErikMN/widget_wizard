@@ -6,7 +6,7 @@
  */
 import { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import { useOnScreenMessage } from '../components/OnScreenMessageContext';
+import { useOnScreenMessage } from '../components/context/OnScreenMessageContext';
 import logo from '../assets/img/widgy1.png';
 
 const FIRST_RUN_KEY = 'firstRunGreetingShown';

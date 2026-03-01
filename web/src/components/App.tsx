@@ -1,7 +1,7 @@
 /* Widget Wizard main component */
 import React, { useState, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useParameters } from './ParametersContext';
+import { useParameters } from './context/ParametersContext.js';
 import { CustomStyledIconButton } from './CustomComponents';
 import { lightTheme, darkTheme } from '../theme';
 import { useLocalStorage, useScreenSizes } from '../helpers/hooks.jsx';
@@ -10,11 +10,11 @@ import { playSound } from '../helpers/utils';
 import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { enableLogging } from '../helpers/logger';
-import { useAppContext } from './AppContext';
+import { useAppContext } from './context/AppContext.js';
 import { useAppGreeting } from '../helpers/useAppGreeting';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
-import DrawerHeaderContent from './DrawerHeaderContent';
+import DrawerHeaderContent from './context/DrawerHeaderContent.js';
 import Logo from './Logo';
 import MainMenu from './MainMenu';
 import VideoPlayer from './VideoPlayer';

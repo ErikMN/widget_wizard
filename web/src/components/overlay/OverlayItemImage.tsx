@@ -9,7 +9,7 @@ import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { playSound } from '../../helpers/utils';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
-import { useAppContext } from '../AppContext';
+import { useAppContext } from '../context/AppContext';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
