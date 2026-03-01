@@ -43,6 +43,10 @@ export default defineConfig({
       '/mjpg/': {
         target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         changeOrigin: true
+      },
+      '/img/': {
+        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true
       }
     }
   },
