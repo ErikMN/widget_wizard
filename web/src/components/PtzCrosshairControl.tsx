@@ -27,9 +27,22 @@ const PTZ_STOP_MAX_RETRIES = 3;
 const PTZ_RETICLE_COLOR = '#ffcc33';
 const PTZ_RETICLE_COLOR_SOFT = 'rgba(255, 204, 51, 0.58)';
 const PTZ_RETICLE_COLOR_DIM = 'rgba(255, 204, 51, 0.44)';
+const SCROLLABLE_OVERFLOW_VALUES = new Set(['auto', 'scroll', 'overlay']);
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const elementHasScrollableOverflow = (element: HTMLElement) => {
+  const styles = window.getComputedStyle(element);
+  const canScrollY =
+    SCROLLABLE_OVERFLOW_VALUES.has(styles.overflowY) &&
+    element.scrollHeight > element.clientHeight;
+  const canScrollX =
+    SCROLLABLE_OVERFLOW_VALUES.has(styles.overflowX) &&
+    element.scrollWidth > element.clientWidth;
+
+  return canScrollX || canScrollY;
+};
 
 const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   currentChannel,
@@ -371,12 +384,33 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     );
   }, []);
 
+  const eventTargetsScrollableContainer = useCallback((event: WheelEvent) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return false;
+    }
+    let current: Element | null = target;
+    while (current) {
+      if (
+        current instanceof HTMLElement &&
+        elementHasScrollableOverflow(current)
+      ) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }, []);
+
   /* Use a non-passive global wheel listener so zoom works anywhere
    * inside the PTZ overlay.
    */
   useEffect(() => {
     const onWindowWheel = (event: WheelEvent) => {
       if (!isInsideControl(event.clientX, event.clientY)) {
+        return;
+      }
+      if (eventTargetsScrollableContainer(event)) {
         return;
       }
       handlePtzWheel(event);
@@ -386,7 +420,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
     return () => {
       window.removeEventListener('wheel', onWindowWheel);
     };
-  }, [handlePtzWheel, isInsideControl]);
+  }, [handlePtzWheel, isInsideControl, eventTargetsScrollableContainer]);
 
   /* Reset drag state if the active channel changes mid-interaction. */
   useEffect(() => {
