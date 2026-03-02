@@ -69,7 +69,7 @@ const MessageOverlay: React.FC = () => {
   const pieChartSize = isMobile ? 22 : 30;
   const cardBackgroundColor = alpha(
     theme.palette.background.paper,
-    theme.palette.mode === 'dark' ? 0.9 : 0.94
+    theme.palette.mode === 'dark' ? 0.7 : 0.8
   );
   const cardBorderColor = alpha(
     theme.palette.divider,
@@ -232,12 +232,12 @@ const MessageOverlay: React.FC = () => {
                       {
                         id: 'elapsed',
                         value: fillRatio,
-                        color: timerAccentColor
+                        color: 'transparent'
                       },
                       {
                         id: 'remaining',
                         value: 1 - fillRatio,
-                        color: 'transparent'
+                        color: timerAccentColor
                       }
                     ]
                   }
