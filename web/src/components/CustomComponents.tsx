@@ -8,6 +8,7 @@ import React from 'react';
 import { IconButton, IconButtonProps } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Switch, SwitchProps } from '@mui/material';
+import { Checkbox, CheckboxProps } from '@mui/material';
 import { Box, BoxProps } from '@mui/material';
 import { Container, ContainerProps } from '@mui/material';
 import { Slider, SliderProps } from '@mui/material';
@@ -118,6 +119,20 @@ export interface CustomSwitchProps extends SwitchProps {}
 
 export const CustomSwitch: React.FC<CustomSwitchProps> = (props) => {
   return <CustomStyledSwitch disableRipple {...props} />;
+};
+
+/** Custom Checkbox */
+const CustomStyledCheckbox = styled(Checkbox)(({ theme }) => ({
+  color: theme.palette.grey[500],
+  '&.Mui-checked': {
+    color: theme.palette.primary.main
+  }
+}));
+
+export interface CustomCheckboxProps extends CheckboxProps {}
+
+export const CustomCheckbox: React.FC<CustomCheckboxProps> = (props) => {
+  return <CustomStyledCheckbox disableRipple {...props} />;
 };
 
 /** Custom Box */
