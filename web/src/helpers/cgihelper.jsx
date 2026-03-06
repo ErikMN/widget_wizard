@@ -22,6 +22,10 @@ const serverPost = (url, body) => {
   return serverFetch(url, { method: 'POST', body });
 };
 
+export const serverPatch = (url, body) => {
+  return serverFetch(url, { method: 'PATCH', body });
+};
+
 export const serverGet = (url) => {
   return serverFetch(url, { method: 'GET' });
 };
