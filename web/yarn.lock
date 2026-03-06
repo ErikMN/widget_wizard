@@ -961,10 +961,10 @@
     flatqueue "^3.0.0"
     internmap "^2.0.3"
 
-"@mui/x-charts@^8.27.0":
-  version "8.27.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-8.27.0.tgz#8f769c855414cf0ad4151de3fe553fa0c9eaecdd"
-  integrity sha512-MzP1jeiEkMOPWQfzRNo11iwbTwXcSDP7hKd3s/mSN0U4aINKpyHEQX6RAM8OkWzqK8ijTXYWRPVKaRYTLBx7+A==
+"@mui/x-charts@^8.27.4":
+  version "8.27.4"
+  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-8.27.4.tgz#833f90032c0753ae0e51766f9ebcaf2e1230bf19"
+  integrity sha512-T/vgCoETWiq3ODslAiGogjcqCt8dpjLcdC03l/FROPGHMV9mZ0Fyd9gwmMWTy/UZ+NYiQR/2yqhHEhSPZHQn4w==
   dependencies:
     "@babel/runtime" "^7.28.4"
     "@mui/utils" "^7.3.5"
