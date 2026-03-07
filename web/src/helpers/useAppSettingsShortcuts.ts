@@ -35,14 +35,22 @@ export const useAppSettingsShortcuts = () => {
         return;
       }
 
-      if (event.key.toLowerCase() !== 'p') {
+      const key = event.key.toLowerCase();
+
+      if (key === 'p') {
+        setAppSettings((prevSettings) => ({
+          ...prevSettings,
+          enablePtzCrosshair: !prevSettings.enablePtzCrosshair
+        }));
         return;
       }
 
-      setAppSettings((prevSettings) => ({
-        ...prevSettings,
-        enablePtzCrosshair: !prevSettings.enablePtzCrosshair
-      }));
+      if (key === 'i') {
+        setAppSettings((prevSettings) => ({
+          ...prevSettings,
+          bboxLabel: !prevSettings.bboxLabel
+        }));
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
