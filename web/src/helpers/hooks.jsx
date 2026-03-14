@@ -13,7 +13,7 @@ const useLocalStorage = (key, defaultValue, setItemIfNone = false) => {
   const [localStorageValue, setLocalStorageValue] = useState(() => {
     try {
       const value = localStorage.getItem(key);
-      if (value) {
+      if (value !== null) {
         return JSON.parse(value);
       } else {
         if (setItemIfNone) {
@@ -26,21 +26,36 @@ const useLocalStorage = (key, defaultValue, setItemIfNone = false) => {
         `Failed to get or set localStorage item with key "${key}":`,
         error
       );
-      localStorage.setItem(key, JSON.stringify(defaultValue));
+      try {
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+      } catch (setItemError) {
+        console.error(
+          `Failed to recover localStorage item with key "${key}":`,
+          setItemError
+        );
+      }
       return defaultValue;
     }
   });
-  const setLocalStorageStateValue = (valueOrFn) => {
-    let newValue;
-    if (typeof valueOrFn === 'function') {
-      const fn = valueOrFn;
-      newValue = fn(localStorageValue);
-    } else {
-      newValue = valueOrFn;
-    }
-    localStorage.setItem(key, JSON.stringify(newValue));
-    setLocalStorageValue(newValue);
-  };
+  /* Keep the setter stable and always derive from the latest state value. */
+  const setLocalStorageStateValue = useCallback(
+    (valueOrFn) => {
+      setLocalStorageValue((prevValue) => {
+        const newValue =
+          typeof valueOrFn === 'function' ? valueOrFn(prevValue) : valueOrFn;
+        try {
+          localStorage.setItem(key, JSON.stringify(newValue));
+        } catch (error) {
+          console.error(
+            `Failed to set localStorage item with key "${key}":`,
+            error
+          );
+        }
+        return newValue;
+      });
+    },
+    [key]
+  );
   return [localStorageValue, setLocalStorageStateValue];
 };
 
