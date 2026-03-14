@@ -6,7 +6,7 @@
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { Dimensions } from './appInterface';
-import { useAppContext } from './context/AppContext';
+import { useAppSettingsContext, useChannelContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */
@@ -29,7 +29,8 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   showOverlays
 }) => {
   /* App context */
-  const { currentChannel, appSettings } = useAppContext();
+  const { currentChannel } = useChannelContext();
+  const { appSettings } = useAppSettingsContext();
 
   /* Widget context */
   const {

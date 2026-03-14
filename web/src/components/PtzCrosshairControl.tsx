@@ -11,7 +11,7 @@ import React, {
   useState
 } from 'react';
 import { sendPtzMove, sendPtzZoom } from '../helpers/usePTZControl';
-import { useAppContext } from './context/AppContext';
+import { useAppSettingsContext } from './context/AppContext';
 
 interface PtzCrosshairControlProps {
   currentChannel: string;
@@ -82,7 +82,7 @@ const PtzCrosshairControl: React.FC<PtzCrosshairControlProps> = ({
   surfaceWidth,
   surfaceHeight
 }) => {
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const hasChannel = currentChannel.trim() !== '';
   const halfWidth = surfaceWidth / 2;
   const halfHeight = surfaceHeight / 2;

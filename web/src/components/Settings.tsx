@@ -6,7 +6,12 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../theme';
-import { useAppContext } from './context/AppContext.js';
+import {
+  useAlertActionsContext,
+  useAlertStateContext,
+  useAppSettingsContext,
+  useThemeContext
+} from './context/AppContext.js';
 import { useParameters } from './context/ParametersContext.js';
 import { defaultAppSettings, AppSettings } from './appInterface';
 import { capitalizeFirstLetter } from '../helpers/utils';
@@ -55,17 +60,11 @@ const availableThicknesses: Array<'small' | 'medium' | 'large'> = [
 
 const Settings: React.FC = () => {
   /* Global app context */
-  const {
-    appSettings,
-    currentTheme,
-    setAppSettings,
-    alertSeverity,
-    alertContent,
-    openAlert,
-    setOpenAlert,
-    handleOpenAlert,
-    setCurrentTheme
-  } = useAppContext();
+  const { appSettings, setAppSettings } = useAppSettingsContext();
+  const { currentTheme, setCurrentTheme } = useThemeContext();
+  const { handleOpenAlert } = useAlertActionsContext();
+  const { alertSeverity, alertContent, openAlert, setOpenAlert } =
+    useAlertStateContext();
 
   /* Global parameter list */
   const { parameters } = useParameters();

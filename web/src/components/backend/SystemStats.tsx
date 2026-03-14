@@ -3,7 +3,7 @@
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
-import { useAppContext } from '../context/AppContext';
+import { useAppSettingsContext } from '../context/AppContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 /* MUI */
@@ -128,7 +128,7 @@ const formatOsName = (info: SystemInfo): string | null => {
 
 const SystemStats: React.FC = () => {
   /* Global context */
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
 
   const wsAddress =

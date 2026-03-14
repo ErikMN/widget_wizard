@@ -1,6 +1,6 @@
 /* WidgetSpecificParams: Auto generate widget specific parameter UI elements. (WIP) */
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppSettingsContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';
@@ -48,7 +48,7 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
 }) => {
   /* Global context */
   const { widgetCapabilities, updateWidget } = useWidgetContext();
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
 
   /* Store local values for all widget parameters */
   const [localValues, setLocalValues] = useState<Record<string, any>>(

@@ -4,7 +4,7 @@
  * Global keyboard shortcuts for app settings.
  */
 import { useEffect } from 'react';
-import { useAppContext } from '../components/context/AppContext';
+import { useAppSettingsContext } from '../components/context/AppContext';
 
 const isTypeableTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) {
@@ -21,7 +21,7 @@ const isTypeableTarget = (target: EventTarget | null) => {
 };
 
 export const useAppSettingsShortcuts = () => {
-  const { setAppSettings } = useAppContext();
+  const { setAppSettings } = useAppSettingsContext();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

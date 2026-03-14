@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAppContext } from '../components/context/AppContext';
+import { useChannelContext } from '../components/context/AppContext';
 import { useOnScreenMessage } from '../components/context/OnScreenMessageContext';
 import { serverGet } from './cgihelper';
 /* MUI */
@@ -69,7 +69,7 @@ export const usePTZControl = () => {
   const location = useLocation();
 
   /* Global state */
-  const { currentChannel } = useAppContext();
+  const { currentChannel } = useChannelContext();
   const { showMessage } = useOnScreenMessage();
 
   /* Refs */

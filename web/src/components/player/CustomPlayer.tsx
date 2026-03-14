@@ -21,7 +21,7 @@ import {
   VideoProperties,
   VapixParameters
 } from 'media-stream-player';
-import { useAppContext } from '../context/AppContext';
+import { useAppSettingsContext } from '../context/AppContext';
 import { useParameters } from '../context/ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
@@ -114,7 +114,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [expanded, setExpanded] = useState(true);
 
     /* Global app context */
-    const { appSettings } = useAppContext();
+    const { appSettings } = useAppSettingsContext();
 
     /* Global parameter list */
     const { parameters: globalParameters } = useParameters();

@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
-import { useAppContext } from '../context/AppContext';
+import { useAppSettingsContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
@@ -57,7 +57,7 @@ const WidgetHandler: React.FC = () => {
     widgetSupported,
     updateWidget
   } = useWidgetContext();
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
 
   enableLogging(false);

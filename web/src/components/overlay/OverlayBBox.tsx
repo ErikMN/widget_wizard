@@ -12,7 +12,10 @@ import React, {
   useState
 } from 'react';
 import Draggable from 'react-draggable';
-import { useAppContext } from '../context/AppContext';
+import {
+  useAppSettingsContext,
+  useChannelContext
+} from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { ImageOverlay, TextOverlay } from './overlayInterfaces';
 import { Dimensions } from '../appInterface';
@@ -60,7 +63,7 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
     setActiveDraggableOverlay,
     overlayCapabilities
   } = useOverlayContext();
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
 
   /* Local state */
   const [showIndicators, setShowIndicators] = React.useState<boolean>(true);
@@ -865,7 +868,7 @@ interface OverlayBBoxProps {
 
 const OverlayBBox: React.FC<OverlayBBoxProps> = ({ dimensions }) => {
   /* Global context */
-  const { currentChannel } = useAppContext();
+  const { currentChannel } = useChannelContext();
   const {
     activeOverlays,
     onSelectOverlay,

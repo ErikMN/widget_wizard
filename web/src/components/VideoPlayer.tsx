@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAppContext } from './context/AppContext';
+import { useAppSettingsContext, useThemeContext } from './context/AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';
@@ -45,7 +45,8 @@ const VideoPlayer: React.FC = () => {
   });
 
   /* Global context */
-  const { appSettings, currentTheme } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
+  const { currentTheme } = useThemeContext();
 
   /* PTZ keyboard control */
   usePTZControl();

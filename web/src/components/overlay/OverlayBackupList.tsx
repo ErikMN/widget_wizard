@@ -9,7 +9,7 @@ import {
 } from './overlayBackupStorage';
 import { useOverlayContext } from './OverlayContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
-import { useAppContext } from '../context/AppContext';
+import { useAlertActionsContext } from '../context/AppContext';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import ArchiveIcon from '@mui/icons-material/Archive';
@@ -35,7 +35,7 @@ const OverlayBackupList: React.FC<{
 }> = ({ backupList, setBackupList }) => {
   /* Global context */
   const { duplicateOverlay } = useOverlayContext();
-  const { handleOpenAlert } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
 
   /* Local state */
   const [isOpen, setIsOpen] = useState(false);

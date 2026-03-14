@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import Logo from './Logo';
-import { useAppContext } from './context/AppContext.js';
+import { useThemeContext } from './context/AppContext.js';
 import { useParameters } from './context/ParametersContext.js';
 import { jsonRequest } from '../helpers/cgihelper';
 import { crossGridPatternSx } from '../helpers/backgrounds';
@@ -41,7 +41,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   });
 
   /* Global context */
-  const { currentTheme } = useAppContext();
+  const { currentTheme } = useThemeContext();
   const { paramsInitialized } = useParameters();
 
   /* Theme */

@@ -10,7 +10,12 @@ import { playSound } from '../helpers/utils';
 import { horizontalStripePatternSx } from '../helpers/backgrounds';
 import { drawerWidth, drawerHeight, appbarHeight } from './constants';
 import { enableLogging } from '../helpers/logger';
-import { useAppContext } from './context/AppContext.js';
+import {
+  useAlertStateContext,
+  useAppSettingsContext,
+  useAppStatusContext,
+  useThemeContext
+} from './context/AppContext.js';
 import { useAppGreeting } from '../helpers/useAppGreeting';
 import AboutModal from './AboutModal';
 import AlertSnackbar from './AlertSnackbar';
@@ -155,17 +160,11 @@ const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useLocalStorage('drawerOpen', true);
 
   /* Global context */
-  const {
-    appLoading,
-    openAlert,
-    setOpenAlert,
-    alertContent,
-    alertSeverity,
-    currentTheme,
-    setCurrentTheme,
-    appSettings,
-    setAppSettings
-  } = useAppContext();
+  const { appLoading } = useAppStatusContext();
+  const { openAlert, setOpenAlert, alertContent, alertSeverity } =
+    useAlertStateContext();
+  const { currentTheme, setCurrentTheme } = useThemeContext();
+  const { appSettings, setAppSettings } = useAppSettingsContext();
 
   /* Refs */
   const drawerScrollRef = useRef<HTMLDivElement>(null);

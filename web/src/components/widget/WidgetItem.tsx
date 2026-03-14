@@ -11,7 +11,7 @@ import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
 import messageSoundUrl from '../../assets/audio/message.oga';
 import { saveWidgetBackup, loadWidgetBackups } from './widgetBackupStorage';
-import { useAppContext } from '../context/AppContext';
+import { useAlertActionsContext } from '../context/AppContext';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -73,7 +73,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     activeDraggableWidget
   } = useWidgetContext();
 
-  const { handleOpenAlert } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
 
   const backupCount = loadWidgetBackups().length;
 

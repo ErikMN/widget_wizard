@@ -4,7 +4,7 @@
  * https://github.com/PrismJS/prism-themes
  */
 import React, { useState, useCallback, useMemo } from 'react';
-import { useAppContext } from './context/AppContext';
+import { useAppSettingsContext, useThemeContext } from './context/AppContext';
 import { CustomButton, CustomSwitch } from './CustomComponents';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
@@ -50,7 +50,8 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   const isDarkMode = theme.palette.mode === 'dark';
 
   /* Global context */
-  const { jsonTheme, appSettings } = useAppContext();
+  const { jsonTheme } = useThemeContext();
+  const { appSettings } = useAppSettingsContext();
 
   /* Local state */
   const [jsonVisible, setJsonVisible] = useState<boolean>(false);

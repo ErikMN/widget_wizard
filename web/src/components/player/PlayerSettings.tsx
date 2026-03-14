@@ -13,7 +13,10 @@ import React, { ChangeEventHandler, useCallback, useEffect } from 'react';
 import { VapixParameters, Format } from 'media-stream-player';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../context/ParametersContext';
-import { useAppContext } from '../context/AppContext';
+import {
+  useAppSettingsContext,
+  useChannelContext
+} from '../context/AppContext';
 import { darkTheme } from '../../theme';
 /* MUI */
 import { ThemeProvider } from '@mui/material';
@@ -49,7 +52,8 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const theme = useTheme();
 
   /* Global state */
-  const { appSettings, setCurrentChannel } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
+  const { setCurrentChannel } = useChannelContext();
 
   /* Local state */
   const [cameraValue, setCameraValue] = React.useState<string>(

@@ -15,7 +15,10 @@ import {
   TextOverlay,
   OverlayCapabilities
 } from './overlayInterfaces';
-import { useAppContext } from '../context/AppContext.js';
+import {
+  useAlertActionsContext,
+  useAppStatusContext
+} from '../context/AppContext.js';
 import { playSound } from '../../helpers/utils';
 import newSoundUrl from '../../assets/audio/new.oga';
 import warningSoundUrl from '../../assets/audio/warning.oga';
@@ -69,7 +72,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   children
 }) => {
   /* Global context */
-  const { handleOpenAlert, setAppLoading } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
+  const { setAppLoading } = useAppStatusContext();
 
   /* Local state */
   const [overlaySupported, setOverlaySupported] = useState(true);

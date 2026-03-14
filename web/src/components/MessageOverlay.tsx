@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useOnScreenMessage } from './context/OnScreenMessageContext.js';
-import { useAppContext } from './context/AppContext.js';
+import { useAppSettingsContext } from './context/AppContext.js';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 /* MUI */
 import { Fade } from '@mui/material';
@@ -16,7 +16,7 @@ import { PieChart } from '@mui/x-charts/PieChart';
 
 const MessageOverlay: React.FC = () => {
   const { message, dismissMessage } = useOnScreenMessage();
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const theme = useTheme();
 
   /* Screen size */

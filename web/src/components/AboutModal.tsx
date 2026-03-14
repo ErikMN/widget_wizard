@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import AppVersion from './AppVersion';
 import logo from '../assets/img/widgy1.png';
-import { useAppContext } from './context/AppContext.js';
+import { useAppSettingsContext } from './context/AppContext.js';
 import { useParameters } from './context/ParametersContext.js';
 import { useScreenSizes } from '../helpers/hooks.jsx';
 import { CustomBox, CustomButton } from './CustomComponents';
@@ -56,7 +56,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
   const { isMobile } = useScreenSizes();
 
   /* Global context */
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const { parameters } = useParameters();
 
   /* Local state */

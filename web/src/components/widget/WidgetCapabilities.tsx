@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
-import { useAppContext } from '../context/AppContext';
+import { useThemeContext } from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';
@@ -60,7 +60,7 @@ type ReactJsonThemes =
 
 const WidgetCapabilities: React.FC = () => {
   /* Global context */
-  const { jsonTheme, setJsonTheme, currentTheme } = useAppContext();
+  const { jsonTheme, setJsonTheme, currentTheme } = useThemeContext();
   const { widgetCapabilities, listWidgetCapabilities, widgetSupported } =
     useWidgetContext();
 

@@ -2,7 +2,10 @@
  * Start or stop the ACAP backend and fetch application logs.
  */
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
+import {
+  useAlertActionsContext,
+  useAppSettingsContext
+} from '../context/AppContext';
 import { CustomSwitch, CustomButton } from '../CustomComponents';
 /* MUI */
 import Alert from '@mui/material/Alert';
@@ -22,7 +25,8 @@ type BackendState = 'running' | 'stopped' | 'unknown';
 
 const BackendControl: React.FC = () => {
   /* Global app context */
-  const { handleOpenAlert, appSettings, setAppSettings } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
+  const { appSettings, setAppSettings } = useAppSettingsContext();
 
   /* Local state */
   const [backendState, setBackendState] = useState<BackendState>('unknown');

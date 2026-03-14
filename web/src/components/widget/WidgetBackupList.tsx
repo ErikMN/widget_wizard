@@ -9,7 +9,7 @@ import {
 } from './widgetBackupStorage';
 import { useWidgetContext } from './WidgetContext';
 import { CustomButton, CustomStyledIconButton } from './../CustomComponents';
-import { useAppContext } from '../context/AppContext';
+import { useAlertActionsContext } from '../context/AppContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
@@ -36,7 +36,7 @@ const WidgetBackupList: React.FC<{
 }> = ({ backupList, setBackupList }) => {
   /* Global context */
   const { addCustomWidget } = useWidgetContext();
-  const { handleOpenAlert } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
 
   /* Local state */
   const [isOpen, setIsOpen] = useState(false);

@@ -3,7 +3,7 @@
  * OverlayHandler: Handler of overlays.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppSettingsContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import OverlayBackupList from './OverlayBackupList';
@@ -46,7 +46,7 @@ const OverlayHandler: React.FC = () => {
     setActiveDraggableOverlay,
     imageFiles
   } = useOverlayContext();
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
 
   /* Local state */

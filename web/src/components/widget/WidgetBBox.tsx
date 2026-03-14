@@ -21,7 +21,10 @@ import {
   getNormalizedCoordinateRanges,
   getAlignmentFlags
 } from '../../helpers/bboxhelper';
-import { useAppContext } from '../context/AppContext';
+import {
+  useAppSettingsContext,
+  useChannelContext
+} from '../context/AppContext';
 import { useWidgetContext } from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
@@ -108,7 +111,7 @@ export const WidgetBox = React.memo(
   });
 
   /* Global context */
-  const { appSettings } = useAppContext();
+  const { appSettings } = useAppSettingsContext();
   const {
     activeWidgets,
     setActiveWidgets,
@@ -734,7 +737,7 @@ interface WidgetBBoxProps {
 
 const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
-  const { currentChannel } = useAppContext();
+  const { currentChannel } = useChannelContext();
   const {
     activeWidgets,
     activeDraggableWidget,

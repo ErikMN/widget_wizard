@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme, darkTheme } from '../../theme';
-import { useAppContext } from '../context/AppContext';
+import { useThemeContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import OverlaysDisabled from './OverlaysDisabled';
@@ -60,7 +60,7 @@ type ReactJsonThemes =
 
 const OverlayCapabilities: React.FC = () => {
   /* Global context */
-  const { jsonTheme, setJsonTheme, currentTheme } = useAppContext();
+  const { jsonTheme, setJsonTheme, currentTheme } = useThemeContext();
   const { overlayCapabilities, listOverlayCapabilities, overlaySupported } =
     useOverlayContext();
 

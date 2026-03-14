@@ -9,7 +9,11 @@ import { playSound } from '../../helpers/utils';
 import warningSoundUrl from '../../assets/audio/warning.oga';
 import trashSoundUrl from '../../assets/audio/trash.oga';
 import newSoundUrl from '../../assets/audio/new.oga';
-import { useAppContext } from '../context/AppContext.js';
+import {
+  useAlertActionsContext,
+  useAppStatusContext,
+  useChannelContext
+} from '../context/AppContext.js';
 import { ApiResponse, Widget, WidgetCapabilities } from './widgetInterfaces.js';
 import {
   apiUpdateWidget,
@@ -94,7 +98,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   }>({ id: null, active: false, clickBBox: false, highlight: false });
 
   /* Global context */
-  const { handleOpenAlert, setAppLoading, currentChannel } = useAppContext();
+  const { handleOpenAlert } = useAlertActionsContext();
+  const { setAppLoading } = useAppStatusContext();
+  const { currentChannel } = useChannelContext();
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
