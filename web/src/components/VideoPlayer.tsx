@@ -5,12 +5,11 @@
  * and dimension tracking. The actual video playback is handled by the CustomPlayer.
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useAppSettingsContext, useThemeContext } from './context/AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
 import type { PlayerNativeElement } from 'media-stream-player';
-import BBoxSurface from './BBoxSurface';
+import OverlaySurface from './OverlaySurface';
 import MessageOverlay from './MessageOverlay';
 import { usePTZControl } from '../helpers/usePTZControl';
 
@@ -55,12 +54,6 @@ const VideoPlayer: React.FC = () => {
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<PlayerNativeElement | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  /* Navigation */
-  const location = useLocation();
-  const inWidgetsRoute = location.pathname.endsWith('/widgets');
-  const inOverlaysRoute = location.pathname.endsWith('/overlays');
-  const inSettingsRoute = location.pathname.endsWith('/settings');
 
   let vapixParams: Partial<VapixConfig> = {};
   const vapixData = window.localStorage.getItem('vapix');
@@ -205,7 +198,7 @@ const VideoPlayer: React.FC = () => {
       /* Set stream and pixel dimensions
        *
        * The resulting values describe the visible video content only.
-       * Any consumer of these dimensions (e.g. BBoxSurface) can rely on:
+       * Any consumer of these dimensions (e.g. OverlaySurface) can rely on:
        * - pixelWidth/pixelHeight being fully visible on screen
        * - offsetX/offsetY pointing to the top-left corner of that area
        */
@@ -307,12 +300,8 @@ const VideoPlayer: React.FC = () => {
         isFullscreen={isFullscreen}
         onStreamChange={logVideoDimensions}
       />
-      {/* Bounding boxes for widgets and overlays */}
-      <BBoxSurface
-        dimensions={dimensions}
-        showWidgets={inWidgetsRoute || inSettingsRoute}
-        showOverlays={inOverlaysRoute || inSettingsRoute}
-      />
+      {/* Web-drawn overlays */}
+      <OverlaySurface dimensions={dimensions} />
       {/* Videoplayer messages overlay */}
       <MessageOverlay />
     </div>

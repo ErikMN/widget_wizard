@@ -1,10 +1,11 @@
 /**
- * BBoxSurface
+ * OverlaySurface
  *
- * A unified bounding-box surface for both Widgets and Overlays.
+ * A unified overlay surface for both Widgets and Overlays.
  * Replaces the separate WidgetBBox and OverlayBBox surfaces.
  */
 import React, { useRef, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Dimensions } from './appInterface';
 import { useAppSettingsContext, useChannelContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
@@ -17,17 +18,20 @@ import { WidgetBox } from './widget/WidgetBBox';
 import { useOverlayContext } from './overlay/OverlayContext';
 import { OverlayBox } from './overlay/OverlayBBox';
 
-interface BBoxSurfaceProps {
+interface OverlaySurfaceProps {
   dimensions: Dimensions;
-  showWidgets: boolean;
-  showOverlays: boolean;
 }
 
-const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
-  dimensions,
-  showWidgets,
-  showOverlays
-}) => {
+const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
+  /* Navigation */
+  const location = useLocation();
+  const showWidgets =
+    location.pathname.endsWith('/widgets') ||
+    location.pathname.endsWith('/settings');
+  const showOverlays =
+    location.pathname.endsWith('/overlays') ||
+    location.pathname.endsWith('/settings');
+
   /* App context */
   const { currentChannel } = useChannelContext();
   const { appSettings } = useAppSettingsContext();
@@ -258,4 +262,4 @@ const BBoxSurface: React.FC<BBoxSurfaceProps> = ({
   );
 };
 
-export default BBoxSurface;
+export default OverlaySurface;

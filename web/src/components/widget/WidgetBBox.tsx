@@ -727,7 +727,7 @@ export const WidgetBox = React.memo(
 /* Widget BBoxes for all widgets in activeWidgets */
 
 /* NOTE: Don't use WidgetBBox
- * This surface is handled by BBoxSurface for common rendering.
+ * This surface is handled by OverlaySurface for common rendering.
  * It is considered legacy code.
  */
 
