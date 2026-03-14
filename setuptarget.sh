@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 # SOURCE ME!
 #
 # Setup target device credentials and git hooks
@@ -21,7 +21,7 @@ FMT_RESET=$(printf '\033[0m')
 
 # BASH: Print warning if script is not sourced then exit.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  echo "${FMT_RED}This script needs to be sourced, not run directly.${FMT_RESET}"
+  echo "${FMT_RED}ERROR: This Bash script needs to be sourced, not run directly.${FMT_RESET}"
   exit 1
 fi
 
@@ -38,9 +38,9 @@ SCRIPT_DIR=${SCRIPT_DIR%/web}
 if [ -d "$SCRIPT_DIR/.vscode" ]; then
   for file in "$SCRIPT_DIR"/.vscode/*; do
     if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
-      git update-index --skip-worktree "$file" || echo "${FMT_RED}Warning: Failed to mark $file as skip-worktree${FMT_RESET}"
+      git update-index --skip-worktree "$file" || echo "${FMT_YELLOW}WARNING: Failed to mark $file as skip-worktree${FMT_RESET}"
     else
-      echo "${FMT_WHITE}Info: Skipping untracked file $file${FMT_RESET}"
+      echo "${FMT_WHITE}INFO: Skipping untracked file $file${FMT_RESET}"
     fi
   done
 fi
@@ -52,7 +52,7 @@ git config core.hooksPath "$SCRIPT_DIR/hooks"
 rm -f "${SCRIPT_DIR}/.eap-install.cfg"
 
 if ! command -v jq >/dev/null 2>&1; then
-  echo "${FMT_RED}Error: 'jq' is not installed. Please install jq before running this script.${FMT_RESET}"
+  echo "${FMT_RED}ERROR: 'jq' is not installed. Please install jq before running this Bash script.${FMT_RESET}"
   exit 1
 fi
 
@@ -63,7 +63,7 @@ if [ -n "$1" ]; then
   elif [ -f "$SCRIPT_DIR/$1" ]; then
     CREDENTIALS_FILE="$SCRIPT_DIR/$1"
   else
-    echo "${FMT_RED}Warning: Credentials file '$1' not found. Falling back to default.${FMT_RESET}"
+    echo "${FMT_YELLOW}WARNING: Credentials file '$1' not found. Falling back to default.${FMT_RESET}"
     CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
   fi
 else
@@ -85,7 +85,7 @@ if [ -e "$CREDENTIALS_FILE" ]; then
   TARGET_PORT=$(jq -r '.TARGET_PORT // empty' "$CREDENTIALS_FILE")
   TARGET_SSH_PORT=$(jq -r '.TARGET_SSH_PORT // empty' "$CREDENTIALS_FILE")
 else
-  echo "${FMT_YELLOW}No credentials.json file found: setting default values${FMT_RESET}"
+  echo "${FMT_YELLOW}WARNING: No credentials.json file found: setting default values${FMT_RESET}"
   # Set default values if the file doesn't exist:
   TARGET_IP="$DEFAULT_IP"
   TARGET_USR="$DEFAULT_USR"
@@ -136,6 +136,7 @@ else
   packagename="(unknown)"
 fi
 
+# Success: Print info and exit:
 echo "${FMT_BOLD}${FMT_GREEN}*** ACAP project $packagename for ""${FMT_WHITE}""$TARGET_IP${FMT_GREEN}" initialized"${FMT_RESET}"
 echo "${FMT_BLUE}*** Credentials exported${FMT_RESET}"
 echo "*** Run 'make help' to get started"
