@@ -33,8 +33,8 @@ interface AppContextProps {
   setJsonTheme: React.Dispatch<React.SetStateAction<string>>;
 
   /* App-level loading */
-  widgetLoading: boolean;
-  setWidgetLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  appLoading: boolean;
+  setAppLoading: React.Dispatch<React.SetStateAction<boolean>>;
 
   /* Selected videoplayer camera channel */
   currentChannel: string;
@@ -77,7 +77,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [jsonTheme, setJsonTheme] = useLocalStorage('jsonTheme', 'monokai');
 
   /* App-level loading state */
-  const [widgetLoading, setWidgetLoading] = useState<boolean>(false);
+  const [appLoading, setAppLoading] = useState<boolean>(false);
 
   /* Selected videoplayer channel */
   const [currentChannel, setCurrentChannel] = useLocalStorage(
@@ -111,8 +111,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setAppSettings,
         jsonTheme,
         setJsonTheme,
-        widgetLoading,
-        setWidgetLoading,
+        appLoading,
+        setAppLoading,
         currentChannel,
         setCurrentChannel
       }}

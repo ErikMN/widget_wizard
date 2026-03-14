@@ -69,7 +69,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   children
 }) => {
   /* Global context */
-  const { handleOpenAlert, setWidgetLoading } = useAppContext();
+  const { handleOpenAlert, setAppLoading } = useAppContext();
 
   /* Local state */
   const [overlaySupported, setOverlaySupported] = useState(true);
@@ -116,9 +116,9 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   /* List overlay capabilities */
   const listOverlayCapabilities = useCallback(async () => {
     try {
-      setWidgetLoading(true);
+      setAppLoading(true);
       const resp = await apiListOverlayCapabilities();
-      setWidgetLoading(false);
+      setAppLoading(false);
 
       if (resp) {
         log('[Overlay] getOverlayCapabilities:', resp);
@@ -136,19 +136,19 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       }
     } catch (error) {
       setOverlaySupported(false);
-      setWidgetLoading(false);
+      setAppLoading(false);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to fetch overlay capabilities', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setWidgetLoading]);
+  }, [handleOpenAlert, setAppLoading]);
 
   /* List overlays */
   const listOverlays = useCallback(async () => {
     try {
-      setWidgetLoading(true);
+      setAppLoading(true);
       const resp = await apiListOverlays();
-      setWidgetLoading(false);
+      setAppLoading(false);
 
       log('[Overlay] list:', resp);
 
@@ -163,12 +163,12 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       ];
       setActiveOverlays(overlays);
     } catch (err) {
-      setWidgetLoading(false);
+      setAppLoading(false);
       console.error('Failed to list overlays:', err);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to list overlays', 'error');
     }
-  }, [handleOpenAlert, setWidgetLoading]);
+  }, [handleOpenAlert, setAppLoading]);
 
   /* List overlays on tab switch */
   useTabVisibility(listOverlays);
@@ -177,7 +177,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   const addImageOverlay = useCallback(
     async (params?: Partial<ImageOverlay>) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         /* Adding an image overlay requires an overlayPath */
         if (!params?.overlayPath) {
           throw new Error('Missing overlayPath for image overlay');
@@ -190,7 +190,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
               ? params.position
               : 'bottomRight'
         });
-        setWidgetLoading(false);
+        setAppLoading(false);
 
         log('[Overlay] addImage:', resp);
 
@@ -201,20 +201,20 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         await listOverlays();
       } catch (err) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         console.error('Failed to add image overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert('Failed to add image overlay', 'error');
       }
     },
-    [listOverlays, handleOpenAlert, setWidgetLoading]
+    [listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Add a text overlay */
   const addTextOverlay = useCallback(
     async (params?: Partial<TextOverlay>) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp = await apiAddTextOverlay({
           camera: params?.camera ?? 1,
           text: params?.text ?? 'Hello World!',
@@ -226,7 +226,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
           ...(params?.fontSize ? { fontSize: params.fontSize } : {}),
           reference: params?.reference ?? 'channel'
         });
-        setWidgetLoading(false);
+        setAppLoading(false);
 
         log('[Overlay] addText:', resp);
 
@@ -237,22 +237,22 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         await listOverlays();
       } catch (err) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         console.error('Failed to add text overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert('Failed to add text overlay', 'error');
       }
     },
-    [listOverlays, handleOpenAlert, setWidgetLoading]
+    [listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Remove an overlay */
   const removeOverlay = useCallback(
     async (id: number) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp = await apiRemoveOverlay(id);
-        setWidgetLoading(false);
+        setAppLoading(false);
 
         log('[Overlay] remove:', resp);
 
@@ -267,42 +267,42 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         await listOverlays();
       } catch (err) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         console.error('Failed to remove overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to remove overlay #${id}`, 'error');
       }
     },
-    [listOverlays, handleOpenAlert, setWidgetLoading]
+    [listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Remove all overlays (by looping removeOverlay) */
   const removeAllOverlays = useCallback(async () => {
     try {
       log('[Overlay] removeAllOverlays');
-      setWidgetLoading(true);
+      setAppLoading(true);
       for (const overlay of activeOverlays) {
         await removeOverlay(overlay.identity);
       }
-      setWidgetLoading(false);
+      setAppLoading(false);
       setActiveOverlays([]);
       playSound(trashSoundUrl);
       handleOpenAlert('Removed all overlays', 'success');
     } catch (err) {
-      setWidgetLoading(false);
+      setAppLoading(false);
       console.error('Failed to remove all overlays:', err);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to remove all overlays', 'error');
     }
-  }, [activeOverlays, removeOverlay, handleOpenAlert, setWidgetLoading]);
+  }, [activeOverlays, removeOverlay, handleOpenAlert, setAppLoading]);
 
   /* Update an image overlay */
   const updateImageOverlay = useCallback(
     async (overlay: ImageOverlay) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp = await apiUpdateImageOverlay(overlay);
-        setWidgetLoading(false);
+        setAppLoading(false);
 
         log('[Overlay] setImage:', resp);
 
@@ -312,7 +312,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         await listOverlays();
       } catch (err) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         console.error('Failed to update image overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert(
@@ -321,16 +321,16 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         );
       }
     },
-    [listOverlays, handleOpenAlert, setWidgetLoading]
+    [listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Update a text overlay */
   const updateTextOverlay = useCallback(
     async (overlay: TextOverlay) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const json = await apiUpdateTextOverlay(overlay);
-        setWidgetLoading(false);
+        setAppLoading(false);
 
         log('[Overlay] setText:', json);
 
@@ -340,7 +340,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         await listOverlays();
       } catch (err) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         console.error('Failed to update text overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert(
@@ -349,7 +349,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         );
       }
     },
-    [listOverlays, handleOpenAlert, setWidgetLoading]
+    [listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Duplicates an existing overlay (using accepted fields) */

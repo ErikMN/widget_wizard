@@ -94,7 +94,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   }>({ id: null, active: false, clickBBox: false, highlight: false });
 
   /* Global context */
-  const { handleOpenAlert, setWidgetLoading, currentChannel } = useAppContext();
+  const { handleOpenAlert, setAppLoading, currentChannel } = useAppContext();
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -103,9 +103,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateWidget = useCallback(
     async (widgetItem: Widget) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp: ApiResponse = await apiUpdateWidget(widgetItem);
-        setWidgetLoading(false);
+        setAppLoading(false);
         if (resp.error) {
           playSound(warningSoundUrl);
           handleOpenAlert(resp.error.message, 'error');
@@ -123,7 +123,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         }
       } catch (error) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         playSound(warningSoundUrl);
         handleOpenAlert(
           `Widget ${widgetItem.generalParams.id} failed to update`,
@@ -132,7 +132,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Error:', error);
       }
     },
-    [handleOpenAlert, setWidgetLoading]
+    [handleOpenAlert, setAppLoading]
   );
 
   /* Lists all currently active widgets and their parameter values.
@@ -140,9 +140,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   const listWidgets = useCallback(async () => {
     try {
-      setWidgetLoading(true);
+      setAppLoading(true);
       const resp: ApiResponse | null = await apiListWidgets();
-      setWidgetLoading(false);
+      setAppLoading(false);
 
       /* Backend missing or invalid JSON */
       if (!resp) {
@@ -164,12 +164,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
-      setWidgetLoading(false);
+      setAppLoading(false);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setWidgetLoading]);
+  }, [handleOpenAlert, setAppLoading]);
 
   /* List widgets on tab switch */
   useTabVisibility(listWidgets);
@@ -177,9 +177,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Lists all available widget types and their parameters */
   const listWidgetCapabilities = useCallback(async () => {
     try {
-      setWidgetLoading(true);
+      setAppLoading(true);
       const resp: WidgetCapabilities | null = await apiListWidgetCapabilities();
-      setWidgetLoading(false);
+      setAppLoading(false);
 
       /* Backend missing or invalid JSON */
       if (!resp) {
@@ -206,23 +206,23 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
-      setWidgetLoading(false);
+      setAppLoading(false);
       playSound(warningSoundUrl);
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setWidgetLoading]);
+  }, [handleOpenAlert, setAppLoading]);
 
   /* Adds a new widget and refreshes the widget list */
   const addWidget = useCallback(
     async (widgetType: string) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp: ApiResponse = await apiAddWidget(
           widgetType,
           currentChannel
         );
-        setWidgetLoading(false);
+        setAppLoading(false);
         log('*** ADD WIDGET', { resp });
         if (resp.error) {
           playSound(warningSoundUrl);
@@ -236,21 +236,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         playSound(newSoundUrl);
         handleOpenAlert(`Added ${widgetType}`, 'success');
       } catch (error) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to add ${widgetType}`, 'error');
         console.error('Error:', error);
       }
     },
-    [currentChannel, listWidgets, handleOpenAlert, setWidgetLoading]
+    [currentChannel, listWidgets, handleOpenAlert, setAppLoading]
   );
 
   const addCustomWidget = useCallback(
     async (params: Widget) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp: ApiResponse = await apiAddCustomWidget(params);
-        setWidgetLoading(false);
+        setAppLoading(false);
         log('*** ADD WIDGET', { resp });
         if (resp.error) {
           playSound(warningSoundUrl);
@@ -264,22 +264,22 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         playSound(newSoundUrl);
         handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
       } catch (error) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
         console.error('Error:', error);
       }
     },
-    [listWidgets, handleOpenAlert, setWidgetLoading]
+    [listWidgets, handleOpenAlert, setAppLoading]
   );
 
   /* Removes a specified widget */
   const removeWidget = useCallback(
     async (widgetID: number) => {
       try {
-        setWidgetLoading(true);
+        setAppLoading(true);
         const resp: ApiResponse = await apiRemoveWidget(widgetID);
-        setWidgetLoading(false);
+        setAppLoading(false);
         log('*** REMOVE WIDGET', { resp });
         if (resp.error) {
           playSound(warningSoundUrl);
@@ -293,21 +293,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         playSound(trashSoundUrl);
         handleOpenAlert(`Removed widget ${widgetID}`, 'success');
       } catch (error) {
-        setWidgetLoading(false);
+        setAppLoading(false);
         handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
         console.error('Error:', error);
         playSound(warningSoundUrl);
       }
     },
-    [handleOpenAlert, setWidgetLoading]
+    [handleOpenAlert, setAppLoading]
   );
 
   /* Removes all currently active widgets */
   const removeAllWidgets = useCallback(async () => {
     try {
-      setWidgetLoading(true);
+      setAppLoading(true);
       const resp: ApiResponse = await apiRemoveAllWidgets();
-      setWidgetLoading(false);
+      setAppLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
         playSound(warningSoundUrl);
@@ -317,7 +317,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       playSound(trashSoundUrl);
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
-      setWidgetLoading(false);
+      setAppLoading(false);
       handleOpenAlert('Failed to remove all widgets', 'error');
       console.error('Error:', error);
       playSound(warningSoundUrl);
@@ -326,7 +326,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     listWidgets();
     /* Reset dropdown state after all widgets are removed */
     setOpenWidgetId(null);
-  }, [listWidgets, handleOpenAlert, setWidgetLoading]);
+  }, [listWidgets, handleOpenAlert, setAppLoading]);
 
   /****************************************************************************/
   /* Provider */
