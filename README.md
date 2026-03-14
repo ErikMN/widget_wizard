@@ -4,9 +4,7 @@
   <table border="2" cellpadding="10" cellspacing="0" width="100%">
     <tr>
       <td align="center">
-        <strong>⚠️ IMPORTANT ⚠️</strong><br/>
-        Requires a device that supports widget or overlay capabilities.<br/>
-        <strong>UNOFFICIAL APP</strong><br/>
+        <strong>⚠️ UNOFFICIAL APP ⚠️</strong><br/>
         Requires "Allow unsigned apps" to be enabled on the device.
       </td>
     </tr>
@@ -18,9 +16,11 @@
 Web frontend for managing in-stream widgets and overlays on Axis network cameras. \
 Written in TypeScript and React.
 
+Also useful for rapid prototyping of modern UI against a target device for feature development.
+
 The UI runs directly on the camera as part of the installed ACAP application (see below).
 
-The ACAP also provides an optional WebSocket backend to stream real-time
+The ACAP also provides an optional WebSocket server backend to stream real-time
 system metrics to the frontend. \
 The backend application needs to be running for this feature to be working.
 
@@ -35,6 +35,8 @@ The backend application needs to be running for this feature to be working.
 * Live PTZ controls
 * Optional WebSocket backend for real-time system metrics
 * Responsive and easy to use
+* Great for rapid prototyping of modern UI solutions
+* ACAP setup scaffolding included 🔋
 
 ## Get the latest pre-built release under [Releases](https://github.com/ErikMN/widget_wizard/releases)
 
