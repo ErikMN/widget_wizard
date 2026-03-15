@@ -13,6 +13,8 @@ import Box from '@mui/material/Box';
 import WidgetInfo from '../widget/WidgetInfo';
 /* Overlays */
 import OverlayInfo from '../overlay/OverlayInfo';
+/* Draw */
+import DrawInfo from '../draw/DrawInfo';
 
 const DrawerHeaderContent: React.FC = () => {
   /* Navigation */
@@ -26,6 +28,8 @@ const DrawerHeaderContent: React.FC = () => {
     content = <WidgetInfo />;
   } else if (path.startsWith('/overlays')) {
     content = <OverlayInfo />;
+  } else if (path.startsWith('/draw')) {
+    content = <DrawInfo />;
   }
 
   if (!content) {

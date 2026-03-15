@@ -5,6 +5,7 @@
  */
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoadingScreen from './LoadingScreen';
+import { useAppSettingsContext } from './context/AppContext';
 
 /* Components */
 import App from './App';
@@ -15,17 +16,20 @@ import WidgetCapabilities from './widget/WidgetCapabilities';
 /* Overlays */
 import OverlayHandler from './overlay/OverlayHandler';
 import OverlayCapabilities from './overlay/OverlayCapabilities';
+/* Draw mode */
+import Draw from './draw/Draw';
 
 const AppRoutes = () => {
+  const { appSettings } = useAppSettingsContext();
+
   return (
     <HashRouter>
       <Routes>
         {/* Main application */}
         <Route path="/" element={<LoadingScreen Component={App} />}>
-          {/* Default to widgets */}
-          <Route index element={<Navigate to="widgets" replace />} />
           <Route path="widgets" element={<WidgetHandler />} />
           <Route path="overlays" element={<OverlayHandler />} />
+          {appSettings.experimental && <Route path="draw" element={<Draw />} />}
         </Route>
 
         {/* Other standalone pages */}

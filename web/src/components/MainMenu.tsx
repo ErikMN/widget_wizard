@@ -10,11 +10,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 /* App */
 import { CustomButton } from './CustomComponents';
+import { useAppSettingsContext } from './context/AppContext';
 /* MUI */
 import Box from '@mui/material/Box';
+import BrushIcon from '@mui/icons-material/Brush';
+import LayersIcon from '@mui/icons-material/Layers';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import LayersIcon from '@mui/icons-material/Layers';
 
 /****************************************************************************/
 
@@ -61,6 +63,8 @@ const MainMenuButton: React.FC<MainMenuButtonProps> = ({ label, icon, to }) => {
 
 /* The main menu */
 const MainMenu: React.FC = () => {
+  const { appSettings } = useAppSettingsContext();
+
   return (
     <Box sx={{ p: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       <MainMenuButton
@@ -74,6 +78,14 @@ const MainMenu: React.FC = () => {
         icon={<LayersIcon color="primary" />}
         to="/overlays"
       />
+
+      {appSettings.experimental && (
+        <MainMenuButton
+          label="Draw"
+          icon={<BrushIcon color="primary" />}
+          to="/draw"
+        />
+      )}
     </Box>
   );
 };
