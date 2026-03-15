@@ -6,13 +6,14 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState
 } from 'react';
-import { useLocalStorage } from '../../helpers/hooks.jsx';
 import { Dimensions } from '../appInterface';
 import { useAlertActionsContext } from '../context/AppContext';
+import { loadIndexedDbDrawState, saveIndexedDbDrawState } from './drawStorage';
 import { DrawStroke, DrawTool } from './drawInterfaces';
 import {
   DEFAULT_BRUSH_SIZE,
@@ -38,7 +39,6 @@ interface DrawContextProps {
 }
 
 const DrawContext = createContext<DrawContextProps | undefined>(undefined);
-const DRAW_STORAGE_KEY = 'drawState';
 
 interface DrawStorageState {
   strokes: DrawStroke[];
@@ -52,11 +52,18 @@ interface DrawDraftController {
   discardDraft: () => void;
 }
 
+const DEFAULT_DRAW_STORAGE_STATE: DrawStorageState = {
+  strokes: [],
+  activeTool: 'brush',
+  brushColor: DEFAULT_DRAW_COLOR,
+  brushSize: DEFAULT_BRUSH_SIZE
+};
+
 const getTimestampLabel = (): string => {
   return new Date().toISOString().replace(/[:.]/g, '-');
 };
 
-/* Storage is user-controlled, so validate before trusting localStorage contents */
+/* Persisted storage is user-controlled, so validate before trusting loaded data */
 const isDrawTool = (value: unknown): value is DrawTool => {
   return value === 'brush' || value === 'eraser';
 };
@@ -117,27 +124,81 @@ const sanitizeDrawStorage = (value: unknown): DrawStorageState => {
 export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  /* Alert API */
+  /* Global state */
   const { handleOpenAlert } = useAlertActionsContext();
 
-  /* Persisted draw state */
-  const [storedDrawState, setStoredDrawState] = useLocalStorage(
-    DRAW_STORAGE_KEY,
-    {
-      strokes: [],
-      activeTool: 'brush',
-      brushColor: DEFAULT_DRAW_COLOR,
-      brushSize: DEFAULT_BRUSH_SIZE
-    }
+  /* Local state */
+  const [drawState, setDrawState] = useState<DrawStorageState>(
+    DEFAULT_DRAW_STORAGE_STATE
   );
-  const drawState = sanitizeDrawStorage(storedDrawState);
-  const { strokes, activeTool, brushColor, brushSize } = drawState;
-  const draftControllerRef = useRef<DrawDraftController | null>(null);
-
-  /* Live video surface dimensions used for export sizing */
+  const [storageReady, setStorageReady] = useState(false);
   const [surfaceDimensions, setSurfaceDimensions] = useState<Dimensions | null>(
     null
   );
+
+  /* Refs */
+  const draftControllerRef = useRef<DrawDraftController | null>(null);
+  const persistQueueRef = useRef(Promise.resolve());
+  const loadErrorShownRef = useRef(false);
+  const saveErrorShownRef = useRef(false);
+
+  const { strokes, activeTool, brushColor, brushSize } = drawState;
+
+  /* Restore saved draw state from IndexedDB on startup */
+  useEffect(() => {
+    let isCancelled = false;
+    const loadSavedDrawState = async () => {
+      try {
+        const storedState = await loadIndexedDbDrawState();
+        if (isCancelled) {
+          return;
+        }
+        setDrawState(
+          storedState
+            ? sanitizeDrawStorage(storedState)
+            : DEFAULT_DRAW_STORAGE_STATE
+        );
+        setStorageReady(true);
+      } catch (error) {
+        console.error('Failed to load draw state from IndexedDB:', error);
+
+        if (!loadErrorShownRef.current) {
+          handleOpenAlert('Failed to load saved draw state', 'warning');
+          loadErrorShownRef.current = true;
+        }
+        if (!isCancelled) {
+          setStorageReady(false);
+        }
+      }
+    };
+    loadSavedDrawState();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [handleOpenAlert]);
+
+  /* Save draw-state changes after the initial IndexedDB load.
+   * Writes are queued to keep IndexedDB updates ordered.
+   */
+  useEffect(() => {
+    if (!storageReady) {
+      return;
+    }
+
+    persistQueueRef.current = persistQueueRef.current
+      .then(async () => {
+        await saveIndexedDbDrawState(drawState);
+      })
+      .catch((error) => {
+        console.error('Failed to save draw state to IndexedDB:', error);
+
+        if (!saveErrorShownRef.current) {
+          handleOpenAlert('Failed to save draw state', 'warning');
+          saveErrorShownRef.current = true;
+        }
+      });
+  }, [drawState, handleOpenAlert, storageReady]);
 
   /* DrawCanvas keeps the in-progress stroke local for performance but exposes
    * a tiny controller so actions like undo/clear can handle unfinished edits.
@@ -149,87 +210,77 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  /* Append completed strokes to the persisted drawing */
-  const addStroke = useCallback(
-    (stroke: DrawStroke) => {
-      setStoredDrawState((prevState: unknown) => {
-        const safeState = sanitizeDrawStorage(prevState);
-
-        return {
-          ...safeState,
-          strokes: [...safeState.strokes, stroke]
-        };
-      });
-    },
-    [setStoredDrawState]
-  );
+  /* Append completed brush strokes to the persisted drawing */
+  const addStroke = useCallback((stroke: DrawStroke) => {
+    setDrawState((prevState) => {
+      return {
+        ...prevState,
+        strokes: [...prevState.strokes, stroke]
+      };
+    });
+  }, []);
 
   /* Clear only the drawing, not the selected tool or brush settings */
   const clearDrawing = useCallback(() => {
     draftControllerRef.current?.discardDraft();
 
-    setStoredDrawState((prevState: unknown) => {
-      const safeState = sanitizeDrawStorage(prevState);
-
+    setDrawState((prevState) => {
       return {
-        ...safeState,
+        ...prevState,
         strokes: []
       };
     });
-  }, [setStoredDrawState]);
+  }, []);
 
   const setActiveTool = useCallback(
     (valueOrFn: React.SetStateAction<DrawTool>) => {
-      setStoredDrawState((prevState: unknown) => {
-        const safeState = sanitizeDrawStorage(prevState);
+      setDrawState((prevState) => {
         const nextValue =
           typeof valueOrFn === 'function'
-            ? valueOrFn(safeState.activeTool)
+            ? valueOrFn(prevState.activeTool)
             : valueOrFn;
 
         return {
-          ...safeState,
+          ...prevState,
           activeTool: nextValue
         };
       });
     },
-    [setStoredDrawState]
+    []
   );
 
   const setBrushColor = useCallback(
     (valueOrFn: React.SetStateAction<string>) => {
-      setStoredDrawState((prevState: unknown) => {
-        const safeState = sanitizeDrawStorage(prevState);
+      setDrawState((prevState) => {
         const nextValue =
           typeof valueOrFn === 'function'
-            ? valueOrFn(safeState.brushColor)
+            ? valueOrFn(prevState.brushColor)
             : valueOrFn;
 
         return {
-          ...safeState,
+          ...prevState,
           brushColor: nextValue
         };
       });
     },
-    [setStoredDrawState]
+    []
   );
 
   const setBrushSize = useCallback(
     (valueOrFn: React.SetStateAction<number>) => {
-      setStoredDrawState((prevState: unknown) => {
-        const safeState = sanitizeDrawStorage(prevState);
+      setDrawState((prevState) => {
         const nextValue =
           typeof valueOrFn === 'function'
-            ? valueOrFn(safeState.brushSize)
+            ? valueOrFn(prevState.brushSize)
             : valueOrFn;
 
         return {
-          ...safeState,
+          ...prevState,
           brushSize: nextValue
         };
       });
     },
-    [setStoredDrawState]
+    []
   );
 
   const saveDrawingAsPng = useCallback(async () => {
