@@ -14,8 +14,10 @@ import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import Divider from '@mui/material/Divider';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 
 const DrawControls: React.FC = () => {
   /* Shared draw state */
@@ -28,6 +30,10 @@ const DrawControls: React.FC = () => {
     setBrushSize,
     surfaceDimensions,
     hasDrawing,
+    canUndo,
+    canRedo,
+    undoLastEdit,
+    redoLastEdit,
     clearDrawing,
     saveDrawingAsPng
   } = useDrawContext();
@@ -173,7 +179,29 @@ const DrawControls: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Save and clear buttons */}
+      {/* Undo and redo buttons */}
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <CustomButton
+          variant="outlined"
+          fullWidth
+          startIcon={<UndoOutlinedIcon />}
+          onClick={undoLastEdit}
+          disabled={!canUndo}
+        >
+          Undo
+        </CustomButton>
+        <CustomButton
+          variant="outlined"
+          fullWidth
+          startIcon={<RedoOutlinedIcon />}
+          onClick={redoLastEdit}
+          disabled={!canRedo}
+        >
+          Redo
+        </CustomButton>
+      </Box>
+
+      {/* Clear and save buttons */}
       <Box sx={{ display: 'flex', gap: 1 }}>
         <CustomButton
           variant="outlined"

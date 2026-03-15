@@ -17,3 +17,7 @@ export interface DrawStroke {
   size: number;
   points: DrawPoint[];
 }
+
+export interface DrawHistoryEntry {
+  strokes: DrawStroke[];
+}

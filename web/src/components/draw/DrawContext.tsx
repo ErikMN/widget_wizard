@@ -14,7 +14,7 @@ import React, {
 import { Dimensions } from '../appInterface';
 import { useAlertActionsContext } from '../context/AppContext';
 import { loadIndexedDbDrawState, saveIndexedDbDrawState } from './drawStorage';
-import { DrawStroke, DrawTool } from './drawInterfaces';
+import { DrawHistoryEntry, DrawStroke, DrawTool } from './drawInterfaces';
 import {
   DEFAULT_BRUSH_SIZE,
   DEFAULT_DRAW_COLOR,
@@ -33,15 +33,21 @@ interface DrawContextProps {
   setSurfaceDimensions: React.Dispatch<React.SetStateAction<Dimensions | null>>;
   registerDraftController: (controller: DrawDraftController | null) => void;
   addStroke: (stroke: DrawStroke) => void;
+  undoLastEdit: () => void;
+  redoLastEdit: () => void;
   clearDrawing: () => void;
   saveDrawingAsPng: () => Promise<void>;
   hasDrawing: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const DrawContext = createContext<DrawContextProps | undefined>(undefined);
 
 interface DrawStorageState {
   strokes: DrawStroke[];
+  undoHistory: DrawHistoryEntry[];
+  redoHistory: DrawHistoryEntry[];
   activeTool: DrawTool;
   brushColor: string;
   brushSize: number;
@@ -52,8 +58,12 @@ interface DrawDraftController {
   discardDraft: () => void;
 }
 
+const MAX_UNDO_HISTORY = 100;
+
 const DEFAULT_DRAW_STORAGE_STATE: DrawStorageState = {
   strokes: [],
+  undoHistory: [],
+  redoHistory: [],
   activeTool: 'brush',
   brushColor: DEFAULT_DRAW_COLOR,
   brushSize: DEFAULT_BRUSH_SIZE
@@ -95,6 +105,8 @@ const sanitizeDrawStorage = (value: unknown): DrawStorageState => {
   if (!value || typeof value !== 'object') {
     return {
       strokes: [],
+      undoHistory: [],
+      redoHistory: [],
       activeTool: 'brush',
       brushColor: DEFAULT_DRAW_COLOR,
       brushSize: DEFAULT_BRUSH_SIZE
@@ -102,11 +114,45 @@ const sanitizeDrawStorage = (value: unknown): DrawStorageState => {
   }
 
   const candidate = value as Partial<DrawStorageState>;
+  const undoHistory = Array.isArray(candidate.undoHistory)
+    ? candidate.undoHistory
+        .filter(
+          (entry): entry is DrawHistoryEntry =>
+            !!entry &&
+            typeof entry === 'object' &&
+            Array.isArray(entry.strokes) &&
+            entry.strokes.every(isDrawStroke)
+        )
+        .map((entry) => ({
+          strokes: entry.strokes.map((stroke) => ({
+            ...stroke,
+            points: [...stroke.points]
+          }))
+        }))
+    : [];
+  const redoHistory = Array.isArray(candidate.redoHistory)
+    ? candidate.redoHistory
+        .filter(
+          (entry): entry is DrawHistoryEntry =>
+            !!entry &&
+            typeof entry === 'object' &&
+            Array.isArray(entry.strokes) &&
+            entry.strokes.every(isDrawStroke)
+        )
+        .map((entry) => ({
+          strokes: entry.strokes.map((stroke) => ({
+            ...stroke,
+            points: [...stroke.points]
+          }))
+        }))
+    : [];
 
   return {
     strokes: Array.isArray(candidate.strokes)
       ? candidate.strokes.filter(isDrawStroke)
       : [],
+    undoHistory,
+    redoHistory,
     activeTool: isDrawTool(candidate.activeTool)
       ? candidate.activeTool
       : 'brush',
@@ -142,7 +188,14 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadErrorShownRef = useRef(false);
   const saveErrorShownRef = useRef(false);
 
-  const { strokes, activeTool, brushColor, brushSize } = drawState;
+  const {
+    strokes,
+    undoHistory,
+    redoHistory,
+    activeTool,
+    brushColor,
+    brushSize
+  } = drawState;
 
   /* Restore saved draw state from IndexedDB on startup */
   useEffect(() => {
@@ -215,7 +268,60 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
     setDrawState((prevState) => {
       return {
         ...prevState,
+        undoHistory: [
+          ...prevState.undoHistory.slice(-(MAX_UNDO_HISTORY - 1)),
+          { strokes: prevState.strokes }
+        ],
+        redoHistory: [],
         strokes: [...prevState.strokes, stroke]
+      };
+    });
+  }, []);
+
+  /* Undo removes the current draft first, otherwise it restores the previous saved step */
+  const undoLastEdit = useCallback(() => {
+    if (draftControllerRef.current?.hasDraft()) {
+      draftControllerRef.current.discardDraft();
+      return;
+    }
+
+    setDrawState((prevState) => {
+      if (prevState.undoHistory.length === 0) {
+        return prevState;
+      }
+
+      const previousEntry =
+        prevState.undoHistory[prevState.undoHistory.length - 1];
+
+      return {
+        ...prevState,
+        strokes: previousEntry.strokes,
+        undoHistory: prevState.undoHistory.slice(0, -1),
+        redoHistory: [
+          ...prevState.redoHistory.slice(-(MAX_UNDO_HISTORY - 1)),
+          { strokes: prevState.strokes }
+        ]
+      };
+    });
+  }, []);
+
+  /* Redo reapplies the next stored history step */
+  const redoLastEdit = useCallback(() => {
+    setDrawState((prevState) => {
+      if (prevState.redoHistory.length === 0) {
+        return prevState;
+      }
+
+      const nextEntry = prevState.redoHistory[prevState.redoHistory.length - 1];
+
+      return {
+        ...prevState,
+        strokes: nextEntry.strokes,
+        undoHistory: [
+          ...prevState.undoHistory.slice(-(MAX_UNDO_HISTORY - 1)),
+          { strokes: prevState.strokes }
+        ],
+        redoHistory: prevState.redoHistory.slice(0, -1)
       };
     });
   }, []);
@@ -225,8 +331,17 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
     draftControllerRef.current?.discardDraft();
 
     setDrawState((prevState) => {
+      if (prevState.strokes.length === 0) {
+        return prevState;
+      }
+
       return {
         ...prevState,
+        undoHistory: [
+          ...prevState.undoHistory.slice(-(MAX_UNDO_HISTORY - 1)),
+          { strokes: prevState.strokes }
+        ],
+        redoHistory: [],
         strokes: []
       };
     });
@@ -355,18 +470,26 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
       setSurfaceDimensions,
       registerDraftController,
       addStroke,
+      undoLastEdit,
+      redoLastEdit,
       clearDrawing,
       saveDrawingAsPng,
-      hasDrawing: strokes.length > 0
+      hasDrawing: strokes.length > 0,
+      canUndo: undoHistory.length > 0,
+      canRedo: redoHistory.length > 0
     }),
     [
       strokes,
+      undoHistory,
+      redoHistory,
       activeTool,
       brushColor,
       brushSize,
       surfaceDimensions,
       registerDraftController,
       addStroke,
+      undoLastEdit,
+      redoLastEdit,
       clearDrawing,
       saveDrawingAsPng
     ]
