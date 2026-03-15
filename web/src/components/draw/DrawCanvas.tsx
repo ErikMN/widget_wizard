@@ -43,9 +43,24 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
     setSurfaceDimensions
   } = useDrawContext();
 
-  useEffect(() => {
-    draftStrokeRef.current = draftStroke;
-  }, [draftStroke]);
+  const updateDraftStroke = useCallback(
+    (
+      valueOrFn:
+        | DrawStroke
+        | null
+        | ((currentStroke: DrawStroke | null) => DrawStroke | null)
+    ) => {
+      setDraftStroke((currentStroke) => {
+        const nextStroke =
+          typeof valueOrFn === 'function'
+            ? valueOrFn(currentStroke)
+            : valueOrFn;
+        draftStrokeRef.current = nextStroke;
+        return nextStroke;
+      });
+    },
+    []
+  );
 
   /* Persisted strokes survive reload, so seed new ids from the highest existing id */
   useEffect(() => {
@@ -70,6 +85,7 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
       hasDraft: () => draftStrokeRef.current !== null,
       discardDraft: () => {
         pointerIdRef.current = null;
+        draftStrokeRef.current = null;
         setDraftStroke(null);
       }
     });
@@ -110,12 +126,14 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
 
   /* Commit the in-progress stroke only once the gesture has ended */
   const finalizeStroke = useCallback(() => {
-    setDraftStroke((currentStroke) => {
-      if (currentStroke) {
-        addStroke(currentStroke);
-      }
-      return null;
-    });
+    const currentStroke = draftStrokeRef.current;
+
+    if (currentStroke) {
+      addStroke(currentStroke);
+    }
+
+    draftStrokeRef.current = null;
+    setDraftStroke(null);
     pointerIdRef.current = null;
   }, [addStroke]);
 
@@ -135,7 +153,7 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
       event.currentTarget.setPointerCapture(event.pointerId);
 
       /* Brush size is normalized to native video space so resize does not distort the drawing */
-      setDraftStroke({
+      updateDraftStroke({
         id: strokeIdRef.current++,
         tool: activeTool,
         color: brushColor,
@@ -143,7 +161,14 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
         points: [point]
       });
     },
-    [activeTool, brushColor, brushSize, dimensions, toDrawPoint]
+    [
+      activeTool,
+      brushColor,
+      brushSize,
+      dimensions,
+      toDrawPoint,
+      updateDraftStroke
+    ]
   );
 
   const handlePointerMove = useCallback(
@@ -159,7 +184,7 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
 
       event.preventDefault();
 
-      setDraftStroke((currentStroke) => {
+      updateDraftStroke((currentStroke) => {
         if (!currentStroke) {
           return currentStroke;
         }
@@ -179,7 +204,7 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
         };
       });
     },
-    [toDrawPoint]
+    [toDrawPoint, updateDraftStroke]
   );
 
   const handlePointerUp = useCallback(
