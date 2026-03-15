@@ -222,6 +222,24 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
     [finalizeStroke]
   );
 
+  /* Cancelled gestures should not produce a partial saved stroke */
+  const handlePointerCancel = useCallback(
+    (event: React.PointerEvent<HTMLCanvasElement>) => {
+      if (pointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      pointerIdRef.current = null;
+      draftStrokeRef.current = null;
+      setDraftStroke(null);
+    },
+    []
+  );
+
   /* Redraw the full scene whenever strokes or surface dimensions change */
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -264,7 +282,7 @@ const DrawCanvas: React.FC<DrawCanvasProps> = ({ dimensions }) => {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       style={{
         position: 'absolute',
         inset: 0,
