@@ -4,6 +4,7 @@ import { ParametersProvider } from './ParametersContext';
 import { OnScreenMessageProvider } from './OnScreenMessageContext';
 import { WidgetProvider } from '../widget/WidgetContext';
 import { OverlayProvider } from '../overlay/OverlayContext';
+import { DrawProvider } from '../draw/DrawContext';
 
 const AppProviders: React.FC<{ children: React.ReactNode }> = ({
   children
@@ -17,7 +18,9 @@ const AppProviders: React.FC<{ children: React.ReactNode }> = ({
       <ParametersProvider>
         <WidgetProvider>
           <OverlayProvider>
-            <OnScreenMessageProvider>{children}</OnScreenMessageProvider>
+            <DrawProvider>
+              <OnScreenMessageProvider>{children}</OnScreenMessageProvider>
+            </DrawProvider>
           </OverlayProvider>
         </WidgetProvider>
       </ParametersProvider>

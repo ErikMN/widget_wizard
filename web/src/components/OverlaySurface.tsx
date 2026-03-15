@@ -1,8 +1,13 @@
 /**
  * OverlaySurface
  *
- * A unified overlay surface for both Widgets and Overlays.
- * Replaces the separate WidgetBBox and OverlayBBox surfaces.
+ * Shared interaction surface rendered over the visible video area.
+ *
+ * Current responsibilities:
+ * - Render widget bounding boxes
+ * - Render overlay bounding boxes
+ * - Render PTZ crosshair control
+ * - Render draw mode canvas layer
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -18,6 +23,9 @@ import { WidgetBox } from './widget/WidgetBBox';
 import { useOverlayContext } from './overlay/OverlayContext';
 import { OverlayBox } from './overlay/OverlayBBox';
 
+/* Draw canvas */
+import DrawCanvas from './draw/DrawCanvas';
+
 interface OverlaySurfaceProps {
   dimensions: Dimensions;
 }
@@ -31,6 +39,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const showOverlays =
     location.pathname.endsWith('/overlays') ||
     location.pathname.endsWith('/settings');
+  const showDraw = location.pathname.endsWith('/draw');
 
   /* App context */
   const { currentChannel } = useChannelContext();
@@ -185,7 +194,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
 
   return (
     <div
-      onPointerDown={handlePointerDown}
+      onPointerDown={showDraw ? undefined : handlePointerDown}
       style={{
         position: 'absolute',
         top: `${surfaceDimensions.offsetY}px`,
@@ -250,10 +259,15 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
             />
           ))}
 
+      {/* Render draw canvas */}
+      {hasStreamDimensions && showDraw && (
+        <DrawCanvas dimensions={surfaceDimensions} />
+      )}
+
       {/* PTZ crosshair control */}
       <PtzCrosshairControl
         currentChannel={currentChannel}
-        enabled={!!appSettings.enablePtzCrosshair}
+        enabled={!!appSettings.enablePtzCrosshair && !showDraw}
         renderInFront={!!appSettings.ptzCrosshairInFront}
         surfaceWidth={surfaceDimensions.pixelWidth}
         surfaceHeight={surfaceDimensions.pixelHeight}

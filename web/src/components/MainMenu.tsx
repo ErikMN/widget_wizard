@@ -12,9 +12,10 @@ import { useNavigate } from 'react-router-dom';
 import { CustomButton } from './CustomComponents';
 /* MUI */
 import Box from '@mui/material/Box';
+import BrushIcon from '@mui/icons-material/Brush';
+import LayersIcon from '@mui/icons-material/Layers';
 import Typography from '@mui/material/Typography';
 import WidgetsIcon from '@mui/icons-material/Widgets';
-import LayersIcon from '@mui/icons-material/Layers';
 
 /****************************************************************************/
 
@@ -73,6 +74,12 @@ const MainMenu: React.FC = () => {
         label="Overlays"
         icon={<LayersIcon color="primary" />}
         to="/overlays"
+      />
+
+      <MainMenuButton
+        label="Draw"
+        icon={<BrushIcon color="primary" />}
+        to="/draw"
       />
     </Box>
   );

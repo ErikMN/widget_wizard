@@ -15,6 +15,8 @@ import WidgetCapabilities from './widget/WidgetCapabilities';
 /* Overlays */
 import OverlayHandler from './overlay/OverlayHandler';
 import OverlayCapabilities from './overlay/OverlayCapabilities';
+/* Draw mode */
+import Draw from './draw/Draw';
 
 const AppRoutes = () => {
   return (
@@ -22,10 +24,9 @@ const AppRoutes = () => {
       <Routes>
         {/* Main application */}
         <Route path="/" element={<LoadingScreen Component={App} />}>
-          {/* Default to widgets */}
-          <Route index element={<Navigate to="widgets" replace />} />
           <Route path="widgets" element={<WidgetHandler />} />
           <Route path="overlays" element={<OverlayHandler />} />
+          <Route path="draw" element={<Draw />} />
         </Route>
 
         {/* Other standalone pages */}
