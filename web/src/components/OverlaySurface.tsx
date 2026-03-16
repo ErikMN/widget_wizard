@@ -267,8 +267,8 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
       {/* PTZ crosshair control */}
       <PtzCrosshairControl
         currentChannel={currentChannel}
-        enabled={!!appSettings.enablePtzCrosshair && !showDraw}
-        renderInFront={!!appSettings.ptzCrosshairInFront}
+        enabled={!!appSettings.enablePtzCrosshair}
+        renderInFront={showDraw || !!appSettings.ptzCrosshairInFront}
         surfaceWidth={surfaceDimensions.pixelWidth}
         surfaceHeight={surfaceDimensions.pixelHeight}
       />
