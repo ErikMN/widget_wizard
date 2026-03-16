@@ -5198,10 +5198,10 @@ vfile@^6.0.0:
     "@types/unist" "^3.0.0"
     vfile-message "^4.0.0"
 
-vite-plugin-compression2@^2.5.1:
-  version "2.5.1"
-  resolved "https://registry.yarnpkg.com/vite-plugin-compression2/-/vite-plugin-compression2-2.5.1.tgz#9ac9f5a417a11554850cd203473fa7eeb0f56d0b"
-  integrity sha512-2YpLZWs1ZRo9XwtSFA6/NVuBgOR+kvFk8M0HNDsP7Wu7OfJDOKT6fHB8kzuvw6jhgC9KYgDOttfaG2qC0wE9AQ==
+vite-plugin-compression2@^2.5.2:
+  version "2.5.2"
+  resolved "https://registry.yarnpkg.com/vite-plugin-compression2/-/vite-plugin-compression2-2.5.2.tgz#f1ff86c33f9ca9e8aecbf4cbee8d906b9c57bd3c"
+  integrity sha512-a1eAY2Ux5JrflaWStWUa7yoMnjhw3tx7y6vQIp20QZ9K57wcKxYT+DUJiAG4VSEvmFMjeo9a5R2phdBriOJ/1A==
   dependencies:
     "@rollup/pluginutils" "^5.1.0"
     tar-mini "^0.2.0"
