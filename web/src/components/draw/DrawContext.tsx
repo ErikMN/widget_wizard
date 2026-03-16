@@ -18,7 +18,8 @@ import { DrawHistoryEntry, DrawStroke, DrawTool } from './drawInterfaces';
 import {
   DEFAULT_BRUSH_SIZE,
   DEFAULT_DRAW_COLOR,
-  renderDrawStrokes
+  renderDrawStrokes,
+  scaleDrawStrokes
 } from './drawUtils';
 
 interface DrawContextProps {
@@ -51,6 +52,8 @@ interface DrawStorageState {
   activeTool: DrawTool;
   brushColor: string;
   brushSize: number;
+  sourceWidth: number;
+  sourceHeight: number;
 }
 
 interface DrawDraftController {
@@ -66,7 +69,9 @@ const DEFAULT_DRAW_STORAGE_STATE: DrawStorageState = {
   redoHistory: [],
   activeTool: 'brush',
   brushColor: DEFAULT_DRAW_COLOR,
-  brushSize: DEFAULT_BRUSH_SIZE
+  brushSize: DEFAULT_BRUSH_SIZE,
+  sourceWidth: 0,
+  sourceHeight: 0
 };
 
 const getTimestampLabel = (): string => {
@@ -109,7 +114,9 @@ const sanitizeDrawStorage = (value: unknown): DrawStorageState => {
       redoHistory: [],
       activeTool: 'brush',
       brushColor: DEFAULT_DRAW_COLOR,
-      brushSize: DEFAULT_BRUSH_SIZE
+      brushSize: DEFAULT_BRUSH_SIZE,
+      sourceWidth: 0,
+      sourceHeight: 0
     };
   }
 
@@ -163,7 +170,11 @@ const sanitizeDrawStorage = (value: unknown): DrawStorageState => {
     brushSize:
       typeof candidate.brushSize === 'number'
         ? candidate.brushSize
-        : DEFAULT_BRUSH_SIZE
+        : DEFAULT_BRUSH_SIZE,
+    sourceWidth:
+      typeof candidate.sourceWidth === 'number' ? candidate.sourceWidth : 0,
+    sourceHeight:
+      typeof candidate.sourceHeight === 'number' ? candidate.sourceHeight : 0
   };
 };
 
@@ -252,6 +263,70 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       });
   }, [drawState, handleOpenAlert, storageReady]);
+
+  /* Keep stored strokes in the current native video coordinate space so
+   * changing stream resolution preserves the same relative drawing.
+   */
+  useEffect(() => {
+    const nextSourceWidth = surfaceDimensions?.videoWidth ?? 0;
+    const nextSourceHeight = surfaceDimensions?.videoHeight ?? 0;
+
+    if (nextSourceWidth <= 0 || nextSourceHeight <= 0) {
+      return;
+    }
+
+    setDrawState((prevState) => {
+      if (
+        prevState.sourceWidth === nextSourceWidth &&
+        prevState.sourceHeight === nextSourceHeight
+      ) {
+        return prevState;
+      }
+
+      if (draftControllerRef.current?.hasDraft()) {
+        draftControllerRef.current.discardDraft();
+      }
+
+      if (prevState.sourceWidth <= 0 || prevState.sourceHeight <= 0) {
+        return {
+          ...prevState,
+          sourceWidth: nextSourceWidth,
+          sourceHeight: nextSourceHeight
+        };
+      }
+
+      return {
+        ...prevState,
+        strokes: scaleDrawStrokes(
+          prevState.strokes,
+          prevState.sourceWidth,
+          prevState.sourceHeight,
+          nextSourceWidth,
+          nextSourceHeight
+        ),
+        undoHistory: prevState.undoHistory.map((entry) => ({
+          strokes: scaleDrawStrokes(
+            entry.strokes,
+            prevState.sourceWidth,
+            prevState.sourceHeight,
+            nextSourceWidth,
+            nextSourceHeight
+          )
+        })),
+        redoHistory: prevState.redoHistory.map((entry) => ({
+          strokes: scaleDrawStrokes(
+            entry.strokes,
+            prevState.sourceWidth,
+            prevState.sourceHeight,
+            nextSourceWidth,
+            nextSourceHeight
+          )
+        })),
+        sourceWidth: nextSourceWidth,
+        sourceHeight: nextSourceHeight
+      };
+    });
+  }, [surfaceDimensions?.videoHeight, surfaceDimensions?.videoWidth]);
 
   /* DrawCanvas keeps the in-progress stroke local for performance but exposes
    * a tiny controller so actions like undo/clear can handle unfinished edits.

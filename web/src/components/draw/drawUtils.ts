@@ -36,6 +36,41 @@ export const getNativeBrushSize = (
   return Math.max(1, brushSize * averageScale);
 };
 
+/* Move stored strokes from one native video resolution to another */
+export const scaleDrawStrokes = (
+  strokes: DrawStroke[],
+  sourceWidth: number,
+  sourceHeight: number,
+  targetWidth: number,
+  targetHeight: number
+): DrawStroke[] => {
+  if (
+    sourceWidth <= 0 ||
+    sourceHeight <= 0 ||
+    targetWidth <= 0 ||
+    targetHeight <= 0
+  ) {
+    return strokes;
+  }
+
+  if (sourceWidth === targetWidth && sourceHeight === targetHeight) {
+    return strokes;
+  }
+
+  const scaleX = targetWidth / sourceWidth;
+  const scaleY = targetHeight / sourceHeight;
+  const averageScale = (scaleX + scaleY) / 2;
+
+  return strokes.map((stroke) => ({
+    ...stroke,
+    size: Math.max(1, stroke.size * averageScale),
+    points: stroke.points.map((point) => ({
+      x: point.x * scaleX,
+      y: point.y * scaleY
+    }))
+  }));
+};
+
 interface RenderDrawStrokesParams {
   context: CanvasRenderingContext2D;
   strokes: DrawStroke[];
