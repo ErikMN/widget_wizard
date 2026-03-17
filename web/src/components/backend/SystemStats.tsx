@@ -66,6 +66,7 @@ interface SysStats {
   delta_ms: number;
   cpu: number;
   cpu_cores: number;
+  cpu_per_core?: number[];
   mem_total_kb: number;
   mem_available_kb: number;
   uptime_s: number;
@@ -83,6 +84,7 @@ interface HistoryPoint {
   ts: number;
   cpu: number;
   mem: number;
+  cpuPerCore: number[];
 }
 
 const MAX_HISTORY_POINTS = 60;
@@ -176,6 +178,11 @@ const SystemStats: React.FC = () => {
     cpu: true,
     mem: true
   });
+  const [sysChartCoreMetrics, setSysChartCoreMetrics] = useState<boolean[]>([]);
+  const [barsCoreSectionExpanded, setBarsCoreSectionExpanded] =
+    useState<boolean>(false);
+  const [chartCoreListExpanded, setChartCoreListExpanded] =
+    useState<boolean>(false);
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
 
@@ -244,9 +251,63 @@ const SystemStats: React.FC = () => {
     }));
   };
 
+  const toggleSysChartCoreMetric = (index: number) => {
+    setSysChartCoreMetrics((prev) => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const toggleAllSysChartCoreMetrics = () => {
+    const coreCount = stats?.cpu_per_core?.length ?? 0;
+    const showAll = sysChartCoreMetrics
+      .slice(0, coreCount)
+      .some((enabled) => !enabled);
+    setSysChartCoreMetrics(Array.from({ length: coreCount }, () => showAll));
+  };
+
+  useEffect(() => {
+    const coreCount = stats?.cpu_per_core?.length ?? 0;
+    setSysChartCoreMetrics((prev) => {
+      if (prev.length === coreCount) {
+        return prev;
+      }
+
+      return Array.from(
+        { length: coreCount },
+        (_, index) => prev[index] ?? false
+      );
+    });
+  }, [stats?.cpu_per_core?.length]);
+
   /* Recreate the Y-axis only when at least one system metric is enabled, so the chart rescales correctly when toggling */
   const sysChartYAxis =
-    sysChartMetrics.cpu || sysChartMetrics.mem ? [{ min: 0 }] : [];
+    sysChartMetrics.cpu ||
+    sysChartMetrics.mem ||
+    sysChartCoreMetrics.some(Boolean)
+      ? [{ min: 0 }]
+      : [];
+  const sysChartCoreSeries = (stats?.cpu_per_core ?? []).flatMap((_, index) =>
+    sysChartCoreMetrics[index]
+      ? [
+          {
+            data: history.map((h) =>
+              h.cpuPerCore[index] === undefined ? null : h.cpuPerCore[index]
+            ),
+            label: `CPU ${index} %`,
+            showMark: false,
+            valueFormatter: (v: number | null) =>
+              v == null ? '' : `${v.toFixed(1)} %`
+          }
+        ]
+      : []
+  );
+  const allSysChartCoresEnabled =
+    (stats?.cpu_per_core?.length ?? 0) > 0 &&
+    sysChartCoreMetrics
+      .slice(0, stats?.cpu_per_core?.length ?? 0)
+      .every(Boolean);
 
   /* Open (or reopen) the WebSocket connection used to stream system stats.
    *
@@ -339,7 +400,14 @@ const SystemStats: React.FC = () => {
         setHistory((prev) => {
           const next = [
             ...prev,
-            { ts: data.ts, cpu: data.cpu, mem: memPercent }
+            {
+              ts: data.ts,
+              cpu: data.cpu,
+              mem: memPercent,
+              cpuPerCore: Array.isArray(data.cpu_per_core)
+                ? [...data.cpu_per_core]
+                : []
+            }
           ];
           return next.length > MAX_HISTORY_POINTS
             ? next.slice(-MAX_HISTORY_POINTS)
@@ -791,6 +859,74 @@ const SystemStats: React.FC = () => {
                   />
                 </Box>
 
+                {/* Per-core CPU usage */}
+                {Array.isArray(stats.cpu_per_core) &&
+                  stats.cpu_per_core.length > 0 && (
+                    <Box>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 1,
+                          mb: barsCoreSectionExpanded ? 1 : 0
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
+                        >
+                          <DeveloperBoardIcon sx={{ fontSize: 16 }} />
+                          Per-core CPU usage
+                        </Typography>
+                        <CustomButton
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            setBarsCoreSectionExpanded((prev) => !prev)
+                          }
+                          sx={{
+                            color: '#fff',
+                            borderColor: '#fff',
+                            flexShrink: 0
+                          }}
+                        >
+                          {barsCoreSectionExpanded ? 'Collapse' : 'Expand'}
+                        </CustomButton>
+                      </Box>
+                      {barsCoreSectionExpanded && (
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'repeat(auto-fit, minmax(140px, 1fr))',
+                            gap: 1
+                          }}
+                        >
+                          {stats.cpu_per_core.map((coreUsage, index) => (
+                            <Box key={`cpu-core-${index}`}>
+                              <Typography variant="caption">
+                                CPU {index}: {coreUsage.toFixed(1)} %
+                              </Typography>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min(coreUsage, 100)}
+                                sx={{
+                                  height: 10,
+                                  borderRadius: 0
+                                }}
+                              />
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                 {/* Memory */}
                 <Box>
                   <Typography
@@ -962,9 +1098,105 @@ const SystemStats: React.FC = () => {
                   </Tooltip>
                 </Box>
 
+                {Array.isArray(stats.cpu_per_core) &&
+                  stats.cpu_per_core.length > 0 && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        width: '100%'
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <Typography variant="subtitle2">CPU cores</Typography>
+                        <Chip
+                          size="small"
+                          label={`${stats.cpu_per_core.length} cores`}
+                          sx={{
+                            color: '#fff',
+                            '& .MuiChip-label': { color: '#fff' },
+                            opacity: 0.7
+                          }}
+                        />
+                        <CustomButton
+                          size="small"
+                          variant="outlined"
+                          onClick={toggleAllSysChartCoreMetrics}
+                          sx={{
+                            color: '#fff',
+                            borderColor: '#fff'
+                          }}
+                        >
+                          {allSysChartCoresEnabled
+                            ? 'Hide all cores'
+                            : 'Show all cores'}
+                        </CustomButton>
+                        <CustomButton
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            setChartCoreListExpanded((prev) => !prev)
+                          }
+                          sx={{
+                            color: '#fff',
+                            borderColor: '#fff'
+                          }}
+                        >
+                          {chartCoreListExpanded ? 'Collapse' : 'Expand'}
+                        </CustomButton>
+                      </Stack>
+
+                      {chartCoreListExpanded && (
+                        <Box
+                          sx={{
+                            maxHeight: '240px',
+                            width: '100%',
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'monospace',
+                            fontSize: '12px',
+                            backgroundColor: '#111',
+                            color: '#fff',
+                            padding: '8px',
+                            border: '1px solid #333'
+                          }}
+                        >
+                          {stats.cpu_per_core.map((coreUsage, index) => (
+                            <div
+                              key={`sys-chart-core-${index}`}
+                              onClick={() => toggleSysChartCoreMetric(index)}
+                              style={{
+                                cursor: 'pointer',
+                                padding: '4px 6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                backgroundColor: sysChartCoreMetrics[index]
+                                  ? '#333'
+                                  : 'transparent'
+                              }}
+                            >
+                              <span>{`CPU ${index}`}</span>
+                              <span>{`${coreUsage.toFixed(1)} %`}</span>
+                            </div>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                 <Box sx={{ width: '100%', overflowX: 'hidden' }}>
                   <LineChart
                     skipAnimation
+                    hideLegend
                     height={220}
                     margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
                     series={[
@@ -994,7 +1226,9 @@ const SystemStats: React.FC = () => {
                                 v == null ? '' : `${v.toFixed(1)} %`
                             }
                           ]
-                        : [])
+                        : []),
+
+                      ...sysChartCoreSeries
                     ]}
                     yAxis={sysChartYAxis}
                     sx={{
