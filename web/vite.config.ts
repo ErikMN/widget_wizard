@@ -47,6 +47,10 @@ export default defineConfig({
       '/img/': {
         target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         changeOrigin: true
+      },
+      '/config/rest/': {
+        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true
       }
     }
   },
