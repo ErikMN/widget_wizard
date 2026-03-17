@@ -21,6 +21,7 @@ build_stats_json(char *out_buf,
 {
   json_t *resp = NULL;
   json_t *clients = NULL;
+  json_t *cpu_per_core = NULL;
 
   if (truncated) {
     *truncated = false;
@@ -48,6 +49,26 @@ build_stats_json(char *out_buf,
   json_object_set_new(resp, "delta_ms", json_integer(stats->delta_ms));
   json_object_set_new(resp, "cpu", json_real(stats->cpu_usage));
   json_object_set_new(resp, "cpu_cores", json_integer(cpu_core_count));
+  /* Build the per-core CPU usage array before attaching it to the response */
+  cpu_per_core = json_array();
+  if (!cpu_per_core) {
+    json_decref(resp);
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+  for (size_t i = 0; i < stats->cpu_per_core_count; i++) {
+    if (json_array_append_new(cpu_per_core, json_real(stats->cpu_per_core_usage[i])) != 0) {
+      json_decref(cpu_per_core);
+      json_decref(resp);
+      if (truncated) {
+        *truncated = true;
+      }
+      return 0;
+    }
+  }
+  json_object_set_new(resp, "cpu_per_core", cpu_per_core);
   json_object_set_new(resp, "mem_total_kb", json_integer(stats->mem_total_kb));
   json_object_set_new(resp, "mem_available_kb", json_integer(stats->mem_available_kb));
   json_object_set_new(resp, "uptime_s", json_real(stats->uptime_s));

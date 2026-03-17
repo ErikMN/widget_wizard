@@ -82,6 +82,7 @@
  *   "delta_ms": 500,
  *   "cpu": 5.42,
  *   "cpu_cores": 4,
+ *   "cpu_per_core": [2.10, 3.75, 8.22, 7.61],
  *   "mem_total_kb": 981716,
  *   "mem_available_kb": 531704,
  *   "uptime_s": 4689109,

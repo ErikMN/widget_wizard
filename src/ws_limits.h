@@ -10,11 +10,12 @@
 
 /* Maximum size of a single JSON WebSocket message.
  *
- * Current worst-case payload is around 320 bytes (including per-process stats),
- * leaving ample headroom for numeric growth and minor field additions.
+ * Current worst-case payload includes aggregate stats, per-process stats,
+ * and a per-core CPU usage array, so we reserve additional headroom for
+ * systems with a larger CPU count.
  * Messages are constructed using snprintf() and dropped on truncation.
  */
-#define MAX_WS_MESSAGE_LENGTH 1024
+#define MAX_WS_MESSAGE_LENGTH 4096
 
 /* Maximum size (bytes) of the one-shot JSON response for the process list.
  *
