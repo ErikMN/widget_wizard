@@ -5,6 +5,7 @@
  */
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoadingScreen from './LoadingScreen';
+import { useAppSettingsContext } from './context/AppContext';
 
 /* Components */
 import App from './App';
@@ -19,6 +20,8 @@ import OverlayCapabilities from './overlay/OverlayCapabilities';
 import Draw from './draw/Draw';
 
 const AppRoutes = () => {
+  const { appSettings } = useAppSettingsContext();
+
   return (
     <HashRouter>
       <Routes>
@@ -26,7 +29,7 @@ const AppRoutes = () => {
         <Route path="/" element={<LoadingScreen Component={App} />}>
           <Route path="widgets" element={<WidgetHandler />} />
           <Route path="overlays" element={<OverlayHandler />} />
-          <Route path="draw" element={<Draw />} />
+          {appSettings.experimental && <Route path="draw" element={<Draw />} />}
         </Route>
 
         {/* Other standalone pages */}
