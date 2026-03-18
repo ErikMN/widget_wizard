@@ -37,6 +37,7 @@ import OverlaysDisabled from './overlay/OverlaysDisabled';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
+import BugReportOutlinedIcon from '@mui/icons-material/BugReportOutlined';
 import ContrastIcon from '@mui/icons-material/Contrast';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -294,6 +295,17 @@ const Settings: React.FC = () => {
     }));
     handleOpenAlert(
       `PTZ crosshair in front: ${!appSettings.ptzCrosshairInFront}`,
+      'success'
+    );
+  };
+
+  const handleExperimentalMode = () => {
+    setAppSettings((prevSettings: AppSettings) => ({
+      ...prevSettings,
+      experimental: !prevSettings.experimental
+    }));
+    handleOpenAlert(
+      `Experimental mode: ${!appSettings.experimental}`,
       'success'
     );
   };
@@ -701,25 +713,55 @@ const Settings: React.FC = () => {
           <Box
             sx={{
               display: 'flex',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 2,
+              flexWrap: 'wrap'
             }}
           >
-            {/* Switch to enable debug mode */}
-            <FormControlLabel
-              control={
-                <CustomSwitch
-                  checked={appSettings.debug}
-                  onChange={handleDebugMode}
-                  name="debugMode"
-                />
-              }
-              label={
-                <span style={{ display: 'flex', alignItems: 'center' }}>
-                  Enable debug mode
-                  <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
-                </span>
-              }
-            />
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap'
+              }}
+            >
+              {/* Switch to enable experimental mode */}
+              <FormControlLabel
+                control={
+                  <CustomSwitch
+                    checked={appSettings.experimental}
+                    onChange={handleExperimentalMode}
+                    name="experimentalMode"
+                  />
+                }
+                label={
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    Experimental mode
+                    <ScienceOutlinedIcon style={{ marginLeft: '4px' }} />
+                  </span>
+                }
+                sx={{ mr: 0 }}
+              />
+              {/* Switch to enable debug mode */}
+              <FormControlLabel
+                control={
+                  <CustomSwitch
+                    checked={appSettings.debug}
+                    onChange={handleDebugMode}
+                    name="debugMode"
+                  />
+                }
+                label={
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    Enable debug mode
+                    <BugReportOutlinedIcon style={{ marginLeft: '4px' }} />
+                  </span>
+                }
+                sx={{ mr: 0 }}
+              />
+            </Box>
             {/* Open parameter list */}
             <CustomButton
               variant="outlined"

@@ -29,6 +29,7 @@ import { styled } from '@mui/material/styles';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Box from '@mui/material/Box';
+import BugReportOutlinedIcon from '@mui/icons-material/BugReportOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Chip from '@mui/material/Chip';
@@ -299,13 +300,33 @@ const App: React.FC = () => {
                 >
                   {/* Debug Icon */}
                   {appSettings.debug && (
-                    <Chip
-                      size="small"
-                      color="warning"
-                      icon={<ScienceOutlinedIcon />}
-                      label={'Debug mode'}
-                      sx={{ marginRight: '8px' }}
-                    />
+                    <Tooltip
+                      title="Debug mode is now active. Additional prints and debug features enabled."
+                      arrow
+                    >
+                      <Chip
+                        size="small"
+                        color="error"
+                        icon={<BugReportOutlinedIcon />}
+                        label={'Debug mode'}
+                        sx={{ marginRight: '8px' }}
+                      />
+                    </Tooltip>
+                  )}
+                  {/* Experimental mode icon */}
+                  {appSettings.experimental && (
+                    <Tooltip
+                      title="Experimental mode is now active. Some features can be broken, incomplete or not yet tested."
+                      arrow
+                    >
+                      <Chip
+                        size="small"
+                        color="warning"
+                        icon={<ScienceOutlinedIcon />}
+                        label={'Experimental mode'}
+                        sx={{ marginRight: '8px' }}
+                      />
+                    </Tooltip>
                   )}
                   {/* Website Name */}
                   {import.meta.env.VITE_WEBSITE_NAME}

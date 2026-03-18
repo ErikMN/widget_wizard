@@ -4,6 +4,7 @@
 
 /* Application settings JSON interface */
 export interface AppSettings {
+  experimental: boolean;
   debug: boolean;
   mute: boolean;
   enableOnScreenMessages: boolean;
@@ -27,6 +28,7 @@ export interface AppSettings {
 
 /* Application settings default values */
 export const defaultAppSettings: AppSettings = {
+  experimental: false,
   debug: false,
   mute: false,
   enableOnScreenMessages: true,
