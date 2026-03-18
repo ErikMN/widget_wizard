@@ -166,9 +166,30 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  const [appSettings, setAppSettings] = useLocalStorage(
+  const [storedAppSettings, setStoredAppSettings] = useLocalStorage(
     'appSettings',
     defaultAppSettings
+  );
+  const appSettings = useMemo(
+    () => ({
+      ...defaultAppSettings,
+      ...storedAppSettings
+    }),
+    [storedAppSettings]
+  );
+  const setAppSettings = useCallback(
+    (valueOrFn: React.SetStateAction<AppSettings>) => {
+      setStoredAppSettings((prevSettings: AppSettings) => {
+        const mergedPrevSettings = {
+          ...defaultAppSettings,
+          ...prevSettings
+        };
+        return typeof valueOrFn === 'function'
+          ? valueOrFn(mergedPrevSettings)
+          : valueOrFn;
+      });
+    },
+    [setStoredAppSettings]
   );
 
   const value = useMemo(
