@@ -13,6 +13,16 @@
  * Returns true when the line contains the expected 8 CPU counters.
  * idle_time_out receives idle + iowait and total_time_out receives the sum
  * of all parsed counters so callers can compute interval deltas.
+ *
+ * Example output from /proc/stat:
+ *
+ *  cpu  57277044 5629 11784408 229059272 3662 1268624 3005137 0 0 0
+ *  cpu0 20635321 1126 2779234  51765436  619  246088  156119  0 0 0
+ *  cpu1 3857535  1628 2304868  66659442  1424 469090  2445343 0 0 0
+ *  cpu2 13234064 1643 3587886  58125653  888  288884  288294  0 0 0
+ *  cpu3 19550123 1230 3112419  52508739  729  264560  115380  0 0 0
+ *  ...
+ *  cpuN
  */
 static bool
 parse_cpu_stat_line(const char *line,
@@ -293,8 +303,10 @@ stats_read_cpu_stats(struct sys_stats *stats)
   if (!saw_aggregate) {
     return;
   }
+
   /* Keep the highest parsed CPU index seen in this pass, plus one */
   stats->cpu_per_core_count = max_cpu_index_seen;
+
   /* Save the current core count and mark CPU sampling as initialized */
   prev_core_count = max_cpu_index_seen;
   if (!initialized) {

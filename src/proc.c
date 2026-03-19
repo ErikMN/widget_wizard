@@ -154,6 +154,8 @@ find_pid_by_comm(const char *proc_name)
  * field, not the last ')'.
  *
  * Returns true on success.
+ *
+ * For more info check out: http://brokestream.com/procstat.html
  */
 static bool
 parse_proc_stat_times(const char *line, unsigned long long *utime_out, unsigned long long *stime_out)

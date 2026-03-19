@@ -105,6 +105,11 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
+ *
+ * Avoid to use these unsafe C functions in this app:
+ * https://github.com/git/git/blob/master/banned.h
+ *
+ * Example: Use snprintf instead of strncpy
  */
 #include <stdlib.h>
 #include <getopt.h>
