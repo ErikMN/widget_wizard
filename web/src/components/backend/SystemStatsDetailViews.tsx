@@ -1,5 +1,9 @@
 /* System stats detail views
- * Extracted detail panes for the system monitor UI.
+ * Show detailed system monitor views:
+ * - Process monitor
+ * - Process list
+ * - Storage info
+ * - System info
  */
 import React from 'react';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';

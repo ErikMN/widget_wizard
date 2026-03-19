@@ -12,52 +12,18 @@ import {
   SystemStatsStorageView,
   SystemStatsSystemView
 } from './SystemStatsDetailViews';
-import { useReconnectableWebSocket } from './useReconnectableWebSocket';
 import {
-  HistoryPoint,
-  ProcHistoryPoint,
-  ProcStats,
-  StorageInfo,
-  SystemInfo,
-  SysStats
-} from './systemStatsTypes';
+  SystemStatsBarsView,
+  SystemStatsChartView
+} from './SystemStatsOverviewViews';
+import { useSystemStatsStream } from './useSystemStatsStream';
+import { SystemInfo } from './systemStatsTypes';
 /* MUI */
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
-import LinearProgress from '@mui/material/LinearProgress';
-import MemoryIcon from '@mui/icons-material/Memory';
 import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-/* MUI X */
-import { LineChart } from '@mui/x-charts/LineChart';
-
-const MAX_HISTORY_POINTS = 60;
-
-/* Convert uptime in seconds to a compact human-readable string (e.g. "2d 3h 4m 5s"). */
-const formatUptime = (seconds: number): string => {
-  const totalSeconds = Math.max(0, Math.floor(seconds));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-
-  const parts: string[] = [];
-  if (days > 0) {
-    parts.push(`${days}d`);
-  }
-  if (hours > 0 || days > 0) {
-    parts.push(`${hours}h`);
-  }
-  if (minutes > 0 || hours > 0 || days > 0) {
-    parts.push(`${minutes}m`);
-  }
-  parts.push(`${secs}s`);
-
-  return parts.join(' ');
-};
 
 const formatOsName = (info: SystemInfo): string | null => {
   if (info.os_pretty_name && info.os_pretty_name.trim() !== '') {
@@ -93,18 +59,9 @@ const SystemStats: React.FC = () => {
   const WS_ADDRESS = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wsAddress}:${wsPort}`;
 
   /* Local state */
-  const [stats, setStats] = useState<SysStats | null>(null);
-  const [connected, setConnected] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<
     'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system'
   >('bars');
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [procName, setProcName] = useState<string>('');
-  const [procHistory, setProcHistory] = useState<ProcHistoryPoint[]>([]);
-  const [procError, setProcError] = useState<string | null>(null);
-  const [procStats, setProcStats] = useState<ProcStats | null>(null);
-  const [processList, setProcessList] = useState<string[]>([]);
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
   const [procMetrics, setProcMetrics] = useState<{
@@ -130,159 +87,33 @@ const SystemStats: React.FC = () => {
     useState<boolean>(false);
   const [chartCoreListExpanded, setChartCoreListExpanded] =
     useState<boolean>(false);
-  const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
 
   /* Refs */
   const mountMessageShownRef = useRef<boolean>(false);
 
   enableLogging(false);
 
-  const { send } = useReconnectableWebSocket({
-    url: WS_ADDRESS,
-    onOpen: () => {
-      setConnected(true);
-      setError(null);
-    },
-    onMessage: (event) => {
-      /* Server sends JSON snapshots */
-      try {
-        const data = JSON.parse(event.data);
-        // console.log('has proc:', !!data.proc);
-
-        /* One-shot process list */
-        if (Array.isArray(data.processes)) {
-          setProcessList(data.processes);
-          return;
-        }
-
-        /* One-shot storage list */
-        if (Array.isArray(data.storage)) {
-          setStorageInfo(data.storage);
-          return;
-        }
-
-        /* One-shot system info */
-        if (data.system && typeof data.system === 'object') {
-          setSystemInfo(data.system);
-          return;
-        }
-
-        setStats(data);
-
-        /* Set local proc stats state */
-        if (data.proc) {
-          setProcStats(data.proc);
-        }
-
-        const memUsedKb = data.mem_total_kb - data.mem_available_kb;
-        const memPercent = (memUsedKb / data.mem_total_kb) * 100;
-        setHistory((prev) => {
-          const next = [
-            ...prev,
-            {
-              ts: data.ts,
-              cpu: data.cpu,
-              mem: memPercent,
-              cpuPerCore: Array.isArray(data.cpu_per_core)
-                ? [...data.cpu_per_core]
-                : []
-            }
-          ];
-          return next.length > MAX_HISTORY_POINTS
-            ? next.slice(-MAX_HISTORY_POINTS)
-            : next;
-        });
-
-        /* Optional per process stats */
-        if (data.error && data.error.type === 'process_not_found') {
-          setProcError(data.error.message);
-
-          /* Only clear process state if we are actually monitoring something */
-          if (procName.trim() !== '') {
-            setProcStats(null);
-          }
-        } else if (data.proc) {
-          setProcError(null);
-          setProcHistory((prev) => {
-            /* If the monitored process PID changed (process restarted or replaced),
-             * reset the history to avoid mixing different processes into one graph.
-             *
-             * We must compare against the last recorded PID, not React state,
-             * because setStats() is async and stats.proc may be stale here.
-             */
-            if (prev.length > 0) {
-              const last = prev[prev.length - 1];
-              if (
-                (last as any).pid !== undefined &&
-                (last as any).pid !== data.proc.pid
-              ) {
-                return [
-                  {
-                    ts: data.ts,
-                    cpu: data.proc.cpu,
-                    rss: data.proc.rss_kb / 1024,
-                    pss: data.proc.pss_kb / 1024,
-                    uss: data.proc.uss_kb / 1024,
-                    pid: data.proc.pid
-                  }
-                ];
-              }
-            }
-
-            const next = [
-              ...prev,
-              {
-                ts: data.ts,
-                cpu: data.proc.cpu,
-                rss: data.proc.rss_kb / 1024,
-                pss: data.proc.pss_kb / 1024,
-                uss: data.proc.uss_kb / 1024,
-                pid: data.proc.pid
-              }
-            ];
-            return next.length > MAX_HISTORY_POINTS
-              ? next.slice(-MAX_HISTORY_POINTS)
-              : next;
-          });
-        }
-      } catch {
-        /* Ignore invalid JSON frames */
-      }
-    },
-    onError: () => {
-      setError('System monitor disconnected');
-      setConnected(false);
-    },
-    onClose: () => {
-      setConnected(false);
-    }
+  const {
+    connected,
+    error,
+    stats,
+    history,
+    procName,
+    setProcName,
+    procHistory,
+    procError,
+    procStats,
+    processList,
+    storageInfo,
+    systemInfo,
+    sendMonitorRequest,
+    requestProcessList,
+    requestStorageInfo,
+    requestSystemInfo,
+    clearMonitorInput
+  } = useSystemStatsStream({
+    url: WS_ADDRESS
   });
-
-  /* Send a per-process monitor request */
-  const sendMonitorRequest = () => {
-    if (!send(JSON.stringify({ monitor: procName.trim() }))) {
-      return;
-    }
-
-    setProcError(null);
-    setProcHistory([]);
-  };
-
-  /* Request a one-shot process list */
-  const requestProcessList = () => {
-    send(JSON.stringify({ list_processes: true }));
-  };
-
-  /* Request one-shot storage information */
-  const requestStorageInfo = () => {
-    send(JSON.stringify({ storage: true }));
-  };
-
-  /* Request one-shot system information */
-  const requestSystemInfo = () => {
-    send(JSON.stringify({ system_info: true }));
-  };
 
   /* Toggle which per-process metric to show */
   const toggleProcMetric = (key: keyof typeof procMetrics) => {
@@ -374,17 +205,6 @@ const SystemStats: React.FC = () => {
       duration: 5000
     });
   }, [connected, showMessage]);
-
-  const clearMonitorInput = () => {
-    /* Clear UI state */
-    setProcName('');
-    setProcError(null);
-    setProcHistory([]);
-    setError(null);
-
-    /* Tell backend to stop monitoring */
-    send(JSON.stringify({ monitor: '' }));
-  };
 
   /* Clear process filter */
   const clearProcessList = () => {
@@ -584,421 +404,38 @@ const SystemStats: React.FC = () => {
               </CustomButton>
             </Box>
 
-            {/* Use standard MUI components */}
             {viewMode === 'bars' && (
-              <>
-                {/* CPU */}
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                  >
-                    <DeveloperBoardIcon sx={{ fontSize: 16 }} />
-                    CPU: {cpuPercent.toFixed(1)} %
-                  </Typography>
-
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(cpuPercent, 100)}
-                    sx={{
-                      height: 16,
-                      borderRadius: 0
-                    }}
-                  />
-                </Box>
-
-                {/* Per-core CPU usage */}
-                {Array.isArray(stats.cpu_per_core) &&
-                  stats.cpu_per_core.length > 0 && (
-                    <Box>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 1,
-                          mb: barsCoreSectionExpanded ? 1 : 0
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                          }}
-                        >
-                          <DeveloperBoardIcon sx={{ fontSize: 16 }} />
-                          Per-core CPU usage
-                        </Typography>
-                        <CustomButton
-                          size="small"
-                          variant="outlined"
-                          onClick={() =>
-                            setBarsCoreSectionExpanded((prev) => !prev)
-                          }
-                          sx={{
-                            color: '#fff',
-                            borderColor: '#fff',
-                            flexShrink: 0
-                          }}
-                        >
-                          {barsCoreSectionExpanded ? 'Collapse' : 'Expand'}
-                        </CustomButton>
-                      </Box>
-                      {barsCoreSectionExpanded && (
-                        <Box
-                          sx={{
-                            display: 'grid',
-                            gridTemplateColumns:
-                              'repeat(auto-fit, minmax(140px, 1fr))',
-                            gap: 1
-                          }}
-                        >
-                          {stats.cpu_per_core.map((coreUsage, index) => (
-                            <Box key={`cpu-core-${index}`}>
-                              <Typography variant="caption">
-                                CPU {index}: {coreUsage.toFixed(1)} %
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={Math.min(coreUsage, 100)}
-                                sx={{
-                                  height: 10,
-                                  borderRadius: 0
-                                }}
-                              />
-                            </Box>
-                          ))}
-                        </Box>
-                      )}
-                    </Box>
-                  )}
-
-                {/* Memory */}
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                  >
-                    <MemoryIcon sx={{ fontSize: 16 }} />
-                    RAM: {memUsedPercent.toFixed(1)} % (
-                    {(memUsedKb / 1024).toFixed(0)} MB of{' '}
-                    {(stats.mem_total_kb / 1024).toFixed(0)} MB)
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(memUsedPercent, 100)}
-                    sx={{
-                      height: 16,
-                      borderRadius: 0
-                    }}
-                  />
-                </Box>
-
-                {/* Load average */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1
-                  }}
-                >
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Load 1m: ${stats.load1.toFixed(2)}`}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Load 5m: ${stats.load5.toFixed(2)}`}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Load 15m: ${stats.load15.toFixed(2)}`}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                </Box>
-
-                {/* Timestamp */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    alignSelf: 'flex-start'
-                  }}
-                >
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Updated at ${new Date(stats.ts).toLocaleTimeString()}`}
-                    sx={{
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Uptime: ${formatUptime(stats.uptime_s)}`}
-                    sx={{
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                </Box>
-
-                {/* System info */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    alignSelf: 'flex-start'
-                  }}
-                >
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`CPU cores: ${stats.cpu_cores}`}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                  <Chip
-                    size="small"
-                    variant="filled"
-                    label={`Clients: ${stats.clients.connected} / ${stats.clients.max}`}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      color: '#fff',
-                      '& .MuiChip-label': { color: '#fff' }
-                    }}
-                  />
-                </Box>
-              </>
+              <SystemStatsBarsView
+                stats={stats}
+                cpuPercent={cpuPercent}
+                memUsedKb={memUsedKb}
+                memUsedPercent={memUsedPercent}
+                barsCoreSectionExpanded={barsCoreSectionExpanded}
+                toggleBarsCoreSectionExpanded={() =>
+                  setBarsCoreSectionExpanded((prev) => !prev)
+                }
+              />
             )}
 
-            {/* Use MUI X LineChart for overall system stats */}
             {viewMode === 'chart' && (
-              <>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    alignSelf: 'flex-start'
-                  }}
-                >
-                  <Tooltip title="Total system CPU usage." arrow>
-                    <Chip
-                      disableRipple
-                      size="small"
-                      clickable
-                      onClick={() => toggleSysChartMetric('cpu')}
-                      label={`CPU ${cpuPercent.toFixed(1)} %`}
-                      sx={{
-                        color: '#fff',
-                        '& .MuiChip-label': { color: '#fff' },
-                        opacity: sysChartMetrics.cpu ? 1 : 0.5,
-                        border: sysChartMetrics.cpu
-                          ? '1px solid #fff'
-                          : undefined
-                      }}
-                    />
-                  </Tooltip>
-
-                  <Tooltip title="Total system RAM usage." arrow>
-                    <Chip
-                      disableRipple
-                      size="small"
-                      clickable
-                      onClick={() => toggleSysChartMetric('mem')}
-                      label={`RAM ${(memUsedKb / 1024).toFixed(0)} / ${(stats.mem_total_kb / 1024).toFixed(0)} MB`}
-                      sx={{
-                        color: '#fff',
-                        '& .MuiChip-label': { color: '#fff' },
-                        opacity: sysChartMetrics.mem ? 1 : 0.5,
-                        border: sysChartMetrics.mem
-                          ? '1px solid #fff'
-                          : undefined
-                      }}
-                    />
-                  </Tooltip>
-                </Box>
-
-                {Array.isArray(stats.cpu_per_core) &&
-                  stats.cpu_per_core.length > 0 && (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        width: '100%'
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        sx={{
-                          flexWrap: 'wrap'
-                        }}
-                      >
-                        <Typography variant="subtitle2">CPU cores</Typography>
-                        <Chip
-                          size="small"
-                          label={`${stats.cpu_per_core.length} cores`}
-                          sx={{
-                            color: '#fff',
-                            '& .MuiChip-label': { color: '#fff' },
-                            opacity: 0.7
-                          }}
-                        />
-                        <CustomButton
-                          size="small"
-                          variant="outlined"
-                          onClick={toggleAllSysChartCoreMetrics}
-                          sx={{
-                            color: '#fff',
-                            borderColor: '#fff'
-                          }}
-                        >
-                          {allSysChartCoresEnabled
-                            ? 'Hide all cores'
-                            : 'Show all cores'}
-                        </CustomButton>
-                        <CustomButton
-                          size="small"
-                          variant="outlined"
-                          onClick={() =>
-                            setChartCoreListExpanded((prev) => !prev)
-                          }
-                          sx={{
-                            color: '#fff',
-                            borderColor: '#fff'
-                          }}
-                        >
-                          {chartCoreListExpanded ? 'Collapse' : 'Expand'}
-                        </CustomButton>
-                      </Stack>
-
-                      {chartCoreListExpanded && (
-                        <Box
-                          sx={{
-                            maxHeight: '240px',
-                            width: '100%',
-                            overflowY: 'auto',
-                            whiteSpace: 'pre-wrap',
-                            fontFamily: 'monospace',
-                            fontSize: '12px',
-                            backgroundColor: '#111',
-                            color: '#fff',
-                            padding: '8px',
-                            border: '1px solid #333'
-                          }}
-                        >
-                          {stats.cpu_per_core.map((coreUsage, index) => (
-                            <div
-                              key={`sys-chart-core-${index}`}
-                              onClick={() => toggleSysChartCoreMetric(index)}
-                              style={{
-                                cursor: 'pointer',
-                                padding: '4px 6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                backgroundColor: sysChartCoreMetrics[index]
-                                  ? '#333'
-                                  : 'transparent'
-                              }}
-                            >
-                              <span>{`CPU ${index}`}</span>
-                              <span>{`${coreUsage.toFixed(1)} %`}</span>
-                            </div>
-                          ))}
-                        </Box>
-                      )}
-                    </Box>
-                  )}
-
-                <Box sx={{ width: '100%', overflowX: 'hidden' }}>
-                  <LineChart
-                    skipAnimation
-                    hideLegend
-                    height={220}
-                    margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
-                    series={[
-                      ...(sysChartMetrics.cpu
-                        ? [
-                            {
-                              data: history.map((h) => h.cpu),
-                              label: 'CPU %',
-                              area: true,
-                              baseline: 'min' as const,
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} %`
-                            }
-                          ]
-                        : []),
-
-                      ...(sysChartMetrics.mem
-                        ? [
-                            {
-                              data: history.map((h) => h.mem),
-                              label: 'RAM %',
-                              area: true,
-                              baseline: 'min' as const,
-                              showMark: false,
-                              valueFormatter: (v: number | null) =>
-                                v == null ? '' : `${v.toFixed(1)} %`
-                            }
-                          ]
-                        : []),
-
-                      ...sysChartCoreSeries
-                    ]}
-                    yAxis={sysChartYAxis}
-                    sx={{
-                      '& .MuiAreaElement-root': {
-                        fillOpacity: 0.12
-                      },
-                      '& .MuiChartsAxis-line': {
-                        stroke: '#fff !important'
-                      },
-                      '& .MuiChartsAxis-tick': {
-                        stroke: '#fff !important'
-                      },
-                      '& .MuiChartsAxis-tickLabel': {
-                        fill: '#fff !important'
-                      },
-                      '& .MuiChartsLegend-root': {
-                        color: '#fff !important'
-                      }
-                    }}
-                  />
-                </Box>
-              </>
+              <SystemStatsChartView
+                stats={stats}
+                history={history}
+                cpuPercent={cpuPercent}
+                memUsedKb={memUsedKb}
+                sysChartMetrics={sysChartMetrics}
+                toggleSysChartMetric={toggleSysChartMetric}
+                sysChartCoreMetrics={sysChartCoreMetrics}
+                toggleSysChartCoreMetric={toggleSysChartCoreMetric}
+                toggleAllSysChartCoreMetrics={toggleAllSysChartCoreMetrics}
+                allSysChartCoresEnabled={allSysChartCoresEnabled}
+                chartCoreListExpanded={chartCoreListExpanded}
+                toggleChartCoreListExpanded={() =>
+                  setChartCoreListExpanded((prev) => !prev)
+                }
+                sysChartCoreSeries={sysChartCoreSeries}
+                sysChartYAxis={sysChartYAxis}
+              />
             )}
 
             {/* Use MUI X LineChart for per-process stats */}
