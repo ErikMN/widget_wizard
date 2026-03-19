@@ -28,7 +28,7 @@
     "react-router-dom": "^7.13.1",
     "react-syntax-highlighter": "^16.1.1",
     "rehype-prism-plus": "^2.0.2",
-    "styled-components": "^6.3.11",
+    "styled-components": "^6.3.12",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
