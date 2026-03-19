@@ -6,6 +6,7 @@ import { log, enableLogging } from '../../helpers/logger';
 import { useAppSettingsContext } from '../context/AppContext';
 import { CustomButton, CustomStyledIconButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
+import { useReconnectableWebSocket } from './useReconnectableWebSocket';
 /* MUI */
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -187,52 +188,154 @@ const SystemStats: React.FC = () => {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
 
   /* Refs */
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<number | null>(null);
-  const isUnmountedRef = useRef<boolean>(false);
-  const intentionalCloseRef = useRef<boolean>(false);
-  const connectionIdRef = useRef<number>(0);
   const mountMessageShownRef = useRef<boolean>(false);
 
   enableLogging(false);
 
-  const isConnectingOrOpen = () =>
-    wsRef.current !== null &&
-    (wsRef.current.readyState === WebSocket.CONNECTING ||
-      wsRef.current.readyState === WebSocket.OPEN);
+  const { send } = useReconnectableWebSocket({
+    url: WS_ADDRESS,
+    onOpen: () => {
+      setConnected(true);
+      setError(null);
+    },
+    onMessage: (event) => {
+      /* Server sends JSON snapshots */
+      try {
+        const data = JSON.parse(event.data);
+        // console.log('has proc:', !!data.proc);
+
+        /* One-shot process list */
+        if (Array.isArray(data.processes)) {
+          setProcessList(data.processes);
+          return;
+        }
+
+        /* One-shot storage list */
+        if (Array.isArray(data.storage)) {
+          setStorageInfo(data.storage);
+          return;
+        }
+
+        /* One-shot system info */
+        if (data.system && typeof data.system === 'object') {
+          setSystemInfo(data.system);
+          return;
+        }
+
+        setStats(data);
+
+        /* Set local proc stats state */
+        if (data.proc) {
+          setProcStats(data.proc);
+        }
+
+        const memUsedKb = data.mem_total_kb - data.mem_available_kb;
+        const memPercent = (memUsedKb / data.mem_total_kb) * 100;
+        setHistory((prev) => {
+          const next = [
+            ...prev,
+            {
+              ts: data.ts,
+              cpu: data.cpu,
+              mem: memPercent,
+              cpuPerCore: Array.isArray(data.cpu_per_core)
+                ? [...data.cpu_per_core]
+                : []
+            }
+          ];
+          return next.length > MAX_HISTORY_POINTS
+            ? next.slice(-MAX_HISTORY_POINTS)
+            : next;
+        });
+
+        /* Optional per process stats */
+        if (data.error && data.error.type === 'process_not_found') {
+          setProcError(data.error.message);
+
+          /* Only clear process state if we are actually monitoring something */
+          if (procName.trim() !== '') {
+            setProcStats(null);
+          }
+        } else if (data.proc) {
+          setProcError(null);
+          setProcHistory((prev) => {
+            /* If the monitored process PID changed (process restarted or replaced),
+             * reset the history to avoid mixing different processes into one graph.
+             *
+             * We must compare against the last recorded PID, not React state,
+             * because setStats() is async and stats.proc may be stale here.
+             */
+            if (prev.length > 0) {
+              const last = prev[prev.length - 1];
+              if (
+                (last as any).pid !== undefined &&
+                (last as any).pid !== data.proc.pid
+              ) {
+                return [
+                  {
+                    ts: data.ts,
+                    cpu: data.proc.cpu,
+                    rss: data.proc.rss_kb / 1024,
+                    pss: data.proc.pss_kb / 1024,
+                    uss: data.proc.uss_kb / 1024,
+                    pid: data.proc.pid
+                  }
+                ];
+              }
+            }
+
+            const next = [
+              ...prev,
+              {
+                ts: data.ts,
+                cpu: data.proc.cpu,
+                rss: data.proc.rss_kb / 1024,
+                pss: data.proc.pss_kb / 1024,
+                uss: data.proc.uss_kb / 1024,
+                pid: data.proc.pid
+              }
+            ];
+            return next.length > MAX_HISTORY_POINTS
+              ? next.slice(-MAX_HISTORY_POINTS)
+              : next;
+          });
+        }
+      } catch {
+        /* Ignore invalid JSON frames */
+      }
+    },
+    onError: () => {
+      setError('System monitor disconnected');
+      setConnected(false);
+    },
+    onClose: () => {
+      setConnected(false);
+    }
+  });
 
   /* Send a per-process monitor request */
   const sendMonitorRequest = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    if (!send(JSON.stringify({ monitor: procName.trim() }))) {
       return;
     }
+
     setProcError(null);
     setProcHistory([]);
-    wsRef.current.send(JSON.stringify({ monitor: procName.trim() }));
   };
 
   /* Request a one-shot process list */
   const requestProcessList = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    wsRef.current.send(JSON.stringify({ list_processes: true }));
+    send(JSON.stringify({ list_processes: true }));
   };
 
   /* Request one-shot storage information */
   const requestStorageInfo = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    wsRef.current.send(JSON.stringify({ storage: true }));
+    send(JSON.stringify({ storage: true }));
   };
 
   /* Request one-shot system information */
   const requestSystemInfo = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    wsRef.current.send(JSON.stringify({ system_info: true }));
+    send(JSON.stringify({ system_info: true }));
   };
 
   /* Toggle which per-process metric to show */
@@ -309,245 +412,6 @@ const SystemStats: React.FC = () => {
       .slice(0, stats?.cpu_per_core?.length ?? 0)
       .every(Boolean);
 
-  /* Open (or reopen) the WebSocket connection used to stream system stats.
-   *
-   * This function is written to be safe with:
-   * - Unmount during CONNECTING (tab switch, route change)
-   * - Backend disconnects (reconnect every 2 seconds)
-   *
-   * refs used:
-   * - isUnmountedRef: true after cleanup, prevents starting new connections.
-   * - intentionalCloseRef: true when we are intentionally closing during cleanup,
-   *   used to suppress reconnect and error handling.
-   * - wsRef: holds the currently active WebSocket instance for cleanup and state checks.
-   */
-  const connect = () => {
-    /* Do not create a socket if the component has been unmounted. */
-    if (isUnmountedRef.current) {
-      return;
-    }
-
-    /* Prevent parallel connections */
-    if (isConnectingOrOpen()) {
-      return;
-    }
-
-    /* This is a normal (non-teardown) connection attempt. */
-    intentionalCloseRef.current = false;
-
-    /* New connection attempt generation */
-    const myConnectionId = ++connectionIdRef.current;
-
-    /* Create a new WebSocket and remember it for cleanup. */
-    const ws = new WebSocket(WS_ADDRESS);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      /* Ignore stale sockets */
-      if (myConnectionId !== connectionIdRef.current) {
-        ws.close();
-        return;
-      }
-
-      /* If the component was unmounted while the socket was CONNECTING,
-       * the socket may still complete the handshake and become OPEN.
-       * In that case, immediately close it to avoid a leaked connection.
-       */
-      if (intentionalCloseRef.current || isUnmountedRef.current) {
-        ws.close();
-        return;
-      }
-      setConnected(true);
-      setError(null);
-    };
-
-    ws.onmessage = (event) => {
-      /* Ignore stale sockets */
-      if (myConnectionId !== connectionIdRef.current) {
-        return;
-      }
-
-      /* Server sends JSON snapshots */
-      try {
-        const data = JSON.parse(event.data);
-        // console.log('has proc:', !!data.proc);
-
-        /* One-shot process list */
-        if (Array.isArray(data.processes)) {
-          setProcessList(data.processes);
-          return;
-        }
-        /* One-shot storage list */
-        if (Array.isArray(data.storage)) {
-          setStorageInfo(data.storage);
-          return;
-        }
-        /* One-shot system info */
-        if (data.system && typeof data.system === 'object') {
-          setSystemInfo(data.system);
-          return;
-        }
-
-        setStats(data);
-
-        /* Set local proc stats state */
-        if (data.proc) {
-          setProcStats(data.proc);
-        }
-
-        const memUsedKb = data.mem_total_kb - data.mem_available_kb;
-        const memPercent = (memUsedKb / data.mem_total_kb) * 100;
-        setHistory((prev) => {
-          const next = [
-            ...prev,
-            {
-              ts: data.ts,
-              cpu: data.cpu,
-              mem: memPercent,
-              cpuPerCore: Array.isArray(data.cpu_per_core)
-                ? [...data.cpu_per_core]
-                : []
-            }
-          ];
-          return next.length > MAX_HISTORY_POINTS
-            ? next.slice(-MAX_HISTORY_POINTS)
-            : next;
-        });
-        /* Optional per process stats */
-        if (data.error && data.error.type === 'process_not_found') {
-          setProcError(data.error.message);
-          /* Only clear process state if we are actually monitoring something */
-          if (procName.trim() !== '') {
-            setProcStats(null);
-          }
-        } else if (data.proc) {
-          setProcError(null);
-          setProcHistory((prev) => {
-            /* If the monitored process PID changed (process restarted or replaced),
-             * reset the history to avoid mixing different processes into one graph.
-             *
-             * We must compare against the last recorded PID, not React state,
-             * because setStats() is async and stats.proc may be stale here.
-             */
-            if (prev.length > 0) {
-              const last = prev[prev.length - 1];
-              if (
-                (last as any).pid !== undefined &&
-                (last as any).pid !== data.proc.pid
-              ) {
-                return [
-                  {
-                    ts: data.ts,
-                    cpu: data.proc.cpu,
-                    rss: data.proc.rss_kb / 1024,
-                    pss: data.proc.pss_kb / 1024,
-                    uss: data.proc.uss_kb / 1024,
-                    pid: data.proc.pid
-                  }
-                ];
-              }
-            }
-            const next = [
-              ...prev,
-              {
-                ts: data.ts,
-                cpu: data.proc.cpu,
-                rss: data.proc.rss_kb / 1024,
-                pss: data.proc.pss_kb / 1024,
-                uss: data.proc.uss_kb / 1024,
-                pid: data.proc.pid
-              }
-            ];
-            return next.length > MAX_HISTORY_POINTS
-              ? next.slice(-MAX_HISTORY_POINTS)
-              : next;
-          });
-        }
-      } catch {
-        /* Ignore invalid JSON frames */
-      }
-    };
-
-    ws.onerror = () => {
-      /* Ignore stale sockets */
-      if (myConnectionId !== connectionIdRef.current) {
-        return;
-      }
-
-      /* Suppress errors during intentional teardown */
-      if (intentionalCloseRef.current) {
-        return;
-      }
-      setError('System monitor disconnected');
-      setConnected(false);
-    };
-
-    ws.onclose = () => {
-      /* Ignore stale sockets */
-      if (myConnectionId !== connectionIdRef.current) {
-        return;
-      }
-
-      /* Suppress reconnect during intentional teardown */
-      if (intentionalCloseRef.current) {
-        return;
-      }
-      setConnected(false);
-
-      /* Connection dropped: try again later */
-      scheduleReconnect();
-    };
-  };
-
-  const scheduleReconnect = () => {
-    /* Do not reconnect if the component has been unmounted */
-    if (isUnmountedRef.current) {
-      return;
-    }
-    /* Avoid scheduling multiple reconnect timers in parallel */
-    if (reconnectTimerRef.current !== null) {
-      return;
-    }
-
-    /* Capture the current connection generation to detect stale reconnects */
-    const scheduledConnectionId = connectionIdRef.current;
-
-    /* Schedule a delayed reconnect attempt */
-    reconnectTimerRef.current = window.setTimeout(() => {
-      /* Clear the timer reference once it fires */
-      reconnectTimerRef.current = null;
-
-      /* Abort if the component was unmounted while waiting */
-      if (isUnmountedRef.current) {
-        return;
-      }
-      /* Abort if a newer connection attempt was started meanwhile */
-      if (scheduledConnectionId !== connectionIdRef.current) {
-        return;
-      }
-      /* Reconnect using the current WebSocket configuration */
-      connect();
-    }, 2000);
-  };
-
-  const closeSocket = (socket: WebSocket | null) => {
-    if (!socket) {
-      return;
-    }
-    /* Detach handlers so teardown does not trigger reconnect/error flows. */
-    socket.onclose = null;
-    socket.onerror = null;
-    socket.onopen = null;
-    socket.onmessage = null;
-    /* Close both CONNECTING and OPEN sockets to avoid leaked connections. */
-    if (
-      socket.readyState === WebSocket.CONNECTING ||
-      socket.readyState === WebSocket.OPEN
-    ) {
-      socket.close();
-    }
-  };
-
   /* Show on-screen message when connected */
   useEffect(() => {
     if (mountMessageShownRef.current) {
@@ -565,67 +429,6 @@ const SystemStats: React.FC = () => {
     });
   }, [connected, showMessage]);
 
-  /* Manage the WebSocket connection lifecycle for this route-scoped component.
-   *
-   * Mount:
-   * - Reset lifecycle flags for this component instance.
-   * - Establish the initial WebSocket connection.
-   *
-   * Unmount:
-   * - Mark the component as unmounted to prevent any future reconnect attempts.
-   * - Mark the close as intentional so event handlers do not schedule reconnects
-   *   or report spurious errors while tearing down.
-   * - Cancel any pending reconnect timer.
-   * - Detach WebSocket event handlers and close the socket if it is OPEN.
-   */
-  useEffect(() => {
-    /* Component is active: allow connections and normal error handling */
-    isUnmountedRef.current = false;
-    intentionalCloseRef.current = false;
-
-    /* Start (or resume) stats streaming */
-    connect();
-
-    return () => {
-      /* Invalidate any in-flight connection and its callbacks/timers */
-      connectionIdRef.current += 1;
-
-      /* Component is unmounting, prevent reconnects */
-      isUnmountedRef.current = true;
-      intentionalCloseRef.current = true;
-
-      /* Cancel any scheduled reconnect attempt */
-      if (reconnectTimerRef.current !== null) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
-
-      /* Stop the WebSocket connection */
-      if (wsRef.current) {
-        closeSocket(wsRef.current);
-        wsRef.current = null;
-      }
-    };
-  }, []);
-
-  /* Reconnect when WS settings change */
-  useEffect(() => {
-    /* Invalidate any in-flight connection + reconnect attempts */
-    connectionIdRef.current += 1;
-
-    if (reconnectTimerRef.current !== null) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    intentionalCloseRef.current = true;
-    if (wsRef.current) {
-      closeSocket(wsRef.current);
-      wsRef.current = null;
-    }
-    intentionalCloseRef.current = false;
-    connect();
-  }, [appSettings.wsAddress, appSettings.wsPort]);
-
   const clearMonitorInput = () => {
     /* Clear UI state */
     setProcName('');
@@ -634,9 +437,7 @@ const SystemStats: React.FC = () => {
     setError(null);
 
     /* Tell backend to stop monitoring */
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ monitor: '' }));
-    }
+    send(JSON.stringify({ monitor: '' }));
   };
 
   /* Clear process filter */
