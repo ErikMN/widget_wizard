@@ -78,7 +78,7 @@ read_os_release(struct system_info *out)
 }
 
 bool
-read_system_info(struct system_info *out)
+system_info_read(struct system_info *out)
 {
   struct utsname u;
 

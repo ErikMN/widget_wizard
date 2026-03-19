@@ -227,8 +227,8 @@ main(int argc, char **argv)
   syslog(LOG_INFO, "WebSocket server listening on port %d", ws_port);
 
   /* Initialize latest_stats and establish CPU usage baseline */
-  read_cpu_stats(&app.stats);
-  read_mem_stats(&app.stats);
+  stats_read_cpu_stats(&app.stats);
+  stats_read_mem(&app.stats);
 
   /* Start the main loop */
   g_main_loop_run(main_loop);

@@ -16,7 +16,7 @@
  * On failure, returns 0
  */
 uint64_t
-get_time_ms(clockid_t clk_id)
+util_get_time_ms(clockid_t clk_id)
 {
   struct timespec ts;
 

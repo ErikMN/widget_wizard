@@ -229,14 +229,14 @@ parse_proc_stat_times(const char *line, unsigned long long *utime_out, unsigned 
  * could not be read. On failure, outputs are set to 0.
  */
 bool
-read_process_stats(const char *proc_name,
-                   struct per_session_data *pss,
-                   uint64_t now_mono_ms,
-                   double *cpu_out,
-                   long *rss_kb_out,
-                   long *pss_kb_out,
-                   long *uss_kb_out,
-                   pid_t *pid_out)
+proc_read_process_stats(const char *proc_name,
+                        struct per_session_data *pss,
+                        uint64_t now_mono_ms,
+                        double *cpu_out,
+                        long *rss_kb_out,
+                        long *pss_kb_out,
+                        long *uss_kb_out,
+                        pid_t *pid_out)
 {
   pid_t pid = -1;
   char path[MAX_PROC_PATH_LENGTH];
@@ -469,7 +469,7 @@ read_process_stats(const char *proc_name,
  * - Returns 0 on failure or if no processes are found.
  */
 size_t
-collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
+proc_collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names)
 {
   DIR *proc_dir = NULL;
   struct dirent *ent; /* Directory entry used when iterating over /proc */

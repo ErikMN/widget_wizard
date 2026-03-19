@@ -98,7 +98,7 @@ build_stats_json(char *out_buf,
     pid_t proc_pid = 0;
 
     /* Read the process stats */
-    if (read_process_stats(
+    if (proc_read_process_stats(
             pss->proc_name, pss, stats->monotonic_ms, &proc_cpu, &proc_rss_kb, &proc_pss_kb, &proc_uss_kb, &proc_pid)) {
       json_t *proc = json_object();
       if (!proc) {
@@ -156,7 +156,7 @@ build_process_list_json(char *out_buf, size_t out_size, bool *truncated)
 {
   /* Buffer for a deduplicated snapshot of process names read from /proc/<pid>/comm */
   char proc_names[MAX_PROCESS_COUNT][MAX_PROC_NAME_LENGTH];
-  size_t proc_count = collect_process_list(proc_names, MAX_PROCESS_COUNT);
+  size_t proc_count = proc_collect_process_list(proc_names, MAX_PROCESS_COUNT);
 
   json_t *resp = json_object();
   json_t *arr = json_array();
@@ -214,7 +214,7 @@ size_t
 build_storage_json(char *out_buf, size_t out_size, bool *truncated)
 {
   struct storage_info storage[MAX_STORAGE_MOUNTS];
-  size_t storage_count = collect_storage_info(storage, MAX_STORAGE_MOUNTS);
+  size_t storage_count = storage_collect_info(storage, MAX_STORAGE_MOUNTS);
 
   json_t *resp = json_object();
   json_t *arr = json_array();
@@ -301,7 +301,7 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
     return 0;
   }
 
-  if (!read_system_info(&info)) {
+  if (!system_info_read(&info)) {
     return 0;
   }
 

@@ -99,7 +99,7 @@ parse_cpu_index(const char *label, size_t *cpu_index_out)
  * and return them in stats structure.
  */
 void
-read_mem_stats(struct sys_stats *stats)
+stats_read_mem(struct sys_stats *stats)
 {
   char line[MAX_PROC_LINE_LENGTH];
   long value = 0;
@@ -162,7 +162,7 @@ read_mem_stats(struct sys_stats *stats)
  * array is left empty.
  */
 void
-read_cpu_stats(struct sys_stats *stats)
+stats_read_cpu_stats(struct sys_stats *stats)
 {
   const size_t cpu_prefix_length = strlen("cpu");
   /* Buffer for reading a single line from /proc/stat */
@@ -371,23 +371,23 @@ read_uptime_load(struct sys_stats *stats)
  * - This function performs no locking; the caller must ensure single-threaded access.
  */
 void
-update_sys_stats(struct sys_stats *stats)
+stats_update_sys_stats(struct sys_stats *stats)
 {
   if (!stats) {
     return;
   }
   /* Read stats */
-  read_cpu_stats(stats);
-  read_mem_stats(stats);
+  stats_read_cpu_stats(stats);
+  stats_read_mem(stats);
   read_uptime_load(stats);
 
   /* Wall-clock timestamp (real time) */
-  stats->timestamp_ms = get_time_ms(CLOCK_REALTIME);
+  stats->timestamp_ms = util_get_time_ms(CLOCK_REALTIME);
 
   /* Previous monotonic timestamp for delta calculation */
   static uint64_t prev_mono_ms = 0;
   /* Current monotonic timestamp (not affected by clock adjustments) */
-  uint64_t now_mono_ms = get_time_ms(CLOCK_MONOTONIC);
+  uint64_t now_mono_ms = util_get_time_ms(CLOCK_MONOTONIC);
   /* Store monotonic time for consumers that need stable timing */
   stats->monotonic_ms = now_mono_ms;
   /* Compute elapsed time since last sample using monotonic clock */

@@ -18,4 +18,4 @@
  *
  * On failure, returns 0
  */
-uint64_t get_time_ms(clockid_t clk_id);
+uint64_t util_get_time_ms(clockid_t clk_id);

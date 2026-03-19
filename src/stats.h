@@ -47,7 +47,7 @@ struct sys_stats {
 /* Read MemTotal and MemAvailable from /proc/meminfo
  * and return them in stats structure.
  */
-void read_mem_stats(struct sys_stats *stats);
+void stats_read_mem(struct sys_stats *stats);
 
 /* Read CPU time counters from /proc/stat and compute usage.
  *
@@ -65,10 +65,10 @@ void read_mem_stats(struct sys_stats *stats);
  * samples. On read or parse failure, cpu_usage is set to 0.0 and the per-core
  * array is left empty.
  */
-void read_cpu_stats(struct sys_stats *stats);
+void stats_read_cpu_stats(struct sys_stats *stats);
 
 /* Update all fields in stats, including timestamps and delta_ms.
  *
  * This is intended to be called periodically by the caller.
  */
-void update_sys_stats(struct sys_stats *stats);
+void stats_update_sys_stats(struct sys_stats *stats);

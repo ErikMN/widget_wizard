@@ -60,7 +60,7 @@ stats_timer_cb(gpointer user_data)
 {
   struct app_state *app = user_data;
 
-  update_sys_stats(&app->stats);
+  stats_update_sys_stats(&app->stats);
 
   return G_SOURCE_CONTINUE;
 }

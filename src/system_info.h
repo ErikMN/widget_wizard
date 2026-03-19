@@ -26,4 +26,4 @@ struct system_info {
  *
  * Returns true on success, false on failure.
  */
-bool read_system_info(struct system_info *out);
+bool system_info_read(struct system_info *out);

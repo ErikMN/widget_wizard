@@ -117,7 +117,7 @@ read_storage_for_path(const char *path, struct storage_info *out)
  * - Number of storage_info entries written to out.
  */
 size_t
-collect_storage_info(struct storage_info *out, size_t max_entries)
+storage_collect_info(struct storage_info *out, size_t max_entries)
 {
   size_t count = 0;
   size_t path_count = sizeof(storage_paths) / sizeof(storage_paths[0]);

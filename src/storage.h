@@ -33,4 +33,4 @@ struct storage_info {
  * Returns:
  * - Number of storage_info entries written to out.
  */
-size_t collect_storage_info(struct storage_info *out, size_t max_entries);
+size_t storage_collect_info(struct storage_info *out, size_t max_entries);

@@ -53,14 +53,14 @@ long proc_get_cpu_core_count(void);
  * Returns true on success, false if the process was not found or data
  * could not be read. On failure, outputs are set to 0.
  */
-bool read_process_stats(const char *proc_name,
-                        struct per_session_data *pss,
-                        uint64_t now_mono_ms,
-                        double *cpu_out,
-                        long *rss_kb_out,
-                        long *pss_kb_out,
-                        long *uss_kb_out,
-                        pid_t *pid_out);
+bool proc_read_process_stats(const char *proc_name,
+                             struct per_session_data *pss,
+                             uint64_t now_mono_ms,
+                             double *cpu_out,
+                             long *rss_kb_out,
+                             long *pss_kb_out,
+                             long *uss_kb_out,
+                             pid_t *pid_out);
 
 /* Collect a unique list of running process names from /proc.
  *
@@ -89,4 +89,4 @@ bool read_process_stats(const char *proc_name,
  * - Number of unique process names written to the output array.
  * - Returns 0 on failure or if no processes are found.
  */
-size_t collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names);
+size_t proc_collect_process_list(char names[][MAX_PROC_NAME_LENGTH], size_t max_names);
