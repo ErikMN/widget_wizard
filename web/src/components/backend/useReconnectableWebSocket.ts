@@ -45,13 +45,15 @@ export const useReconnectableWebSocket = ({
   onError,
   onClose
 }: UseReconnectableWebSocketOptions): UseReconnectableWebSocketResult => {
+  /* Local state */
+  const [readyState, setReadyState] = useState<number | null>(null);
+
   /* Refs */
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const isUnmountedRef = useRef<boolean>(false);
   const intentionalCloseRef = useRef<boolean>(false);
   const connectionIdRef = useRef<number>(0);
-  const [readyState, setReadyState] = useState<number | null>(null);
 
   const setSocketState = (state: number | null) => {
     setReadyState(state);
