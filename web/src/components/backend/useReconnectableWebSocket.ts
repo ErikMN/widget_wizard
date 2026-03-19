@@ -54,6 +54,15 @@ export const useReconnectableWebSocket = ({
   const isUnmountedRef = useRef<boolean>(false);
   const intentionalCloseRef = useRef<boolean>(false);
   const connectionIdRef = useRef<number>(0);
+  const onOpenRef = useRef<typeof onOpen>(onOpen);
+  const onMessageRef = useRef<typeof onMessage>(onMessage);
+  const onErrorRef = useRef<typeof onError>(onError);
+  const onCloseRef = useRef<typeof onClose>(onClose);
+
+  onOpenRef.current = onOpen;
+  onMessageRef.current = onMessage;
+  onErrorRef.current = onError;
+  onCloseRef.current = onClose;
 
   const setSocketState = (state: number | null) => {
     setReadyState(state);
@@ -171,7 +180,7 @@ export const useReconnectableWebSocket = ({
       }
 
       setSocketState(ws.readyState);
-      onOpen?.(ws);
+      onOpenRef.current?.(ws);
     };
 
     ws.onmessage = (event) => {
@@ -180,7 +189,7 @@ export const useReconnectableWebSocket = ({
         return;
       }
 
-      onMessage?.(event);
+      onMessageRef.current?.(event);
     };
 
     ws.onerror = (event) => {
@@ -195,7 +204,7 @@ export const useReconnectableWebSocket = ({
       }
 
       setSocketState(ws.readyState);
-      onError?.(event);
+      onErrorRef.current?.(event);
     };
 
     ws.onclose = (event) => {
@@ -210,7 +219,7 @@ export const useReconnectableWebSocket = ({
       }
 
       setSocketState(ws.readyState);
-      onClose?.(event);
+      onCloseRef.current?.(event);
 
       /* Connection dropped: try again later */
       scheduleReconnect();

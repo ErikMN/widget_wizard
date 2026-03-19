@@ -7,7 +7,7 @@
  * - One-shot process list, storage, and system info responses
  * - Request helpers for the system monitor backend
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReconnectableWebSocket } from './useReconnectableWebSocket';
 import {
   HistoryPoint,
@@ -64,9 +64,27 @@ export const useSystemStatsStream = ({
   const procNameRef = useRef<string>(procName);
   procNameRef.current = procName;
 
+  const resetStreamData = () => {
+    setStats(null);
+    setHistory([]);
+    setProcHistory([]);
+    setProcError(null);
+    setProcStats(null);
+    setProcessList([]);
+    setStorageInfo([]);
+    setSystemInfo(null);
+  };
+
+  useEffect(() => {
+    setConnected(false);
+    setError(null);
+    resetStreamData();
+  }, [url]);
+
   const { sendJson } = useReconnectableWebSocket({
     url,
     onOpen: () => {
+      resetStreamData();
       setConnected(true);
       setError(null);
     },
@@ -213,9 +231,10 @@ export const useSystemStatsStream = ({
   const clearMonitorInput = () => {
     /* Clear UI state */
     setProcName('');
+    setError(null);
     setProcError(null);
     setProcHistory([]);
-    setError(null);
+    setProcStats(null);
 
     /* Tell backend to stop monitoring */
     sendJson({ monitor: '' });

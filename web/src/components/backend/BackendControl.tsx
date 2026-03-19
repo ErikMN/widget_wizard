@@ -172,9 +172,27 @@ const BackendControl: React.FC = () => {
   };
 
   const isValidWsHost = (host: string): boolean => {
+    const trimmedHost = host.trim();
+
+    if (trimmedHost === '') {
+      return false;
+    }
+
     try {
-      new URL(`ws://${host}`);
-      return true;
+      const url = new URL(`ws://${trimmedHost}`);
+      const isBracketedIpv6 =
+        trimmedHost.startsWith('[') && trimmedHost.endsWith(']');
+
+      return (
+        url.username === '' &&
+        url.password === '' &&
+        url.port === '' &&
+        url.pathname === '/' &&
+        url.search === '' &&
+        url.hash === '' &&
+        (trimmedHost === url.hostname ||
+          (isBracketedIpv6 && trimmedHost === `[${url.hostname}]`))
+      );
     } catch {
       return false;
     }
@@ -192,7 +210,7 @@ const BackendControl: React.FC = () => {
     /* Validate port number */
     if (
       nextPort !== undefined &&
-      (!Number.isInteger(nextPort) || nextPort <= 0)
+      (!Number.isInteger(nextPort) || nextPort <= 0 || nextPort > 65535)
     ) {
       setError('Invalid WebSocket port');
       return;
