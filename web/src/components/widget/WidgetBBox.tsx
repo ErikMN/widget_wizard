@@ -15,6 +15,7 @@ import lockSoundUrl from '../../assets/audio/lock.oga';
 import unlockSoundUrl from '../../assets/audio/unlock.oga';
 import {
   HD_WIDTH,
+  HD_HEIGHT,
   getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
   calculateNormalizedPosition,
@@ -144,8 +145,12 @@ export const WidgetBox = React.memo(
     return thicknessMappings[appSettings.bboxThickness];
   }, [appSettings.bboxThickness]);
 
-  /* Widget backend uses 1920x1080 HD resolution */
-  const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
+  /* Scale HD (1920×1080) coordinates to fit the current video area */
+  const scaleFactor =
+    Math.min(
+      dimensions.pixelWidth / HD_WIDTH,
+      dimensions.pixelHeight / HD_HEIGHT
+    ) || 1;
 
   /* Set bounding box position based on anchor */
   const getAnchoredPosition = (anchor: string, dimensions: Dimensions) => {

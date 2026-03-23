@@ -5,6 +5,7 @@ import { Dimensions } from '../components/appInterface';
 
 /* Widget backend uses 1920x1080 HD resolution */
 export const HD_WIDTH = 1920;
+export const HD_HEIGHT = 1080;
 
 export interface Position {
   x: number;
