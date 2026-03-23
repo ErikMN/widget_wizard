@@ -5,18 +5,6 @@ import { Dimensions } from '../components/appInterface';
 
 /* Widget backend uses 1920x1080 HD resolution */
 export const HD_WIDTH = 1920;
-export const HD_HEIGHT = 1080;
-
-/* Calculate uniform scale factor that maintains widget aspect ratio */
-export const calculateUniformScaleFactor = (dimensions: {
-  pixelWidth: number;
-  pixelHeight: number;
-}): number => {
-  const scaleFactorX = dimensions.pixelWidth / HD_WIDTH;
-  const scaleFactorY = dimensions.pixelHeight / HD_HEIGHT;
-  /* NOTE: Use minimum to prevent aspect ratio distortion at non-16:9 ratios */
-  return Math.min(scaleFactorX, scaleFactorY) || 1;
-};
 
 export interface Position {
   x: number;
