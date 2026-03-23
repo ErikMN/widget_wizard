@@ -15,6 +15,7 @@ import lockSoundUrl from '../../assets/audio/lock.oga';
 import unlockSoundUrl from '../../assets/audio/unlock.oga';
 import {
   HD_WIDTH,
+  calculateUniformScaleFactor,
   getWidgetPixelPosition,
   calculateWidgetSizeInPixels,
   calculateNormalizedPosition,
@@ -145,10 +146,11 @@ export const WidgetBox = React.memo(
   }, [appSettings.bboxThickness]);
 
   /* Widget backend uses 1920x1080 HD resolution */
-  const scaleFactor = dimensions.pixelWidth / HD_WIDTH || 1;
+  /* Calculate uniform scale factor to prevent aspect ratio distortion at non-16:9 ratios (example: 32:9) */
+  const scaleFactor = calculateUniformScaleFactor(dimensions);
 
   /* Set bounding box position based on anchor */
-  const getAnchoredPosition = (anchor: string, dimensions: Dimensions) => {
+  const getAnchoredPosition = (anchor: string) => {
     switch (anchor) {
       case 'topLeft':
         return { x: -1, y: -1 };
@@ -200,7 +202,7 @@ export const WidgetBox = React.memo(
   /* Adjust position if widget is anchored */
   const anchoredPosition = useMemo(() => {
     if (widget.generalParams.anchor !== 'none') {
-      return getAnchoredPosition(widget.generalParams.anchor, dimensions);
+      return getAnchoredPosition(widget.generalParams.anchor);
     }
     /* Fall back to normal position if no anchor is set */
     return getWidgetPixelPosition(
