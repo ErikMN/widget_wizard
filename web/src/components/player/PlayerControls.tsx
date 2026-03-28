@@ -2,7 +2,7 @@
  * PlayerControls
  *
  * Handle the controls for the video player:
- *  - Play and pause (actually stop)
+ *  - Play and stop
  *  - Refresh
  *  - Screenshot
  *  - Settings toggle
@@ -19,10 +19,10 @@ import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import FullscreenExitOutlinedIcon from '@mui/icons-material/FullscreenExitOutlined';
 import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined';
-import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import StopIcon from '@mui/icons-material/Stop';
 import Tooltip from '@mui/material/Tooltip';
 
 function isHTMLMediaElement(el: HTMLElement): el is HTMLMediaElement {
@@ -403,8 +403,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
               edge="end"
               sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
             >
-              {/* NOTE: Should technically be a stop icon but pause looks nicer */}
-              <PauseIcon sx={controlIconStyle} />
+              <StopIcon sx={controlIconStyle} />
             </CustomStyledIconButton>
           </Tooltip>
         ) : (
