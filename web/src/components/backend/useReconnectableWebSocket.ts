@@ -1,5 +1,4 @@
-/* Reconnectable WebSocket
- * Reusable hook for the backend WS connection lifecycle.
+/* Reconnectable WebSocket hook
  *
  * Handles:
  * - Initial connect
@@ -129,17 +128,18 @@ export const useReconnectableWebSocket = ({
     }, reconnectDelayMs);
   }
 
-  /* Open (or reopen) the WebSocket connection used to stream system stats.
+  /* Open or reopen the configured WebSocket connection.
    *
    * This function is written to be safe with:
-   * - Unmount during CONNECTING (tab switch, route change)
-   * - Backend disconnects (reconnect every 2 seconds)
+   * - Unmount while the socket is CONNECTING
+   * - Backend disconnects that should trigger reconnects after reconnectDelayMs
    *
    * refs used:
-   * - isUnmountedRef: true after cleanup, prevents starting new connections.
-   * - intentionalCloseRef: true when we are intentionally closing during cleanup,
-   *   used to suppress reconnect and error handling.
-   * - wsRef: holds the currently active WebSocket instance for cleanup and state checks.
+   * - isUnmountedRef prevents starting new connections after cleanup.
+   * - intentionalCloseRef suppresses teardown-time reconnect and error handling and
+   *   closes sockets that finish opening during teardown.
+   * - connectionIdRef invalidates stale sockets and stale reconnect attempts.
+   * - wsRef stores the current WebSocket for cleanup and readyState checks.
    */
   function connect() {
     /* Do not create a socket if the component has been unmounted. */
@@ -226,29 +226,29 @@ export const useReconnectableWebSocket = ({
     };
   }
 
-  /* Manage the WebSocket connection lifecycle for this route-scoped component.
+  /* Manage mount and unmount lifecycle for this hook instance.
    *
    * Mount:
-   * - Reset lifecycle flags for this component instance.
-   * - Establish the initial WebSocket connection.
+   * - Clear unmounted and intentional close flags.
+   * - Start a WebSocket connection attempt.
    *
    * Unmount:
-   * - Mark the component as unmounted to prevent any future reconnect attempts.
-   * - Mark the close as intentional so event handlers do not schedule reconnects
-   *   or report spurious errors while tearing down.
+   * - Invalidate the current connection generation.
+   * - Prevent future reconnects and suppress teardown-related handlers.
    * - Cancel any pending reconnect timer.
-   * - Detach WebSocket event handlers and close the socket if it is OPEN.
+   * - Detach handlers and close the socket if it is CONNECTING or OPEN.
+   * - Reset local connection state.
    */
   useEffect(() => {
     /* Component is active: allow connections and normal error handling */
     isUnmountedRef.current = false;
     intentionalCloseRef.current = false;
 
-    /* Start (or resume) stats streaming */
+    /* Start the WebSocket connection attempt */
     connect();
 
     return () => {
-      /* Invalidate any in-flight connection and its callbacks/timers */
+      /* Invalidate the current connection */
       connectionIdRef.current += 1;
 
       /* Component is unmounting, prevent reconnects */
@@ -273,21 +273,19 @@ export const useReconnectableWebSocket = ({
 
   /* Reconnect when WS settings change */
   useEffect(() => {
-    /* Invalidate any in-flight connection + reconnect attempts */
+    /* Invalidate any active connection and pending reconnect attempts */
     connectionIdRef.current += 1;
 
     if (reconnectTimerRef.current !== null) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
-
     intentionalCloseRef.current = true;
 
     if (wsRef.current) {
       closeSocket(wsRef.current);
       wsRef.current = null;
     }
-
     intentionalCloseRef.current = false;
     connect();
   }, [url, reconnectDelayMs]);
@@ -296,8 +294,8 @@ export const useReconnectableWebSocket = ({
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return false;
     }
-
     wsRef.current.send(data);
+
     return true;
   };
 
