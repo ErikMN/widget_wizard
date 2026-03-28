@@ -50,7 +50,7 @@ interface SystemStatsBarsViewProps {
   toggleBarsCoreSectionExpanded: () => void;
 }
 
-/* Use standard MUI components */
+/* Overall system stats bars view */
 export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
   stats,
   cpuPercent,
@@ -60,7 +60,6 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
   toggleBarsCoreSectionExpanded
 }) => (
   <>
-    {/* Use standard MUI components */}
     {/* CPU */}
     <Box>
       <Typography
@@ -81,7 +80,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
       />
     </Box>
 
-    {/* Per-core CPU usage */}
+    {/* Per-core CPU usage dropdown */}
     {Array.isArray(stats.cpu_per_core) && stats.cpu_per_core.length > 0 && (
       <Box>
         <Box
@@ -104,6 +103,8 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
             <DeveloperBoardIcon sx={{ fontSize: 16 }} />
             Per-core CPU usage
           </Typography>
+
+          {/* Expand or collapse CPU cores bars */}
           <CustomButton
             size="small"
             variant="outlined"
@@ -117,6 +118,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
             {barsCoreSectionExpanded ? 'Collapse' : 'Expand'}
           </CustomButton>
         </Box>
+        {/* Per-core CPU usage bars */}
         {barsCoreSectionExpanded && (
           <Box
             sx={{
@@ -145,7 +147,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
       </Box>
     )}
 
-    {/* Memory */}
+    {/* System memory */}
     <Box>
       <Typography
         variant="subtitle2"
@@ -234,7 +236,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
       />
     </Box>
 
-    {/* System info */}
+    {/* System summary */}
     <Box
       sx={{
         display: 'flex',
@@ -294,7 +296,7 @@ interface SystemStatsChartViewProps {
   }[];
 }
 
-/* Use MUI X LineChart for overall system stats */
+/* Overall system stats chart view */
 export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
   stats,
   history,
@@ -312,7 +314,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
   sysChartYAxis
 }) => (
   <>
-    {/* Use MUI X LineChart for overall system stats */}
+    {/* Toggle system chart metrics */}
     <Box
       sx={{
         display: 'flex',
@@ -354,6 +356,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
       </Tooltip>
     </Box>
 
+    {/* CPU core info  */}
     {Array.isArray(stats.cpu_per_core) && stats.cpu_per_core.length > 0 && (
       <Box
         sx={{
@@ -381,6 +384,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
               opacity: 0.7
             }}
           />
+          {/* Show all cores button */}
           <CustomButton
             size="small"
             variant="outlined"
@@ -392,6 +396,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
           >
             {allSysChartCoresEnabled ? 'Hide all cores' : 'Show all cores'}
           </CustomButton>
+          {/* Expand or collapse CPU cores dropdown */}
           <CustomButton
             size="small"
             variant="outlined"
@@ -405,6 +410,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
           </CustomButton>
         </Stack>
 
+        {/* Per-core info dropdown */}
         {chartCoreListExpanded && (
           <Box
             sx={{
@@ -444,6 +450,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
       </Box>
     )}
 
+    {/* System stats chart using MUI X */}
     <Box sx={{ width: '100%', overflowX: 'hidden' }}>
       <LineChart
         skipAnimation

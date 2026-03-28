@@ -1,5 +1,6 @@
 /* BackendControl
- * Start or stop the ACAP backend and fetch application logs.
+ * Start or stop the ACAP backend, fetch application logs,
+ * and manage system monitor WebSocket settings.
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import {
@@ -157,8 +158,8 @@ const BackendControl: React.FC = () => {
     }
   }, []);
 
-  /* Clear backend application log */
-  const clearLog = useCallback(() => {
+  /* Clear the fetched log text from the UI */
+  const clearLogView = useCallback(() => {
     setLogText('');
   }, []);
 
@@ -314,7 +315,7 @@ const BackendControl: React.FC = () => {
           <CustomButton
             variant="outlined"
             disabled={isLoading || isProbing || !logText}
-            onClick={clearLog}
+            onClick={clearLogView}
             sx={{
               color: 'error.main',
               borderColor: 'error.main',
@@ -323,7 +324,7 @@ const BackendControl: React.FC = () => {
               }
             }}
           >
-            Clear logs
+            Clear log view
           </CustomButton>
         </Box>
 

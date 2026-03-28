@@ -53,6 +53,7 @@ export const useReconnectableWebSocket = ({
   const isUnmountedRef = useRef<boolean>(false);
   const intentionalCloseRef = useRef<boolean>(false);
   const connectionIdRef = useRef<number>(0);
+  const hasHandledInitialConfigRef = useRef<boolean>(false);
   const onOpenRef = useRef<typeof onOpen>(onOpen);
   const onMessageRef = useRef<typeof onMessage>(onMessage);
   const onErrorRef = useRef<typeof onError>(onError);
@@ -77,7 +78,7 @@ export const useReconnectableWebSocket = ({
       return;
     }
 
-    /* Detach handlers so teardown does not trigger reconnect/error flows. */
+    /* Detach handlers so teardown does not trigger reconnect and error flows. */
     socket.onclose = null;
     socket.onerror = null;
     socket.onopen = null;
@@ -134,7 +135,7 @@ export const useReconnectableWebSocket = ({
    * - Unmount while the socket is CONNECTING
    * - Backend disconnects that should trigger reconnects after reconnectDelayMs
    *
-   * refs used:
+   * Key refs used:
    * - isUnmountedRef prevents starting new connections after cleanup.
    * - intentionalCloseRef suppresses teardown-time reconnect and error handling and
    *   closes sockets that finish opening during teardown.
@@ -248,7 +249,7 @@ export const useReconnectableWebSocket = ({
     connect();
 
     return () => {
-      /* Invalidate the current connection */
+      /* Invalidate the current connection generation */
       connectionIdRef.current += 1;
 
       /* Component is unmounting, prevent reconnects */
@@ -271,8 +272,13 @@ export const useReconnectableWebSocket = ({
     };
   }, []);
 
-  /* Reconnect when WS settings change */
+  /* Reconnect when WS settings change after mount */
   useEffect(() => {
+    if (!hasHandledInitialConfigRef.current) {
+      hasHandledInitialConfigRef.current = true;
+      return;
+    }
+
     /* Invalidate any active connection and pending reconnect attempts */
     connectionIdRef.current += 1;
 

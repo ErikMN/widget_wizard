@@ -91,8 +91,6 @@ const SystemStats: React.FC = () => {
   /* Refs */
   const mountMessageShownRef = useRef<boolean>(false);
 
-  enableLogging(false);
-
   const {
     connected,
     error,
@@ -404,6 +402,7 @@ const SystemStats: React.FC = () => {
               </CustomButton>
             </Box>
 
+            {/* System stats info and bars */}
             {viewMode === 'bars' && (
               <SystemStatsBarsView
                 stats={stats}
@@ -417,6 +416,7 @@ const SystemStats: React.FC = () => {
               />
             )}
 
+            {/* System stats chart */}
             {viewMode === 'chart' && (
               <SystemStatsChartView
                 stats={stats}
@@ -438,7 +438,7 @@ const SystemStats: React.FC = () => {
               />
             )}
 
-            {/* Use MUI X LineChart for per-process stats */}
+            {/* Process monitor view */}
             {viewMode === 'process' && (
               <SystemStatsProcessView
                 procName={procName}
@@ -453,6 +453,7 @@ const SystemStats: React.FC = () => {
               />
             )}
 
+            {/* Process list view */}
             {viewMode === 'list' && (
               <SystemStatsProcessListView
                 processList={processList}
@@ -475,10 +476,12 @@ const SystemStats: React.FC = () => {
               />
             )}
 
+            {/* Storage info view */}
             {viewMode === 'storage' && (
               <SystemStatsStorageView storageInfo={storageInfo} />
             )}
 
+            {/* System info view */}
             {viewMode === 'system' && (
               <SystemStatsSystemView
                 systemInfo={systemInfo}

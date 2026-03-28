@@ -1,5 +1,5 @@
 /* System stats stream
- * Reusable hook for the backend system monitor websocket state.
+ * Reusable hook for the backend system monitor WebSocket state.
  *
  * Handles:
  * - Live system stats snapshots
@@ -89,10 +89,9 @@ export const useSystemStatsStream = ({
       setError(null);
     },
     onMessage: (event) => {
-      /* Server sends JSON snapshots */
+      /* Server sends JSON snapshots and one-shot responses */
       try {
         const data = JSON.parse(event.data);
-        // console.log('has proc:', !!data.proc);
 
         /* One-shot process list */
         if (Array.isArray(data.processes)) {
@@ -138,7 +137,7 @@ export const useSystemStatsStream = ({
             : next;
         });
 
-        /* Optional per process stats */
+        /* Optional per-process stats */
         if (data.error && data.error.type === 'process_not_found') {
           setProcError(data.error.message);
 
@@ -229,9 +228,8 @@ export const useSystemStatsStream = ({
   };
 
   const clearMonitorInput = () => {
-    /* Clear UI state */
+    /* Clear process monitor UI state */
     setProcName('');
-    setError(null);
     setProcError(null);
     setProcHistory([]);
     setProcStats(null);

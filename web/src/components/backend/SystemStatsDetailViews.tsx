@@ -42,7 +42,7 @@ interface SystemStatsProcessViewProps {
   toggleProcMetric: (key: 'cpu' | 'rss' | 'pss' | 'uss') => void;
 }
 
-/* Use MUI X LineChart for per-process stats */
+/* Process monitor view with an optional history chart */
 export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
   procName,
   setProcName,
@@ -213,7 +213,7 @@ export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
       </Box>
     )}
 
-    {/* Use MUI X LineChart for per-process stats */}
+    {/* Per-process history chart using MUI X */}
     {procHistory.length > 1 && (
       <Box sx={{ width: '100%', overflowX: 'hidden' }}>
         <LineChart
