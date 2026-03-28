@@ -2,6 +2,11 @@
  * useAppSettingsShortcuts
  *
  * Global keyboard shortcuts for app settings.
+ *
+ * Keys:
+ * - P: Toggle PTZ crosshair
+ * - I: Toggle bounding box labels
+ * - O: Toggle on-screen messages
  */
 import { useEffect } from 'react';
 import { useAppSettingsContext } from '../components/context/AppContext';
@@ -49,6 +54,14 @@ export const useAppSettingsShortcuts = () => {
         setAppSettings((prevSettings) => ({
           ...prevSettings,
           bboxLabel: !prevSettings.bboxLabel
+        }));
+        return;
+      }
+
+      if (key === 'o') {
+        setAppSettings((prevSettings) => ({
+          ...prevSettings,
+          enableOnScreenMessages: !prevSettings.enableOnScreenMessages
         }));
       }
     };
