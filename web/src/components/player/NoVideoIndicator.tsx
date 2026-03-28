@@ -13,7 +13,8 @@ export const NoVideoIndicator: React.FC = () => (
       justifyContent: 'center',
       alignItems: 'center',
       pointerEvents: 'none',
-      color: 'rgba(255,255,255,0.7)'
+      color: 'rgba(255,255,255,0.7)',
+      backgroundColor: 'black' /* Make sure the video area is black */
     }}
   >
     <VideocamOffIcon sx={{ fontSize: 72 }} />
