@@ -5,7 +5,9 @@
  */
 import React, { useCallback } from 'react';
 import { CustomButton } from '../CustomComponents';
+import { useParameters } from '../context/ParametersContext';
 import { useDrawContext } from './DrawContext';
+import DrawUploadControl from './DrawUploadControl';
 import { DRAW_BRUSH_SIZES, DRAW_COLORS } from './drawUtils';
 /* MUI */
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
@@ -20,6 +22,11 @@ import Typography from '@mui/material/Typography';
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 
 const DrawControls: React.FC = () => {
+  /* Global parameter list */
+  const { parameters } = useParameters();
+  const backendAvailable =
+    parameters?.['root.Widget_wizard.ApplicationRunning'];
+
   /* Shared draw state */
   const {
     activeTool,
@@ -223,6 +230,8 @@ const DrawControls: React.FC = () => {
           Save PNG
         </CustomButton>
       </Box>
+      {/* Only expose device upload when the backend parameter exists on this device */}
+      {backendAvailable !== undefined && <DrawUploadControl />}
     </Box>
   );
 };
