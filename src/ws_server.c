@@ -6,7 +6,7 @@
 #include <glib.h>
 
 #include "session.h"
-#include "file_upload.h"
+#include "file_upload_async.h"
 #include "proc.h"
 #include "json_out.h"
 #include "ws_limits.h"
@@ -217,6 +217,69 @@ send_upload_chunk_response(struct lws *wsi, struct per_session_data *pss, size_t
   }
 }
 
+/* Convert one async-upload submit failure into the websocket error style. */
+static void
+send_upload_submit_error(struct lws *wsi,
+                         struct per_session_data *pss,
+                         enum file_upload_async_submit_status submit_status,
+                         const char *log_context)
+{
+  switch (submit_status) {
+  case FILE_UPLOAD_ASYNC_SUBMIT_BUSY:
+    send_error_response(wsi, pss, "upload_busy", "A previous upload operation is still being processed", log_context);
+    return;
+
+  case FILE_UPLOAD_ASYNC_SUBMIT_CLOSED:
+    send_error_response(wsi, pss, "internal_error", "Upload connection is closing", log_context);
+    return;
+
+  case FILE_UPLOAD_ASYNC_SUBMIT_NO_MEMORY:
+    send_error_response(wsi, pss, "internal_error", "Failed to schedule upload work", log_context);
+    return;
+
+  case FILE_UPLOAD_ASYNC_SUBMIT_OK:
+    return;
+  }
+}
+
+/* Deliver one async upload completion back into the websocket response flow.
+ *
+ * The worker thread only mutates upload state and posts this callback back to
+ * the GLib main context. Actual websocket replies are still queued from the
+ * main loop thread.
+ */
+static void
+handle_upload_async_completion(const struct file_upload_async_completion *completion, void *user_data)
+{
+  struct per_session_data *pss = user_data;
+
+  if (!completion || !pss) {
+    return;
+  }
+
+  switch (completion->operation) {
+  case FILE_UPLOAD_ASYNC_OP_BEGIN:
+    if (completion->succeeded) {
+      send_upload_begin_response(NULL, pss, completion->overwritten, completion->expected_size_bytes);
+    } else {
+      send_upload_result_response(NULL, pss, &completion->result, "Upload begin result");
+    }
+    return;
+
+  case FILE_UPLOAD_ASYNC_OP_APPEND_CHUNK:
+    if (completion->succeeded) {
+      send_upload_chunk_response(NULL, pss, completion->written_size_bytes);
+    } else {
+      send_upload_result_response(NULL, pss, &completion->result, "Upload chunk result");
+    }
+    return;
+
+  case FILE_UPLOAD_ASYNC_OP_FINISH:
+    send_upload_result_response(NULL, pss, &completion->result, "Upload finish result");
+    return;
+  }
+}
+
 enum receive_append_status { RECEIVE_APPEND_OK = 0, RECEIVE_APPEND_TOO_LARGE, RECEIVE_APPEND_NO_MEMORY };
 
 /* Append one receive fragment to the per-session message accumulator. */
@@ -302,18 +365,19 @@ handle_upload_begin_request(struct lws *wsi, struct per_session_data *pss, json_
     return true;
   }
 
-  struct file_upload_result result;
-  bool ok = file_upload_begin(&pss->upload,
-                              json_string_value(filename),
-                              json_string_length(filename),
-                              (size_t)json_integer_value(size_bytes),
-                              &result);
-  if (!ok) {
-    send_upload_result_response(wsi, pss, &result, "Upload begin result");
+  if (!pss->upload_async) {
+    send_error_response(wsi, pss, "internal_error", "Upload worker is unavailable", "Upload begin error response");
     return true;
   }
 
-  send_upload_begin_response(wsi, pss, pss->upload.overwritten, pss->upload.expected_size_bytes);
+  enum file_upload_async_submit_status submit_status =
+      file_upload_async_submit_begin(pss->upload_async,
+                                     json_string_value(filename),
+                                     json_string_length(filename),
+                                     (size_t)json_integer_value(size_bytes));
+  if (submit_status != FILE_UPLOAD_ASYNC_SUBMIT_OK) {
+    send_upload_submit_error(wsi, pss, submit_status, "Upload begin submit error");
+  }
   return true;
 }
 
@@ -331,7 +395,7 @@ handle_upload_chunk_request(struct lws *wsi, struct per_session_data *pss, json_
   }
 
   if (!json_is_object(upload_chunk)) {
-    file_upload_abort(&pss->upload);
+    file_upload_async_abort(pss->upload_async);
     send_error_response(wsi,
                         pss,
                         "invalid_upload_chunk_request",
@@ -342,7 +406,7 @@ handle_upload_chunk_request(struct lws *wsi, struct per_session_data *pss, json_
 
   json_t *content_b64 = json_object_get(upload_chunk, "content_b64");
   if (!json_is_string(content_b64)) {
-    file_upload_abort(&pss->upload);
+    file_upload_async_abort(pss->upload_async);
     send_error_response(wsi,
                         pss,
                         "invalid_upload_chunk_request",
@@ -351,15 +415,16 @@ handle_upload_chunk_request(struct lws *wsi, struct per_session_data *pss, json_
     return true;
   }
 
-  struct file_upload_result result;
-  bool ok = file_upload_append_base64_chunk(
-      &pss->upload, json_string_value(content_b64), json_string_length(content_b64), &result);
-  if (!ok) {
-    send_upload_result_response(wsi, pss, &result, "Upload chunk result");
+  if (!pss->upload_async) {
+    send_error_response(wsi, pss, "internal_error", "Upload worker is unavailable", "Upload chunk error response");
     return true;
   }
 
-  send_upload_chunk_response(wsi, pss, pss->upload.written_size_bytes);
+  enum file_upload_async_submit_status submit_status = file_upload_async_submit_chunk(
+      pss->upload_async, json_string_value(content_b64), json_string_length(content_b64));
+  if (submit_status != FILE_UPLOAD_ASYNC_SUBMIT_OK) {
+    send_upload_submit_error(wsi, pss, submit_status, "Upload chunk submit error");
+  }
   return true;
 }
 
@@ -377,15 +442,21 @@ handle_upload_finish_request(struct lws *wsi, struct per_session_data *pss, json
   }
 
   if (!json_is_true(upload_finish)) {
-    file_upload_abort(&pss->upload);
+    file_upload_async_abort(pss->upload_async);
     send_error_response(
         wsi, pss, "invalid_upload_finish_request", "upload_finish must be true", "Upload finish error response");
     return true;
   }
 
-  struct file_upload_result result;
-  file_upload_finish(&pss->upload, &result);
-  send_upload_result_response(wsi, pss, &result, "Upload finish result");
+  if (!pss->upload_async) {
+    send_error_response(wsi, pss, "internal_error", "Upload worker is unavailable", "Upload finish error response");
+    return true;
+  }
+
+  enum file_upload_async_submit_status submit_status = file_upload_async_submit_finish(pss->upload_async);
+  if (submit_status != FILE_UPLOAD_ASYNC_SUBMIT_OK) {
+    send_upload_submit_error(wsi, pss, submit_status, "Upload finish submit error");
+  }
   return true;
 }
 
@@ -425,7 +496,7 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     if (root) {
       json_decref(root);
     }
-    file_upload_abort(&pss->upload);
+    file_upload_async_abort(pss->upload_async);
     send_error_response(
         wsi, pss, "invalid_json", "Control message must be a valid JSON object", "Invalid JSON response");
     return;
@@ -661,7 +732,11 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     pss->wsi = wsi;
     pss->pending_tx_queue = NULL;
     pss->stats_stream_enabled = false;
-    file_upload_reset_state(&pss->upload);
+    pss->upload_async = file_upload_async_new(g_main_context_default(), handle_upload_async_completion, pss);
+    if (!pss->upload_async) {
+      syslog(LOG_ERR, "LWS_CALLBACK_ESTABLISHED: failed to allocate upload worker state");
+      return -1;
+    }
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
@@ -712,7 +787,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     enum receive_append_status append_status = append_receive_fragment(pss, in, len);
     if (append_status == RECEIVE_APPEND_TOO_LARGE) {
       syslog(LOG_WARNING, "WebSocket receive: control message too large (limit %u bytes)", MAX_RECEIVE_MESSAGE_LENGTH);
-      file_upload_abort(&pss->upload);
+      file_upload_async_abort(pss->upload_async);
       free_receive_buffer(pss);
       pss->discard_rx_message = !lws_is_final_fragment(wsi);
       send_error_response(wsi,
@@ -724,7 +799,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
     if (append_status == RECEIVE_APPEND_NO_MEMORY) {
       syslog(LOG_ERR, "WebSocket receive: failed to allocate receive buffer");
-      file_upload_abort(&pss->upload);
+      file_upload_async_abort(pss->upload_async);
       free_receive_buffer(pss);
       pss->discard_rx_message = !lws_is_final_fragment(wsi);
       send_error_response(
@@ -757,7 +832,9 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       set_stats_stream_enabled(wsi, pss, false);
     }
     if (pss) {
-      file_upload_abort(&pss->upload);
+      file_upload_async_close(pss->upload_async);
+      file_upload_async_unref(pss->upload_async);
+      pss->upload_async = NULL;
     }
 
     if (pss && pss->counted) {
@@ -869,7 +946,9 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       pss->wsi = NULL;
     }
     if (pss) {
-      file_upload_abort(&pss->upload);
+      file_upload_async_close(pss->upload_async);
+      file_upload_async_unref(pss->upload_async);
+      pss->upload_async = NULL;
     }
     free_pending_tx_queue(pss);
     free_receive_buffer(pss);
@@ -960,6 +1039,7 @@ void
 ws_server_stop(void)
 {
   stop_stats_timer();
+  file_upload_async_shutdown();
   ws_pending_client_count = 0;
   ws_connected_client_count = 0;
   ws_streaming_client_count = 0;

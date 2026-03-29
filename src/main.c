@@ -6,7 +6,8 @@
  * ws://192.168.0.90:9000
  *
  * App overview:
- * - The application runs entirely in a single GLib main loop thread.
+ * - WebSocket state and system statistics run in the GLib main loop thread.
+ * - Upload chunk decode/write work is dispatched to a background worker thread.
  * - System statistics are periodically sampled from /proc and stored in app_state::stats.
  * - libwebsockets is serviced from the same GLib main loop via a timer.
  * - Each WebSocket client can explicitly opt into live statistics streaming.
@@ -16,7 +17,7 @@
  * - Each WebSocket client can request a one-shot filesystem storage summary.
  * - Each WebSocket client can request a one-shot system information summary.
  * - Each WebSocket client can upload one arbitrary file to /tmp/ using a
- *   one-shot base64-encoded JSON command.
+ *   connection-scoped chunked JSON protocol.
  *
  * Data flow:
  *   /proc -> app_state.stats
@@ -134,9 +135,10 @@
  * Scope and limitations:
  * - Intended for local or trusted networks (no TLS or authentication).
  * - Designed for a small number of concurrent clients.
- * - Not thread-safe by design: All logic runs in the GLib main loop thread.
+ * - Upload file decode and write work runs on a dedicated worker thread while
+ *   websocket state stays on the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
- * - Uploads decode and write one bounded chunk at a time in the main loop.
+ * - Uploads still process one bounded chunk at a time per connection.
  *
  * Avoid to use these unsafe C functions in this app:
  * https://github.com/git/git/blob/master/banned.h
