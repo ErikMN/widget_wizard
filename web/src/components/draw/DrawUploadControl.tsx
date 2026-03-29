@@ -21,6 +21,15 @@ const DRAW_UPLOAD_FILENAME = 'widget_wizard_draw.png';
 const MAX_DRAW_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const UPLOAD_RESPONSE_TIMEOUT_MS = 15000;
 
+type DrawUploadState = 'idle' | 'preparing' | 'connecting' | 'uploading';
+
+interface DrawUploadRequest {
+  upload: {
+    filename: string;
+    content_b64: string;
+  };
+}
+
 const blobToBase64 = async (blob: Blob): Promise<string> => {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -59,10 +68,13 @@ const DrawUploadControl: React.FC = () => {
     useDrawContext();
 
   /* Local state */
-  const [uploadPending, setUploadPending] = useState(false);
+  const [uploadState, setUploadState] = useState<DrawUploadState>('idle');
+  const [pendingUploadRequest, setPendingUploadRequest] =
+    useState<DrawUploadRequest | null>(null);
 
   /* Refs */
   const uploadPendingRef = useRef(false);
+  const uploadRequestSentRef = useRef(false);
   const uploadTimeoutRef = useRef<number | null>(null);
 
   const WS_ADDRESS = getBackendWebSocketUrl(appSettings);
@@ -78,8 +90,10 @@ const DrawUploadControl: React.FC = () => {
         uploadTimeoutRef.current = null;
       }
 
+      setPendingUploadRequest(null);
+      uploadRequestSentRef.current = false;
       uploadPendingRef.current = false;
-      setUploadPending(false);
+      setUploadState('idle');
 
       if (message) {
         handleOpenAlert(message, severity);
@@ -88,13 +102,15 @@ const DrawUploadControl: React.FC = () => {
     [handleOpenAlert]
   );
 
-  /* Ensure timers do not survive unmounts or route changes */
+  /* Ensure timers and transient upload state do not survive unmounts or route changes */
   useEffect(() => {
     return () => {
       if (uploadTimeoutRef.current !== null) {
         window.clearTimeout(uploadTimeoutRef.current);
         uploadTimeoutRef.current = null;
       }
+
+      uploadRequestSentRef.current = false;
       uploadPendingRef.current = false;
     };
   }, []);
@@ -138,18 +154,47 @@ const DrawUploadControl: React.FC = () => {
           finishUpload(message, 'error');
         }
       } catch {
-        /* Ignore periodic stats frames and any malformed payloads */
+        /* Ignore unrelated frames and malformed payloads */
       }
     },
     [finishUpload]
   );
 
-  const { connected, readyState, sendJson } = useReconnectableWebSocket({
+  const { connected, sendJson } = useReconnectableWebSocket({
     url: WS_ADDRESS,
+    enabled: uploadState === 'connecting' || uploadState === 'uploading',
     onMessage: handleSocketMessage,
     onError: handleSocketFailure,
     onClose: handleSocketFailure
   });
+
+  /* Send the prepared upload once the socket has reached OPEN */
+  useEffect(() => {
+    if (
+      uploadState !== 'connecting' ||
+      !connected ||
+      !pendingUploadRequest ||
+      uploadRequestSentRef.current
+    ) {
+      return;
+    }
+
+    if (!sendJson(pendingUploadRequest)) {
+      finishUpload('Backend websocket is not connected', 'warning');
+      return;
+    }
+
+    uploadRequestSentRef.current = true;
+    setUploadState('uploading');
+
+    /* Fail fast when the backend accepts the websocket but never answers the upload command */
+    uploadTimeoutRef.current = window.setTimeout(() => {
+      finishUpload(
+        'Upload timed out. Make sure the latest backend with upload support is running.',
+        'error'
+      );
+    }, UPLOAD_RESPONSE_TIMEOUT_MS);
+  }, [connected, finishUpload, pendingUploadRequest, sendJson, uploadState]);
 
   const exportDisabled =
     !hasDrawing ||
@@ -158,19 +203,24 @@ const DrawUploadControl: React.FC = () => {
     surfaceDimensions.videoHeight <= 0;
 
   const handleUpload = useCallback(async () => {
-    if (!connected) {
-      handleOpenAlert('Backend websocket is not connected', 'warning');
+    if (uploadPendingRef.current) {
       return;
     }
 
+    uploadPendingRef.current = true;
+    uploadRequestSentRef.current = false;
+    setPendingUploadRequest(null);
+    setUploadState('preparing');
+
     const pngExport = await createDrawingPngExport();
     if (!pngExport) {
+      finishUpload(null, 'success');
       return;
     }
 
     /* Mirror the current backend-side limit so oversize uploads fail early */
     if (pngExport.blob.size > MAX_DRAW_UPLOAD_SIZE_BYTES) {
-      handleOpenAlert(
+      finishUpload(
         'The PNG is larger than the 10 MiB backend upload limit',
         'warning'
       );
@@ -178,33 +228,20 @@ const DrawUploadControl: React.FC = () => {
     }
 
     try {
-      setUploadPending(true);
-      uploadPendingRef.current = true;
-
       const content_b64 = await blobToBase64(pngExport.blob);
+
       /* If the component resolved the upload while we were encoding, stop here */
       if (!uploadPendingRef.current) {
         return;
       }
 
-      /* Fail fast when the backend accepts the websocket but never answers the upload command */
-      uploadTimeoutRef.current = window.setTimeout(() => {
-        finishUpload(
-          'Upload timed out. Make sure the latest backend with upload support is running.',
-          'error'
-        );
-      }, UPLOAD_RESPONSE_TIMEOUT_MS);
-
-      if (
-        !sendJson({
-          upload: {
-            filename: DRAW_UPLOAD_FILENAME,
-            content_b64
-          }
-        })
-      ) {
-        finishUpload('Backend websocket is not connected', 'warning');
-      }
+      setPendingUploadRequest({
+        upload: {
+          filename: DRAW_UPLOAD_FILENAME,
+          content_b64
+        }
+      });
+      setUploadState('connecting');
     } catch (error) {
       finishUpload(
         error instanceof Error
@@ -213,27 +250,19 @@ const DrawUploadControl: React.FC = () => {
         'error'
       );
     }
-  }, [
-    connected,
-    createDrawingPngExport,
-    finishUpload,
-    handleOpenAlert,
-    sendJson
-  ]);
+  }, [createDrawingPngExport, finishUpload]);
 
-  const statusText = uploadPending
-    ? 'Uploading PNG to the backend...'
-    : connected
-      ? 'Backend websocket connected and ready for upload'
-      : readyState === WebSocket.CONNECTING
+  const statusText =
+    uploadState === 'preparing'
+      ? 'Preparing PNG for upload...'
+      : uploadState === 'connecting'
         ? 'Connecting to backend websocket...'
-        : 'Backend websocket is not running';
+        : uploadState === 'uploading'
+          ? 'Uploading PNG to the backend...'
+          : 'The backend websocket will connect when you upload';
 
-  const statusColor = uploadPending
-    ? 'warning.main'
-    : connected
-      ? 'success.main'
-      : 'text.secondary';
+  const statusColor =
+    uploadState === 'idle' ? 'text.secondary' : 'warning.main';
 
   return (
     <Box
@@ -262,16 +291,16 @@ const DrawUploadControl: React.FC = () => {
         variant="contained"
         fullWidth
         startIcon={
-          uploadPending ? (
+          uploadState !== 'idle' ? (
             <CircularProgress size={18} color="inherit" />
           ) : (
             <CloudUploadOutlinedIcon />
           )
         }
         onClick={handleUpload}
-        disabled={uploadPending || exportDisabled || !connected}
+        disabled={uploadState !== 'idle' || exportDisabled}
       >
-        {uploadPending ? 'Uploading...' : 'Upload to device'}
+        {uploadState !== 'idle' ? 'Uploading...' : 'Upload to device'}
       </CustomButton>
     </Box>
   );
