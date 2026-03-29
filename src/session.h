@@ -31,6 +31,9 @@ struct per_session_data {
   /* True while discarding the remainder of an oversized fragmented message */
   bool discard_rx_message;
 
+  /* True when this client explicitly opted into periodic stats streaming */
+  bool stats_stream_enabled;
+
   /* Process monitoring */
   char proc_name[MAX_PROC_NAME_LENGTH];
   bool proc_enabled;

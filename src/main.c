@@ -9,7 +9,8 @@
  * - The application runs entirely in a single GLib main loop thread.
  * - System statistics are periodically sampled from /proc and stored in app_state::stats.
  * - libwebsockets is serviced from the same GLib main loop via a timer.
- * - Each WebSocket client has its own send timer, but all clients share the same sampled statistics.
+ * - Each WebSocket client can explicitly opt into live statistics streaming.
+ * - Streaming clients have their own send timer, but all clients share the same sampled statistics.
  * - Each WebSocket client can optionally request per-process monitoring by process name.
  * - Each WebSocket client can request a one-shot list of running process names.
  * - Each WebSocket client can request a one-shot filesystem storage summary.
@@ -20,6 +21,13 @@
  * Data flow:
  *   /proc -> app_state.stats
  *   app_state.stats -> ws_callback() -> WebSocket clients
+ *
+ * Live statistics streaming:
+ * - Live stats streaming is disabled by default for new WebSocket connections.
+ * - To start periodic stats snapshots, the client sends:
+ *     { "stats_stream": true }
+ * - To stop periodic stats snapshots without closing the socket, the client sends:
+ *     { "stats_stream": false }
  *
  * Per-process monitoring:
  * - The client can send a JSON command to enable monitoring of a single process:
@@ -42,6 +50,8 @@
  *     - USS (Unique Set Size) is the amount of private memory that would be freed if the process exited.
  * - To stop per-process monitoring, the client sends:
  *     { "monitor": "" }
+ * - Per-process monitoring data is included only in periodic stats snapshots, so
+ *   the client must enable stats_stream to receive it.
  * - If the process cannot be found, the server includes an "error" object:
  *     "error": { "type": "process_not_found", "message": "Process '<name>' not found" }
  *

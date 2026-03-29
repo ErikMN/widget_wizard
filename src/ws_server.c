@@ -45,6 +45,9 @@ static struct {
  */
 static unsigned int ws_pending_client_count = 0;
 static unsigned int ws_connected_client_count = 0;
+static unsigned int ws_streaming_client_count = 0;
+
+static void set_stats_stream_enabled(struct lws *wsi, struct per_session_data *pss, bool enabled);
 
 /******************************************************************************/
 
@@ -137,6 +140,32 @@ append_receive_fragment(struct per_session_data *pss, const void *in, size_t len
 
   g_byte_array_append(pss->recv_buf, in, (guint)len);
   return RECEIVE_APPEND_OK;
+}
+
+/* Handle explicit stats stream subscription control.
+ *
+ * Request format:
+ *   { "stats_stream": true }
+ *   { "stats_stream": false }
+ *
+ * Returns true if the command was recognized (successfully or not).
+ */
+static bool
+handle_stats_stream_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+{
+  json_t *stream_req = json_object_get(root, "stats_stream");
+  if (!stream_req) {
+    return false;
+  }
+
+  if (!json_is_boolean(stream_req)) {
+    send_error_response(
+        wsi, pss, "invalid_stats_stream_request", "stats_stream must be a boolean", "Stats stream error response");
+    return true;
+  }
+
+  set_stats_stream_enabled(wsi, pss, json_is_true(stream_req));
+  return true;
 }
 
 /* Handle one-shot upload requests.
@@ -266,6 +295,11 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     return;
   }
 
+  if (handle_stats_stream_request(wsi, pss, root)) {
+    json_decref(root);
+    return;
+  }
+
   if (handle_upload_request(wsi, pss, root)) {
     json_decref(root);
     return;
@@ -332,11 +366,12 @@ stats_timer_cb(gpointer user_data)
 /*
  * Statistics sampling timer:
  *
- * - The stats timer is started when the first WebSocket client connects.
- * - The stats timer is stopped when the last client disconnects.
+ * - The stats timer is started when the first client enables stats_stream.
+ * - The stats timer is stopped when the last streaming client disables it
+ *   or disconnects.
  *
  * Rationale:
- * - Avoid unnecessary /proc polling when no clients are connected.
+ * - Avoid unnecessary /proc polling for one-shot-only clients.
  * - Sampling frequency is independent of WebSocket send frequency.
  */
 static void
@@ -359,13 +394,60 @@ stop_stats_timer(void)
 
 /******************************************************************************/
 
+/* Enable or disable periodic stats streaming for one WebSocket client.
+ *
+ * Streaming is opt-in per session. This helper keeps the per-session libwebsockets
+ * timer and the shared GLib stats sampling timer in sync with the client's
+ * current subscription state.
+ */
+static void
+set_stats_stream_enabled(struct lws *wsi, struct per_session_data *pss, bool enabled)
+{
+  if (!wsi || !pss || pss->stats_stream_enabled == enabled) {
+    return;
+  }
+
+  pss->stats_stream_enabled = enabled;
+
+  if (enabled) {
+    ws_streaming_client_count++;
+    if (ws_streaming_client_count == 1) {
+      start_stats_timer();
+    }
+
+    /* Refresh once immediately so the first subscribed frame is not stale after idle periods */
+    if (ws.app) {
+      stats_update_sys_stats(&ws.app->stats);
+    }
+
+    /* Send one snapshot immediately, then continue on the per-client timer */
+    lws_callback_on_writable(wsi);
+    lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
+    syslog(LOG_INFO, "Client enabled stats streaming (%u active)", ws_streaming_client_count);
+    return;
+  }
+
+  if (ws_streaming_client_count > 0) {
+    ws_streaming_client_count--;
+  }
+
+  /* Stop future per-client periodic sends once streaming is disabled */
+  lws_set_timer_usecs(wsi, LWS_SET_TIMER_USEC_CANCEL);
+  if (ws_streaming_client_count == 0) {
+    stop_stats_timer();
+  }
+  syslog(LOG_INFO, "Client disabled stats streaming (%u active)", ws_streaming_client_count);
+}
+
+/******************************************************************************/
+
 /* WebSocket protocol callback
  *
- * - Server sends periodic JSON snapshots.
- * - Update rate is approximately 500 ms per client.
+ * - Server sends periodic JSON snapshots only to clients that enabled stats_stream.
+ * - Update rate is approximately 500 ms per subscribed client.
  * - CPU usage is reported as a percentage [0.0 - 100.0].
  * - Memory values are reported in kilobytes.
- * - The first CPU value after connect may be 0.0 due to baseline initialization.
+ * - The first CPU value after stream enable may be 0.0 due to baseline initialization.
  * - Only allow MAX_WS_CONNECTED_CLIENTS concurrent connections.
  */
 static int
@@ -387,16 +469,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     ws_connected_client_count++;
     pss->counted = true;
-
-    /* If at least one connection: start the timer */
-    if (ws_connected_client_count == 1) {
-      start_stats_timer();
-    }
+    pss->stats_stream_enabled = false;
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
-    /* Send immediately */
-    lws_callback_on_writable(wsi);
-    /* Then every 500ms */
-    lws_set_timer_usecs(wsi, LWS_USEC_PER_SEC / 2);
     break;
   }
 
@@ -410,9 +484,15 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
    * - Does NOT sample system statistics.
    * - Only schedules LWS_CALLBACK_SERVER_WRITEABLE.
    *
-   * All clients observe the same latest_stats snapshot.
+   * All subscribed clients observe the same latest_stats snapshot.
    */
   case LWS_CALLBACK_TIMER: {
+    struct per_session_data *pss = user;
+
+    if (!pss || !pss->stats_stream_enabled) {
+      break;
+    }
+
     /* Ask lws for a writeable callback */
     lws_callback_on_writable(wsi);
     /* Rearm timer for next tick */
@@ -476,13 +556,13 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   case LWS_CALLBACK_CLOSED: {
     struct per_session_data *pss = user;
 
+    if (pss && pss->stats_stream_enabled) {
+      set_stats_stream_enabled(wsi, pss, false);
+    }
+
     if (pss && pss->counted) {
       if (ws_connected_client_count > 0) {
         ws_connected_client_count--;
-      }
-      /* If no connections: Stop the timer */
-      if (ws_connected_client_count == 0) {
-        stop_stats_timer();
       }
     }
     free_receive_buffer(pss);
@@ -510,7 +590,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     bool truncated = false;
     struct app_state *app = lws_context_user(lws_get_context(wsi));
 
-    if (!pss) {
+    if (!pss || !pss->stats_stream_enabled) {
       break;
     }
 
@@ -635,7 +715,8 @@ ws_server_start(struct app_state *app, int port)
    * - lws_glib_service(): periodically services libwebsockets so it can
    *   process network events and invoke protocol callbacks.
    * - ws_server internally starts a statistics timer that periodically
-   *   updates app_state::stats while at least one client is connected.
+   *   updates app_state::stats while at least one client has enabled
+   *   stats_stream.
    */
   ws.lws_timer_id = g_timeout_add(10, lws_glib_service, ws.ctx);
 
@@ -646,6 +727,9 @@ void
 ws_server_stop(void)
 {
   stop_stats_timer();
+  ws_pending_client_count = 0;
+  ws_connected_client_count = 0;
+  ws_streaming_client_count = 0;
 
   /* Stop the GLib timer that drives libwebsockets servicing */
   if (ws.lws_timer_id != 0) {
