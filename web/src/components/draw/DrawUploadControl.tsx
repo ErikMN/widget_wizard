@@ -19,15 +19,15 @@ import Typography from '@mui/material/Typography';
 
 const DRAW_UPLOAD_FILENAME = 'widget_wizard_draw.png';
 const MAX_DRAW_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const DRAW_UPLOAD_CHUNK_SIZE_BYTES = 32 * 1024;
 const UPLOAD_RESPONSE_TIMEOUT_MS = 15000;
 
 type DrawUploadState = 'idle' | 'preparing' | 'connecting' | 'uploading';
 
-interface DrawUploadRequest {
-  upload: {
-    filename: string;
-    content_b64: string;
-  };
+interface DrawUploadSession {
+  blob: Blob;
+  sizeBytes: number;
+  nextOffset: number;
 }
 
 const blobToBase64 = async (blob: Blob): Promise<string> => {
@@ -69,29 +69,44 @@ const DrawUploadControl: React.FC = () => {
 
   /* Local state */
   const [uploadState, setUploadState] = useState<DrawUploadState>('idle');
-  const [pendingUploadRequest, setPendingUploadRequest] =
-    useState<DrawUploadRequest | null>(null);
 
   /* Refs */
   const uploadPendingRef = useRef(false);
-  const uploadRequestSentRef = useRef(false);
+  const uploadBeginSentRef = useRef(false);
   const uploadTimeoutRef = useRef<number | null>(null);
+  const uploadSessionRef = useRef<DrawUploadSession | null>(null);
 
   const WS_ADDRESS = getBackendWebSocketUrl(appSettings);
+
+  const clearUploadTimeout = useCallback(() => {
+    if (uploadTimeoutRef.current !== null) {
+      window.clearTimeout(uploadTimeoutRef.current);
+      uploadTimeoutRef.current = null;
+    }
+  }, []);
+
+  const restartUploadTimeout = useCallback(
+    (message: string) => {
+      clearUploadTimeout();
+      uploadTimeoutRef.current = window.setTimeout(() => {
+        uploadSessionRef.current = null;
+        uploadBeginSentRef.current = false;
+        uploadPendingRef.current = false;
+        setUploadState('idle');
+        handleOpenAlert(message, 'error');
+      }, UPLOAD_RESPONSE_TIMEOUT_MS);
+    },
+    [clearUploadTimeout, handleOpenAlert]
+  );
 
   const finishUpload = useCallback(
     (
       message: string | null,
       severity: 'success' | 'warning' | 'error' = 'success'
     ) => {
-      /* Cancel any pending timeout once the upload flow resolves */
-      if (uploadTimeoutRef.current !== null) {
-        window.clearTimeout(uploadTimeoutRef.current);
-        uploadTimeoutRef.current = null;
-      }
-
-      setPendingUploadRequest(null);
-      uploadRequestSentRef.current = false;
+      clearUploadTimeout();
+      uploadSessionRef.current = null;
+      uploadBeginSentRef.current = false;
       uploadPendingRef.current = false;
       setUploadState('idle');
 
@@ -99,33 +114,37 @@ const DrawUploadControl: React.FC = () => {
         handleOpenAlert(message, severity);
       }
     },
-    [handleOpenAlert]
+    [clearUploadTimeout, handleOpenAlert]
   );
 
   /* Ensure timers and transient upload state do not survive unmounts or route changes */
   useEffect(() => {
     return () => {
-      if (uploadTimeoutRef.current !== null) {
-        window.clearTimeout(uploadTimeoutRef.current);
-        uploadTimeoutRef.current = null;
-      }
-
-      uploadRequestSentRef.current = false;
+      clearUploadTimeout();
+      uploadSessionRef.current = null;
+      uploadBeginSentRef.current = false;
       uploadPendingRef.current = false;
     };
-  }, []);
+  }, [clearUploadTimeout]);
 
-  const handleSocketFailure = useCallback(() => {
-    /* Only surface connection loss when an upload was actually in progress */
-    if (!uploadPendingRef.current) {
-      return;
-    }
+  const { connected, sendJson } = useReconnectableWebSocket({
+    url: WS_ADDRESS,
+    enabled: uploadState === 'connecting' || uploadState === 'uploading',
+    onError: () => {
+      if (!uploadPendingRef.current) {
+        return;
+      }
 
-    finishUpload('Upload connection to the backend was lost', 'error');
-  }, [finishUpload]);
+      finishUpload('Upload connection to the backend was lost', 'error');
+    },
+    onClose: () => {
+      if (!uploadPendingRef.current) {
+        return;
+      }
 
-  const handleSocketMessage = useCallback(
-    (event: MessageEvent) => {
+      finishUpload('Upload connection to the backend was lost', 'error');
+    },
+    onMessage: (event) => {
       if (!uploadPendingRef.current || typeof event.data !== 'string') {
         return;
       }
@@ -133,7 +152,6 @@ const DrawUploadControl: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
 
-        /* Success response from the backend upload command */
         if (data?.upload && typeof data.upload === 'object') {
           const uploadedPath =
             typeof data.upload.path === 'string'
@@ -144,7 +162,6 @@ const DrawUploadControl: React.FC = () => {
           return;
         }
 
-        /* Upload and control-path failures are returned using the common error envelope */
         if (data?.error && typeof data.error === 'object') {
           const message =
             typeof data.error.message === 'string'
@@ -152,49 +169,103 @@ const DrawUploadControl: React.FC = () => {
               : 'Failed to upload drawing to the device';
 
           finishUpload(message, 'error');
+          return;
+        }
+
+        if (data?.upload_begin && typeof data.upload_begin === 'object') {
+          void sendNextUploadStep();
+          return;
+        }
+
+        if (data?.upload_chunk && typeof data.upload_chunk === 'object') {
+          void sendNextUploadStep();
         }
       } catch {
         /* Ignore unrelated frames and malformed payloads */
       }
-    },
-    [finishUpload]
-  );
-
-  const { connected, sendJson } = useReconnectableWebSocket({
-    url: WS_ADDRESS,
-    enabled: uploadState === 'connecting' || uploadState === 'uploading',
-    onMessage: handleSocketMessage,
-    onError: handleSocketFailure,
-    onClose: handleSocketFailure
+    }
   });
 
-  /* Send the prepared upload once the socket has reached OPEN */
+  const sendNextUploadStep = useCallback(async () => {
+    const session = uploadSessionRef.current;
+    if (!session || !uploadPendingRef.current) {
+      return;
+    }
+
+    if (session.nextOffset >= session.sizeBytes) {
+      if (!sendJson({ upload_finish: true })) {
+        finishUpload('Backend websocket is not connected', 'warning');
+        return;
+      }
+
+      restartUploadTimeout('Upload timed out while finalizing on the backend');
+      return;
+    }
+
+    const chunkEnd = Math.min(
+      session.nextOffset + DRAW_UPLOAD_CHUNK_SIZE_BYTES,
+      session.sizeBytes
+    );
+    const chunkBlob = session.blob.slice(session.nextOffset, chunkEnd);
+
+    try {
+      const content_b64 = await blobToBase64(chunkBlob);
+      if (!uploadPendingRef.current) {
+        return;
+      }
+
+      if (
+        !sendJson({
+          upload_chunk: {
+            content_b64
+          }
+        })
+      ) {
+        finishUpload('Backend websocket is not connected', 'warning');
+        return;
+      }
+
+      session.nextOffset = chunkEnd;
+      restartUploadTimeout('Upload timed out while sending chunk data');
+    } catch (error) {
+      finishUpload(
+        error instanceof Error
+          ? error.message
+          : 'Failed to encode drawing chunk for upload',
+        'error'
+      );
+    }
+  }, [finishUpload, restartUploadTimeout, sendJson]);
+
+  /* Send upload_begin once the websocket connection has reached OPEN */
   useEffect(() => {
     if (
       uploadState !== 'connecting' ||
       !connected ||
-      !pendingUploadRequest ||
-      uploadRequestSentRef.current
+      !uploadSessionRef.current ||
+      uploadBeginSentRef.current
     ) {
       return;
     }
 
-    if (!sendJson(pendingUploadRequest)) {
+    if (
+      !sendJson({
+        upload_begin: {
+          filename: DRAW_UPLOAD_FILENAME,
+          size_bytes: uploadSessionRef.current.sizeBytes
+        }
+      })
+    ) {
       finishUpload('Backend websocket is not connected', 'warning');
       return;
     }
 
-    uploadRequestSentRef.current = true;
+    uploadBeginSentRef.current = true;
     setUploadState('uploading');
-
-    /* Fail fast when the backend accepts the websocket but never answers the upload command */
-    uploadTimeoutRef.current = window.setTimeout(() => {
-      finishUpload(
-        'Upload timed out. Make sure the latest backend with upload support is running.',
-        'error'
-      );
-    }, UPLOAD_RESPONSE_TIMEOUT_MS);
-  }, [connected, finishUpload, pendingUploadRequest, sendJson, uploadState]);
+    restartUploadTimeout(
+      'Upload timed out while waiting for the backend to accept the file'
+    );
+  }, [connected, finishUpload, restartUploadTimeout, sendJson, uploadState]);
 
   const exportDisabled =
     !hasDrawing ||
@@ -208,8 +279,8 @@ const DrawUploadControl: React.FC = () => {
     }
 
     uploadPendingRef.current = true;
-    uploadRequestSentRef.current = false;
-    setPendingUploadRequest(null);
+    uploadBeginSentRef.current = false;
+    uploadSessionRef.current = null;
     setUploadState('preparing');
 
     const pngExport = await createDrawingPngExport();
@@ -218,7 +289,6 @@ const DrawUploadControl: React.FC = () => {
       return;
     }
 
-    /* Mirror the current backend-side limit so oversize uploads fail early */
     if (pngExport.blob.size > MAX_DRAW_UPLOAD_SIZE_BYTES) {
       finishUpload(
         'The PNG is larger than the 10 MiB backend upload limit',
@@ -227,29 +297,12 @@ const DrawUploadControl: React.FC = () => {
       return;
     }
 
-    try {
-      const content_b64 = await blobToBase64(pngExport.blob);
-
-      /* If the component resolved the upload while we were encoding, stop here */
-      if (!uploadPendingRef.current) {
-        return;
-      }
-
-      setPendingUploadRequest({
-        upload: {
-          filename: DRAW_UPLOAD_FILENAME,
-          content_b64
-        }
-      });
-      setUploadState('connecting');
-    } catch (error) {
-      finishUpload(
-        error instanceof Error
-          ? error.message
-          : 'Failed to encode drawing for upload',
-        'error'
-      );
-    }
+    uploadSessionRef.current = {
+      blob: pngExport.blob,
+      sizeBytes: pngExport.blob.size,
+      nextOffset: 0
+    };
+    setUploadState('connecting');
   }, [createDrawingPngExport, finishUpload]);
 
   const statusText =
