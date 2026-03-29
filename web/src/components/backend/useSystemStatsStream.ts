@@ -25,6 +25,7 @@ interface UseSystemStatsStreamOptions {
 }
 
 interface UseSystemStatsStreamResult {
+  /* True after the websocket is open and at least one live stats snapshot arrived */
   connected: boolean;
   error: string | null;
   stats: SysStats | null;
@@ -83,10 +84,12 @@ export const useSystemStatsStream = ({
 
   const { sendJson } = useReconnectableWebSocket({
     url,
-    onOpen: () => {
+    onOpen: (socket) => {
       resetStreamData();
-      setConnected(true);
+      setConnected(false);
       setError(null);
+      /* NOTE: Enable stats streaming for this connection */
+      socket.send(JSON.stringify({ stats_stream: true }));
     },
     onMessage: (event) => {
       /* Server sends JSON snapshots and one-shot responses */
@@ -111,6 +114,7 @@ export const useSystemStatsStream = ({
           return;
         }
 
+        setConnected(true);
         setStats(data);
 
         /* Set local proc stats state */
