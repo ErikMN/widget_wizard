@@ -411,6 +411,109 @@ build_upload_result_json(char *out_buf, size_t out_size, const struct file_uploa
 }
 
 size_t
+build_upload_begin_ack_json(char *out_buf,
+                            size_t out_size,
+                            bool overwritten,
+                            size_t size_bytes,
+                            size_t chunk_size_bytes,
+                            bool *truncated)
+{
+  json_t *resp = NULL;
+  json_t *upload_begin = NULL;
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!out_buf || out_size == 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  resp = json_object();
+  upload_begin = json_object();
+  if (!resp || !upload_begin) {
+    if (upload_begin) {
+      json_decref(upload_begin);
+    }
+    if (resp) {
+      json_decref(resp);
+    }
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  json_object_set_new(upload_begin, "overwritten", json_boolean(overwritten));
+  json_object_set_new(upload_begin, "size_bytes", json_integer((json_int_t)size_bytes));
+  json_object_set_new(upload_begin, "chunk_size_bytes", json_integer((json_int_t)chunk_size_bytes));
+  json_object_set_new(resp, "upload_begin", upload_begin);
+
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  return (size_t)out_len;
+}
+
+size_t
+build_upload_chunk_ack_json(char *out_buf, size_t out_size, size_t received_bytes, bool *truncated)
+{
+  json_t *resp = NULL;
+  json_t *upload_chunk = NULL;
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!out_buf || out_size == 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  resp = json_object();
+  upload_chunk = json_object();
+  if (!resp || !upload_chunk) {
+    if (upload_chunk) {
+      json_decref(upload_chunk);
+    }
+    if (resp) {
+      json_decref(resp);
+    }
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  json_object_set_new(upload_chunk, "received_bytes", json_integer((json_int_t)received_bytes));
+  json_object_set_new(resp, "upload_chunk", upload_chunk);
+
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  return (size_t)out_len;
+}
+
+size_t
 build_error_json(char *out_buf, size_t out_size, const char *type, const char *message, bool *truncated)
 {
   json_t *resp = NULL;

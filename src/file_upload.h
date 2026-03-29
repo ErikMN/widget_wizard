@@ -38,22 +38,71 @@ struct file_upload_result {
   char error_message[320];
 };
 
-/* Decode and store one uploaded file.
+/* Per-connection upload session state.
+ *
+ * Exactly one file upload may be active per WebSocket session.
+ */
+struct file_upload_state {
+  bool active;
+  bool overwritten;
+  size_t expected_size_bytes;
+  size_t written_size_bytes;
+  int fd;
+  char filename[MAX_UPLOAD_FILENAME_LENGTH + 1];
+  char path[MAX_UPLOAD_PATH_LENGTH];
+};
+
+/* Initialize one upload session state object to its inactive baseline. */
+void file_upload_reset_state(struct file_upload_state *state);
+
+/* Abort the active upload, if any, and remove a partially written file. */
+void file_upload_abort(struct file_upload_state *state);
+
+/* Start one new upload session.
  *
  * Input:
  * - filename/filename_len: file basename provided by the client
- * - content_b64/content_b64_len: base64-encoded file data
+ * - expected_size_bytes: final decoded file size the client intends to send
  *
  * Behavior:
  * - Writes only below FILE_UPLOAD_TARGET_DIR
  * - Overwrites an existing file with the same name
- * - Rejects decoded payloads larger than MAX_UPLOAD_FILE_SIZE_BYTES
- * - Returns a structured result that can be serialized to JSON
+ * - Rejects files larger than MAX_UPLOAD_FILE_SIZE_BYTES
+ * - Opens the destination path and prepares to append chunk data
  *
- * If WS_ENABLE_FILE_UPLOAD is 0, the function reports "upload_disabled".
+ * Returns true on success. On failure, out receives a structured error result.
  */
-void file_upload_store_base64(const char *filename,
-                              size_t filename_len,
-                              const char *content_b64,
-                              size_t content_b64_len,
-                              struct file_upload_result *out);
+bool file_upload_begin(struct file_upload_state *state,
+                       const char *filename,
+                       size_t filename_len,
+                       size_t expected_size_bytes,
+                       struct file_upload_result *out);
+
+/* Append one base64-encoded upload chunk to the active session.
+ *
+ * Input:
+ * - content_b64/content_b64_len: one chunk of base64-encoded file data
+ *
+ * Behavior:
+ * - Rejects invalid base64
+ * - Rejects chunks larger than MAX_UPLOAD_CHUNK_SIZE_BYTES after decoding
+ * - Writes decoded bytes directly to the already opened destination file
+ * - Rejects uploads whose cumulative size would exceed expected_size_bytes
+ *
+ * Returns true on success. On failure, the active upload is aborted and out
+ * receives a structured error result.
+ */
+bool file_upload_append_base64_chunk(struct file_upload_state *state,
+                                     const char *content_b64,
+                                     size_t content_b64_len,
+                                     struct file_upload_result *out);
+
+/* Finish the active upload session and close the destination file.
+ *
+ * Behavior:
+ * - Verifies that the received byte count exactly matches expected_size_bytes
+ * - Returns the final structured success result used by the websocket layer
+ *
+ * On failure, the partial file is removed and out describes the error.
+ */
+void file_upload_finish(struct file_upload_state *state, struct file_upload_result *out);

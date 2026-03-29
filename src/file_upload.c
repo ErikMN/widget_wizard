@@ -75,17 +75,48 @@ file_upload_set_error(struct file_upload_result *out, const char *type, const ch
 
 /******************************************************************************/
 
+/* Reset one upload session back to the inactive baseline state. */
+void
+file_upload_reset_state(struct file_upload_state *state)
+{
+  if (!state) {
+    return;
+  }
+
+  /* Reset all bookkeeping and restore the sentinel fd value */
+  memset(state, 0, sizeof(*state));
+  state->fd = -1;
+}
+
+/* Abort the active upload, if any, and remove the partial file. */
+void
+file_upload_abort(struct file_upload_state *state)
+{
+  if (!state) {
+    return;
+  }
+
+  /* Best-effort cleanup: the caller is already handling an error or disconnect */
+  if (state->fd >= 0) {
+    close(state->fd);
+  }
+  if (state->path[0] != '\0') {
+    unlink(state->path);
+  }
+
+  file_upload_reset_state(state);
+}
+
+/******************************************************************************/
+
 /* Validate the client-provided filename for the current upload policy.
  *
  * Current policy:
  * - Filename must not be empty
- * - Filename must fit the fixed per-result buffers
+ * - Filename must fit the fixed buffers
  * - Filename must be a basename only (no '/')
  * - "." and ".." are rejected
  * - Control characters and embedded NUL bytes are rejected
- *
- * This keeps uploads confined to FILE_UPLOAD_TARGET_DIR while still allowing
- * arbitrary basenames inside that directory.
  */
 static bool
 is_valid_upload_filename(const char *filename, size_t filename_len, char *error_message, size_t error_message_size)
@@ -127,43 +158,50 @@ is_valid_upload_filename(const char *filename, size_t filename_len, char *error_
   return true;
 }
 
+/* Build the hardcoded /tmp/<filename> upload path into dst. */
+static bool
+build_upload_path(char *dst, size_t dst_size, const char *filename, char *error_message, size_t error_message_size)
+{
+  int path_len = snprintf(dst, dst_size, "%s/%s", FILE_UPLOAD_TARGET_DIR, filename);
+  if (path_len < 0 || (size_t)path_len >= dst_size) {
+    snprintf(error_message, error_message_size, "Upload path is too long");
+    return false;
+  }
+
+  return true;
+}
+
 enum base64_validation_status { BASE64_VALIDATION_OK = 0, BASE64_VALIDATION_INVALID, BASE64_VALIDATION_TOO_LARGE };
 
-/* Validate one base64 payload before decoding it.
+/* Validate one base64-encoded upload chunk before decoding it.
  *
- * The upload protocol carries one complete file as a base64 string inside
- * the JSON command. This helper performs cheap structural checks first so
- * invalid or oversized uploads can be rejected before allocating decoded
- * storage.
- *
- * On success:
- * - Returns BASE64_VALIDATION_OK
- * - Writes the decoded byte count to *decoded_size
+ * The chunked upload protocol keeps each JSON message small. This helper
+ * validates the alphabet, padding, and decoded size so invalid data can be
+ * rejected before allocating a decode buffer.
  */
 static enum base64_validation_status
-validate_base64_payload(const char *content_b64,
-                        size_t content_b64_len,
-                        size_t *decoded_size,
-                        char *error_message,
-                        size_t error_message_size)
+validate_base64_chunk(const char *content_b64,
+                      size_t content_b64_len,
+                      size_t *decoded_size,
+                      char *error_message,
+                      size_t error_message_size)
 {
-  /* Base64 padding may use up to two trailing '=' characters */
   size_t padding = 0;
 
   if (!content_b64) {
-    snprintf(error_message, error_message_size, "Upload content is missing");
+    snprintf(error_message, error_message_size, "Upload chunk content is missing");
     return BASE64_VALIDATION_INVALID;
   }
   if (memchr(content_b64, '\0', content_b64_len) != NULL) {
-    snprintf(error_message, error_message_size, "Upload content must not contain embedded NUL bytes");
+    snprintf(error_message, error_message_size, "Upload chunk must not contain embedded NUL bytes");
     return BASE64_VALIDATION_INVALID;
   }
-  if (content_b64_len > MAX_UPLOAD_BASE64_LENGTH) {
+  if (content_b64_len > MAX_UPLOAD_CHUNK_BASE64_LENGTH) {
     snprintf(error_message,
              error_message_size,
-             "Upload payload is too large (%zu bytes encoded, limit %u)",
+             "Upload chunk is too large (%zu bytes encoded, limit %u)",
              content_b64_len,
-             MAX_UPLOAD_BASE64_LENGTH);
+             MAX_UPLOAD_CHUNK_BASE64_LENGTH);
     return BASE64_VALIDATION_TOO_LARGE;
   }
   if (content_b64_len == 0) {
@@ -171,7 +209,7 @@ validate_base64_payload(const char *content_b64,
     return BASE64_VALIDATION_OK;
   }
   if ((content_b64_len % 4U) != 0U) {
-    snprintf(error_message, error_message_size, "Upload content is not valid base64");
+    snprintf(error_message, error_message_size, "Upload chunk is not valid base64");
     return BASE64_VALIDATION_INVALID;
   }
 
@@ -190,25 +228,23 @@ validate_base64_payload(const char *content_b64,
     bool is_base64_char = is_alnum || ch == '+' || ch == '/' || ch == '=';
 
     if (!is_base64_char) {
-      snprintf(error_message, error_message_size, "Upload content is not valid base64");
+      snprintf(error_message, error_message_size, "Upload chunk is not valid base64");
       return BASE64_VALIDATION_INVALID;
     }
-    if (ch == '=') {
-      if (i < content_b64_len - padding) {
-        snprintf(error_message, error_message_size, "Upload content is not valid base64");
-        return BASE64_VALIDATION_INVALID;
-      }
+    if (ch == '=' && i < content_b64_len - padding) {
+      snprintf(error_message, error_message_size, "Upload chunk is not valid base64");
+      return BASE64_VALIDATION_INVALID;
     }
   }
 
   /* Convert encoded length to decoded byte count without allocating yet */
   *decoded_size = (content_b64_len / 4U) * 3U - padding;
-  if (*decoded_size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+  if (*decoded_size > MAX_UPLOAD_CHUNK_SIZE_BYTES) {
     snprintf(error_message,
              error_message_size,
-             "Decoded upload is too large (%zu bytes, limit %u)",
+             "Decoded upload chunk is too large (%zu bytes, limit %u)",
              *decoded_size,
-             MAX_UPLOAD_FILE_SIZE_BYTES);
+             MAX_UPLOAD_CHUNK_SIZE_BYTES);
     return BASE64_VALIDATION_TOO_LARGE;
   }
 
@@ -217,42 +253,21 @@ validate_base64_payload(const char *content_b64,
 
 /******************************************************************************/
 
-/* Write one fully decoded file to disk.
- *
- * Behavior:
- * - Opens the target path with O_TRUNC so existing files are overwritten
- * - Retries write() when interrupted by EINTR
- * - Removes the partially written file if a write/close error occurs
- *
- * Returns true only if the whole buffer was written successfully.
- */
+/* Write one decoded chunk to an already opened upload file descriptor. */
 static bool
-write_full_file(const char *path, const unsigned char *buf, size_t len)
+write_chunk_to_fd(int fd, const unsigned char *buf, size_t len)
 {
-  /* Always truncate so re-uploading the same filename cleanly overwrites it */
-  int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-  if (fd < 0) {
-    return false;
-  }
-
   size_t written_total = 0;
+
   while (written_total < len) {
-    /* write() may complete partially, so keep advancing until the whole buffer is stored */
     ssize_t written = write(fd, buf + written_total, len - written_total);
     if (written < 0) {
       if (errno == EINTR) {
         continue;
       }
-      /* Remove a partially written file so callers never observe truncated content */
-      int saved_errno = errno;
-      close(fd);
-      unlink(path);
-      errno = saved_errno;
       return false;
     }
     if (written == 0) {
-      close(fd);
-      unlink(path);
       errno = EIO;
       return false;
     }
@@ -260,38 +275,168 @@ write_full_file(const char *path, const unsigned char *buf, size_t len)
     written_total += (size_t)written;
   }
 
-  /* close() can still fail after a successful write loop */
-  if (close(fd) != 0) {
-    unlink(path);
-    return false;
-  }
-
   return true;
+}
+
+/* Report one upload failure and tear down the partial file state. */
+static void
+file_upload_fail_and_abort(struct file_upload_state *state,
+                           struct file_upload_result *out,
+                           const char *type,
+                           const char *message)
+{
+  file_upload_abort(state);
+  file_upload_set_error(out, type, message);
 }
 
 /******************************************************************************/
 
-/* Decode and store one uploaded file below FILE_UPLOAD_TARGET_DIR.
- *
- * This function keeps the upload policy isolated from ws_server.c so the
- * websocket layer only needs to parse the JSON command and pass over the
- * string fields.
- *
- * Processing steps:
- * - Validate the basename-only filename policy
- * - Validate the base64 payload and enforce the 10 MiB decoded-size limit
- * - Decode the payload using GLib's base64 helper
- * - Write the decoded file to /tmp/<filename>
- * - Return a structured success/error result for JSON serialization
- */
-void
-file_upload_store_base64(const char *filename,
-                         size_t filename_len,
-                         const char *content_b64,
-                         size_t content_b64_len,
-                         struct file_upload_result *out)
+/* Start one new chunked upload session below FILE_UPLOAD_TARGET_DIR. */
+bool
+file_upload_begin(struct file_upload_state *state,
+                  const char *filename,
+                  size_t filename_len,
+                  size_t expected_size_bytes,
+                  struct file_upload_result *out)
 {
-  char error_message[sizeof(out->error_message)];
+  char error_message[320];
+
+  file_upload_init_result(out);
+
+#if !WS_ENABLE_FILE_UPLOAD
+  file_upload_set_error(out, "upload_disabled", "File upload support is disabled");
+  return false;
+#else
+  if (!state || !out) {
+    return false;
+  }
+  if (state->active) {
+    file_upload_set_error(out, "upload_in_progress", "An upload is already active on this connection");
+    return false;
+  }
+  if (expected_size_bytes > MAX_UPLOAD_FILE_SIZE_BYTES) {
+    snprintf(error_message,
+             sizeof(error_message),
+             "Decoded upload is too large (%zu bytes, limit %u)",
+             expected_size_bytes,
+             MAX_UPLOAD_FILE_SIZE_BYTES);
+    file_upload_set_error(out, "upload_too_large", error_message);
+    return false;
+  }
+  if (!is_valid_upload_filename(filename, filename_len, error_message, sizeof(error_message))) {
+    file_upload_set_error(out, "invalid_upload_filename", error_message);
+    return false;
+  }
+
+  /* Start from a clean inactive state before opening the destination file */
+  file_upload_reset_state(state);
+  copy_string_field(state->filename, sizeof(state->filename), filename, filename_len);
+  if (!build_upload_path(state->path, sizeof(state->path), state->filename, error_message, sizeof(error_message))) {
+    file_upload_set_error(out, "invalid_upload_filename", error_message);
+    return false;
+  }
+
+  /* Preserve overwrite information for the final success response */
+  state->overwritten = access(state->path, F_OK) == 0;
+  state->fd = open(state->path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (state->fd < 0) {
+    snprintf(error_message, sizeof(error_message), "Failed to open upload destination: %s", strerror(errno));
+    file_upload_set_error(out, "upload_io_error", error_message);
+    file_upload_reset_state(state);
+    return false;
+  }
+
+  state->active = true;
+  state->expected_size_bytes = expected_size_bytes;
+  state->written_size_bytes = 0;
+
+  syslog(LOG_INFO,
+         "Started upload for '%s' (%zu bytes expected)%s",
+         state->path,
+         state->expected_size_bytes,
+         state->overwritten ? " [overwriting existing file]" : "");
+  return true;
+#endif
+}
+
+/* Decode and append one base64 chunk to the active upload file. */
+bool
+file_upload_append_base64_chunk(struct file_upload_state *state,
+                                const char *content_b64,
+                                size_t content_b64_len,
+                                struct file_upload_result *out)
+{
+  char error_message[320];
+  size_t decoded_size = 0;
+  gsize actual_decoded_size = 0;
+  guchar *decoded_buf = NULL;
+
+  file_upload_init_result(out);
+
+#if !WS_ENABLE_FILE_UPLOAD
+  file_upload_set_error(out, "upload_disabled", "File upload support is disabled");
+  return false;
+#else
+  if (!state || !out) {
+    return false;
+  }
+  if (!state->active || state->fd < 0) {
+    file_upload_set_error(out, "upload_not_started", "No active upload is in progress");
+    return false;
+  }
+
+  enum base64_validation_status validation_status =
+      validate_base64_chunk(content_b64, content_b64_len, &decoded_size, error_message, sizeof(error_message));
+  if (validation_status != BASE64_VALIDATION_OK) {
+    const char *error_type =
+        validation_status == BASE64_VALIDATION_TOO_LARGE ? "upload_chunk_too_large" : "invalid_upload_content";
+    file_upload_fail_and_abort(state, out, error_type, error_message);
+    return false;
+  }
+  /* Keep the cumulative byte count bounded by the size declared in upload_begin */
+  if (state->written_size_bytes > state->expected_size_bytes ||
+      decoded_size > state->expected_size_bytes - state->written_size_bytes) {
+    file_upload_fail_and_abort(
+        state, out, "upload_size_mismatch", "Upload received more data than declared in upload_begin");
+    return false;
+  }
+
+  decoded_buf = g_base64_decode(content_b64, &actual_decoded_size);
+  if (!decoded_buf && decoded_size != 0) {
+    file_upload_fail_and_abort(state, out, "invalid_upload_content", "Upload chunk could not be decoded");
+    return false;
+  }
+  /* The pre-validation byte count must match the decoder output exactly */
+  if ((size_t)actual_decoded_size != decoded_size) {
+    g_free(decoded_buf);
+    file_upload_fail_and_abort(state, out, "invalid_upload_content", "Upload chunk could not be decoded");
+    return false;
+  }
+
+  /* Write the decoded chunk directly so memory use stays bounded by chunk size */
+  if (!write_chunk_to_fd(state->fd, decoded_buf, (size_t)actual_decoded_size)) {
+    int saved_errno = errno;
+    g_free(decoded_buf);
+    snprintf(error_message, sizeof(error_message), "Failed to write upload chunk: %s", strerror(saved_errno));
+    file_upload_fail_and_abort(state, out, "upload_io_error", error_message);
+    return false;
+  }
+  g_free(decoded_buf);
+  state->written_size_bytes += (size_t)actual_decoded_size;
+
+  return true;
+#endif
+}
+
+/* Finish the active upload and return the final success or error result. */
+void
+file_upload_finish(struct file_upload_state *state, struct file_upload_result *out)
+{
+  char filename[MAX_UPLOAD_FILENAME_LENGTH + 1];
+  char path[MAX_UPLOAD_PATH_LENGTH];
+  bool overwritten = false;
+  size_t size_bytes = 0;
+  char error_message[320];
 
   file_upload_init_result(out);
 
@@ -299,73 +444,42 @@ file_upload_store_base64(const char *filename,
   file_upload_set_error(out, "upload_disabled", "File upload support is disabled");
   return;
 #else
-  if (!out) {
+  if (!state || !out) {
+    return;
+  }
+  if (!state->active || state->fd < 0) {
+    file_upload_set_error(out, "upload_not_started", "No active upload is in progress");
+    return;
+  }
+  if (state->written_size_bytes != state->expected_size_bytes) {
+    file_upload_fail_and_abort(
+        state, out, "upload_size_mismatch", "Upload finished before the declared file size was received");
     return;
   }
 
-  /* Reject path traversal and other unsupported filename forms before building /tmp/<name> */
-  if (!is_valid_upload_filename(filename, filename_len, error_message, sizeof(error_message))) {
-    file_upload_set_error(out, "invalid_upload_filename", error_message);
-    return;
-  }
+  copy_string_field(filename, sizeof(filename), state->filename, strlen(state->filename));
+  copy_string_field(path, sizeof(path), state->path, strlen(state->path));
+  overwritten = state->overwritten;
+  size_bytes = state->written_size_bytes;
 
-  /* Validate structure and size before allocating the decoded payload */
-  size_t decoded_size = 0;
-  enum base64_validation_status validation_status =
-      validate_base64_payload(content_b64, content_b64_len, &decoded_size, error_message, sizeof(error_message));
-  if (validation_status != BASE64_VALIDATION_OK) {
-    const char *error_type =
-        validation_status == BASE64_VALIDATION_TOO_LARGE ? "upload_too_large" : "invalid_upload_content";
-    file_upload_set_error(out, error_type, error_message);
-    return;
-  }
-
-  copy_string_field(out->filename, sizeof(out->filename), filename, filename_len);
-
-  /* Build the final hardcoded destination path under /tmp */
-  int path_len = snprintf(out->path, sizeof(out->path), "%s/%s", FILE_UPLOAD_TARGET_DIR, out->filename);
-  if (path_len < 0 || (size_t)path_len >= sizeof(out->path)) {
-    file_upload_set_error(out, "invalid_upload_filename", "Upload path is too long");
-    return;
-  }
-
-  /* Expose overwrite behavior in the JSON response for the UI */
-  out->overwritten = access(out->path, F_OK) == 0;
-
-  /* Decode only after validation so invalid uploads fail without extra allocation */
-  gsize actual_decoded_size = 0;
-  guchar *decoded_buf = g_base64_decode(content_b64, &actual_decoded_size);
-  if (!decoded_buf && decoded_size != 0) {
-    file_upload_set_error(out, "invalid_upload_content", "Upload content could not be decoded");
-    return;
-  }
-  /* The pre-validation size calculation should agree with the decoder output */
-  if ((size_t)actual_decoded_size != decoded_size) {
-    g_free(decoded_buf);
-    file_upload_set_error(out, "invalid_upload_content", "Upload content could not be decoded");
-    return;
-  }
-
-  /* Persist the decoded bytes as the final uploaded file */
-  if (!write_full_file(out->path, decoded_buf, (size_t)actual_decoded_size)) {
+  /* A close failure after successful writes still leaves the file unusable */
+  if (close(state->fd) != 0) {
     int saved_errno = errno;
-    g_free(decoded_buf);
-    snprintf(error_message, sizeof(error_message), "Failed to write uploaded file: %s", strerror(saved_errno));
+    unlink(state->path);
+    file_upload_reset_state(state);
+    snprintf(error_message, sizeof(error_message), "Failed to finalize uploaded file: %s", strerror(saved_errno));
     file_upload_set_error(out, "upload_io_error", error_message);
     return;
   }
 
-  g_free(decoded_buf);
-
+  file_upload_init_result(out);
   out->ok = true;
-  out->size_bytes = (size_t)actual_decoded_size;
-  out->error_type[0] = '\0';
-  out->error_message[0] = '\0';
+  out->overwritten = overwritten;
+  out->size_bytes = size_bytes;
+  copy_string_field(out->filename, sizeof(out->filename), filename, strlen(filename));
+  copy_string_field(out->path, sizeof(out->path), path, strlen(path));
+  file_upload_reset_state(state);
 
-  syslog(LOG_INFO,
-         "Stored uploaded file '%s' (%zu bytes)%s",
-         out->path,
-         out->size_bytes,
-         out->overwritten ? " [overwritten]" : "");
+  syslog(LOG_INFO, "Stored uploaded file '%s' (%zu bytes)%s", path, size_bytes, overwritten ? " [overwritten]" : "");
 #endif
 }

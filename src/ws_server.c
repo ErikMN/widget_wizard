@@ -116,6 +116,60 @@ send_error_response(struct lws *wsi,
   }
 }
 
+/* Build and send the final upload success/error response for one client command. */
+static void
+send_upload_result_response(struct lws *wsi,
+                            struct per_session_data *pss,
+                            const struct file_upload_result *result,
+                            const char *log_context)
+{
+  bool truncated = false;
+  size_t out_len = build_upload_result_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, result, &truncated);
+
+  if (out_len > 0) {
+    send_list_buffer_json(wsi, pss, out_len, log_context);
+  }
+  if (truncated) {
+    syslog(LOG_WARNING, "%s truncated to fit %u bytes", log_context, MAX_LIST_JSON_LENGTH);
+  }
+}
+
+/* Build and send one upload_begin acknowledgement. */
+static void
+send_upload_begin_response(struct lws *wsi, struct per_session_data *pss, bool overwritten, size_t size_bytes)
+{
+  bool truncated = false;
+  size_t out_len = build_upload_begin_ack_json((char *)&pss->list_buf[LWS_PRE],
+                                               MAX_LIST_JSON_LENGTH,
+                                               overwritten,
+                                               size_bytes,
+                                               MAX_UPLOAD_CHUNK_SIZE_BYTES,
+                                               &truncated);
+
+  if (out_len > 0) {
+    send_list_buffer_json(wsi, pss, out_len, "Upload begin response");
+  }
+  if (truncated) {
+    syslog(LOG_WARNING, "Upload begin response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+  }
+}
+
+/* Build and send one upload_chunk acknowledgement. */
+static void
+send_upload_chunk_response(struct lws *wsi, struct per_session_data *pss, size_t received_bytes)
+{
+  bool truncated = false;
+  size_t out_len =
+      build_upload_chunk_ack_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, received_bytes, &truncated);
+
+  if (out_len > 0) {
+    send_list_buffer_json(wsi, pss, out_len, "Upload chunk response");
+  }
+  if (truncated) {
+    syslog(LOG_WARNING, "Upload chunk response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+  }
+}
+
 enum receive_append_status { RECEIVE_APPEND_OK = 0, RECEIVE_APPEND_TOO_LARGE, RECEIVE_APPEND_NO_MEMORY };
 
 /* Append one receive fragment to the per-session message accumulator. */
@@ -168,58 +222,145 @@ handle_stats_stream_request(struct lws *wsi, struct per_session_data *pss, json_
   return true;
 }
 
-/* Handle one-shot upload requests.
+/* Handle one upload_begin request.
  *
  * Request format:
- *   { "upload": { "filename": "name.bin", "content_b64": "..." } }
- *
- * Returns true if the command was recognized (successfully or not).
+ *   { "upload_begin": { "filename": "name.bin", "size_bytes": 12345 } }
  */
 static bool
-handle_upload_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+handle_upload_begin_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
 {
-  json_t *upload_req = json_object_get(root, "upload");
-  if (!upload_req) {
+  json_t *upload_begin = json_object_get(root, "upload_begin");
+  if (!upload_begin) {
     return false;
   }
 
-  if (!json_is_object(upload_req)) {
+  if (!json_is_object(upload_begin)) {
     send_error_response(wsi,
                         pss,
-                        "invalid_upload_request",
-                        "Upload request must be an object with filename and content_b64",
-                        "Upload error response");
+                        "invalid_upload_begin_request",
+                        "upload_begin must be an object with filename and size_bytes",
+                        "Upload begin error response");
     return true;
   }
 
-  json_t *filename = json_object_get(upload_req, "filename");
-  json_t *content_b64 = json_object_get(upload_req, "content_b64");
-  if (!json_is_string(filename) || !json_is_string(content_b64)) {
+  json_t *filename = json_object_get(upload_begin, "filename");
+  json_t *size_bytes = json_object_get(upload_begin, "size_bytes");
+  if (!json_is_string(filename) || !json_is_integer(size_bytes) || json_integer_value(size_bytes) < 0) {
     send_error_response(wsi,
                         pss,
-                        "invalid_upload_request",
-                        "Upload request must include string fields 'filename' and 'content_b64'",
-                        "Upload error response");
+                        "invalid_upload_begin_request",
+                        "upload_begin must include string field 'filename' and non-negative integer field 'size_bytes'",
+                        "Upload begin error response");
     return true;
   }
 
   struct file_upload_result result;
-  file_upload_store_base64(json_string_value(filename),
-                           json_string_length(filename),
-                           json_string_value(content_b64),
-                           json_string_length(content_b64),
-                           &result);
-
-  bool truncated = false;
-  size_t out_len = build_upload_result_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &result, &truncated);
-  if (out_len > 0) {
-    send_list_buffer_json(wsi, pss, out_len, "Upload response");
-  }
-  if (truncated) {
-    syslog(LOG_WARNING, "Upload response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+  bool ok = file_upload_begin(&pss->upload,
+                              json_string_value(filename),
+                              json_string_length(filename),
+                              (size_t)json_integer_value(size_bytes),
+                              &result);
+  if (!ok) {
+    send_upload_result_response(wsi, pss, &result, "Upload begin result");
+    return true;
   }
 
+  send_upload_begin_response(wsi, pss, pss->upload.overwritten, pss->upload.expected_size_bytes);
   return true;
+}
+
+/* Handle one upload_chunk request.
+ *
+ * Request format:
+ *   { "upload_chunk": { "content_b64": "..." } }
+ */
+static bool
+handle_upload_chunk_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+{
+  json_t *upload_chunk = json_object_get(root, "upload_chunk");
+  if (!upload_chunk) {
+    return false;
+  }
+
+  if (!json_is_object(upload_chunk)) {
+    file_upload_abort(&pss->upload);
+    send_error_response(wsi,
+                        pss,
+                        "invalid_upload_chunk_request",
+                        "upload_chunk must be an object with content_b64",
+                        "Upload chunk error response");
+    return true;
+  }
+
+  json_t *content_b64 = json_object_get(upload_chunk, "content_b64");
+  if (!json_is_string(content_b64)) {
+    file_upload_abort(&pss->upload);
+    send_error_response(wsi,
+                        pss,
+                        "invalid_upload_chunk_request",
+                        "upload_chunk must include string field 'content_b64'",
+                        "Upload chunk error response");
+    return true;
+  }
+
+  struct file_upload_result result;
+  bool ok = file_upload_append_base64_chunk(
+      &pss->upload, json_string_value(content_b64), json_string_length(content_b64), &result);
+  if (!ok) {
+    send_upload_result_response(wsi, pss, &result, "Upload chunk result");
+    return true;
+  }
+
+  send_upload_chunk_response(wsi, pss, pss->upload.written_size_bytes);
+  return true;
+}
+
+/* Handle one upload_finish request.
+ *
+ * Request format:
+ *   { "upload_finish": true }
+ */
+static bool
+handle_upload_finish_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+{
+  json_t *upload_finish = json_object_get(root, "upload_finish");
+  if (!upload_finish) {
+    return false;
+  }
+
+  if (!json_is_true(upload_finish)) {
+    file_upload_abort(&pss->upload);
+    send_error_response(
+        wsi, pss, "invalid_upload_finish_request", "upload_finish must be true", "Upload finish error response");
+    return true;
+  }
+
+  struct file_upload_result result;
+  file_upload_finish(&pss->upload, &result);
+  send_upload_result_response(wsi, pss, &result, "Upload finish result");
+  return true;
+}
+
+/* Handle one upload protocol request.
+ *
+ * Requests are split into explicit begin/chunk/finish messages so large files
+ * do not require one giant JSON receive buffer per connection.
+ */
+static bool
+handle_upload_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+{
+  if (handle_upload_begin_request(wsi, pss, root)) {
+    return true;
+  }
+  if (handle_upload_chunk_request(wsi, pss, root)) {
+    return true;
+  }
+  if (handle_upload_finish_request(wsi, pss, root)) {
+    return true;
+  }
+
+  return false;
 }
 
 /* Parse and dispatch one complete client JSON message. */
@@ -237,6 +378,7 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     if (root) {
       json_decref(root);
     }
+    file_upload_abort(&pss->upload);
     send_error_response(
         wsi, pss, "invalid_json", "Control message must be a valid JSON object", "Invalid JSON response");
     return;
@@ -470,6 +612,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     ws_connected_client_count++;
     pss->counted = true;
     pss->stats_stream_enabled = false;
+    file_upload_reset_state(&pss->upload);
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
@@ -520,6 +663,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     enum receive_append_status append_status = append_receive_fragment(pss, in, len);
     if (append_status == RECEIVE_APPEND_TOO_LARGE) {
       syslog(LOG_WARNING, "WebSocket receive: control message too large (limit %u bytes)", MAX_RECEIVE_MESSAGE_LENGTH);
+      file_upload_abort(&pss->upload);
       free_receive_buffer(pss);
       pss->discard_rx_message = !lws_is_final_fragment(wsi);
       send_error_response(wsi,
@@ -531,6 +675,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
     if (append_status == RECEIVE_APPEND_NO_MEMORY) {
       syslog(LOG_ERR, "WebSocket receive: failed to allocate receive buffer");
+      file_upload_abort(&pss->upload);
       free_receive_buffer(pss);
       pss->discard_rx_message = !lws_is_final_fragment(wsi);
       send_error_response(
@@ -558,6 +703,9 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     if (pss && pss->stats_stream_enabled) {
       set_stats_stream_enabled(wsi, pss, false);
+    }
+    if (pss) {
+      file_upload_abort(&pss->upload);
     }
 
     if (pss && pss->counted) {
@@ -638,6 +786,9 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       if (ws_pending_client_count > 0) {
         ws_pending_client_count--;
       }
+    }
+    if (pss) {
+      file_upload_abort(&pss->upload);
     }
     free_receive_buffer(pss);
     break;

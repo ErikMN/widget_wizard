@@ -87,15 +87,20 @@
  *     - OS identification (best-effort)
  * - System information is returned only on explicit request and is not streamed.
  *
- * One-shot file upload:
- * - The client can upload one file per request:
- *     { "upload": { "filename": "example.bin", "content_b64": "SGVsbG8=" } }
+ * Chunked file upload:
+ * - The upload protocol is connection-scoped and chunked:
+ *     { "upload_begin": { "filename": "example.bin", "size_bytes": 5 } }
+ *     { "upload_chunk": { "content_b64": "SGVsbG8=" } }
+ *     { "upload_finish": true }
+ * - Each chunk is bounded in size so upload traffic does not require one large
+ *   receive buffer per connected client.
  * - The filename must be a basename only (no path separators).
- * - The server decodes the base64 payload and writes the file to:
+ * - The server decodes each chunk and writes the file to:
  *     /tmp/<filename>
  * - Existing files with the same name are overwritten.
  * - The maximum decoded file size is 10 MiB.
- * - Uploads are handled only on explicit request and are not streamed.
+ * - The maximum decoded chunk size is 32 KiB.
+ * - Uploads are handled only on explicit request and are not part of the periodic stats stream.
  * - Successful uploads return:
  *     { "upload": { "filename": "example.bin", "path": "/tmp/example.bin", "size_bytes": 5, "overwritten": false } }
  * - Invalid requests or write failures return:
@@ -131,8 +136,7 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
- * - Uploads currently buffer one full JSON message in memory before decoding
- *   and writing the file.
+ * - Uploads decode and write one bounded chunk at a time in the main loop.
  *
  * Avoid to use these unsafe C functions in this app:
  * https://github.com/git/git/blob/master/banned.h

@@ -42,18 +42,20 @@
 
 /* Maximum decoded file size accepted by the upload handler.
  *
- * The current upload protocol carries one whole file as base64 inside a
- * JSON WebSocket text message. This size limit applies to the decoded
- * file contents written to disk.
+ * This size limit applies to the final decoded file contents written to disk.
  */
 #define MAX_UPLOAD_FILE_SIZE_BYTES (10U * 1024U * 1024U)
 
-/* Maximum length of the base64 string required to carry MAX_UPLOAD_FILE_SIZE_BYTES.
+/* Maximum decoded payload size accepted in one upload chunk.
  *
- * The upload handler validates the base64 payload before decoding it and
- * rejects anything larger than this bound.
+ * Uploads are transferred as a sequence of small base64-encoded JSON chunk
+ * messages. This keeps per-connection receive buffering bounded even when the
+ * total file size is much larger.
  */
-#define MAX_UPLOAD_BASE64_LENGTH ((((MAX_UPLOAD_FILE_SIZE_BYTES) + 2U) / 3U) * 4U)
+#define MAX_UPLOAD_CHUNK_SIZE_BYTES (32U * 1024U)
+
+/* Maximum encoded base64 length required to carry one upload chunk. */
+#define MAX_UPLOAD_CHUNK_BASE64_LENGTH ((((MAX_UPLOAD_CHUNK_SIZE_BYTES) + 2U) / 3U) * 4U)
 
 /* Maximum size (bytes) of a typical non-upload control message.
  *
@@ -64,27 +66,27 @@
  */
 #define MAX_SMALL_CONTROL_MESSAGE_LENGTH 128U
 
-/* Extra headroom reserved for upload JSON metadata.
+/* Extra headroom reserved for upload chunk JSON metadata.
  *
  * This covers:
  * - JSON object punctuation
- * - Command key names
+ * - Upload control key names
  * - The filename field
- * - Small future metadata additions
+ * - The size_bytes field
  */
-#define MAX_UPLOAD_JSON_OVERHEAD 1024U
+#define MAX_UPLOAD_CHUNK_JSON_OVERHEAD 1024U
 
 /* Maximum size (bytes) of a single incoming WebSocket text message.
  *
  * The receive path accumulates fragments until one full client message is
- * available, then parses it as JSON. With uploads enabled, the bound must
- * cover the full base64 payload plus JSON metadata. Without uploads, the
- * original small-message limit is used.
+ * available, then parses it as JSON. Uploads are chunked into bounded JSON
+ * control messages, so the receive cap remains small for every connection
+ * instead of scaling with the full file size.
  *
  * Messages larger than this limit are rejected.
  */
 #if WS_ENABLE_FILE_UPLOAD
-#define MAX_RECEIVE_MESSAGE_LENGTH (MAX_UPLOAD_BASE64_LENGTH + MAX_UPLOAD_JSON_OVERHEAD)
+#define MAX_RECEIVE_MESSAGE_LENGTH (MAX_UPLOAD_CHUNK_BASE64_LENGTH + MAX_UPLOAD_CHUNK_JSON_OVERHEAD)
 #else
 #define MAX_RECEIVE_MESSAGE_LENGTH MAX_SMALL_CONTROL_MESSAGE_LENGTH
 #endif
