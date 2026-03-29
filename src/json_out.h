@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "file_upload.h"
 #include "stats.h"
 #include "session.h"
 
@@ -47,6 +48,17 @@ size_t build_storage_json(char *out_buf, size_t out_size, bool *truncated);
  *   { "system": { ... } }
  */
 size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);
+
+/* Build one-shot upload result JSON.
+ *
+ * Success output format:
+ *   { "upload": { "filename": "...", "path": "/tmp/...", "size_bytes": N, "overwritten": true|false } }
+ *
+ * Failure output format:
+ *   { "error": { "type": "...", "message": "..." } }
+ */
+size_t
+build_upload_result_json(char *out_buf, size_t out_size, const struct file_upload_result *result, bool *truncated);
 
 /* Build a generic one-shot error JSON object.
  *
