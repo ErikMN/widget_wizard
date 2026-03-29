@@ -47,3 +47,10 @@ size_t build_storage_json(char *out_buf, size_t out_size, bool *truncated);
  *   { "system": { ... } }
  */
 size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);
+
+/* Build a generic one-shot error JSON object.
+ *
+ * Output format:
+ *   { "error": { "type": "...", "message": "..." } }
+ */
+size_t build_error_json(char *out_buf, size_t out_size, const char *type, const char *message, bool *truncated);

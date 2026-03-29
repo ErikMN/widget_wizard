@@ -47,6 +47,208 @@ static unsigned int ws_connected_client_count = 0;
 
 /******************************************************************************/
 
+/* Reset per-session process monitoring state to "disabled". */
+static void
+reset_process_monitoring(struct per_session_data *pss)
+{
+  if (!pss) {
+    return;
+  }
+
+  pss->proc_enabled = false;
+  pss->proc_name[0] = '\0';
+  pss->prev_proc_utime = 0;
+  pss->prev_proc_stime = 0;
+  pss->prev_proc_sample_mono_ms = 0;
+  pss->proc_pid = 0;
+}
+
+/* Release the per-session receive accumulator, if any. */
+static void
+free_receive_buffer(struct per_session_data *pss)
+{
+  if (!pss || !pss->recv_buf) {
+    return;
+  }
+
+  g_byte_array_free(pss->recv_buf, TRUE);
+  pss->recv_buf = NULL;
+}
+
+/* Send one prebuilt JSON response from the shared one-shot session buffer. */
+static void
+send_list_buffer_json(struct lws *wsi, struct per_session_data *pss, size_t out_len, const char *context)
+{
+  if (!wsi || !pss || out_len == 0) {
+    return;
+  }
+
+  int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
+  if (written < 0) {
+    syslog(LOG_WARNING, "%s: lws_write failed", context);
+    return;
+  }
+  if ((size_t)written != out_len) {
+    syslog(LOG_WARNING, "%s: short write (%d of %zu)", context, written, out_len);
+  }
+}
+
+/* Build and send a compact error response for one client command. */
+static void
+send_error_response(struct lws *wsi,
+                    struct per_session_data *pss,
+                    const char *type,
+                    const char *message,
+                    const char *log_context)
+{
+  bool truncated = false;
+  size_t out_len = build_error_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, type, message, &truncated);
+
+  if (out_len > 0) {
+    send_list_buffer_json(wsi, pss, out_len, log_context);
+  }
+  if (truncated) {
+    syslog(LOG_WARNING, "%s truncated to fit %u bytes", log_context, MAX_LIST_JSON_LENGTH);
+  }
+}
+
+enum receive_append_status { RECEIVE_APPEND_OK = 0, RECEIVE_APPEND_TOO_LARGE, RECEIVE_APPEND_NO_MEMORY };
+
+/* Append one receive fragment to the per-session message accumulator. */
+static enum receive_append_status
+append_receive_fragment(struct per_session_data *pss, const void *in, size_t len)
+{
+  if (!pss) {
+    return RECEIVE_APPEND_NO_MEMORY;
+  }
+
+  if (!pss->recv_buf) {
+    pss->recv_buf = g_byte_array_sized_new(
+        (guint)MIN((size_t)MAX_SMALL_CONTROL_MESSAGE_LENGTH, (size_t)MAX_RECEIVE_MESSAGE_LENGTH));
+    if (!pss->recv_buf) {
+      return RECEIVE_APPEND_NO_MEMORY;
+    }
+  }
+
+  if (len > (size_t)MAX_RECEIVE_MESSAGE_LENGTH - pss->recv_buf->len) {
+    return RECEIVE_APPEND_TOO_LARGE;
+  }
+
+  g_byte_array_append(pss->recv_buf, in, (guint)len);
+  return RECEIVE_APPEND_OK;
+}
+
+/* Parse and dispatch one complete client JSON message. */
+static void
+handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsigned char *msg, size_t len)
+{
+  json_error_t json_error;
+  json_t *root = json_loadb((const char *)msg, len, 0, &json_error);
+  if (!root || !json_is_object(root)) {
+    syslog(LOG_WARNING,
+           "Invalid JSON received: %s (line %d, column %d)",
+           json_error.text,
+           json_error.line,
+           json_error.column);
+    if (root) {
+      json_decref(root);
+    }
+    send_error_response(
+        wsi, pss, "invalid_json", "Control message must be a valid JSON object", "Invalid JSON response");
+    return;
+  }
+
+  /* One-shot process list request: { "list_processes": true }
+   *
+   * NOTE:
+   * This triggers a full /proc scan to build a unique process list.
+   * The operation may cause brief CPU spikes when repeatedly invoked,
+   * which is acceptable as it is user-initiated and not performed
+   * automatically or in the background.
+   */
+  json_t *list_processes = json_object_get(root, "list_processes");
+  if (json_is_true(list_processes)) {
+    bool truncated = false;
+    size_t out_len = build_process_list_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
+    if (out_len > 0) {
+      send_list_buffer_json(wsi, pss, out_len, "Process list response");
+    }
+    if (truncated) {
+      syslog(LOG_INFO, "Process list response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+    }
+    json_decref(root);
+    return;
+  }
+
+  /* One-shot storage info request: { "storage": true } */
+  json_t *storage_req = json_object_get(root, "storage");
+  if (json_is_true(storage_req)) {
+    bool truncated = false;
+    size_t out_len = build_storage_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
+    if (out_len > 0) {
+      send_list_buffer_json(wsi, pss, out_len, "Storage response");
+    }
+    if (truncated) {
+      syslog(LOG_INFO, "Storage response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+    }
+    json_decref(root);
+    return;
+  }
+
+  /* One-shot system info request: { "system_info": true } */
+  json_t *sysinfo_req = json_object_get(root, "system_info");
+  if (json_is_true(sysinfo_req)) {
+    bool truncated = false;
+    size_t out_len = build_system_info_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
+
+    if (out_len > 0) {
+      send_list_buffer_json(wsi, pss, out_len, "System info response");
+    }
+    if (truncated) {
+      syslog(LOG_INFO, "System info response truncated");
+    }
+    json_decref(root);
+    return;
+  }
+
+  /* Expect JSON: { "monitor": "process_name" } */
+  json_t *monitor = json_object_get(root, "monitor");
+  if (!monitor) {
+    json_decref(root);
+    return;
+  }
+
+  /* Explicit stop-monitoring command: { "monitor": "" } */
+  if (json_is_string(monitor) && json_string_length(monitor) == 0) {
+    reset_process_monitoring(pss);
+    syslog(LOG_INFO, "Client stopped process monitoring");
+    json_decref(root);
+    return;
+  }
+
+  /* Normal start-monitoring command */
+  if (json_is_string(monitor)) {
+    size_t proc_name_len = json_string_length(monitor);
+    size_t copy_len = proc_name_len;
+    if (copy_len >= sizeof(pss->proc_name)) {
+      copy_len = sizeof(pss->proc_name) - 1;
+    }
+
+    memcpy(pss->proc_name, json_string_value(monitor), copy_len);
+    pss->proc_name[copy_len] = '\0';
+    pss->proc_enabled = true;
+    pss->prev_proc_utime = 0;
+    pss->prev_proc_stime = 0;
+    pss->prev_proc_sample_mono_ms = 0;
+    pss->proc_pid = 0;
+    syslog(LOG_INFO, "Client monitoring process: %s", pss->proc_name);
+  }
+
+  json_decref(root);
+}
+
+/******************************************************************************/
+
 /* Periodic GLib timer callback that updates the system statistics in app_state.
  *
  * This runs in the GLib main loop thread and refreshes app_state::stats.
@@ -167,132 +369,47 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       syslog(LOG_WARNING, "WebSocket receive: missing per-session data");
       break;
     }
-    if (len == 0) {
+
+    if (pss->discard_rx_message) {
+      if (lws_is_final_fragment(wsi)) {
+        pss->discard_rx_message = false;
+      }
+      break;
+    }
+
+    enum receive_append_status append_status = append_receive_fragment(pss, in, len);
+    if (append_status == RECEIVE_APPEND_TOO_LARGE) {
+      syslog(LOG_WARNING, "WebSocket receive: control message too large (limit %u bytes)", MAX_RECEIVE_MESSAGE_LENGTH);
+      free_receive_buffer(pss);
+      pss->discard_rx_message = !lws_is_final_fragment(wsi);
+      send_error_response(wsi,
+                          pss,
+                          "control_message_too_large",
+                          "Control message exceeds the configured size limit",
+                          "Oversize control response");
+      break;
+    }
+    if (append_status == RECEIVE_APPEND_NO_MEMORY) {
+      syslog(LOG_ERR, "WebSocket receive: failed to allocate receive buffer");
+      free_receive_buffer(pss);
+      pss->discard_rx_message = !lws_is_final_fragment(wsi);
+      send_error_response(
+          wsi, pss, "internal_error", "Failed to allocate receive buffer", "Receive allocation error response");
+      break;
+    }
+
+    if (!lws_is_final_fragment(wsi)) {
+      break;
+    }
+
+    if (!pss->recv_buf || pss->recv_buf->len == 0) {
       syslog(LOG_WARNING, "WebSocket receive: empty message");
-      break;
-    }
-    if (len >= MAX_CONTROL_MESSAGE_LENGTH) {
-      syslog(LOG_WARNING,
-             "WebSocket receive: control message too large (%zu bytes, limit %u)",
-             len,
-             MAX_CONTROL_MESSAGE_LENGTH - 1);
+      free_receive_buffer(pss);
       break;
     }
 
-    char msg[MAX_CONTROL_MESSAGE_LENGTH + 1];
-    memcpy(msg, in, len);
-    msg[len] = '\0';
-
-    /* Parse JSON using libjansson */
-    json_error_t json_error;
-    json_t *root = json_loads(msg, 0, &json_error);
-    if (!root || !json_is_object(root)) {
-      syslog(LOG_WARNING,
-             "Invalid JSON received: %s (line %d, column %d)",
-             json_error.text,
-             json_error.line,
-             json_error.column);
-      if (root) {
-        json_decref(root);
-      }
-      break;
-    }
-
-    /* One-shot process list request: { "list_processes": true }
-     *
-     * NOTE:
-     * This triggers a full /proc scan to build a unique process list.
-     * The operation may cause brief CPU spikes when repeatedly invoked,
-     * which is acceptable as it is user-initiated and not performed
-     * automatically or in the background.
-     */
-    json_t *list_processes = json_object_get(root, "list_processes");
-    if (json_is_true(list_processes)) {
-      bool truncated = false;
-      size_t out_len = build_process_list_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
-      if (out_len > 0) {
-        int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
-        if (written < 0) {
-          syslog(LOG_WARNING, "lws_write failed");
-        }
-      }
-      if (truncated) {
-        syslog(LOG_INFO, "Process list response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
-      }
-      json_decref(root);
-      break;
-    }
-
-    /* One-shot storage info request: { "storage": true } */
-    json_t *storage_req = json_object_get(root, "storage");
-    if (json_is_true(storage_req)) {
-      bool truncated = false;
-      size_t out_len = build_storage_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
-      if (out_len > 0) {
-        int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
-        if (written < 0) {
-          syslog(LOG_WARNING, "lws_write failed");
-        }
-      }
-      if (truncated) {
-        syslog(LOG_INFO, "Storage response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
-      }
-      json_decref(root);
-      break;
-    }
-
-    /* One-shot system info request: { "system_info": true } */
-    json_t *sysinfo_req = json_object_get(root, "system_info");
-    if (json_is_true(sysinfo_req)) {
-      bool truncated = false;
-      size_t out_len = build_system_info_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
-
-      if (out_len > 0) {
-        int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
-        if (written < 0) {
-          syslog(LOG_WARNING, "lws_write failed");
-        }
-      }
-      if (truncated) {
-        syslog(LOG_INFO, "System info response truncated");
-      }
-
-      json_decref(root);
-      break;
-    }
-
-    /* Expect JSON: { "monitor": "process_name" } */
-    json_t *monitor = json_object_get(root, "monitor");
-    if (!monitor) {
-      json_decref(root);
-      break;
-    }
-
-    /* Explicit stop-monitoring command: { "monitor": "" } */
-    if (json_is_string(monitor) && json_string_value(monitor)[0] == '\0') {
-      pss->proc_enabled = false;
-      pss->proc_name[0] = '\0';
-      pss->prev_proc_utime = 0;
-      pss->prev_proc_stime = 0;
-      pss->prev_proc_sample_mono_ms = 0;
-      pss->proc_pid = 0;
-      syslog(LOG_INFO, "Client stopped process monitoring");
-      json_decref(root);
-      break;
-    }
-
-    /* Normal start-monitoring command */
-    if (json_is_string(monitor)) {
-      strncpy(pss->proc_name, json_string_value(monitor), sizeof(pss->proc_name) - 1);
-      pss->proc_name[sizeof(pss->proc_name) - 1] = '\0';
-      pss->proc_enabled = true;
-      pss->prev_proc_utime = 0;
-      pss->prev_proc_stime = 0;
-      pss->prev_proc_sample_mono_ms = 0;
-      pss->proc_pid = 0;
-      syslog(LOG_INFO, "Client monitoring process: %s", pss->proc_name);
-    }
-    json_decref(root);
+    handle_client_message(wsi, pss, pss->recv_buf->data, pss->recv_buf->len);
+    free_receive_buffer(pss);
     break;
   }
 
@@ -308,6 +425,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         stop_stats_timer();
       }
     }
+    free_receive_buffer(pss);
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
@@ -381,6 +499,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         ws_pending_client_count--;
       }
     }
+    free_receive_buffer(pss);
     break;
   }
 

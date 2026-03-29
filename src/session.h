@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <glib.h>
 #include <libwebsockets.h>
 
 #include "proc.h"
@@ -23,6 +24,12 @@ struct per_session_data {
 
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
+
+  /* Accumulates one incoming JSON message across fragmented receive callbacks */
+  GByteArray *recv_buf;
+
+  /* True while discarding the remainder of an oversized fragmented message */
+  bool discard_rx_message;
 
   /* Process monitoring */
   char proc_name[MAX_PROC_NAME_LENGTH];

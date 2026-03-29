@@ -354,3 +354,52 @@ build_system_info_json(char *out_buf, size_t out_size, bool *truncated)
 
   return (size_t)out_len;
 }
+
+size_t
+build_error_json(char *out_buf, size_t out_size, const char *type, const char *message, bool *truncated)
+{
+  json_t *resp = NULL;
+  json_t *err = NULL;
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!out_buf || out_size == 0 || !type || !message) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  resp = json_object();
+  err = json_object();
+  if (!resp || !err) {
+    if (err) {
+      json_decref(err);
+    }
+    if (resp) {
+      json_decref(resp);
+    }
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  json_object_set_new(err, "type", json_string(type));
+  json_object_set_new(err, "message", json_string(message));
+  json_object_set_new(resp, "error", err);
+
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  return (size_t)out_len;
+}

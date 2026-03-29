@@ -33,12 +33,20 @@
  */
 #define MAX_LIST_JSON_LENGTH 8192
 
-/* Maximum size (bytes) of a single incoming control message.
+/* Maximum size (bytes) of a typical non-upload control message.
  *
- * This bounds:
- * - JSON control commands received from clients (monitor, list_processes, etc.)
- * - Temporary stack buffer used for parsing
+ * Examples:
+ * - { "monitor": "process_name" }
+ * - { "storage": true }
+ * - { "system_info": true }
+ */
+#define MAX_SMALL_CONTROL_MESSAGE_LENGTH 128U
+
+/* Maximum size (bytes) of a single incoming WebSocket text message.
+ *
+ * The receive path accumulates fragments until one full client message is
+ * available, then parses it as JSON.
  *
  * Messages larger than this limit are rejected.
  */
-#define MAX_CONTROL_MESSAGE_LENGTH 128
+#define MAX_RECEIVE_MESSAGE_LENGTH MAX_SMALL_CONTROL_MESSAGE_LENGTH
