@@ -49,6 +49,11 @@ static unsigned int ws_streaming_client_count = 0;
 
 static void set_stats_stream_enabled(struct lws *wsi, struct per_session_data *pss, bool enabled);
 
+struct pending_ws_message {
+  size_t len;
+  unsigned char buf[];
+};
+
 /******************************************************************************/
 
 /* Reset per-session process monitoring state to "disabled". */
@@ -79,22 +84,64 @@ free_receive_buffer(struct per_session_data *pss)
   pss->recv_buf = NULL;
 }
 
-/* Send one prebuilt JSON response from the shared one-shot session buffer. */
+/* Release any queued one-shot responses for one websocket session. */
 static void
-send_list_buffer_json(struct lws *wsi, struct per_session_data *pss, size_t out_len, const char *context)
+free_pending_tx_queue(struct per_session_data *pss)
 {
-  if (!wsi || !pss || out_len == 0) {
+  if (!pss || !pss->pending_tx_queue) {
     return;
   }
 
-  int written = lws_write(wsi, &pss->list_buf[LWS_PRE], out_len, LWS_WRITE_TEXT);
-  if (written < 0) {
-    syslog(LOG_WARNING, "%s: lws_write failed", context);
+  while (!g_queue_is_empty(pss->pending_tx_queue)) {
+    g_free(g_queue_pop_head(pss->pending_tx_queue));
+  }
+
+  g_queue_free(pss->pending_tx_queue);
+  pss->pending_tx_queue = NULL;
+}
+
+/* Queue one prebuilt JSON response for delivery from SERVER_WRITEABLE.
+ *
+ * The websocket helper paths may need to emit one-shot responses outside the
+ * immediate receive callback, so replies are copied into a per-session queue
+ * and flushed from the writable callback instead of writing inline.
+ */
+static void
+queue_list_buffer_json(struct lws *wsi, struct per_session_data *pss, size_t out_len, const char *context)
+{
+  struct lws *target_wsi = wsi;
+  struct pending_ws_message *pending = NULL;
+
+  if (!pss || out_len == 0) {
     return;
   }
-  if ((size_t)written != out_len) {
-    syslog(LOG_WARNING, "%s: short write (%d of %zu)", context, written, out_len);
+
+  if (!target_wsi) {
+    target_wsi = pss->wsi;
   }
+  if (!target_wsi) {
+    syslog(LOG_WARNING, "%s: missing websocket handle for queued response", context);
+    return;
+  }
+
+  if (!pss->pending_tx_queue) {
+    pss->pending_tx_queue = g_queue_new();
+    if (!pss->pending_tx_queue) {
+      syslog(LOG_ERR, "%s: failed to allocate response queue", context);
+      return;
+    }
+  }
+
+  pending = g_malloc(sizeof(*pending) + LWS_PRE + out_len);
+  if (!pending) {
+    syslog(LOG_ERR, "%s: failed to allocate response buffer", context);
+    return;
+  }
+
+  pending->len = out_len;
+  memcpy(&pending->buf[LWS_PRE], &pss->list_buf[LWS_PRE], out_len);
+  g_queue_push_tail(pss->pending_tx_queue, pending);
+  lws_callback_on_writable(target_wsi);
 }
 
 /* Build and send a compact error response for one client command. */
@@ -109,7 +156,7 @@ send_error_response(struct lws *wsi,
   size_t out_len = build_error_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, type, message, &truncated);
 
   if (out_len > 0) {
-    send_list_buffer_json(wsi, pss, out_len, log_context);
+    queue_list_buffer_json(wsi, pss, out_len, log_context);
   }
   if (truncated) {
     syslog(LOG_WARNING, "%s truncated to fit %u bytes", log_context, MAX_LIST_JSON_LENGTH);
@@ -127,7 +174,7 @@ send_upload_result_response(struct lws *wsi,
   size_t out_len = build_upload_result_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, result, &truncated);
 
   if (out_len > 0) {
-    send_list_buffer_json(wsi, pss, out_len, log_context);
+    queue_list_buffer_json(wsi, pss, out_len, log_context);
   }
   if (truncated) {
     syslog(LOG_WARNING, "%s truncated to fit %u bytes", log_context, MAX_LIST_JSON_LENGTH);
@@ -147,7 +194,7 @@ send_upload_begin_response(struct lws *wsi, struct per_session_data *pss, bool o
                                                &truncated);
 
   if (out_len > 0) {
-    send_list_buffer_json(wsi, pss, out_len, "Upload begin response");
+    queue_list_buffer_json(wsi, pss, out_len, "Upload begin response");
   }
   if (truncated) {
     syslog(LOG_WARNING, "Upload begin response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
@@ -163,7 +210,7 @@ send_upload_chunk_response(struct lws *wsi, struct per_session_data *pss, size_t
       build_upload_chunk_ack_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, received_bytes, &truncated);
 
   if (out_len > 0) {
-    send_list_buffer_json(wsi, pss, out_len, "Upload chunk response");
+    queue_list_buffer_json(wsi, pss, out_len, "Upload chunk response");
   }
   if (truncated) {
     syslog(LOG_WARNING, "Upload chunk response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
@@ -397,7 +444,7 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     bool truncated = false;
     size_t out_len = build_process_list_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
     if (out_len > 0) {
-      send_list_buffer_json(wsi, pss, out_len, "Process list response");
+      queue_list_buffer_json(wsi, pss, out_len, "Process list response");
     }
     if (truncated) {
       syslog(LOG_INFO, "Process list response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
@@ -412,7 +459,7 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     bool truncated = false;
     size_t out_len = build_storage_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
     if (out_len > 0) {
-      send_list_buffer_json(wsi, pss, out_len, "Storage response");
+      queue_list_buffer_json(wsi, pss, out_len, "Storage response");
     }
     if (truncated) {
       syslog(LOG_INFO, "Storage response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
@@ -428,7 +475,7 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     size_t out_len = build_system_info_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &truncated);
 
     if (out_len > 0) {
-      send_list_buffer_json(wsi, pss, out_len, "System info response");
+      queue_list_buffer_json(wsi, pss, out_len, "System info response");
     }
     if (truncated) {
       syslog(LOG_INFO, "System info response truncated");
@@ -611,6 +658,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
     ws_connected_client_count++;
     pss->counted = true;
+    pss->wsi = wsi;
+    pss->pending_tx_queue = NULL;
     pss->stats_stream_enabled = false;
     file_upload_reset_state(&pss->upload);
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
@@ -701,6 +750,9 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
   case LWS_CALLBACK_CLOSED: {
     struct per_session_data *pss = user;
 
+    if (pss) {
+      pss->wsi = NULL;
+    }
     if (pss && pss->stats_stream_enabled) {
       set_stats_stream_enabled(wsi, pss, false);
     }
@@ -713,6 +765,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
         ws_connected_client_count--;
       }
     }
+    free_pending_tx_queue(pss);
     free_receive_buffer(pss);
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
@@ -733,12 +786,37 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
 
   case LWS_CALLBACK_SERVER_WRITEABLE: {
     struct per_session_data *pss = user;
+    struct pending_ws_message *pending = NULL;
     char json[MAX_WS_MESSAGE_LENGTH];
     int json_len;
     bool truncated = false;
     struct app_state *app = lws_context_user(lws_get_context(wsi));
 
-    if (!pss || !pss->stats_stream_enabled) {
+    if (!pss) {
+      break;
+    }
+
+    if (pss->pending_tx_queue && !g_queue_is_empty(pss->pending_tx_queue)) {
+      pending = g_queue_pop_head(pss->pending_tx_queue);
+      if (!pending) {
+        break;
+      }
+
+      int written = lws_write(wsi, &pending->buf[LWS_PRE], pending->len, LWS_WRITE_TEXT);
+      if (written < 0) {
+        syslog(LOG_WARNING, "Queued response write failed");
+      } else if ((size_t)written != pending->len) {
+        syslog(LOG_WARNING, "Queued response short write: %d of %zu", written, pending->len);
+      }
+      g_free(pending);
+
+      if (pss->pending_tx_queue && !g_queue_is_empty(pss->pending_tx_queue)) {
+        lws_callback_on_writable(wsi);
+      }
+      break;
+    }
+
+    if (!pss->stats_stream_enabled) {
       break;
     }
 
@@ -788,8 +866,12 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       }
     }
     if (pss) {
+      pss->wsi = NULL;
+    }
+    if (pss) {
       file_upload_abort(&pss->upload);
     }
+    free_pending_tx_queue(pss);
     free_receive_buffer(pss);
     break;
   }
