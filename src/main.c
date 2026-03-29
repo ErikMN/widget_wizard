@@ -14,6 +14,8 @@
  * - Each WebSocket client can request a one-shot list of running process names.
  * - Each WebSocket client can request a one-shot filesystem storage summary.
  * - Each WebSocket client can request a one-shot system information summary.
+ * - Each WebSocket client can upload one arbitrary file to /tmp/ using a
+ *   one-shot base64-encoded JSON command.
  *
  * Data flow:
  *   /proc -> app_state.stats
@@ -75,6 +77,20 @@
  *     - OS identification (best-effort)
  * - System information is returned only on explicit request and is not streamed.
  *
+ * One-shot file upload:
+ * - The client can upload one file per request:
+ *     { "upload": { "filename": "example.bin", "content_b64": "SGVsbG8=" } }
+ * - The filename must be a basename only (no path separators).
+ * - The server decodes the base64 payload and writes the file to:
+ *     /tmp/<filename>
+ * - Existing files with the same name are overwritten.
+ * - The maximum decoded file size is 10 MiB.
+ * - Uploads are handled only on explicit request and are not streamed.
+ * - Successful uploads return:
+ *     { "upload": { "filename": "example.bin", "path": "/tmp/example.bin", "size_bytes": 5, "overwritten": false } }
+ * - Invalid requests or write failures return:
+ *     { "error": { "type": "<error_type>", "message": "<description>" } }
+ *
  * Returned JSON message format example:
  * {
  *   "ts": 1766089635269,
@@ -105,6 +121,8 @@
  * - Designed for a small number of concurrent clients.
  * - Not thread-safe by design: All logic runs in the GLib main loop thread.
  * - Not intended as a general-purpose metrics system.
+ * - Uploads currently buffer one full JSON message in memory before decoding
+ *   and writing the file.
  *
  * Avoid to use these unsafe C functions in this app:
  * https://github.com/git/git/blob/master/banned.h

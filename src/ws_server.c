@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include "session.h"
+#include "file_upload.h"
 #include "proc.h"
 #include "json_out.h"
 #include "ws_limits.h"
@@ -138,6 +139,60 @@ append_receive_fragment(struct per_session_data *pss, const void *in, size_t len
   return RECEIVE_APPEND_OK;
 }
 
+/* Handle one-shot upload requests.
+ *
+ * Request format:
+ *   { "upload": { "filename": "name.bin", "content_b64": "..." } }
+ *
+ * Returns true if the command was recognized (successfully or not).
+ */
+static bool
+handle_upload_request(struct lws *wsi, struct per_session_data *pss, json_t *root)
+{
+  json_t *upload_req = json_object_get(root, "upload");
+  if (!upload_req) {
+    return false;
+  }
+
+  if (!json_is_object(upload_req)) {
+    send_error_response(wsi,
+                        pss,
+                        "invalid_upload_request",
+                        "Upload request must be an object with filename and content_b64",
+                        "Upload error response");
+    return true;
+  }
+
+  json_t *filename = json_object_get(upload_req, "filename");
+  json_t *content_b64 = json_object_get(upload_req, "content_b64");
+  if (!json_is_string(filename) || !json_is_string(content_b64)) {
+    send_error_response(wsi,
+                        pss,
+                        "invalid_upload_request",
+                        "Upload request must include string fields 'filename' and 'content_b64'",
+                        "Upload error response");
+    return true;
+  }
+
+  struct file_upload_result result;
+  file_upload_store_base64(json_string_value(filename),
+                           json_string_length(filename),
+                           json_string_value(content_b64),
+                           json_string_length(content_b64),
+                           &result);
+
+  bool truncated = false;
+  size_t out_len = build_upload_result_json((char *)&pss->list_buf[LWS_PRE], MAX_LIST_JSON_LENGTH, &result, &truncated);
+  if (out_len > 0) {
+    send_list_buffer_json(wsi, pss, out_len, "Upload response");
+  }
+  if (truncated) {
+    syslog(LOG_WARNING, "Upload response truncated to fit %u bytes", MAX_LIST_JSON_LENGTH);
+  }
+
+  return true;
+}
+
 /* Parse and dispatch one complete client JSON message. */
 static void
 handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsigned char *msg, size_t len)
@@ -207,6 +262,11 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
     if (truncated) {
       syslog(LOG_INFO, "System info response truncated");
     }
+    json_decref(root);
+    return;
+  }
+
+  if (handle_upload_request(wsi, pss, root)) {
     json_decref(root);
     return;
   }
