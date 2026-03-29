@@ -50,12 +50,13 @@ struct file_upload_state {
   int fd;
   char filename[MAX_UPLOAD_FILENAME_LENGTH + 1];
   char path[MAX_UPLOAD_PATH_LENGTH];
+  char temp_path[MAX_UPLOAD_PATH_LENGTH];
 };
 
 /* Initialize one upload session state object to its inactive baseline. */
 void file_upload_reset_state(struct file_upload_state *state);
 
-/* Abort the active upload, if any, and remove a partially written file. */
+/* Abort the active upload, if any, and remove the temporary partial file. */
 void file_upload_abort(struct file_upload_state *state);
 
 /* Start one new upload session.
@@ -68,7 +69,8 @@ void file_upload_abort(struct file_upload_state *state);
  * - Writes only below FILE_UPLOAD_TARGET_DIR
  * - Overwrites an existing file with the same name
  * - Rejects files larger than MAX_UPLOAD_FILE_SIZE_BYTES
- * - Opens the destination path and prepares to append chunk data
+ * - Opens a temporary file in FILE_UPLOAD_TARGET_DIR and prepares to append
+ *   chunk data
  *
  * Returns true on success. On failure, out receives a structured error result.
  */
@@ -86,7 +88,7 @@ bool file_upload_begin(struct file_upload_state *state,
  * Behavior:
  * - Rejects invalid base64
  * - Rejects chunks larger than MAX_UPLOAD_CHUNK_SIZE_BYTES after decoding
- * - Writes decoded bytes directly to the already opened destination file
+ * - Writes decoded bytes directly to the already opened temporary upload file
  * - Rejects uploads whose cumulative size would exceed expected_size_bytes
  *
  * Returns true on success. On failure, the active upload is aborted and out
@@ -97,12 +99,14 @@ bool file_upload_append_base64_chunk(struct file_upload_state *state,
                                      size_t content_b64_len,
                                      struct file_upload_result *out);
 
-/* Finish the active upload session and close the destination file.
+/* Finish the active upload session and install the completed destination file.
  *
  * Behavior:
  * - Verifies that the received byte count exactly matches expected_size_bytes
+ * - Closes the temporary upload file
+ * - Atomically replaces the destination path only after the upload is complete
  * - Returns the final structured success result used by the websocket layer
  *
- * On failure, the partial file is removed and out describes the error.
+ * On failure, the temporary file is removed and out describes the error.
  */
 void file_upload_finish(struct file_upload_state *state, struct file_upload_result *out);

@@ -88,7 +88,7 @@ file_upload_reset_state(struct file_upload_state *state)
   state->fd = -1;
 }
 
-/* Abort the active upload, if any, and remove the partial file. */
+/* Abort the active upload, if any, and remove the temporary partial file. */
 void
 file_upload_abort(struct file_upload_state *state)
 {
@@ -100,8 +100,11 @@ file_upload_abort(struct file_upload_state *state)
   if (state->fd >= 0) {
     close(state->fd);
   }
-  if (state->path[0] != '\0') {
-    unlink(state->path);
+  /* Only the temporary file is removed here so a failed upload never erases
+   * the last completed destination file.
+   */
+  if (state->temp_path[0] != '\0') {
+    unlink(state->temp_path);
   }
 
   file_upload_reset_state(state);
@@ -165,6 +168,19 @@ build_upload_path(char *dst, size_t dst_size, const char *filename, char *error_
   int path_len = snprintf(dst, dst_size, "%s/%s", FILE_UPLOAD_TARGET_DIR, filename);
   if (path_len < 0 || (size_t)path_len >= dst_size) {
     snprintf(error_message, error_message_size, "Upload path is too long");
+    return false;
+  }
+
+  return true;
+}
+
+/* Build the mkstemp template used for one temporary upload file in /tmp. */
+static bool
+build_upload_temp_path_template(char *dst, size_t dst_size, char *error_message, size_t error_message_size)
+{
+  int path_len = snprintf(dst, dst_size, "%s/.widget_wizard-upload-XXXXXX", FILE_UPLOAD_TARGET_DIR);
+  if (path_len < 0 || (size_t)path_len >= dst_size) {
+    snprintf(error_message, error_message_size, "Upload temporary path is too long");
     return false;
   }
 
@@ -328,19 +344,28 @@ file_upload_begin(struct file_upload_state *state,
     return false;
   }
 
-  /* Start from a clean inactive state before opening the destination file */
+  /* Start from a clean inactive state before opening the temporary upload file */
   file_upload_reset_state(state);
   copy_string_field(state->filename, sizeof(state->filename), filename, filename_len);
   if (!build_upload_path(state->path, sizeof(state->path), state->filename, error_message, sizeof(error_message))) {
     file_upload_set_error(out, "invalid_upload_filename", error_message);
     return false;
   }
+  if (!build_upload_temp_path_template(
+          state->temp_path, sizeof(state->temp_path), error_message, sizeof(error_message))) {
+    file_upload_set_error(out, "upload_io_error", error_message);
+    file_upload_reset_state(state);
+    return false;
+  }
 
   /* Preserve overwrite information for the final success response */
   state->overwritten = access(state->path, F_OK) == 0;
-  state->fd = open(state->path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  /* Write into a unique temporary file first so interrupted uploads never
+   * clobber the previous completed destination file.
+   */
+  state->fd = g_mkstemp_full(state->temp_path, O_WRONLY, 0666);
   if (state->fd < 0) {
-    snprintf(error_message, sizeof(error_message), "Failed to open upload destination: %s", strerror(errno));
+    snprintf(error_message, sizeof(error_message), "Failed to create upload temporary file: %s", strerror(errno));
     file_upload_set_error(out, "upload_io_error", error_message);
     file_upload_reset_state(state);
     return false;
@@ -434,6 +459,7 @@ file_upload_finish(struct file_upload_state *state, struct file_upload_result *o
 {
   char filename[MAX_UPLOAD_FILENAME_LENGTH + 1];
   char path[MAX_UPLOAD_PATH_LENGTH];
+  char temp_path[MAX_UPLOAD_PATH_LENGTH];
   bool overwritten = false;
   size_t size_bytes = 0;
   char error_message[320];
@@ -459,15 +485,32 @@ file_upload_finish(struct file_upload_state *state, struct file_upload_result *o
 
   copy_string_field(filename, sizeof(filename), state->filename, strlen(state->filename));
   copy_string_field(path, sizeof(path), state->path, strlen(state->path));
+  copy_string_field(temp_path, sizeof(temp_path), state->temp_path, strlen(state->temp_path));
   overwritten = state->overwritten;
   size_bytes = state->written_size_bytes;
 
-  /* A close failure after successful writes still leaves the file unusable */
+  /* A close failure after successful writes still leaves the temporary file
+   * unusable, so the upload is rejected and the old destination file is left
+   * untouched.
+   */
   if (close(state->fd) != 0) {
     int saved_errno = errno;
-    unlink(state->path);
+    unlink(state->temp_path);
     file_upload_reset_state(state);
     snprintf(error_message, sizeof(error_message), "Failed to finalize uploaded file: %s", strerror(saved_errno));
+    file_upload_set_error(out, "upload_io_error", error_message);
+    return;
+  }
+  state->fd = -1;
+
+  /* Atomic rename ensures the old completed file remains available unless the
+   * whole upload finished successfully.
+   */
+  if (rename(temp_path, path) != 0) {
+    int saved_errno = errno;
+    unlink(temp_path);
+    file_upload_reset_state(state);
+    snprintf(error_message, sizeof(error_message), "Failed to install uploaded file: %s", strerror(saved_errno));
     file_upload_set_error(out, "upload_io_error", error_message);
     return;
   }
