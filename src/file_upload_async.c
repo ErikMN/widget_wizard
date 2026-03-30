@@ -193,6 +193,9 @@ run_upload_async_task(gpointer data, gpointer user_data)
 static enum file_upload_async_submit_status
 submit_async_task(struct file_upload_async *upload, struct file_upload_async_task *task)
 {
+  GError *error = NULL;
+  gboolean queued = FALSE;
+
   if (!upload || !task) {
     g_free(task);
     return FILE_UPLOAD_ASYNC_SUBMIT_NO_MEMORY;
@@ -222,9 +225,28 @@ submit_async_task(struct file_upload_async *upload, struct file_upload_async_tas
   g_mutex_unlock(&upload->lock);
 
   g_mutex_lock(&upload_worker_pool_lock);
-  g_thread_pool_push(upload_worker_pool, task, NULL);
+  if (upload_worker_pool) {
+    queued = g_thread_pool_push(upload_worker_pool, task, &error);
+  }
   g_mutex_unlock(&upload_worker_pool_lock);
-  return FILE_UPLOAD_ASYNC_SUBMIT_OK;
+  if (queued) {
+    return FILE_UPLOAD_ASYNC_SUBMIT_OK;
+  }
+
+  if (error) {
+    g_error_free(error);
+  }
+
+  /* Roll back the current-operation bookkeeping so the caller can handle the failure
+   * without leaving the upload helper permanently busy.
+   */
+  g_mutex_lock(&upload->lock);
+  upload->busy = false;
+  g_mutex_unlock(&upload->lock);
+  file_upload_async_unref(task->upload);
+  g_free(task->text);
+  g_free(task);
+  return FILE_UPLOAD_ASYNC_SUBMIT_NO_MEMORY;
 }
 
 /******************************************************************************/
