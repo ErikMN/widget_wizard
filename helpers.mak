@@ -153,18 +153,10 @@ TEST_BUILD_DIR = src/tests/bin
 TEST_CMOCKA_PKGS = cmocka
 TEST_CMOCKA_CFLAGS = $(shell pkg-config --cflags $(TEST_CMOCKA_PKGS))
 TEST_CMOCKA_LDLIBS = $(shell pkg-config --libs $(TEST_CMOCKA_PKGS))
-TEST_SUPPORT_HDR = $(TEST_SRC_DIR)/test_support.h
 TEST_SRCS = $(wildcard $(TEST_SRC_DIR)/test_*.c)
 TEST_BINS = $(patsubst $(TEST_SRC_DIR)/%.c,$(TEST_BUILD_DIR)/%,$(TEST_SRCS))
-
-TEST_LINK_SRCS_test_file_upload = src/file_upload.c
-TEST_LINK_SRCS_test_file_upload_async = src/file_upload.c src/file_upload_async.c
-
-TEST_DEPS_test_file_upload = $(TEST_LINK_SRCS_test_file_upload) src/file_upload.h src/ws_limits.h
-TEST_DEPS_test_file_upload_async = $(TEST_LINK_SRCS_test_file_upload_async) src/file_upload.h src/file_upload_async.h src/ws_limits.h
-
-test_link_srcs_for = $(TEST_LINK_SRCS_$1)
-test_deps_for = $(TEST_DEPS_$1)
+TEST_BACKEND_SRCS = $(filter-out src/main.c,$(wildcard src/*.c)) src/platform/platform_pc.c
+TEST_HDRS = $(wildcard src/*.h) $(wildcard src/platform/*.h) $(wildcard $(TEST_SRC_DIR)/*.h)
 
 .PHONY: checkcmocka
 checkcmocka:
@@ -172,9 +164,9 @@ checkcmocka:
 	( echo "cmocka is required for backend unit tests"; exit 1 )
 
 .SECONDEXPANSION:
-$(TEST_BUILD_DIR)/%: $(TEST_SRC_DIR)/%.c $(TEST_SUPPORT_HDR) $$(call test_deps_for,$$*)
+$(TEST_BUILD_DIR)/%: $(TEST_SRC_DIR)/%.c $(TEST_BACKEND_SRCS) $(TEST_HDRS)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< $(call test_link_srcs_for,$*) $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
+	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< $(TEST_BACKEND_SRCS) $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
 
 .PHONY: test
 test: checkcmocka $(TEST_BINS)
