@@ -144,6 +144,87 @@ test_file_upload_size_mismatch_keeps_previous_file(void **state)
   test_support_assert_file_contents(test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
 }
 
+/* A zero-byte upload should still produce one empty file on finish. */
+static void
+test_file_upload_writes_zero_byte_file(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char empty_payload[] = "";
+
+  assert_true(
+      file_upload_begin(&test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 0, &result));
+  file_upload_finish(&test_state->upload, &result);
+
+  assert_true(result.ok);
+  assert_int_equal(result.size_bytes, 0);
+  test_support_assert_file_contents(test_state->file.path, empty_payload, 0);
+}
+
+/* A chunk that would exceed the declared size should fail immediately instead
+ * of waiting until upload_finish.
+ */
+static void
+test_file_upload_rejects_chunk_overflow(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char previous_payload[] = "stable";
+
+  test_support_write_file(test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+
+  assert_true(
+      file_upload_begin(&test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 3, &result));
+  assert_false(file_upload_append_base64_chunk(&test_state->upload, "SGVsbG8=", strlen("SGVsbG8="), &result));
+
+  assert_false(result.ok);
+  assert_false(test_state->upload.active);
+  assert_string_equal(result.error_type, "upload_size_mismatch");
+  test_support_assert_file_contents(test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+}
+
+/* Calling finish twice should report that no active upload remains while the
+ * completed destination file stays intact.
+ */
+static void
+test_file_upload_rejects_double_finish(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char payload[] = "Hello";
+
+  assert_true(
+      file_upload_begin(&test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 5, &result));
+  assert_true(file_upload_append_base64_chunk(&test_state->upload, "SGVsbG8=", strlen("SGVsbG8="), &result));
+  file_upload_finish(&test_state->upload, &result);
+
+  assert_true(result.ok);
+  file_upload_finish(&test_state->upload, &result);
+  assert_false(result.ok);
+  assert_string_equal(result.error_type, "upload_not_started");
+  test_support_assert_file_contents(test_state->file.path, payload, sizeof(payload) - 1);
+}
+
+/* Aborting after a successful finish should not remove the completed
+ * destination file because only temporary files are cleaned up on abort.
+ */
+static void
+test_file_upload_abort_after_finish_keeps_file(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char payload[] = "Hello";
+
+  assert_true(
+      file_upload_begin(&test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 5, &result));
+  assert_true(file_upload_append_base64_chunk(&test_state->upload, "SGVsbG8=", strlen("SGVsbG8="), &result));
+  file_upload_finish(&test_state->upload, &result);
+
+  assert_true(result.ok);
+  file_upload_abort(&test_state->upload);
+  test_support_assert_file_contents(test_state->file.path, payload, sizeof(payload) - 1);
+}
+
 /******************************************************************************/
 
 int
@@ -160,6 +241,14 @@ main(void)
         test_file_upload_invalid_chunk_keeps_previous_file, setup_file_upload_test, teardown_file_upload_test),
     cmocka_unit_test_setup_teardown(
         test_file_upload_size_mismatch_keeps_previous_file, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_writes_zero_byte_file, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_rejects_chunk_overflow, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_rejects_double_finish, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_abort_after_finish_keeps_file, setup_file_upload_test, teardown_file_upload_test),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);
