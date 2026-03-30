@@ -267,6 +267,39 @@ test_file_upload_async_submit_after_global_shutdown(void **state)
   test_support_assert_file_contents(test_state->file.path, payload, sizeof(payload) - 1);
 }
 
+/* A multi-chunk upload should accumulate bytes across chunk callbacks and
+ * write the combined decoded file contents on finish.
+ */
+static void
+test_file_upload_async_writes_multi_chunk_file(void **state)
+{
+  struct file_upload_async_test_state *test_state = *state;
+  static const char payload[] = "Hello World";
+
+  assert_int_equal(file_upload_async_submit_begin(
+                       test_state->upload_async, test_state->file.filename, strlen(test_state->file.filename), 11),
+                   FILE_UPLOAD_ASYNC_SUBMIT_OK);
+  test_support_wait_for_callback_count(test_state->context, &test_state->callback_count, 1, 1000000);
+  assert_true(test_state->completions[0].succeeded);
+
+  assert_int_equal(file_upload_async_submit_chunk(test_state->upload_async, "SGVsbG8g", strlen("SGVsbG8g")),
+                   FILE_UPLOAD_ASYNC_SUBMIT_OK);
+  test_support_wait_for_callback_count(test_state->context, &test_state->callback_count, 2, 1000000);
+  assert_true(test_state->completions[1].succeeded);
+  assert_int_equal(test_state->completions[1].written_size_bytes, 6);
+
+  assert_int_equal(file_upload_async_submit_chunk(test_state->upload_async, "V29ybGQ=", strlen("V29ybGQ=")),
+                   FILE_UPLOAD_ASYNC_SUBMIT_OK);
+  test_support_wait_for_callback_count(test_state->context, &test_state->callback_count, 3, 1000000);
+  assert_true(test_state->completions[2].succeeded);
+  assert_int_equal(test_state->completions[2].written_size_bytes, 11);
+
+  assert_int_equal(file_upload_async_submit_finish(test_state->upload_async), FILE_UPLOAD_ASYNC_SUBMIT_OK);
+  test_support_wait_for_callback_count(test_state->context, &test_state->callback_count, 4, 1000000);
+  assert_true(test_state->completions[3].result.ok);
+  test_support_assert_file_contents(test_state->file.path, payload, sizeof(payload) - 1);
+}
+
 /* Closing the async helper should reject future submissions immediately. */
 static void
 test_file_upload_async_rejects_submit_after_close(void **state)
@@ -330,6 +363,8 @@ main(void)
     cmocka_unit_test_setup_teardown(test_file_upload_async_submit_after_global_shutdown,
                                     setup_file_upload_async_test,
                                     teardown_file_upload_async_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_async_writes_multi_chunk_file, setup_file_upload_async_test, teardown_file_upload_async_test),
     cmocka_unit_test_setup_teardown(test_file_upload_async_rejects_submit_after_close,
                                     setup_file_upload_async_test,
                                     teardown_file_upload_async_test),
