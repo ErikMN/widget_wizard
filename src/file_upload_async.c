@@ -111,6 +111,12 @@ finish_async_dispatch(struct file_upload_async_dispatch *dispatch, bool invoke_c
   void *completion_user_data = NULL;
 
   g_mutex_lock(&upload->lock);
+  if (upload->abort_requested) {
+    if (upload->state.active) {
+      file_upload_abort(&upload->state);
+    }
+    upload->abort_requested = false;
+  }
   upload->busy = false;
   if (invoke_completion_cb && !upload->closed) {
     completion_cb = upload->completion_cb;
