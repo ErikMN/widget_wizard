@@ -294,6 +294,46 @@ write_chunk_to_fd(int fd, const unsigned char *buf, size_t len)
   return true;
 }
 
+/* Decode one validated base64 chunk without requiring NUL-terminated input. */
+static bool
+decode_base64_chunk(const char *content_b64,
+                    size_t content_b64_len,
+                    size_t decoded_size,
+                    guchar **decoded_buf_out,
+                    gsize *actual_decoded_size_out)
+{
+  gint state = 0;
+  guint save = 0;
+  guchar *decoded_buf = NULL;
+  gsize actual_decoded_size = 0;
+
+  if (!decoded_buf_out || !actual_decoded_size_out) {
+    return false;
+  }
+
+  *decoded_buf_out = NULL;
+  *actual_decoded_size_out = 0;
+
+  if (decoded_size == 0) {
+    return true;
+  }
+
+  decoded_buf = g_malloc(decoded_size);
+  if (!decoded_buf) {
+    return false;
+  }
+
+  actual_decoded_size = g_base64_decode_step(content_b64, content_b64_len, decoded_buf, &state, &save);
+  if ((size_t)actual_decoded_size != decoded_size) {
+    g_free(decoded_buf);
+    return false;
+  }
+
+  *decoded_buf_out = decoded_buf;
+  *actual_decoded_size_out = actual_decoded_size;
+  return true;
+}
+
 /* Report one upload failure and tear down the partial file state. */
 static void
 file_upload_fail_and_abort(struct file_upload_state *state,
@@ -426,14 +466,7 @@ file_upload_append_base64_chunk(struct file_upload_state *state,
     return false;
   }
 
-  decoded_buf = g_base64_decode(content_b64, &actual_decoded_size);
-  if (!decoded_buf && decoded_size != 0) {
-    file_upload_fail_and_abort(state, out, "invalid_upload_content", "Upload chunk could not be decoded");
-    return false;
-  }
-  /* The pre-validation byte count must match the decoder output exactly */
-  if ((size_t)actual_decoded_size != decoded_size) {
-    g_free(decoded_buf);
+  if (!decode_base64_chunk(content_b64, content_b64_len, decoded_size, &decoded_buf, &actual_decoded_size)) {
     file_upload_fail_and_abort(state, out, "invalid_upload_content", "Upload chunk could not be decoded");
     return false;
   }
