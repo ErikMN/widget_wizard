@@ -148,12 +148,46 @@ indent:
 #==============================================================================#
 # Build for host PC (requires all dependencies installed):
 
+TEST_BUILD_DIR = src/tests/bin
+TEST_CMOCKA_PKGS = cmocka
+TEST_CMOCKA_CFLAGS = $(shell pkg-config --cflags $(TEST_CMOCKA_PKGS))
+TEST_CMOCKA_LDLIBS = $(shell pkg-config --libs $(TEST_CMOCKA_PKGS))
+
+TEST_FILE_UPLOAD_BIN = $(TEST_BUILD_DIR)/test_file_upload
+TEST_BINS = $(TEST_FILE_UPLOAD_BIN)
+
+.PHONY: checkcmocka
+checkcmocka:
+	@pkg-config --exists $(TEST_CMOCKA_PKGS) || \
+	( echo "cmocka is required for backend unit tests"; exit 1 )
+
+$(TEST_FILE_UPLOAD_BIN): src/tests/test_file_upload.c src/tests/test_support.h src/file_upload.c src/file_upload.h src/ws_limits.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< src/file_upload.c $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
+
+.PHONY: test
+test: checkcmocka $(TEST_BINS)
+	@for test_bin in $(TEST_BINS); do \
+	  $$test_bin; \
+	done
+
 .PHONY: host
 host: clean
 	@$(MAKE) \
 	  OECORE_SDK_VERSION=host \
 	  APPTYPE=host \
 	  $(PROGS)
+
+.PHONY: hosttest
+hosttest: clean testclean
+	@$(MAKE) \
+	  OECORE_SDK_VERSION=host \
+	  APPTYPE=host \
+	  test
+
+.PHONY: testclean
+testclean:
+	$(RM) -r $(TEST_BUILD_DIR)
 
 #==============================================================================#
 # NOTE: Build for legacy 32-bit products for testing (not release):

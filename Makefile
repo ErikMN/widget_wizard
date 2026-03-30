@@ -117,6 +117,7 @@ help:
 	@echo "  logon          : Logon to ACAP dir"
 	@echo "  log            : Trace logs on target"
 	@echo "  kill           : Kill ACAP running on target device"
+	@echo "  hosttest       : Build and run backend cmocka unit tests on the host PC"
 	@echo "  openweb        : Open ACAP web on target device"
 	@echo "  web            : Build the web using Node.js and Yarn"
 	@echo "  deployweb      : Deploy the web to target device"
@@ -201,6 +202,7 @@ install: checkdocker acap
 clean:
 	@$(ECHO) "${RED}*** Clean build${NC}"
 	$(RM) $(PROGS) $(OBJS) src/platform/*.o *.eap *LICENSE.txt
+	$(RM) -r src/tests/bin
 
 # Cleanup everything:
 .PHONY: distclean
