@@ -106,7 +106,9 @@ test_support_wait_for_callback_count(GMainContext *context,
   assert_non_null(callback_count);
 
   while (*callback_count < expected_count && g_get_monotonic_time() < deadline) {
-    g_main_context_iteration(context, TRUE);
+    if (!g_main_context_iteration(context, FALSE)) {
+      g_usleep(1000);
+    }
   }
 
   assert_true(*callback_count >= expected_count);

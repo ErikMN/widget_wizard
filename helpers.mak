@@ -154,7 +154,8 @@ TEST_CMOCKA_CFLAGS = $(shell pkg-config --cflags $(TEST_CMOCKA_PKGS))
 TEST_CMOCKA_LDLIBS = $(shell pkg-config --libs $(TEST_CMOCKA_PKGS))
 
 TEST_FILE_UPLOAD_BIN = $(TEST_BUILD_DIR)/test_file_upload
-TEST_BINS = $(TEST_FILE_UPLOAD_BIN)
+TEST_FILE_UPLOAD_ASYNC_BIN = $(TEST_BUILD_DIR)/test_file_upload_async
+TEST_BINS = $(TEST_FILE_UPLOAD_BIN) $(TEST_FILE_UPLOAD_ASYNC_BIN)
 
 .PHONY: checkcmocka
 checkcmocka:
@@ -164,6 +165,10 @@ checkcmocka:
 $(TEST_FILE_UPLOAD_BIN): src/tests/test_file_upload.c src/tests/test_support.h src/file_upload.c src/file_upload.h src/ws_limits.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< src/file_upload.c $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
+
+$(TEST_FILE_UPLOAD_ASYNC_BIN): src/tests/test_file_upload_async.c src/tests/test_support.h src/file_upload_async.c src/file_upload_async.h src/file_upload.c src/file_upload.h src/ws_limits.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< src/file_upload.c src/file_upload_async.c $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
 
 .PHONY: test
 test: checkcmocka $(TEST_BINS)
@@ -179,7 +184,7 @@ host: clean
 	  $(PROGS)
 
 .PHONY: hosttest
-hosttest: clean testclean
+hosttest: clean
 	@$(MAKE) \
 	  OECORE_SDK_VERSION=host \
 	  APPTYPE=host \
