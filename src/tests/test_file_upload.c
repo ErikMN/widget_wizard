@@ -73,6 +73,80 @@ test_file_upload_rejects_path_separator(void **state)
   assert_string_equal(result.error_type, "invalid_upload_filename");
 }
 
+/* Finishing a successful upload over an existing file should replace it and
+ * report the overwrite in the final result.
+ */
+static void
+test_file_upload_replaces_existing_file_on_finish(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char previous_payload[] = "old";
+  static const char uploaded_payload[] = "World";
+
+  test_support_write_file(
+      test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+
+  assert_true(file_upload_begin(
+      &test_state->upload, test_state->file.filename, strlen(test_state->file.filename), sizeof(uploaded_payload) - 1, &result));
+  assert_true(file_upload_append_base64_chunk(&test_state->upload, "V29ybGQ=", strlen("V29ybGQ="), &result));
+  file_upload_finish(&test_state->upload, &result);
+
+  assert_true(result.ok);
+  assert_true(result.overwritten);
+  test_support_assert_file_contents(
+      test_state->file.path, uploaded_payload, sizeof(uploaded_payload) - 1);
+}
+
+/* Invalid chunk data should abort the current upload without damaging the last
+ * completed file at the destination path.
+ */
+static void
+test_file_upload_invalid_chunk_keeps_previous_file(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char previous_payload[] = "stable";
+
+  test_support_write_file(
+      test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+
+  assert_true(file_upload_begin(
+      &test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 5, &result));
+  assert_false(file_upload_append_base64_chunk(&test_state->upload, "%%%=", strlen("%%%="), &result));
+
+  assert_false(result.ok);
+  assert_false(test_state->upload.active);
+  assert_string_equal(result.error_type, "invalid_upload_content");
+  test_support_assert_file_contents(
+      test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+}
+
+/* Finishing before the declared byte count arrives should fail cleanly and
+ * keep the previous destination file available.
+ */
+static void
+test_file_upload_size_mismatch_keeps_previous_file(void **state)
+{
+  struct file_upload_test_state *test_state = *state;
+  struct file_upload_result result;
+  static const char previous_payload[] = "stable";
+
+  test_support_write_file(
+      test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+
+  assert_true(file_upload_begin(
+      &test_state->upload, test_state->file.filename, strlen(test_state->file.filename), 10, &result));
+  assert_true(file_upload_append_base64_chunk(&test_state->upload, "SGVsbG8=", strlen("SGVsbG8="), &result));
+  file_upload_finish(&test_state->upload, &result);
+
+  assert_false(result.ok);
+  assert_false(test_state->upload.active);
+  assert_string_equal(result.error_type, "upload_size_mismatch");
+  test_support_assert_file_contents(
+      test_state->file.path, previous_payload, sizeof(previous_payload) - 1);
+}
+
 /******************************************************************************/
 
 int
@@ -83,6 +157,13 @@ main(void)
         test_file_upload_writes_uploaded_file, setup_file_upload_test, teardown_file_upload_test),
     cmocka_unit_test_setup_teardown(
         test_file_upload_rejects_path_separator, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(test_file_upload_replaces_existing_file_on_finish,
+                                    setup_file_upload_test,
+                                    teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_invalid_chunk_keeps_previous_file, setup_file_upload_test, teardown_file_upload_test),
+    cmocka_unit_test_setup_teardown(
+        test_file_upload_size_mismatch_keeps_previous_file, setup_file_upload_test, teardown_file_upload_test),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

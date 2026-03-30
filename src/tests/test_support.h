@@ -1,5 +1,6 @@
 #pragma once
 
+#include <errno.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -69,6 +70,27 @@ test_support_assert_file_contents(const char *path, const void *expected, size_t
   assert_int_equal(contents_size, expected_size);
   assert_memory_equal(contents, expected, expected_size);
   g_free(contents);
+}
+
+/* Write one full file so overwrite behavior can be tested deterministically. */
+static inline void
+test_support_write_file(const char *path, const void *contents, size_t contents_size)
+{
+  GError *error = NULL;
+
+  assert_non_null(path);
+  assert_non_null(contents);
+  assert_true(g_file_set_contents(path, contents, (gssize)contents_size, &error));
+  assert_null(error);
+}
+
+/* Verify that a test file path does not exist. */
+static inline void
+test_support_assert_file_missing(const char *path)
+{
+  assert_non_null(path);
+  assert_int_equal(access(path, F_OK), -1);
+  assert_int_equal(errno, ENOENT);
 }
 
 /* Drive one GLib main context until the requested callback count is reached. */
