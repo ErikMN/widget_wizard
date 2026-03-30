@@ -1038,8 +1038,9 @@ ws_server_start(struct app_state *app, int port)
 void
 ws_server_stop(void)
 {
+  GMainContext *main_context = g_main_context_default();
+
   stop_stats_timer();
-  file_upload_async_shutdown();
   ws_pending_client_count = 0;
   ws_connected_client_count = 0;
   ws_streaming_client_count = 0;
@@ -1054,6 +1055,20 @@ ws_server_stop(void)
     lws_context_destroy(ws.ctx);
     ws.ctx = NULL;
   }
+
+  /* Wait for background upload work to finish after websocket teardown has
+   * marked all per-session upload helpers closed.
+   */
+  file_upload_async_shutdown();
+
+  /* Drain upload completion callbacks that may already have been queued onto
+   * the default GLib context before shutdown started. Closed sessions clear
+   * their callback pointers, so these iterations only release async state.
+   */
+  while (main_context && g_main_context_pending(main_context)) {
+    g_main_context_iteration(main_context, FALSE);
+  }
+
   ws.app = NULL;
 }
 

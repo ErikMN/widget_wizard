@@ -37,6 +37,7 @@ static GMutex upload_worker_pool_lock;
 static GThreadPool *upload_worker_pool = NULL;
 
 static void run_upload_async_task(gpointer data, gpointer user_data);
+static void finish_async_dispatch(struct file_upload_async_dispatch *dispatch, bool invoke_completion_cb);
 struct file_upload_async *file_upload_async_ref(struct file_upload_async *upload);
 void file_upload_async_unref(struct file_upload_async *upload);
 
@@ -96,18 +97,22 @@ dup_string_field(const char *src, size_t src_len)
   return dup;
 }
 
-/* Finalize one worker completion back on the owning GLib main context. */
-static gboolean
-deliver_async_completion(gpointer user_data)
+/* Finalize one worker completion and release the task-owned upload reference.
+ *
+ * Completion callbacks are only invoked while the owning websocket session is
+ * still alive. Closed sessions still need the bookkeeping cleanup so the
+ * upload helper does not remain permanently busy.
+ */
+static void
+finish_async_dispatch(struct file_upload_async_dispatch *dispatch, bool invoke_completion_cb)
 {
-  struct file_upload_async_dispatch *dispatch = user_data;
   struct file_upload_async *upload = dispatch->upload;
   file_upload_async_completion_cb completion_cb = NULL;
   void *completion_user_data = NULL;
 
   g_mutex_lock(&upload->lock);
   upload->busy = false;
-  if (!upload->closed) {
+  if (invoke_completion_cb && !upload->closed) {
     completion_cb = upload->completion_cb;
     completion_user_data = upload->user_data;
   }
@@ -119,6 +124,14 @@ deliver_async_completion(gpointer user_data)
 
   file_upload_async_unref(upload);
   g_free(dispatch);
+}
+
+/* Finalize one worker completion back on the owning GLib main context. */
+static gboolean
+deliver_async_completion(gpointer user_data)
+{
+  struct file_upload_async_dispatch *dispatch = user_data;
+  finish_async_dispatch(dispatch, true);
   return G_SOURCE_REMOVE;
 }
 
@@ -129,6 +142,7 @@ run_upload_async_task(gpointer data, gpointer user_data)
   struct file_upload_async_task *task = data;
   struct file_upload_async_dispatch *dispatch = g_new0(struct file_upload_async_dispatch, 1);
   struct file_upload_async *upload = task->upload;
+  bool deliver_on_main_context = true;
 
   (void)user_data;
 
@@ -182,9 +196,14 @@ run_upload_async_task(gpointer data, gpointer user_data)
     }
     upload->abort_requested = false;
   }
+  deliver_on_main_context = !upload->closed;
   g_mutex_unlock(&upload->lock);
 
-  g_main_context_invoke(upload->main_context, deliver_async_completion, dispatch);
+  if (deliver_on_main_context) {
+    g_main_context_invoke(upload->main_context, deliver_async_completion, dispatch);
+  } else {
+    finish_async_dispatch(dispatch, false);
+  }
   g_free(task->text);
   g_free(task);
 }
