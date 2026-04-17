@@ -10,6 +10,7 @@
 #include "json_out.h"
 #include "ws_limits.h"
 #include "ws_server.h"
+#include "log_stream.h"
 
 /* Internal WebSocket server state (singleton instance).
  *
@@ -47,11 +48,6 @@ static unsigned int ws_connected_client_count = 0;
 static unsigned int ws_streaming_client_count = 0;
 
 static void set_stats_stream_enabled(struct lws *wsi, struct per_session_data *pss, bool enabled);
-
-struct pending_ws_message {
-  size_t len;
-  unsigned char buf[];
-};
 
 /******************************************************************************/
 
@@ -288,6 +284,11 @@ handle_client_message(struct lws *wsi, struct per_session_data *pss, const unsig
   }
 
   if (handle_stats_stream_request(wsi, pss, root)) {
+    json_decref(root);
+    return;
+  }
+
+  if (log_stream_handle_request(pss, root)) {
     json_decref(root);
     return;
   }
@@ -551,6 +552,7 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     if (pss && pss->stats_stream_enabled) {
       set_stats_stream_enabled(wsi, pss, false);
     }
+    log_stream_unsubscribe(pss);
 
     if (pss && pss->counted) {
       if (ws_connected_client_count > 0) {
@@ -749,6 +751,7 @@ void
 ws_server_stop(void)
 {
   stop_stats_timer();
+  log_stream_stop();
   ws_pending_client_count = 0;
   ws_connected_client_count = 0;
   ws_streaming_client_count = 0;

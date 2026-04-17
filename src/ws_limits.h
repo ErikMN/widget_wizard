@@ -50,3 +50,11 @@
  * Messages larger than this limit are rejected.
  */
 #define MAX_RECEIVE_MESSAGE_LENGTH MAX_SMALL_CONTROL_MESSAGE_LENGTH
+
+/* Maximum length of a single log line forwarded to WebSocket clients.
+ *
+ * Lines longer than this are truncated before encoding.  The value is chosen
+ * to comfortably hold one syslog entry including facility, timestamp, host,
+ * tag, and message text.
+ */
+#define MAX_LOG_LINE_LENGTH 512U

@@ -6,6 +6,7 @@ import { useAppSettingsContext } from '../context/AppContext';
 import { CustomButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import { getBackendWebSocketUrl } from './getBackendWebSocketUrl';
+import { SystemStatsLogView } from './SystemStatsLogView';
 import {
   SystemStatsProcessListView,
   SystemStatsProcessView,
@@ -50,7 +51,7 @@ const SystemStats: React.FC = () => {
 
   /* Local state */
   const [viewMode, setViewMode] = useState<
-    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system'
+    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system' | 'logs'
   >('bars');
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
@@ -98,7 +99,12 @@ const SystemStats: React.FC = () => {
     requestProcessList,
     requestStorageInfo,
     requestSystemInfo,
-    clearMonitorInput
+    clearMonitorInput,
+    logLines,
+    logStreaming,
+    startLogStream,
+    stopLogStream,
+    clearLogLines
   } = useSystemStatsStream({
     url: WS_ADDRESS
   });
@@ -390,6 +396,19 @@ const SystemStats: React.FC = () => {
               >
                 System
               </CustomButton>
+
+              <CustomButton
+                size="small"
+                variant="outlined"
+                onClick={() => setViewMode('logs')}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  opacity: viewMode === 'logs' ? 1 : 0.5
+                }}
+              >
+                Logs
+              </CustomButton>
             </Box>
 
             {/* System stats info and bars */}
@@ -476,6 +495,17 @@ const SystemStats: React.FC = () => {
               <SystemStatsSystemView
                 systemInfo={systemInfo}
                 osLabel={osLabel}
+              />
+            )}
+
+            {/* Log stream view */}
+            {viewMode === 'logs' && (
+              <SystemStatsLogView
+                logLines={logLines}
+                logStreaming={logStreaming}
+                startLogStream={startLogStream}
+                stopLogStream={stopLogStream}
+                clearLogLines={clearLogLines}
               />
             )}
           </Stack>

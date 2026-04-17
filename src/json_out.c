@@ -403,3 +403,51 @@ build_error_json(char *out_buf, size_t out_size, const char *type, const char *m
 
   return (size_t)out_len;
 }
+
+size_t
+build_log_line_json(char *out_buf, size_t out_size, const char *line, size_t line_len, bool *truncated)
+{
+  char safe_line[MAX_LOG_LINE_LENGTH + 1];
+  json_t *resp = NULL;
+
+  if (truncated) {
+    *truncated = false;
+  }
+
+  if (!out_buf || out_size == 0 || !line) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  /* Clamp to buffer and strip trailing newline / carriage return */
+  size_t copy_len = line_len < MAX_LOG_LINE_LENGTH ? line_len : MAX_LOG_LINE_LENGTH;
+  memcpy(safe_line, line, copy_len);
+  while (copy_len > 0 && (safe_line[copy_len - 1] == '\n' || safe_line[copy_len - 1] == '\r')) {
+    copy_len--;
+  }
+  safe_line[copy_len] = '\0';
+
+  resp = json_object();
+  if (!resp) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  json_object_set_new(resp, "log", json_string(safe_line));
+
+  int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
+  json_decref(resp);
+
+  if (out_len < 0) {
+    if (truncated) {
+      *truncated = true;
+    }
+    return 0;
+  }
+
+  return (size_t)out_len;
+}

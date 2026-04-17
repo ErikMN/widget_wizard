@@ -9,6 +9,16 @@
 #include "proc.h"
 #include "ws_limits.h"
 
+/* Outgoing message queued for delivery from LWS_CALLBACK_SERVER_WRITEABLE.
+ *
+ * - buf[] is allocated with LWS_PRE bytes of headroom before the payload.
+ * - len is the payload length (bytes after the LWS_PRE offset).
+ */
+struct pending_ws_message {
+  size_t len;
+  unsigned char buf[]; /* layout: [LWS_PRE padding | payload] */
+};
+
 /* Per-connected WebSocket client (per-session) storage.
  * libwebsockets gives us one instance of this struct for each connection and
  * passes it back as the "user" pointer in ws_callback().

@@ -54,3 +54,10 @@ size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);
  *   { "error": { "type": "...", "message": "..." } }
  */
 size_t build_error_json(char *out_buf, size_t out_size, const char *type, const char *message, bool *truncated);
+
+/* Build one log line JSON message.
+ *
+ * Output format:
+ *   { "log": "Apr 17 12:34:56 host daemon[1]: message text" }
+ */
+size_t build_log_line_json(char *out_buf, size_t out_size, const char *line, size_t line_len, bool *truncated);

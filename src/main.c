@@ -7,7 +7,6 @@
  *
  * App overview:
  * - WebSocket state and system statistics run in the GLib main loop thread.
- * - Upload chunk decode/write work is dispatched to a background worker thread.
  * - System statistics are periodically sampled from /proc and stored in app_state::stats.
  * - libwebsockets is serviced from the same GLib main loop via a timer.
  * - Each WebSocket client can explicitly opt into live statistics streaming.
@@ -86,7 +85,18 @@
  *     - OS identification (best-effort)
  * - System information is returned only on explicit request and is not streamed.
  *
- * Returned JSON message format example:
+ * Live log streaming:
+ * - Any client can subscribe to live log output from a system log file:
+ *     { "log_stream": true }
+ * - The server monitors the log file with Linux inotify and pushes each new
+ *   complete line to all subscribed clients:
+ *     { "log": "<line text>" }
+ * - On subscribe, the last ~8 kB of the current log file is replayed to the
+ *   new subscriber as history before live lines begin.
+ * - To stop log streaming without closing the socket, the client sends:
+ *     { "log_stream": false }
+ * - The monitored file is configured in log_stream.c (LOG_STREAM_FILE).
+ *
  * {
  *   "ts": 1766089635269,
  *   "mono_ms": 4689109526,

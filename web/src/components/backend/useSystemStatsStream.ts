@@ -5,6 +5,7 @@
  * - Live system stats snapshots
  * - Process monitor snapshots and errors
  * - One-shot process list, storage, and system info responses
+ * - Live log line streaming
  * - Request helpers for the system monitor backend
  */
 import { useEffect, useRef, useState } from 'react';
@@ -19,6 +20,7 @@ import {
 } from './systemStatsTypes';
 
 const MAX_HISTORY_POINTS = 60;
+const MAX_LOG_LINES = 500;
 
 interface UseSystemStatsStreamOptions {
   url: string;
@@ -38,11 +40,16 @@ interface UseSystemStatsStreamResult {
   processList: string[];
   storageInfo: StorageInfo[];
   systemInfo: SystemInfo | null;
+  logLines: string[];
+  logStreaming: boolean;
   sendMonitorRequest: () => void;
   requestProcessList: () => void;
   requestStorageInfo: () => void;
   requestSystemInfo: () => void;
   clearMonitorInput: () => void;
+  startLogStream: () => void;
+  stopLogStream: () => void;
+  clearLogLines: () => void;
 }
 
 export const useSystemStatsStream = ({
@@ -60,6 +67,8 @@ export const useSystemStatsStream = ({
   const [processList, setProcessList] = useState<string[]>([]);
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logStreaming, setLogStreaming] = useState<boolean>(false);
 
   /* Refs */
   const procNameRef = useRef<string>(procName);
@@ -74,6 +83,8 @@ export const useSystemStatsStream = ({
     setProcessList([]);
     setStorageInfo([]);
     setSystemInfo(null);
+    setLogLines([]);
+    setLogStreaming(false);
   };
 
   useEffect(() => {
@@ -111,6 +122,17 @@ export const useSystemStatsStream = ({
         /* One-shot system info */
         if (data.system && typeof data.system === 'object') {
           setSystemInfo(data.system);
+          return;
+        }
+
+        /* Streamed log line from the backend log monitor */
+        if (typeof data.log === 'string') {
+          setLogLines((prev) => {
+            const next = [...prev, data.log];
+            return next.length > MAX_LOG_LINES
+              ? next.slice(-MAX_LOG_LINES)
+              : next;
+          });
           return;
         }
 
@@ -229,6 +251,24 @@ export const useSystemStatsStream = ({
     sendJson({ system_info: true });
   };
 
+  /* Subscribe to live log streaming */
+  const startLogStream = () => {
+    if (sendJson({ log_stream: true })) {
+      setLogStreaming(true);
+    }
+  };
+
+  /* Unsubscribe from live log streaming */
+  const stopLogStream = () => {
+    sendJson({ log_stream: false });
+    setLogStreaming(false);
+  };
+
+  /* Clear log lines from local state (does not affect backend subscription) */
+  const clearLogLines = () => {
+    setLogLines([]);
+  };
+
   const clearMonitorInput = () => {
     /* Clear process monitor UI state */
     setProcName('');
@@ -257,6 +297,11 @@ export const useSystemStatsStream = ({
     requestProcessList,
     requestStorageInfo,
     requestSystemInfo,
-    clearMonitorInput
+    clearMonitorInput,
+    logLines,
+    logStreaming,
+    startLogStream,
+    stopLogStream,
+    clearLogLines
   };
 };
