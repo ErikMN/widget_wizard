@@ -268,11 +268,11 @@ read_new_lines(FILE *fp, struct per_session_data *target, const char *level)
 }
 
 /*
- * Replay the last LOG_STREAM_HISTORY_BYTES of every open log file to pss.
+ * Replay the last LOG_STREAM_HISTORY_BYTES of every watched log file to pss.
  *
- * For each file: opens a separate FILE*, seeks backward, skips to the next
- * complete line boundary, then calls read_new_lines() to deliver the tail to
- * pss only. The live file handles remain positioned for subsequent broadcasts.
+ * For each file: opens a separate FILE*, seeks backward when possible, skips
+ * to the next complete line boundary only when starting in the middle, then
+ * calls read_new_lines() to deliver the tail to pss only.
  */
 static void
 send_history_to_one(struct per_session_data *pss)
@@ -292,14 +292,18 @@ send_history_to_one(struct per_session_data *pss)
       continue;
     }
 
-    if (fseek(fp, -(long)LOG_STREAM_HISTORY_BYTES, SEEK_END) != 0) {
+    bool seeked_into_middle = (fseek(fp, -(long)LOG_STREAM_HISTORY_BYTES, SEEK_END) == 0);
+
+    if (!seeked_into_middle) {
       /* File smaller than history window: start from the beginning */
       rewind(fp);
     }
 
-    /* Skip to the next complete line boundary */
-    int c;
-    while ((c = fgetc(fp)) != EOF && c != '\n') { }
+    /* Skip to the next complete line boundary only if we started in the middle */
+    if (seeked_into_middle) {
+      int c;
+      while ((c = fgetc(fp)) != EOF && c != '\n') { }
+    }
 
     read_new_lines(fp, pss, watched_levels[i]);
     fclose(fp);
