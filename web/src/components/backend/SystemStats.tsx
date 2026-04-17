@@ -2,10 +2,10 @@
  * Get stats from WS backend and display them.
  */
 import React, { useRef, useEffect, useState } from 'react';
-import { enableLogging } from '../../helpers/logger';
 import { useAppSettingsContext } from '../context/AppContext';
 import { CustomButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
+import { getBackendWebSocketUrl } from './getBackendWebSocketUrl';
 import {
   SystemStatsProcessListView,
   SystemStatsProcessView,
@@ -46,17 +46,7 @@ const SystemStats: React.FC = () => {
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
 
-  const wsAddress =
-    appSettings.wsAddress && appSettings.wsAddress.trim() !== ''
-      ? appSettings.wsAddress
-      : import.meta.env.MODE === 'development'
-        ? import.meta.env.VITE_TARGET_IP
-        : window.location.hostname;
-
-  const wsPort =
-    typeof appSettings.wsPort === 'number' ? appSettings.wsPort : 9000;
-
-  const WS_ADDRESS = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wsAddress}:${wsPort}`;
+  const WS_ADDRESS = getBackendWebSocketUrl(appSettings);
 
   /* Local state */
   const [viewMode, setViewMode] = useState<

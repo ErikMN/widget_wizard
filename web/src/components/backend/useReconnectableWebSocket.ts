@@ -9,15 +9,13 @@
  * Exposes helpers to:
  * - Send plain string messages
  * - Send JSON commands
- * - Send raw WS payloads such as binary upload chunks
  * - Read the current connection state
  */
 import { useEffect, useRef, useState } from 'react';
 
-type WebSocketSendData = string | ArrayBuffer | Blob | ArrayBufferView;
-
 interface UseReconnectableWebSocketOptions {
   url: string;
+  enabled?: boolean;
   reconnectDelayMs?: number;
   onOpen?: (socket: WebSocket) => void;
   onMessage?: (event: MessageEvent) => void;
@@ -28,7 +26,6 @@ interface UseReconnectableWebSocketOptions {
 interface UseReconnectableWebSocketResult {
   send: (message: string) => boolean;
   sendJson: (data: unknown) => boolean;
-  sendRaw: (data: WebSocketSendData) => boolean;
   connected: boolean;
   readyState: number | null;
 }
@@ -38,6 +35,7 @@ interface UseReconnectableWebSocketResult {
  */
 export const useReconnectableWebSocket = ({
   url,
+  enabled = true,
   reconnectDelayMs = 2000,
   onOpen,
   onMessage,
@@ -54,11 +52,13 @@ export const useReconnectableWebSocket = ({
   const intentionalCloseRef = useRef<boolean>(false);
   const connectionIdRef = useRef<number>(0);
   const hasHandledInitialConfigRef = useRef<boolean>(false);
+  const enabledRef = useRef<boolean>(enabled);
   const onOpenRef = useRef<typeof onOpen>(onOpen);
   const onMessageRef = useRef<typeof onMessage>(onMessage);
   const onErrorRef = useRef<typeof onError>(onError);
   const onCloseRef = useRef<typeof onClose>(onClose);
 
+  enabledRef.current = enabled;
   onOpenRef.current = onOpen;
   onMessageRef.current = onMessage;
   onErrorRef.current = onError;
@@ -96,6 +96,11 @@ export const useReconnectableWebSocket = ({
   }
 
   function scheduleReconnect() {
+    /* Reconnect only while the hook is enabled */
+    if (!enabledRef.current) {
+      return;
+    }
+
     /* Do not reconnect if the component has been unmounted */
     if (isUnmountedRef.current) {
       return;
@@ -144,7 +149,7 @@ export const useReconnectableWebSocket = ({
    */
   function connect() {
     /* Do not create a socket if the component has been unmounted. */
-    if (isUnmountedRef.current) {
+    if (isUnmountedRef.current || !enabledRef.current) {
       return;
     }
 
@@ -245,8 +250,10 @@ export const useReconnectableWebSocket = ({
     isUnmountedRef.current = false;
     intentionalCloseRef.current = false;
 
-    /* Start the WebSocket connection attempt */
-    connect();
+    /* Start the WebSocket connection attempt when enabled */
+    if (enabledRef.current) {
+      connect();
+    }
 
     return () => {
       /* Invalidate the current connection generation */
@@ -272,7 +279,7 @@ export const useReconnectableWebSocket = ({
     };
   }, []);
 
-  /* Reconnect when WS settings change after mount */
+  /* Reconnect when WS settings change after mount, or tear down when disabled */
   useEffect(() => {
     if (!hasHandledInitialConfigRef.current) {
       hasHandledInitialConfigRef.current = true;
@@ -293,10 +300,15 @@ export const useReconnectableWebSocket = ({
       wsRef.current = null;
     }
     intentionalCloseRef.current = false;
-    connect();
-  }, [url, reconnectDelayMs]);
 
-  const sendRaw = (data: WebSocketSendData) => {
+    if (!enabled) {
+      setSocketState(null);
+      return;
+    }
+    connect();
+  }, [enabled, url, reconnectDelayMs]);
+
+  const sendRaw = (data: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return false;
     }
@@ -312,7 +324,6 @@ export const useReconnectableWebSocket = ({
   return {
     send,
     sendJson,
-    sendRaw,
     connected: readyState === WebSocket.OPEN,
     readyState
   };

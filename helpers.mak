@@ -148,12 +148,49 @@ indent:
 #==============================================================================#
 # Build for host PC (requires all dependencies installed):
 
+TEST_SRC_DIR = src/tests
+TEST_BUILD_DIR = src/tests/bin
+TEST_CMOCKA_PKGS = cmocka
+TEST_CMOCKA_CFLAGS = $(shell pkg-config --cflags $(TEST_CMOCKA_PKGS))
+TEST_CMOCKA_LDLIBS = $(shell pkg-config --libs $(TEST_CMOCKA_PKGS))
+TEST_SRCS = $(wildcard $(TEST_SRC_DIR)/test_*.c)
+TEST_BINS = $(patsubst $(TEST_SRC_DIR)/%.c,$(TEST_BUILD_DIR)/%,$(TEST_SRCS))
+TEST_BACKEND_SRCS = $(filter-out src/main.c,$(wildcard src/*.c)) src/platform/platform_pc.c
+TEST_HDRS = $(wildcard src/*.h) $(wildcard src/platform/*.h) $(wildcard $(TEST_SRC_DIR)/*.h)
+
+.PHONY: checkcmocka
+checkcmocka:
+	@pkg-config --exists $(TEST_CMOCKA_PKGS) || \
+	( echo "cmocka is required for backend unit tests"; exit 1 )
+
+.SECONDEXPANSION:
+$(TEST_BUILD_DIR)/%: $(TEST_SRC_DIR)/%.c $(TEST_BACKEND_SRCS) $(TEST_HDRS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -Isrc $(TEST_CMOCKA_CFLAGS) $< $(TEST_BACKEND_SRCS) $(LDLIBS) $(TEST_CMOCKA_LDLIBS) -o $@
+
+.PHONY: test
+test: checkcmocka $(TEST_BINS)
+	@for test_bin in $(TEST_BINS); do \
+	  $$test_bin; \
+	done
+
 .PHONY: host
 host: clean
 	@$(MAKE) \
 	  OECORE_SDK_VERSION=host \
 	  APPTYPE=host \
 	  $(PROGS)
+
+.PHONY: hosttest
+hosttest: clean
+	@$(MAKE) \
+	  OECORE_SDK_VERSION=host \
+	  APPTYPE=host \
+	  test
+
+.PHONY: testclean
+testclean:
+	$(RM) -r $(TEST_BUILD_DIR)
 
 #==============================================================================#
 # NOTE: Build for legacy 32-bit products for testing (not release):

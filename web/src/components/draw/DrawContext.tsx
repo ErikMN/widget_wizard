@@ -37,6 +37,7 @@ interface DrawContextProps {
   undoLastEdit: () => void;
   redoLastEdit: () => void;
   clearDrawing: () => void;
+  createDrawingPngExport: () => Promise<DrawPngExport | null>;
   saveDrawingAsPng: () => Promise<void>;
   hasDrawing: boolean;
   canUndo: boolean;
@@ -59,6 +60,12 @@ interface DrawStorageState {
 interface DrawDraftController {
   hasDraft: () => boolean;
   discardDraft: () => void;
+}
+
+interface DrawPngExport {
+  blob: Blob;
+  videoWidth: number;
+  videoHeight: number;
 }
 
 const MAX_UNDO_HISTORY = 100;
@@ -473,33 +480,32 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  const saveDrawingAsPng = useCallback(async () => {
+  const createDrawingPngExport = useCallback(async () => {
     /* Export is generated from native coordinates onto a transparent canvas */
-    if (
-      !surfaceDimensions ||
-      surfaceDimensions.videoWidth <= 0 ||
-      surfaceDimensions.videoHeight <= 0
-    ) {
+    const videoWidth = surfaceDimensions?.videoWidth ?? 0;
+    const videoHeight = surfaceDimensions?.videoHeight ?? 0;
+
+    if (videoWidth <= 0 || videoHeight <= 0) {
       handleOpenAlert(
         'Native video resolution is not available yet',
         'warning'
       );
-      return;
+      return null;
     }
 
     if (strokes.length === 0) {
       handleOpenAlert('There is no drawing to save yet', 'warning');
-      return;
+      return null;
     }
 
     const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = surfaceDimensions.videoWidth;
-    exportCanvas.height = surfaceDimensions.videoHeight;
+    exportCanvas.width = videoWidth;
+    exportCanvas.height = videoHeight;
 
     const context = exportCanvas.getContext('2d');
     if (!context) {
       handleOpenAlert('Failed to initialize PNG export canvas', 'error');
-      return;
+      return null;
     }
 
     renderDrawStrokes({
@@ -507,8 +513,8 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
       strokes,
       renderWidth: exportCanvas.width,
       renderHeight: exportCanvas.height,
-      sourceWidth: surfaceDimensions.videoWidth,
-      sourceHeight: surfaceDimensions.videoHeight
+      sourceWidth: videoWidth,
+      sourceHeight: videoHeight
     });
 
     const blob = await new Promise<Blob | null>((resolve) => {
@@ -517,20 +523,33 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (!blob) {
       handleOpenAlert('Failed to encode drawing as PNG', 'error');
+      return null;
+    }
+
+    return {
+      blob,
+      videoWidth,
+      videoHeight
+    };
+  }, [handleOpenAlert, strokes, surfaceDimensions]);
+
+  const saveDrawingAsPng = useCallback(async () => {
+    const pngExport = await createDrawingPngExport();
+    if (!pngExport) {
       return;
     }
 
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(pngExport.blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `draw_${surfaceDimensions.videoWidth}x${surfaceDimensions.videoHeight}_${getTimestampLabel()}.png`;
+    link.download = `draw_${pngExport.videoWidth}x${pngExport.videoHeight}_${getTimestampLabel()}.png`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
 
     handleOpenAlert('Drawing saved as PNG', 'success');
-  }, [handleOpenAlert, strokes, surfaceDimensions]);
+  }, [createDrawingPngExport, handleOpenAlert]);
 
   const value = useMemo(
     () => ({
@@ -548,6 +567,7 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
       undoLastEdit,
       redoLastEdit,
       clearDrawing,
+      createDrawingPngExport,
       saveDrawingAsPng,
       hasDrawing: strokes.length > 0,
       canUndo: undoHistory.length > 0,
@@ -566,6 +586,7 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
       undoLastEdit,
       redoLastEdit,
       clearDrawing,
+      createDrawingPngExport,
       saveDrawingAsPng
     ]
   );

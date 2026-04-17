@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <glib.h>
 #include <libwebsockets.h>
 
 #include "proc.h"
@@ -21,8 +22,23 @@ struct per_session_data {
   unsigned char stream_buf[LWS_PRE + MAX_WS_MESSAGE_LENGTH];
   unsigned char list_buf[LWS_PRE + MAX_LIST_JSON_LENGTH];
 
+  /* Cached websocket handle used to schedule writable callbacks */
+  struct lws *wsi;
+
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
+
+  /* Queue of one-shot JSON responses waiting for LWS_CALLBACK_SERVER_WRITEABLE */
+  GQueue *pending_tx_queue;
+
+  /* Accumulates one incoming JSON message across fragmented receive callbacks */
+  GByteArray *recv_buf;
+
+  /* True while discarding the remainder of an oversized fragmented message */
+  bool discard_rx_message;
+
+  /* True when this client explicitly opted into periodic stats streaming */
+  bool stats_stream_enabled;
 
   /* Process monitoring */
   char proc_name[MAX_PROC_NAME_LENGTH];
