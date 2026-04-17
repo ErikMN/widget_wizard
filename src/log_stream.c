@@ -309,12 +309,16 @@ send_history_to_one(struct per_session_data *pss)
 /* -------------------------------------------------------------------------- */
 
 /*
- * Open (or reopen) the file at watched_filenames[idx] for reading, seeking
- * to the end so only new lines written after this point are broadcast.
+ * Open (or reopen) the file at watched_filenames[idx] for reading.
+ *
+ * If seek_to_end is true, the file is positioned at EOF so only newly appended
+ * lines are broadcast. If seek_to_end is false, the file is positioned at the
+ * beginning so existing lines in a newly created replacement file can be read.
+ *
  * Any previously open handle is closed first. Logs a warning on failure.
  */
 static void
-open_log_file(size_t idx)
+open_log_file(size_t idx, bool seek_to_end)
 {
   char path[256];
   build_log_path(idx, path, sizeof(path));
@@ -330,8 +334,18 @@ open_log_file(size_t idx)
       syslog(LOG_WARNING, "log_stream: cannot open %s: %m", path);
       log_open_failed[idx] = true;
     }
-  } else {
-    log_open_failed[idx] = false;
+    return;
+  }
+
+  log_open_failed[idx] = false;
+
+  if (seek_to_end) {
+    if (fseek(log_fps[idx], 0, SEEK_END) != 0) {
+      syslog(LOG_WARNING, "log_stream: cannot seek to end of %s: %m", path);
+      fclose(log_fps[idx]);
+      log_fps[idx] = NULL;
+      return;
+    }
   }
 }
 
@@ -345,12 +359,12 @@ close_log_file(size_t idx)
   }
 }
 
-/* Open all watched log files.  Called once when monitoring starts. */
+/* Open all watched log files. Called once when monitoring starts. */
 static void
 open_all_log_files(void)
 {
   for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
-    open_log_file(i);
+    open_log_file(i, true);
   }
 }
 
@@ -430,11 +444,11 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
           } else if (ev->mask & (IN_CREATE | IN_MOVED_TO)) {
             /* New file appeared after rotation: reopen from the start */
             close_log_file((size_t)idx);
-            open_log_file((size_t)idx);
+            open_log_file((size_t)idx, false);
             read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
           } else if (ev->mask & (IN_MODIFY | IN_CLOSE_WRITE)) {
             if (!log_fps[idx] || log_file_replaced_or_truncated((size_t)idx)) {
-              open_log_file((size_t)idx);
+              open_log_file((size_t)idx, false);
             }
             read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
           }
