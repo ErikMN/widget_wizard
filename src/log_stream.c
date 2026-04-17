@@ -18,7 +18,7 @@
  * - Lines longer than MAX_LOG_LINE_LENGTH have the oversized portion skipped;
  *   the file position is advanced past the partial read on the next event so
  *   subsequent lines are not blocked.
- * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of each open log file are
+ * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of each watched log file are
  *   replayed to the new subscriber only using a separate FILE* per file, so
  *   the live file pointers are not disturbed.
  *
