@@ -103,6 +103,7 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
       {/* Log output */}
       <Box
         ref={containerRef}
+        className="selectable-text"
         sx={{
           fontFamily: 'monospace',
           fontSize: '0.72rem',
@@ -115,7 +116,8 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
           maxHeight: '45vh',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-all',
-          color: '#d4d4d4'
+          color: '#d4d4d4',
+          cursor: 'text'
         }}
       >
         {filteredLines.length === 0 ? (
