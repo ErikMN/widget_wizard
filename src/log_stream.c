@@ -234,13 +234,11 @@ read_new_lines(FILE *fp, struct per_session_data *target, const char *level)
       continue;
     }
 
-    /* No newline at end: partial/oversized line (EOF mid-write or line longer
-     * than linebuf). Advance past this chunk so we do not loop on the same
-     * position forever. For a mid-write partial line this moves us slightly
-     * beyond EOF. clearerr() at the top of the next call resets the flag so
-     * the remainder is picked up after the next IN_MODIFY event. */
+    /* No newline at end: stop and retry from the same position on the next
+     * event so a line written in multiple writes is emitted intact. */
     if (linebuf[len - 1] != '\n') {
-      fseek(fp, pos + (long)len, SEEK_SET);
+      clearerr(fp);
+      fseek(fp, pos, SEEK_SET);
       break;
     }
 
