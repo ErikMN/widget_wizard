@@ -15,12 +15,13 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 /* Severity levels in display order. */
-const LEVELS = ['error', 'warning', 'info', 'debug', 'auth'] as const;
+const LEVELS = ['error', 'warning', 'notice', 'info', 'debug', 'auth'] as const;
 type Level = (typeof LEVELS)[number];
 
 const LEVEL_COLOR: Record<Level, string> = {
   error: '#ff6b6b',
   warning: '#ffd93d',
+  notice: '#ffffff',
   info: '#e8e8e8',
   debug: '#a0a0a0',
   auth: '#82cfff'
@@ -29,6 +30,7 @@ const LEVEL_COLOR: Record<Level, string> = {
 const LEVEL_LABEL: Record<Level, string> = {
   error: 'ERROR',
   warning: 'WARN',
+  notice: 'NOTICE',
   info: 'INFO',
   debug: 'DEBUG',
   auth: 'AUTH'
