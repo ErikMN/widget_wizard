@@ -51,6 +51,17 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
           line.toLowerCase().includes(filter.toLowerCase())
         );
 
+  const getLineColor = (line: string): string => {
+    const lower = line.toLowerCase();
+    if (/\b(error|err|crit|critical|alert|emerg|fatal)\b/.test(lower)) {
+      return '#ff6b6b';
+    }
+    if (/\b(warning|warn|notice)\b/.test(lower)) {
+      return '#ffd93d';
+    }
+    return '#e8e8e8';
+  };
+
   return (
     <Stack spacing={1}>
       {/* Controls */}
@@ -116,7 +127,7 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
           maxHeight: '45vh',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-all',
-          color: '#d4d4d4',
+          color: '#e8e8e8',
           cursor: 'text'
         }}
       >
@@ -130,7 +141,11 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
               : 'Press Stream to start receiving log lines.'}
           </Typography>
         ) : (
-          filteredLines.map((line, i) => <div key={i}>{line}</div>)
+          filteredLines.map((line, i) => (
+            <div key={i} style={{ color: getLineColor(line) }}>
+              {line}
+            </div>
+          ))
         )}
         <div ref={bottomRef} />
       </Box>
