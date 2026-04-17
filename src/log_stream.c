@@ -13,26 +13,27 @@
  * - Log rotation: when the watched directory reports that the log file was
  *   deleted or moved away, the FILE* handle is closed.  When a new file with
  *   the same name appears (IN_CREATE / IN_MOVED_TO), it is opened from the
- *   beginning.
+ *   beginning. On write events the current FILE* inode is also compared with
+ *   the path inode so rename-based rotation is detected reliably.
  * - Lines longer than MAX_LOG_LINE_LENGTH have the oversized portion skipped;
  *   the file position is advanced past the partial read on the next event so
  *   subsequent lines are not blocked.
  * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of each open log file are
- *   replayed to the new subscriber only. NOTE: a subsequent subscriber
- *   subscribing before the GLib main loop returns sees history starting from
- *   wherever the first subscriber's replay left the file pointer: the history
- *   window may be shorter, but no lines are lost.
+ *   replayed to the new subscriber only using a separate FILE* per file, so
+ *   the live file pointers are not disturbed.
  *
  * Monitored files are listed in watched_filenames[] below.
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include <sys/inotify.h>
+#include <sys/stat.h>
 
 #include <glib.h>
 #include <libwebsockets.h>
@@ -49,8 +50,12 @@
 #define LOG_STREAM_DIR "/var/log"
 
 /* How far from the end of each file to seek when replaying history to a new
- * subscriber.  Gives roughly 50–100 typical syslog lines per file. */
+ * subscriber. Gives roughly 50–100 typical syslog lines per file. */
 #define LOG_STREAM_HISTORY_BYTES 8192
+
+/* Maximum number of queued log messages per subscriber before the oldest
+ * pending message is dropped to prevent unbounded memory growth. */
+#define LOG_STREAM_MAX_PENDING_MESSAGES 1000
 
 /*
  * Log files to monitor within LOG_STREAM_DIR.
@@ -60,9 +65,9 @@
  * log stream.  Add or remove entries here as needed.
  *
  * NOTE: auth.log and its rotated copies are owned root:root (mode 640) on
- * this target.  If the application runs as a non-root user, open_log_file()
+ * this target. If the application runs as a non-root user, open_log_file()
  * will fail with EACCES and auth.log will be silently skipped (a syslog
- * warning is emitted).  Remove it from the list if that is undesirable.
+ * warning is emitted). Remove it from the list if that is undesirable.
  */
 
 // clang-format off
@@ -89,6 +94,64 @@ static GSList *log_subscribers = NULL;
 
 /* -------------------------------------------------------------------------- */
 
+/* Write the absolute path for watched_filenames[idx] into path. */
+static void
+build_log_path(size_t idx, char *path, size_t path_size)
+{
+  snprintf(path, path_size, "%s/%s", LOG_STREAM_DIR, watched_filenames[idx]);
+}
+
+/*
+ * Check whether the open handle for watched_filenames[idx] still refers to
+ * the same inode as the path on disk, and handle truncation.
+ *
+ * Rotation detection (returns true: caller must reopen):
+ * When logrotate renames the file away without generating IN_DELETE (e.g.
+ * "mv syslog syslog.1"), the open FILE* would keep reading from the old
+ * inode indefinitely. Comparing inodes on every write event catches this.
+ * Also returns true if the path has disappeared or either stat call fails.
+ *
+ * Truncation handling (returns false, handled in place):
+ * If the current file position is beyond the reported file size the file
+ * was truncated in place. clearerr + rewind resets the handle to the
+ * beginning, the caller does not need to reopen.
+ */
+static bool
+log_file_replaced_or_truncated(size_t idx)
+{
+  FILE *fp = log_fps[idx];
+  char path[256];
+  struct stat path_st;
+  struct stat fp_st;
+  long pos;
+
+  if (!fp) {
+    return false;
+  }
+
+  build_log_path(idx, path, sizeof(path));
+
+  if (stat(path, &path_st) != 0) {
+    return true;
+  }
+
+  if (fstat(fileno(fp), &fp_st) != 0) {
+    return true;
+  }
+
+  if (path_st.st_dev != fp_st.st_dev || path_st.st_ino != fp_st.st_ino) {
+    return true;
+  }
+
+  pos = ftell(fp);
+  if (pos >= 0 && (off_t)pos > path_st.st_size) {
+    clearerr(fp);
+    rewind(fp);
+  }
+
+  return false;
+}
+
 /* Allocate a pending_ws_message and enqueue it on pss's transmit queue. */
 static void
 queue_line_to_session(struct per_session_data *pss, const char *line, size_t line_len)
@@ -112,9 +175,12 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
   if (!pss->pending_tx_queue) {
     pss->pending_tx_queue = g_queue_new();
   }
-  if (!pss->pending_tx_queue) {
-    g_free(msg);
-    return;
+
+  if (g_queue_get_length(pss->pending_tx_queue) >= LOG_STREAM_MAX_PENDING_MESSAGES) {
+    struct pending_ws_message *oldest = g_queue_pop_head(pss->pending_tx_queue);
+    if (oldest) {
+      g_free(oldest);
+    }
   }
 
   g_queue_push_tail(pss->pending_tx_queue, msg);
@@ -156,9 +222,9 @@ read_new_lines(FILE *fp, struct per_session_data *target)
     }
 
     /* No newline at end: partial/oversized line (EOF mid-write or line longer
-     * than linebuf).  Advance past this chunk so we do not loop on the same
-     * position forever.  For a mid-write partial line this moves us slightly
-     * beyond EOF; clearerr() at the top of the next call resets the flag so
+     * than linebuf). Advance past this chunk so we do not loop on the same
+     * position forever. For a mid-write partial line this moves us slightly
+     * beyond EOF. clearerr() at the top of the next call resets the flag so
      * the remainder is picked up after the next IN_MODIFY event. */
     if (linebuf[len - 1] != '\n') {
       fseek(fp, pos + (long)len, SEEK_SET);
@@ -191,14 +257,9 @@ read_new_lines(FILE *fp, struct per_session_data *target)
 /*
  * Replay the last LOG_STREAM_HISTORY_BYTES of every open log file to pss.
  *
- * For each file: seeks backward, skips to the next complete line boundary,
- * then calls read_new_lines() to deliver the tail to pss only. After this
- * call all file handles are positioned at their current EOF, ready for live
- * broadcasts.
- *
- * NOTE: if a second subscriber calls this before the GLib loop returns, it
- * seeks from wherever the first replay left each file pointer; the history
- * window may be shorter for the second subscriber, but no lines are lost.
+ * For each file: opens a separate FILE*, seeks backward, skips to the next
+ * complete line boundary, then calls read_new_lines() to deliver the tail to
+ * pss only. The live file handles remain positioned for subsequent broadcasts.
  */
 static void
 send_history_to_one(struct per_session_data *pss)
@@ -208,7 +269,12 @@ send_history_to_one(struct per_session_data *pss)
   }
 
   for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
-    FILE *fp = log_fps[i];
+    char path[256];
+    FILE *fp;
+
+    build_log_path(i, path, sizeof(path));
+
+    fp = fopen(path, "rb");
     if (!fp) {
       continue;
     }
@@ -223,28 +289,35 @@ send_history_to_one(struct per_session_data *pss)
     while ((c = fgetc(fp)) != EOF && c != '\n') { }
 
     read_new_lines(fp, pss);
+    fclose(fp);
   }
 }
 
 /* -------------------------------------------------------------------------- */
 
+/*
+ * Open (or reopen) the file at watched_filenames[idx] for reading, seeking
+ * to the end so only new lines written after this point are broadcast.
+ * Any previously open handle is closed first. Logs a warning on failure.
+ */
 static void
 open_log_file(size_t idx)
 {
   char path[256];
-  snprintf(path, sizeof(path), "%s/%s", LOG_STREAM_DIR, watched_filenames[idx]);
+  build_log_path(idx, path, sizeof(path));
 
   if (log_fps[idx]) {
     fclose(log_fps[idx]);
     log_fps[idx] = NULL;
   }
 
-  log_fps[idx] = fopen(path, "r");
+  log_fps[idx] = fopen(path, "rb");
   if (!log_fps[idx]) {
     syslog(LOG_WARNING, "log_stream: cannot open %s: %m", path);
   }
 }
 
+/* Close the handle for watched_filenames[idx] and set the slot to NULL. */
 static void
 close_log_file(size_t idx)
 {
@@ -254,6 +327,7 @@ close_log_file(size_t idx)
   }
 }
 
+/* Open all watched log files.  Called once when monitoring starts. */
 static void
 open_all_log_files(void)
 {
@@ -262,6 +336,7 @@ open_all_log_files(void)
   }
 }
 
+/* Close all open log file handles. Called on monitor stop or HUP. */
 static void
 close_all_log_files(void)
 {
@@ -288,10 +363,12 @@ find_watched_file(const char *name)
  * GLib IO watch callback - fires whenever the inotify fd has events to read.
  *
  * We watch the parent directory (LOG_STREAM_DIR) for:
- *   IN_MODIFY    - a write to the log file: read new lines and broadcast
- *   IN_CREATE    - new file at the log path (after rotation): reopen
- *   IN_MOVED_TO  - file moved into place (some rotation styles): reopen
- *   IN_DELETE    - log file deleted: close handle
+ *   IN_MODIFY      - a write to the log file: read new lines and broadcast
+ *   IN_CLOSE_WRITE - file closed after writing: read any final complete lines
+ *   IN_CREATE      - new file at the log path (after rotation): reopen
+ *   IN_MOVED_TO    - file moved into place (some rotation styles): reopen
+ *   IN_DELETE      - log file deleted: close handle
+ *   IN_MOVED_FROM  - log file moved away: close handle
  */
 static gboolean
 on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
@@ -329,16 +406,19 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
       if (ev->len > 0) {
         int idx = find_watched_file(ev->name);
         if (idx >= 0) {
-          if (ev->mask & IN_MODIFY) {
-            read_new_lines(log_fps[idx], NULL);
+          if (ev->mask & (IN_DELETE | IN_MOVED_FROM)) {
+            /* File deleted or moved away: close handle until a new one appears */
+            close_log_file((size_t)idx);
           } else if (ev->mask & (IN_CREATE | IN_MOVED_TO)) {
             /* New file appeared after rotation: reopen from the start */
             close_log_file((size_t)idx);
             open_log_file((size_t)idx);
             read_new_lines(log_fps[idx], NULL);
-          } else if (ev->mask & IN_DELETE) {
-            /* File deleted: close handle until a new one appears */
-            close_log_file((size_t)idx);
+          } else if (ev->mask & (IN_MODIFY | IN_CLOSE_WRITE)) {
+            if (!log_fps[idx] || log_file_replaced_or_truncated((size_t)idx)) {
+              open_log_file((size_t)idx);
+            }
+            read_new_lines(log_fps[idx], NULL);
           }
         }
       }
@@ -356,11 +436,19 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
 
 /* -------------------------------------------------------------------------- */
 
+/*
+ * Start the inotify directory monitor and open all watched log files.
+ *
+ * Creates an inotify instance, adds a watch on LOG_STREAM_DIR, wraps the fd
+ * in a GLib GIOChannel, and registers on_inotify_event() with the GLib main
+ * loop. Idempotent: returns immediately if the monitor is already running.
+ */
 static void
 start_log_monitor(void)
 {
+  /* Already running */
   if (inotify_fd >= 0) {
-    return; /* already running */
+    return;
   }
 
   inotify_fd = inotify_init1(IN_NONBLOCK);
@@ -369,7 +457,8 @@ start_log_monitor(void)
     return;
   }
 
-  inotify_dir_wd = inotify_add_watch(inotify_fd, LOG_STREAM_DIR, IN_MODIFY | IN_CREATE | IN_MOVED_TO | IN_DELETE);
+  inotify_dir_wd = inotify_add_watch(
+      inotify_fd, LOG_STREAM_DIR, IN_MODIFY | IN_CLOSE_WRITE | IN_CREATE | IN_MOVED_TO | IN_DELETE | IN_MOVED_FROM);
   if (inotify_dir_wd < 0) {
     syslog(LOG_ERR, "log_stream: inotify_add_watch failed: %m");
     close(inotify_fd);
@@ -387,6 +476,10 @@ start_log_monitor(void)
   syslog(LOG_INFO, "log_stream: monitoring %zu file(s) in %s via inotify", WATCHED_FILE_COUNT, LOG_STREAM_DIR);
 }
 
+/*
+ * Stop the inotify monitor, close all log file handles, and release all
+ * associated resources. Safe to call if the monitor was never started.
+ */
 static void
 stop_log_monitor(void)
 {
