@@ -86,17 +86,18 @@
  * - System information is returned only on explicit request and is not streamed.
  *
  * Live log streaming:
- * - Any client can subscribe to live log output from a system log file:
+ * - Any client can subscribe to live log output from the system log files:
  *     { "log_stream": true }
- * - The server monitors the log file with Linux inotify and pushes each new
- *   complete line to all subscribed clients:
+ * - The server monitors a set of syslog files with Linux inotify and pushes
+ *   each new complete line to all subscribed clients:
  *     { "log": "<line text>" }
- * - On subscribe, the last ~8 kB of the current log file is replayed to the
+ * - On subscribe, the last ~8 kB of each watched log file is replayed to the
  *   new subscriber as history before live lines begin.
  * - To stop log streaming without closing the socket, the client sends:
  *     { "log_stream": false }
- * - The monitored file is configured in log_stream.c (LOG_STREAM_FILE).
+ * - The monitored files are configured in log_stream.c (watched_filenames[]).
  *
+ * Returned JSON message format example:
  * {
  *   "ts": 1766089635269,
  *   "mono_ms": 4689109526,

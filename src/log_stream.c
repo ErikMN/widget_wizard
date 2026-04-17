@@ -17,13 +17,13 @@
  * - Lines longer than MAX_LOG_LINE_LENGTH have the oversized portion skipped;
  *   the file position is advanced past the partial read on the next event so
  *   subsequent lines are not blocked.
- * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of the current log file
- *   are replayed to the new subscriber only.  NOTE: a subsequent subscriber
+ * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of each open log file are
+ *   replayed to the new subscriber only. NOTE: a subsequent subscriber
  *   subscribing before the GLib main loop returns sees history starting from
  *   wherever the first subscriber's replay left the file pointer: the history
  *   window may be shorter, but no lines are lost.
  *
- * To change the monitored file, edit LOG_STREAM_FILE below.
+ * Monitored files are listed in watched_filenames[] below.
  */
 
 #include <errno.h>
@@ -45,18 +45,37 @@
 
 /* -------------------------------------------------------------------------- */
 
-/* Log file to monitor.  Must be readable by the application user. */
-#define LOG_STREAM_FILE "/var/log/debug.log"
-
-/* Parent directory of LOG_STREAM_FILE (watched for rotation events). */
+/* Parent directory containing the log files to monitor. */
 #define LOG_STREAM_DIR "/var/log"
 
-/* Bare filename component of LOG_STREAM_FILE. */
-#define LOG_STREAM_FILENAME "debug.log"
-
-/* How far from the end of file to seek when replaying history to a new
- * subscriber.  Gives roughly 50–100 typical syslog lines. */
+/* How far from the end of each file to seek when replaying history to a new
+ * subscriber.  Gives roughly 50–100 typical syslog lines per file. */
 #define LOG_STREAM_HISTORY_BYTES 8192
+
+/*
+ * Log files to monitor within LOG_STREAM_DIR.
+ *
+ * On this target syslog-ng routes each severity level to its own file rather
+ * than accumulating them, so all files must be watched to capture the full
+ * log stream.  Add or remove entries here as needed.
+ *
+ * NOTE: auth.log and its rotated copies are owned root:root (mode 640) on
+ * this target.  If the application runs as a non-root user, open_log_file()
+ * will fail with EACCES and auth.log will be silently skipped (a syslog
+ * warning is emitted).  Remove it from the list if that is undesirable.
+ */
+
+// clang-format off
+static const char *const watched_filenames[] = {
+  "auth.log",
+  "debug.log",
+  "info.log",
+  "warning.log",
+  "error.log",
+};
+// clang-format on
+
+#define WATCHED_FILE_COUNT (sizeof(watched_filenames) / sizeof(watched_filenames[0]))
 
 /* -------------------------------------------------------------------------- */
 
@@ -65,7 +84,7 @@ static GIOChannel *inotify_chan = NULL;
 static guint inotify_watch_id = 0;
 static int inotify_dir_wd = -1;
 
-static FILE *log_fp = NULL;
+static FILE *log_fps[WATCHED_FILE_COUNT]; /* one handle per watched file */
 static GSList *log_subscribers = NULL;
 
 /* -------------------------------------------------------------------------- */
@@ -105,29 +124,29 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
 }
 
 /*
- * Read all newly available complete lines from log_fp.
+ * Read all newly available complete lines from fp.
  *
  * If target != NULL, send each line only to that session (history replay).
  * If target == NULL, broadcast to every subscriber.
  *
  * Incomplete lines at EOF (no trailing '\n') have the partial chunk skipped:
  * the file position is advanced past the partial read so subsequent lines are
- * not blocked.  The remainder is picked up after the next IN_MODIFY event.
+ * not blocked. The remainder is picked up after the next IN_MODIFY event.
  */
 static void
-read_new_lines(struct per_session_data *target)
+read_new_lines(FILE *fp, struct per_session_data *target)
 {
-  if (!log_fp) {
+  if (!fp) {
     return;
   }
 
-  clearerr(log_fp);
+  clearerr(fp);
 
   char linebuf[MAX_LOG_LINE_LENGTH + 1];
 
   while (true) {
-    long pos = ftell(log_fp);
-    if (!fgets(linebuf, (int)sizeof(linebuf), log_fp)) {
+    long pos = ftell(fp);
+    if (!fgets(linebuf, (int)sizeof(linebuf), fp)) {
       break;
     }
 
@@ -142,7 +161,7 @@ read_new_lines(struct per_session_data *target)
      * beyond EOF; clearerr() at the top of the next call resets the flag so
      * the remainder is picked up after the next IN_MODIFY event. */
     if (linebuf[len - 1] != '\n') {
-      fseek(log_fp, pos + (long)len, SEEK_SET);
+      fseek(fp, pos + (long)len, SEEK_SET);
       break;
     }
 
@@ -170,60 +189,100 @@ read_new_lines(struct per_session_data *target)
 }
 
 /*
- * Seek to LOG_STREAM_HISTORY_BYTES before EOF, skip to the next complete line
- * boundary, then replay those history lines to pss only.
+ * Replay the last LOG_STREAM_HISTORY_BYTES of every open log file to pss.
  *
- * After this call log_fp is positioned at the current EOF, which is the
- * correct starting point for subsequent live broadcasts.
+ * For each file: seeks backward, skips to the next complete line boundary,
+ * then calls read_new_lines() to deliver the tail to pss only. After this
+ * call all file handles are positioned at their current EOF, ready for live
+ * broadcasts.
+ *
+ * NOTE: if a second subscriber calls this before the GLib loop returns, it
+ * seeks from wherever the first replay left each file pointer; the history
+ * window may be shorter for the second subscriber, but no lines are lost.
  */
 static void
 send_history_to_one(struct per_session_data *pss)
 {
-  if (!log_fp || !pss) {
+  if (!pss) {
     return;
   }
 
-  if (fseek(log_fp, -(long)LOG_STREAM_HISTORY_BYTES, SEEK_END) != 0) {
-    /* File smaller than history window: start from the beginning */
-    rewind(log_fp);
+  for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
+    FILE *fp = log_fps[i];
+    if (!fp) {
+      continue;
+    }
+
+    if (fseek(fp, -(long)LOG_STREAM_HISTORY_BYTES, SEEK_END) != 0) {
+      /* File smaller than history window: start from the beginning */
+      rewind(fp);
+    }
+
+    /* Skip to the next complete line boundary */
+    int c;
+    while ((c = fgetc(fp)) != EOF && c != '\n') { }
+
+    read_new_lines(fp, pss);
   }
-
-  /* Skip forward to the next complete line boundary so we never send a
-   * partial first line. */
-  int c;
-  while ((c = fgetc(log_fp)) != EOF && c != '\n') { }
-
-  /* Replay lines to this subscriber only */
-  read_new_lines(pss);
-  /* log_fp is now at current EOF - the correct position for live reads */
 }
 
 /* -------------------------------------------------------------------------- */
 
 static void
-open_log_file(void)
+open_log_file(size_t idx)
 {
-  if (log_fp) {
-    fclose(log_fp);
-    log_fp = NULL;
+  char path[256];
+  snprintf(path, sizeof(path), "%s/%s", LOG_STREAM_DIR, watched_filenames[idx]);
+
+  if (log_fps[idx]) {
+    fclose(log_fps[idx]);
+    log_fps[idx] = NULL;
   }
 
-  log_fp = fopen(LOG_STREAM_FILE, "r");
-  if (!log_fp) {
-    syslog(LOG_WARNING, "log_stream: cannot open %s: %m", LOG_STREAM_FILE);
+  log_fps[idx] = fopen(path, "r");
+  if (!log_fps[idx]) {
+    syslog(LOG_WARNING, "log_stream: cannot open %s: %m", path);
   }
 }
 
 static void
-close_log_file(void)
+close_log_file(size_t idx)
 {
-  if (log_fp) {
-    fclose(log_fp);
-    log_fp = NULL;
+  if (log_fps[idx]) {
+    fclose(log_fps[idx]);
+    log_fps[idx] = NULL;
+  }
+}
+
+static void
+open_all_log_files(void)
+{
+  for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
+    open_log_file(i);
+  }
+}
+
+static void
+close_all_log_files(void)
+{
+  for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
+    close_log_file(i);
   }
 }
 
 /* -------------------------------------------------------------------------- */
+
+/* Return the index into watched_filenames[] matching name, or -1 if not watched. */
+static int
+find_watched_file(const char *name)
+{
+  for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
+    if (strcmp(name, watched_filenames[i]) == 0) {
+      return (int)i;
+    }
+  }
+  return -1;
+}
 
 /*
  * GLib IO watch callback - fires whenever the inotify fd has events to read.
@@ -253,7 +312,7 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
       inotify_fd = -1;
     }
     inotify_dir_wd = -1;
-    close_log_file();
+    close_all_log_files();
     return G_SOURCE_REMOVE;
   }
 
@@ -266,18 +325,21 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
     while (p < buf + n) {
       const struct inotify_event *ev = (const struct inotify_event *)p;
 
-      /* Only care about events for our specific log file */
-      if (ev->len > 0 && strcmp(ev->name, LOG_STREAM_FILENAME) == 0) {
-        if (ev->mask & IN_MODIFY) {
-          read_new_lines(NULL);
-        } else if (ev->mask & (IN_CREATE | IN_MOVED_TO)) {
-          /* New file appeared after rotation */
-          close_log_file();
-          open_log_file();
-          read_new_lines(NULL);
-        } else if (ev->mask & IN_DELETE) {
-          /* File deleted; close handle until a new one appears */
-          close_log_file();
+      /* Dispatch to the matching watched file, if any */
+      if (ev->len > 0) {
+        int idx = find_watched_file(ev->name);
+        if (idx >= 0) {
+          if (ev->mask & IN_MODIFY) {
+            read_new_lines(log_fps[idx], NULL);
+          } else if (ev->mask & (IN_CREATE | IN_MOVED_TO)) {
+            /* New file appeared after rotation: reopen from the start */
+            close_log_file((size_t)idx);
+            open_log_file((size_t)idx);
+            read_new_lines(log_fps[idx], NULL);
+          } else if (ev->mask & IN_DELETE) {
+            /* File deleted: close handle until a new one appears */
+            close_log_file((size_t)idx);
+          }
         }
       }
 
@@ -321,8 +383,8 @@ start_log_monitor(void)
 
   inotify_watch_id = g_io_add_watch(inotify_chan, G_IO_IN | G_IO_HUP | G_IO_ERR, on_inotify_event, NULL);
 
-  open_log_file();
-  syslog(LOG_INFO, "log_stream: monitoring %s via inotify", LOG_STREAM_FILE);
+  open_all_log_files();
+  syslog(LOG_INFO, "log_stream: monitoring %zu file(s) in %s via inotify", WATCHED_FILE_COUNT, LOG_STREAM_DIR);
 }
 
 static void
@@ -345,7 +407,7 @@ stop_log_monitor(void)
   }
 
   inotify_dir_wd = -1;
-  close_log_file();
+  close_all_log_files();
   syslog(LOG_INFO, "log_stream: monitoring stopped");
 }
 
