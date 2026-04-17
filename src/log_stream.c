@@ -92,6 +92,9 @@ static int inotify_dir_wd = -1;
 static FILE *log_fps[WATCHED_FILE_COUNT]; /* one handle per watched file */
 static GSList *log_subscribers = NULL;
 
+/* Track whether opening a file has already failed to avoid log spam. */
+static bool log_open_failed[WATCHED_FILE_COUNT];
+
 /* -------------------------------------------------------------------------- */
 
 /* Write the absolute path for watched_filenames[idx] into path. */
@@ -113,7 +116,7 @@ build_log_path(size_t idx, char *path, size_t path_size)
  *
  * Truncation handling (returns false, handled in place):
  * If the current file position is beyond the reported file size the file
- * was truncated in place. clearerr + rewind resets the handle to the
+ * was truncated in place. clearerr() + rewind() resets the handle to the
  * beginning, the caller does not need to reopen.
  */
 static bool
@@ -313,7 +316,12 @@ open_log_file(size_t idx)
 
   log_fps[idx] = fopen(path, "rb");
   if (!log_fps[idx]) {
-    syslog(LOG_WARNING, "log_stream: cannot open %s: %m", path);
+    if (!log_open_failed[idx]) {
+      syslog(LOG_WARNING, "log_stream: cannot open %s: %m", path);
+      log_open_failed[idx] = true;
+    }
+  } else {
+    log_open_failed[idx] = false;
   }
 }
 
