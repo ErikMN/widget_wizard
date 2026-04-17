@@ -78,6 +78,15 @@ static const char *const watched_filenames[] = {
   "warning.log",
   "error.log",
 };
+
+/* Severity level labels sent in the JSON "level" field, one per watched file. */
+static const char *const watched_levels[] = {
+  "auth",
+  "debug",
+  "info",
+  "warning",
+  "error",
+};
 // clang-format on
 
 #define WATCHED_FILE_COUNT (sizeof(watched_filenames) / sizeof(watched_filenames[0]))
@@ -157,11 +166,12 @@ log_file_replaced_or_truncated(size_t idx)
 
 /* Allocate a pending_ws_message and enqueue it on pss's transmit queue. */
 static void
-queue_line_to_session(struct per_session_data *pss, const char *line, size_t line_len)
+queue_line_to_session(struct per_session_data *pss, const char *line, size_t line_len, const char *level)
 {
   char json_buf[LWS_PRE + MAX_LOG_LINE_LENGTH + 64];
   bool truncated = false;
-  size_t json_len = build_log_line_json(json_buf + LWS_PRE, sizeof(json_buf) - LWS_PRE, line, line_len, &truncated);
+  size_t json_len =
+      build_log_line_json(json_buf + LWS_PRE, sizeof(json_buf) - LWS_PRE, line, line_len, level, &truncated);
 
   if (json_len == 0 || truncated) {
     return;
@@ -203,7 +213,7 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
  * not blocked. The remainder is picked up after the next IN_MODIFY event.
  */
 static void
-read_new_lines(FILE *fp, struct per_session_data *target)
+read_new_lines(FILE *fp, struct per_session_data *target, const char *level)
 {
   if (!fp) {
     return;
@@ -245,12 +255,12 @@ read_new_lines(FILE *fp, struct per_session_data *target)
     }
 
     if (target) {
-      queue_line_to_session(target, linebuf, len);
+      queue_line_to_session(target, linebuf, len, level);
     } else {
       for (GSList *node = log_subscribers; node; node = node->next) {
         struct per_session_data *pss = node->data;
         if (pss && pss->wsi) {
-          queue_line_to_session(pss, linebuf, len);
+          queue_line_to_session(pss, linebuf, len, level);
         }
       }
     }
@@ -291,7 +301,7 @@ send_history_to_one(struct per_session_data *pss)
     int c;
     while ((c = fgetc(fp)) != EOF && c != '\n') { }
 
-    read_new_lines(fp, pss);
+    read_new_lines(fp, pss, watched_levels[i]);
     fclose(fp);
   }
 }
@@ -421,12 +431,12 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
             /* New file appeared after rotation: reopen from the start */
             close_log_file((size_t)idx);
             open_log_file((size_t)idx);
-            read_new_lines(log_fps[idx], NULL);
+            read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
           } else if (ev->mask & (IN_MODIFY | IN_CLOSE_WRITE)) {
             if (!log_fps[idx] || log_file_replaced_or_truncated((size_t)idx)) {
               open_log_file((size_t)idx);
             }
-            read_new_lines(log_fps[idx], NULL);
+            read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
           }
         }
       }

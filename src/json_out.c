@@ -405,7 +405,12 @@ build_error_json(char *out_buf, size_t out_size, const char *type, const char *m
 }
 
 size_t
-build_log_line_json(char *out_buf, size_t out_size, const char *line, size_t line_len, bool *truncated)
+build_log_line_json(char *out_buf,
+                    size_t out_size,
+                    const char *line,
+                    size_t line_len,
+                    const char *level,
+                    bool *truncated)
 {
   char safe_line[MAX_LOG_LINE_LENGTH + 1];
   json_t *resp = NULL;
@@ -438,6 +443,9 @@ build_log_line_json(char *out_buf, size_t out_size, const char *line, size_t lin
   }
 
   json_object_set_new(resp, "log", json_string(safe_line));
+  if (level) {
+    json_object_set_new(resp, "level", json_string(level));
+  }
 
   int out_len = json_dumpb(resp, out_buf, out_size, JSON_COMPACT);
   json_decref(resp);

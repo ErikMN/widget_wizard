@@ -68,3 +68,9 @@ export interface HistoryPoint {
   mem: number;
   cpuPerCore: number[];
 }
+
+/* A single streamed log line with its source severity level. */
+export interface LogLine {
+  text: string;
+  level: string;
+}

@@ -1,18 +1,41 @@
 /* SystemStatsLogView
  *
  * Displays live log lines streamed from the backend via the log_stream
- * WebSocket protocol. Lines are client-side filtered by a text input.
+ * WebSocket protocol. Lines are client-side filtered by a text input and
+ * per-severity toggle chips.
  */
 import React, { useEffect, useRef } from 'react';
 import { CustomButton } from '../CustomComponents';
+import { LogLine } from './systemStatsTypes';
 /* MUI */
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+/* Severity levels in display order. */
+const LEVELS = ['error', 'warning', 'info', 'debug', 'auth'] as const;
+type Level = (typeof LEVELS)[number];
+
+const LEVEL_COLOR: Record<Level, string> = {
+  error: '#ff6b6b',
+  warning: '#ffd93d',
+  info: '#e8e8e8',
+  debug: '#a0a0a0',
+  auth: '#82cfff'
+};
+
+const LEVEL_LABEL: Record<Level, string> = {
+  error: 'ERROR',
+  warning: 'WARN',
+  info: 'INFO',
+  debug: 'DEBUG',
+  auth: 'AUTH'
+};
+
 interface SystemStatsLogViewProps {
-  logLines: string[];
+  logLines: LogLine[];
   logStreaming: boolean;
   startLogStream: () => void;
   stopLogStream: () => void;
@@ -27,6 +50,9 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
   clearLogLines
 }) => {
   const [filter, setFilter] = React.useState('');
+  const [enabledLevels, setEnabledLevels] = React.useState<Set<Level>>(
+    new Set(LEVELS)
+  );
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,23 +70,33 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
     }
   }, [logLines]);
 
-  const filteredLines =
-    filter.trim() === ''
-      ? logLines
-      : logLines.filter((line) =>
-          line.toLowerCase().includes(filter.toLowerCase())
-        );
-
-  const getLineColor = (line: string): string => {
-    const lower = line.toLowerCase();
-    if (/\b(error|err|crit|critical|alert|emerg|fatal)\b/.test(lower)) {
-      return '#ff6b6b';
-    }
-    if (/\b(warning|warn|notice)\b/.test(lower)) {
-      return '#ffd93d';
-    }
-    return '#e8e8e8';
+  const toggleLevel = (level: Level) => {
+    setEnabledLevels((prev) => {
+      const next = new Set(prev);
+      if (next.has(level)) {
+        next.delete(level);
+      } else {
+        next.add(level);
+      }
+      return next;
+    });
   };
+
+  const filteredLines = logLines.filter((line) => {
+    if (!enabledLevels.has(line.level as Level)) {
+      return false;
+    }
+    if (
+      filter.trim() !== '' &&
+      !line.text.toLowerCase().includes(filter.toLowerCase())
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const getLineColor = (level: string): string =>
+    LEVEL_COLOR[level as Level] ?? '#e8e8e8';
 
   return (
     <Stack spacing={1}>
@@ -111,6 +147,34 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
         </Typography>
       </Box>
 
+      {/* Severity chips */}
+      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+        {LEVELS.map((level) => {
+          const active = enabledLevels.has(level);
+          return (
+            <Chip
+              key={level}
+              label={LEVEL_LABEL[level]}
+              size="small"
+              onClick={() => toggleLevel(level)}
+              sx={{
+                fontFamily: 'monospace',
+                fontSize: '0.68rem',
+                height: 20,
+                borderColor: LEVEL_COLOR[level],
+                color: active ? LEVEL_COLOR[level] : 'rgba(255,255,255,0.25)',
+                backgroundColor: active
+                  ? `${LEVEL_COLOR[level]}1a`
+                  : 'transparent',
+                border: '1px solid',
+                '& .MuiChip-label': { px: '6px' },
+                cursor: 'pointer'
+              }}
+            />
+          );
+        })}
+      </Box>
+
       {/* Log output */}
       <Box
         ref={containerRef}
@@ -142,8 +206,8 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
           </Typography>
         ) : (
           filteredLines.map((line, i) => (
-            <div key={i} style={{ color: getLineColor(line) }}>
-              {line}
+            <div key={i} style={{ color: getLineColor(line.level) }}>
+              {line.text}
             </div>
           ))
         )}

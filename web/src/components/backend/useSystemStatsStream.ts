@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useReconnectableWebSocket } from './useReconnectableWebSocket';
 import {
   HistoryPoint,
+  LogLine,
   ProcHistoryPoint,
   ProcStats,
   StorageInfo,
@@ -40,7 +41,7 @@ interface UseSystemStatsStreamResult {
   processList: string[];
   storageInfo: StorageInfo[];
   systemInfo: SystemInfo | null;
-  logLines: string[];
+  logLines: LogLine[];
   logStreaming: boolean;
   sendMonitorRequest: () => void;
   requestProcessList: () => void;
@@ -67,7 +68,7 @@ export const useSystemStatsStream = ({
   const [processList, setProcessList] = useState<string[]>([]);
   const [storageInfo, setStorageInfo] = useState<StorageInfo[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logLines, setLogLines] = useState<LogLine[]>([]);
   const [logStreaming, setLogStreaming] = useState<boolean>(false);
 
   /* Refs */
@@ -128,7 +129,13 @@ export const useSystemStatsStream = ({
         /* Streamed log line from the backend log monitor */
         if (typeof data.log === 'string') {
           setLogLines((prev) => {
-            const next = [...prev, data.log];
+            const next: LogLine[] = [
+              ...prev,
+              {
+                text: data.log,
+                level: typeof data.level === 'string' ? data.level : 'debug'
+              }
+            ];
             return next.length > MAX_LOG_LINES
               ? next.slice(-MAX_LOG_LINES)
               : next;
