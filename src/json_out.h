@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "file_upload.h"
 #include "stats.h"
 #include "session.h"
 
@@ -48,36 +47,6 @@ size_t build_storage_json(char *out_buf, size_t out_size, bool *truncated);
  *   { "system": { ... } }
  */
 size_t build_system_info_json(char *out_buf, size_t out_size, bool *truncated);
-
-/* Build one-shot upload result JSON.
- *
- * Success output format:
- *   { "upload": { "filename": "...", "path": "/tmp/...", "size_bytes": N, "overwritten": true|false } }
- *
- * Failure output format:
- *   { "error": { "type": "...", "message": "..." } }
- */
-size_t
-build_upload_result_json(char *out_buf, size_t out_size, const struct file_upload_result *result, bool *truncated);
-
-/* Build upload_begin acknowledgement JSON.
- *
- * Output format:
- *   { "upload_begin": { "overwritten": true|false, "size_bytes": N, "chunk_size_bytes": N } }
- */
-size_t build_upload_begin_ack_json(char *out_buf,
-                                   size_t out_size,
-                                   bool overwritten,
-                                   size_t size_bytes,
-                                   size_t chunk_size_bytes,
-                                   bool *truncated);
-
-/* Build upload_chunk acknowledgement JSON.
- *
- * Output format:
- *   { "upload_chunk": { "received_bytes": N } }
- */
-size_t build_upload_chunk_ack_json(char *out_buf, size_t out_size, size_t received_bytes, bool *truncated);
 
 /* Build a generic one-shot error JSON object.
  *

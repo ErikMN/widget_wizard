@@ -9,8 +9,6 @@
 #include "proc.h"
 #include "ws_limits.h"
 
-struct file_upload_async;
-
 /* Per-connected WebSocket client (per-session) storage.
  * libwebsockets gives us one instance of this struct for each connection and
  * passes it back as the "user" pointer in ws_callback().
@@ -41,9 +39,6 @@ struct per_session_data {
 
   /* True when this client explicitly opted into periodic stats streaming */
   bool stats_stream_enabled;
-
-  /* Connection-scoped async upload helper */
-  struct file_upload_async *upload_async;
 
   /* Process monitoring */
   char proc_name[MAX_PROC_NAME_LENGTH];

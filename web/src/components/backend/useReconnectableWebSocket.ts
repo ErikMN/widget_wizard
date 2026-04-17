@@ -9,12 +9,9 @@
  * Exposes helpers to:
  * - Send plain string messages
  * - Send JSON commands
- * - Send raw WS payloads such as binary upload chunks
  * - Read the current connection state
  */
 import { useEffect, useRef, useState } from 'react';
-
-type WebSocketSendData = string | ArrayBuffer | Blob | ArrayBufferView;
 
 interface UseReconnectableWebSocketOptions {
   url: string;
@@ -29,7 +26,6 @@ interface UseReconnectableWebSocketOptions {
 interface UseReconnectableWebSocketResult {
   send: (message: string) => boolean;
   sendJson: (data: unknown) => boolean;
-  sendRaw: (data: WebSocketSendData) => boolean;
   connected: boolean;
   readyState: number | null;
 }
@@ -312,7 +308,7 @@ export const useReconnectableWebSocket = ({
     connect();
   }, [enabled, url, reconnectDelayMs]);
 
-  const sendRaw = (data: WebSocketSendData) => {
+  const sendRaw = (data: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return false;
     }
@@ -328,7 +324,6 @@ export const useReconnectableWebSocket = ({
   return {
     send,
     sendJson,
-    sendRaw,
     connected: readyState === WebSocket.OPEN,
     readyState
   };

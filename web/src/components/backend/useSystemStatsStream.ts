@@ -160,10 +160,7 @@ export const useSystemStatsStream = ({
              */
             if (prev.length > 0) {
               const last = prev[prev.length - 1];
-              if (
-                (last as any).pid !== undefined &&
-                (last as any).pid !== data.proc.pid
-              ) {
+              if (last.pid !== undefined && last.pid !== data.proc.pid) {
                 return [
                   {
                     ts: data.ts,
@@ -203,6 +200,7 @@ export const useSystemStatsStream = ({
     },
     onClose: () => {
       setConnected(false);
+      setError(null);
     }
   });
 
