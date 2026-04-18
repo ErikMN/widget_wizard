@@ -2,16 +2,16 @@
  *
  * Live log line streaming subsystem.
  *
- * Uses Linux inotify (via a GLib GIOChannel) to watch a syslog file and push
- * each new complete line to every subscribed WebSocket session.  No subprocess
- * is spawned; the file is read directly with standard stdio.
+ * Uses Linux inotify (via a GLib GIOChannel) to watch configured log files and push
+ * each new complete line to every subscribed WebSocket session. No subprocess
+ * is spawned. The files are read directly with standard stdio.
  *
  * Lifecycle:
  * - The inotify watch is started when the first client sends
  *   { "log_stream": true } and stopped when the last subscriber
  *   disconnects or unsubscribes.
  * - Log rotation: when the watched directory reports that the log file was
- *   deleted or moved away, the FILE* handle is closed.  When a new file with
+ *   deleted or moved away, the FILE* handle is closed. When a new file with
  *   the same name appears (IN_CREATE / IN_MOVED_TO), it is opened from the
  *   beginning. On write events the current FILE* inode is also compared with
  *   the path inode so rename-based rotation is detected reliably.
@@ -23,9 +23,61 @@
  *   replayed to the new subscriber only using a separate FILE* per file, so
  *   the live file pointers are not disturbed.
  *
+ * Limitations:
+ * - Only the files listed in watched_filenames[] are monitored.
+ * - File access is limited by the permissions of the user running this
+ *   process. Files that cannot be opened are skipped.
+ * - This subsystem is intended for lightweight live viewing, not for audit,
+ *   forensics, or any use case that requires guaranteed complete log capture.
+ * - New subscribers receive only a bounded tail of recent history, not the
+ *   full contents of each log file.
+ * - Oversized lines are dropped rather than truncated or reconstructed.
+ * - History replay is file-local and follows watched_filenames[] order, not
+ *   one global chronological merge across all watched files.
+ *
  * Monitored files are listed in watched_filenames[] below.
+ *
+ * Call flow of the log streaming subsystem:
+ *
+ *   client sends { "log_stream": true }
+ *     |
+ *     v
+ *   log_stream_handle_request()
+ *     |
+ *     v
+ *   start_log_monitor() on first subscriber
+ *     |
+ *     v
+ *   send_history_to_one()
+ *     |
+ *     v
+ *   subscriber added to log_subscribers
+ *
+ *   live write to watched file
+ *     |
+ *     v
+ *   on_inotify_event()
+ *     |
+ *     v
+ *   open_log_file() if needed
+ *     |
+ *     v
+ *   read_new_lines()
+ *     |
+ *     v
+ *   queue_line_to_session()
+ *     |
+ *     v
+ *   libwebsockets write callback sends queued JSON
+ *
+ *   client sends { "log_stream": false } or disconnects
+ *     |
+ *     v
+ *   log_stream_unsubscribe()
+ *     |
+ *     v
+ *   stop_log_monitor() when last subscriber leaves
  */
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -80,7 +132,11 @@ static const char *const watched_filenames[] = {
   "error.log",
 };
 
-/* Severity level labels sent in the JSON "level" field, one per watched file. */
+/* Labels sent in the JSON "level" field, one per watched file.
+ *
+ * These values are configured source tags, not parsed syslog severities.
+ * The frontend uses them for display and client-side filtering.
+ */
 static const char *const watched_levels[] = {
   "auth",
   "debug",
@@ -188,7 +244,15 @@ log_file_replaced_or_truncated(size_t idx)
   return false;
 }
 
-/* Allocate a pending_ws_message and enqueue it on pss's transmit queue. */
+/* Build one JSON log message and enqueue it for transmission to pss.
+ *
+ * The outgoing message includes the log text and, when provided, the
+ * configured per-file label in the JSON "level" field.
+ *
+ * To keep per-session memory bounded, the queue is capped at
+ * LOG_STREAM_MAX_PENDING_MESSAGES and the oldest pending entry is dropped
+ * when the cap is reached.
+ */
 static void
 queue_line_to_session(struct per_session_data *pss, const char *line, size_t line_len, const char *level)
 {
@@ -335,6 +399,9 @@ read_new_lines(FILE *fp, bool *dropping_oversized_line, struct per_session_data 
 
 /*
  * Replay the last LOG_STREAM_HISTORY_BYTES of every watched log file to pss.
+ *
+ * History is replayed file by file in watched_filenames[] order, not merged
+ * into one global chronological stream.
  *
  * For each file: opens a separate FILE*, seeks backward when possible, skips
  * to the next complete line boundary only when starting in the middle, then
@@ -614,6 +681,11 @@ stop_log_monitor(void)
 
 /* -------------------------------------------------------------------------- */
 
+/* Replay history before adding to the live subscriber list so that any
+ * inotify event firing during replay goes only to existing subscribers.
+ * This avoids duplicate delivery during subscribe, at the cost of a small
+ * gap where lines written during replay may not be seen by the new client.
+ */
 bool
 log_stream_handle_request(struct per_session_data *pss, json_t *root)
 {

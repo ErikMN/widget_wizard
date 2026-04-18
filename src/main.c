@@ -88,14 +88,14 @@
  * Live log streaming:
  * - Any client can subscribe to live log output from the system log files:
  *     { "log_stream": true }
- * - The server monitors a set of syslog files with Linux inotify and pushes
- *   each new complete line to all subscribed clients:
- *     { "log": "<line text>" }
- * - On subscribe, the last ~8 kB of each watched log file is replayed to the
- *   new subscriber as history before live lines begin.
+ * - The server monitors a configured set of log files and pushes each new
+ *   complete line to all subscribed clients, for example:
+ *     { "log": "<line text>", "level": "info" }
+ * - On subscribe, a bounded amount of recent log history is replayed before
+ *   live lines begin.
+ * - Log streaming is intended for lightweight live viewing not audit.
  * - To stop log streaming without closing the socket, the client sends:
  *     { "log_stream": false }
- * - The monitored files are configured in log_stream.c (watched_filenames[]).
  *
  * Returned JSON message format example:
  * {
