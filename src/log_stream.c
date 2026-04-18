@@ -15,9 +15,10 @@
  *   the same name appears (IN_CREATE / IN_MOVED_TO), it is opened from the
  *   beginning. On write events the current FILE* inode is also compared with
  *   the path inode so rename-based rotation is detected reliably.
- * - Lines longer than MAX_LOG_LINE_LENGTH have the oversized portion skipped;
- *   the file position is advanced past the partial read on the next event so
- *   subsequent lines are not blocked.
+ * - Lines longer than MAX_LOG_LINE_LENGTH are not forwarded. Once a line is
+ *   detected as oversized, its remainder is discarded up to the terminating
+ *   newline, across as many inotify events as needed, so subsequent lines are
+ *   not blocked.
  * - On subscribe, the last LOG_STREAM_HISTORY_BYTES of each watched log file are
  *   replayed to the new subscriber only using a separate FILE* per file, so
  *   the live file pointers are not disturbed.
@@ -89,6 +90,7 @@ static const char *const watched_levels[] = {
 };
 // clang-format on
 
+/* Number of log files being monitored. */
 #define WATCHED_FILE_COUNT (sizeof(watched_filenames) / sizeof(watched_filenames[0]))
 
 /* -------------------------------------------------------------------------- */
@@ -103,6 +105,23 @@ static GSList *log_subscribers = NULL;
 
 /* Track whether opening a file has already failed to avoid log spam. */
 static bool log_open_failed[WATCHED_FILE_COUNT];
+
+/* For each live watched file, tracks whether read_new_lines() is currently
+ * discarding the remainder of an oversized line.
+ *
+ * Why this is needed:
+ * - A chunk without '\n' can mean either:
+ *   - a partial line at current EOF
+ *   - a line longer than MAX_LOG_LINE_LENGTH
+ * - If more data already exists beyond the current chunk, the line is known
+ *   to be oversized and must be discarded until its terminating newline.
+ * - That discard may span multiple inotify events, so the state must persist
+ *   between calls.
+ *
+ * This state is reset whenever the live file is reopened, closed, or
+ * truncated in place because the old oversized line context no longer applies.
+ */
+static bool live_dropping_oversized_line[WATCHED_FILE_COUNT];
 
 /* -------------------------------------------------------------------------- */
 
@@ -157,8 +176,13 @@ log_file_replaced_or_truncated(size_t idx)
 
   pos = ftell(fp);
   if (pos >= 0 && (off_t)pos > path_st.st_size) {
+    /* The file was truncated in place. Reset the stream position and clear
+     * oversized-line discard state because any previously skipped line no
+     * longer exists in the truncated file.
+     */
     clearerr(fp);
     rewind(fp);
+    live_dropping_oversized_line[idx] = false;
   }
 
   return false;
@@ -210,41 +234,83 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
  * If target != NULL, send each line only to that session (history replay).
  * If target == NULL, broadcast to every subscriber.
  *
- * Incomplete lines at EOF (no trailing '\n') have the partial chunk skipped:
- * the file position is advanced past the partial read so subsequent lines are
- * not blocked. The remainder is picked up after the next IN_MODIFY event.
+ * Line handling rules:
+ * - A chunk ending with '\n' is a complete line and is forwarded.
+ * - A chunk not ending with '\n' and read at current EOF is treated as a
+ *   partial line. It is not forwarded, and the stream is rewound to the
+ *   start of that read so the line can be retried when more data arrives.
+ * - A chunk not ending with '\n' when more data already exists in the file
+ *   proves that the line exceeds MAX_LOG_LINE_LENGTH. That line is not
+ *   forwarded. Its remainder is discarded until the terminating newline is
+ *   reached, across as many calls as needed.
+ *
+ * The caller owns the oversized-line discard state so live streaming and
+ * history replay do not interfere with each other.
  */
 static void
-read_new_lines(FILE *fp, struct per_session_data *target, const char *level)
+read_new_lines(FILE *fp, bool *dropping_oversized_line, struct per_session_data *target, const char *level)
 {
-  if (!fp) {
+  if (!fp || !dropping_oversized_line) {
     return;
   }
 
   clearerr(fp);
 
-  char linebuf[MAX_LOG_LINE_LENGTH + 1];
+  /* Space for up to MAX_LOG_LINE_LENGTH bytes of content, plus '\n', plus NUL. */
+  char linebuf[MAX_LOG_LINE_LENGTH + 2];
 
   while (true) {
+    size_t len;
+    if (*dropping_oversized_line) {
+      /* A previous read already proved that this line is oversized.
+       * Keep consuming and discarding chunks until its terminating newline
+       * is reached. If EOF is hit first, stay in discard mode and continue
+       * on the next event.
+       */
+      if (!fgets(linebuf, (int)sizeof(linebuf), fp)) {
+        break;
+      }
+      len = strlen(linebuf);
+      if (len > 0 && linebuf[len - 1] == '\n') {
+        *dropping_oversized_line = false;
+      }
+      continue;
+    }
     long pos = ftell(fp);
     if (!fgets(linebuf, (int)sizeof(linebuf), fp)) {
       break;
     }
 
-    size_t len = strlen(linebuf);
+    len = strlen(linebuf);
     if (len == 0) {
       continue;
     }
-
-    /* No newline at end: stop and retry from the same position on the next
-     * event so a line written in multiple writes is emitted intact. */
     if (linebuf[len - 1] != '\n') {
-      clearerr(fp);
-      fseek(fp, pos, SEEK_SET);
-      break;
+      /* No trailing newline means one of two things:
+       * - This is a partial line at current EOF
+       * - This line is longer than MAX_LOG_LINE_LENGTH
+       *
+       * feof() distinguishes those cases.
+       */
+      if (feof(fp)) {
+        /* Partial line at EOF. Rewind so the same line can be retried after
+         * more data arrives and can still be emitted intact.
+         */
+        clearerr(fp);
+        if (pos >= 0) {
+          fseek(fp, pos, SEEK_SET);
+        }
+        break;
+      }
+      /* More data already exists beyond this chunk, so the line is oversized.
+       * Drop the whole line. Do not rewind, otherwise the same prefix would
+       * be reread forever and later lines would be blocked.
+       */
+      *dropping_oversized_line = true;
+      continue;
     }
 
-    /* Strip trailing \n and optional \r */
+    /* Strip trailing '\n' and optional '\r' */
     linebuf[--len] = '\0';
     if (len > 0 && linebuf[len - 1] == '\r') {
       linebuf[--len] = '\0';
@@ -284,6 +350,10 @@ send_history_to_one(struct per_session_data *pss)
   for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
     char path[256];
     FILE *fp;
+    /* History replay uses its own discard state because it reads from a
+     * separate temporary FILE*. It must not share live discard state.
+     */
+    bool dropping_oversized_line = false;
 
     build_log_path(i, path, sizeof(path));
 
@@ -304,8 +374,7 @@ send_history_to_one(struct per_session_data *pss)
       int c;
       while ((c = fgetc(fp)) != EOF && c != '\n') { }
     }
-
-    read_new_lines(fp, pss, watched_levels[i]);
+    read_new_lines(fp, &dropping_oversized_line, pss, watched_levels[i]);
     fclose(fp);
   }
 }
@@ -331,6 +400,8 @@ open_log_file(size_t idx, bool seek_to_end)
     fclose(log_fps[idx]);
     log_fps[idx] = NULL;
   }
+
+  live_dropping_oversized_line[idx] = false;
 
   log_fps[idx] = fopen(path, "rb");
   if (!log_fps[idx]) {
@@ -361,6 +432,7 @@ close_log_file(size_t idx)
     fclose(log_fps[idx]);
     log_fps[idx] = NULL;
   }
+  live_dropping_oversized_line[idx] = false;
 }
 
 /* Open all watched log files. Called once when monitoring starts. */
@@ -449,12 +521,12 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
             /* New file appeared after rotation: reopen from the start */
             close_log_file((size_t)idx);
             open_log_file((size_t)idx, false);
-            read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
+            read_new_lines(log_fps[idx], &live_dropping_oversized_line[idx], NULL, watched_levels[idx]);
           } else if (ev->mask & (IN_MODIFY | IN_CLOSE_WRITE)) {
             if (!log_fps[idx] || log_file_replaced_or_truncated((size_t)idx)) {
               open_log_file((size_t)idx, false);
             }
-            read_new_lines(log_fps[idx], NULL, watched_levels[idx]);
+            read_new_lines(log_fps[idx], &live_dropping_oversized_line[idx], NULL, watched_levels[idx]);
           }
         }
       }
