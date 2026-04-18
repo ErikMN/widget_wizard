@@ -177,10 +177,12 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
     return;
   }
 
+  /* g_malloc allocates n_bytes bytes of memory. If n_bytes is 0 it returns NULL.
+   * If the allocation fails (because the system is out of memory), the program is terminated.
+   * https://docs.gtk.org/glib/func.malloc.html
+   * Therefore no need to check for NULL here.
+   */
   struct pending_ws_message *msg = g_malloc(sizeof(*msg) + LWS_PRE + json_len);
-  if (!msg) {
-    return;
-  }
 
   msg->len = json_len;
   memcpy(&msg->buf[LWS_PRE], json_buf + LWS_PRE, json_len);
