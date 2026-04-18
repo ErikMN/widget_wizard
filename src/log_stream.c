@@ -45,7 +45,7 @@
  *   log_stream_handle_request()
  *     |
  *     v
- *   start_log_monitor() on first subscriber
+ *   start_log_monitor() on first subscriber if the monitor is not already running
  *     |
  *     v
  *   send_history_to_one()
@@ -178,6 +178,10 @@ static bool log_open_failed[WATCHED_FILE_COUNT];
  * truncated in place because the old oversized line context no longer applies.
  */
 static bool live_dropping_oversized_line[WATCHED_FILE_COUNT];
+
+/* -------------------------------------------------------------------------- */
+
+static void start_log_monitor(void);
 
 /* -------------------------------------------------------------------------- */
 
@@ -554,9 +558,10 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
   if (condition & (G_IO_HUP | G_IO_ERR)) {
     syslog(LOG_WARNING, "log_stream: inotify channel error");
     /* Clear state so start_log_monitor() can be called again if a new
-     * subscriber arrives.  The watch source is already being removed by
+     * subscriber arrives. The watch source is already being removed by
      * GLib so we only need to drop the channel reference and reset the
-     * tracking variables. */
+     * tracking variables.
+     */
     inotify_watch_id = 0;
     if (inotify_chan) {
       g_io_channel_unref(inotify_chan); /* also closes inotify_fd */
@@ -565,6 +570,18 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
     }
     inotify_dir_wd = -1;
     close_all_log_files();
+    /* If subscribers still exist, try to restore live streaming immediately.
+     * If restart fails, drop the subscriber list so sessions are not left
+     * subscribed to a monitor that no longer exists.
+     */
+    if (log_subscribers) {
+      start_log_monitor();
+      if (inotify_fd < 0 || inotify_watch_id == 0) {
+        syslog(LOG_WARNING, "log_stream: monitor restart failed, dropping subscribers");
+        g_slist_free(log_subscribers);
+        log_subscribers = NULL;
+      }
+    }
     return G_SOURCE_REMOVE;
   }
 
@@ -646,6 +663,14 @@ start_log_monitor(void)
   g_io_channel_set_encoding(inotify_chan, NULL, NULL); /* binary mode */
 
   inotify_watch_id = g_io_add_watch(inotify_chan, G_IO_IN | G_IO_HUP | G_IO_ERR, on_inotify_event, NULL);
+  if (inotify_watch_id == 0) {
+    syslog(LOG_ERR, "log_stream: g_io_add_watch failed");
+    g_io_channel_unref(inotify_chan); /* also closes inotify_fd */
+    inotify_chan = NULL;
+    inotify_fd = -1;
+    inotify_dir_wd = -1;
+    return;
+  }
 
   open_all_log_files();
   syslog(LOG_INFO, "log_stream: monitoring %zu file(s) in %s via inotify", WATCHED_FILE_COUNT, LOG_STREAM_DIR);
@@ -704,12 +729,17 @@ log_stream_handle_request(struct per_session_data *pss, json_t *root)
       return true;
     }
 
-    if (inotify_fd < 0) {
+    if (inotify_fd < 0 || inotify_watch_id == 0) {
       start_log_monitor();
+      if (inotify_fd < 0 || inotify_watch_id == 0) {
+        syslog(LOG_WARNING, "log_stream: subscribe failed, monitor unavailable");
+        return true;
+      }
     }
 
     /* Replay history before adding to the live subscriber list so that any
-     * inotify event firing during replay goes only to existing subscribers. */
+     * inotify event firing during replay goes only to existing subscribers.
+     */
     send_history_to_one(pss);
 
     log_subscribers = g_slist_prepend(log_subscribers, pss);
