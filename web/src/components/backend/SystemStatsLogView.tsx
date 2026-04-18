@@ -4,10 +4,11 @@
  * WebSocket protocol. Lines are client-side filtered by a text input and
  * per-severity toggle chips.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { CustomButton } from '../CustomComponents';
 import { LogLine } from './systemStatsTypes';
 /* MUI */
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
@@ -51,10 +52,14 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
   stopLogStream,
   clearLogLines
 }) => {
-  const [filter, setFilter] = React.useState('');
-  const [enabledLevels, setEnabledLevels] = React.useState<Set<Level>>(
+  /* Local state */
+  const [showLogNotice, setShowLogNotice] = useState(true);
+  const [filter, setFilter] = useState('');
+  const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(
     new Set(LEVELS)
   );
+
+  /* Refs */
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -102,6 +107,48 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
 
   return (
     <Stack spacing={1}>
+      {/* Log notice */}
+      {showLogNotice && (
+        <Alert
+          severity="warning"
+          onClose={() => setShowLogNotice(false)}
+          slotProps={{
+            closeButton: {
+              disableRipple: true
+            }
+          }}
+          sx={{
+            backgroundColor: 'rgba(20,20,20,0.95)',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.14)',
+            '& .MuiAlert-icon': {
+              color: '#ffd93d',
+              opacity: 1
+            },
+            '& .MuiSvgIcon-root': {
+              color: '#ffd93d'
+            },
+            '& .MuiAlert-message': {
+              fontSize: '0.78rem',
+              lineHeight: 1.45
+            },
+            '& .MuiAlert-action': {
+              alignItems: 'center'
+            },
+            '& .MuiAlert-action .MuiIconButton-root': {
+              color: '#fff'
+            },
+            '& .MuiAlert-action .MuiIconButton-root:hover': {
+              backgroundColor: 'rgba(255,255,255,0.08)'
+            }
+          }}
+        >
+          This log view is for lightweight live troubleshooting only. It is NOT
+          a complete or guaranteed audit log and must NOT be used for audit,
+          forensics, or compliance purposes.
+        </Alert>
+      )}
+
       {/* Controls */}
       <Box
         sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}
