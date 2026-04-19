@@ -113,14 +113,16 @@
 /*
  * Log files to monitor within LOG_STREAM_DIR.
  *
- * On this target syslog-ng routes each severity level to its own file rather
+ * On some targets syslog-ng routes each severity level to its own file rather
  * than accumulating them, so all files must be watched to capture the full
- * log stream.  Add or remove entries here as needed.
+ * log stream. Add or remove entries here as needed.
  *
- * NOTE: auth.log and its rotated copies are owned root:root (mode 640) on
- * this target. If the application runs as a non-root user, open_log_file()
- * will fail with EACCES and auth.log will be silently skipped (a syslog
- * warning is emitted). Remove it from the list if that is undesirable.
+ * NOTE: Any watched log file may be unreadable or missing on the target
+ * system depending on its owner, group, mode, and whether it currently
+ * exists. If open_log_file() fails, that file is skipped and a syslog
+ * warning is emitted. It will be retried when the monitor is restarted or
+ * when a matching write, creation, or move event is seen in LOG_STREAM_DIR.
+ * Remove entries from the list if that is undesirable.
  */
 
 // clang-format off
