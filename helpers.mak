@@ -138,12 +138,11 @@ cppcheck:
 		--suppress=unknownMacro \
 		--suppress=unusedFunction
 
-# Format code using clang-format:
+# Run clang format in Docker:
 .PHONY: indent
 indent:
-	@$(ECHO) "${PURPLE}*** Formatting code${NC}"
-	@clang-format $(shell find . -name "*.[ch]") \
-		-style=file -i -fallback-style=none
+	@echo "*** Formatting code"
+	@./scripts/docker-clang-format.sh
 
 #==============================================================================#
 # Build for host PC (requires all dependencies installed):
