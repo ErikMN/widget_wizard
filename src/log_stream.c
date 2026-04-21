@@ -12,9 +12,10 @@
  *   disconnects or unsubscribes.
  * - Log rotation: when the watched directory reports that the log file was
  *   deleted or moved away, the FILE* handle is closed. When a new file with
- *   the same name appears (IN_CREATE / IN_MOVED_TO), it is opened from the
- *   beginning. On write events the current FILE* inode is also compared with
- *   the path inode so rename-based rotation is detected reliably.
+ *   the same name appears (IN_CREATE or IN_MOVED_TO), it is opened from the
+ *   beginning. The current FILE* inode is also compared with the path inode
+ *   on write events and during the periodic resync, so rename-based rotation
+ *   is detected reliably even if a later write event never arrives.
  * - Lines longer than MAX_LOG_LINE_LENGTH are not forwarded. Once a line is
  *   detected as oversized, its remainder is discarded up to the terminating
  *   newline, across as many inotify events as needed, so subsequent lines are
@@ -70,6 +71,23 @@
  *     v
  *   libwebsockets write callback sends queued JSON
  *
+ *   no inotify event arrives after rotation or replacement
+ *     |
+ *     v
+ *   resync_watched_files()
+ *     |
+ *     v
+ *   open_log_file() if needed
+ *     |
+ *     v
+ *   read_new_lines()
+ *     |
+ *     v
+ *   queue_line_to_session()
+ *     |
+ *     v
+ *   libwebsockets write callback sends queued JSON
+ *
  *   client sends { "log_stream": false } or disconnects
  *     |
  *     v
@@ -110,6 +128,12 @@
  * pending message is dropped to prevent unbounded memory growth. */
 #define LOG_STREAM_MAX_PENDING_MESSAGES 1000
 
+/* How often to resync watched files even when no inotify event arrives.
+ * This recovers from missed events and from stale file handles after
+ * rotation without waiting for a later write event.
+ */
+#define LOG_STREAM_RESYNC_INTERVAL_MS 2000
+
 /*
  * Log files to monitor within LOG_STREAM_DIR.
  *
@@ -120,14 +144,16 @@
  * NOTE: Any watched log file may be unreadable or missing on the target
  * system depending on its owner, group, mode, and whether it currently
  * exists. If open_log_file() fails, that file is skipped and a syslog
- * warning is emitted. It will be retried when the monitor is restarted or
- * when a matching write, creation, or move event is seen in LOG_STREAM_DIR.
- * Remove entries from the list if that is undesirable.
+ * warning is emitted. It will be retried when the monitor is restarted,
+ * during the periodic resync, or when a matching write, creation, or move
+ * event is seen in LOG_STREAM_DIR. Remove entries from the list if that is
+ * undesirable.
  */
 
 // clang-format off
 static const char *const watched_filenames[] = {
   "auth.log",
+  "critical.log",
   "debug.log",
   "info.log",
   "warning.log",
@@ -141,12 +167,15 @@ static const char *const watched_filenames[] = {
  */
 static const char *const watched_levels[] = {
   "auth",
+  "critical",
   "debug",
   "info",
   "warning",
   "error",
 };
 // clang-format on
+
+G_STATIC_ASSERT(G_N_ELEMENTS(watched_filenames) == G_N_ELEMENTS(watched_levels));
 
 /* Number of log files being monitored. */
 #define WATCHED_FILE_COUNT (sizeof(watched_filenames) / sizeof(watched_filenames[0]))
@@ -157,6 +186,7 @@ static int inotify_fd = -1;
 static GIOChannel *inotify_chan = NULL;
 static guint inotify_watch_id = 0;
 static int inotify_dir_wd = -1;
+static guint resync_timer_id = 0;
 
 static FILE *log_fps[WATCHED_FILE_COUNT]; /* one handle per watched file */
 static GSList *log_subscribers = NULL;
@@ -201,8 +231,9 @@ build_log_path(size_t idx, char *path, size_t path_size)
  * Rotation detection (returns true: caller must reopen):
  * When logrotate renames the file away without generating IN_DELETE (e.g.
  * "mv syslog syslog.1"), the open FILE* would keep reading from the old
- * inode indefinitely. Comparing inodes on every write event catches this.
- * Also returns true if the path has disappeared or either stat call fails.
+ * inode indefinitely. Comparing inodes on write events and during the
+ * periodic resync catches this. Also returns true if the path has
+ * disappeared or either stat call fails.
  *
  * Truncation handling (returns false, handled in place):
  * If the current file position is beyond the reported file size the file
@@ -560,6 +591,14 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
   if (condition & (G_IO_HUP | G_IO_ERR)) {
     syslog(LOG_WARNING, "log_stream: inotify channel error");
     /* Clear state so start_log_monitor() can be called again if a new
+     * subscriber arrives. The periodic resync source must also be removed
+     * because it depends on the same monitor state.
+     */
+    if (resync_timer_id != 0) {
+      g_source_remove(resync_timer_id);
+      resync_timer_id = 0;
+    }
+    /* Clear state so start_log_monitor() can be called again if a new
      * subscriber arrives. The watch source is already being removed by
      * GLib so we only need to drop the channel reference and reset the
      * tracking variables.
@@ -628,6 +667,86 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
+/*
+ * Periodically resync watched files even when no inotify event arrives.
+ *
+ * Why this exists:
+ * - The live path is event-driven. If an expected inotify event is missed,
+ *   or a file is rotated into a stale state and then stays quiet, the stream
+ *   can appear stuck until some later write happens to wake it up.
+ * - This timer provides a low-frequency recovery path that does not depend
+ *   on a fresh write event.
+ *
+ * What it does for each watched file:
+ * - If there is no open FILE* handle, tries to open the file from its current
+ *   beginning so any existing complete lines can be read.
+ * - If there is an open FILE*, checks whether the path still refers to the
+ *   same inode. If not, or if the path is temporarily unavailable, reopens
+ *   the file from the current path.
+ * - After any needed reopen, reads and forwards all newly available complete
+ *   lines using the same state as the normal live path.
+ *
+ * Logging behavior:
+ * - A successful recovery from the closed-handle state is logged when the
+ *   periodic resync reopens that file.
+ * - Failed open attempts are not logged here on every timer tick because
+ *   open_log_file() already rate-limits those warnings via log_open_failed[].
+ *
+ * Return value:
+ * - Returns G_SOURCE_CONTINUE while the monitor is active.
+ * - Returns G_SOURCE_REMOVE if the monitor state is no longer valid.
+ */
+static gboolean
+resync_watched_files(gpointer user_data)
+{
+  (void)user_data;
+
+  if (inotify_fd < 0 || inotify_watch_id == 0) {
+    resync_timer_id = 0;
+    return G_SOURCE_REMOVE;
+  }
+
+  for (size_t i = 0; i < WATCHED_FILE_COUNT; i++) {
+    bool need_reopen = false;
+    bool was_closed = false;
+
+    if (!log_fps[i]) {
+      /* No live handle is open for this file.
+       * This can happen if the file was missing, unreadable, deleted, moved
+       * away, or if a previous reopen attempt failed.
+       */
+      need_reopen = true;
+      was_closed = true;
+    } else if (log_file_replaced_or_truncated(i)) {
+      /* The current FILE* no longer matches the path on disk, or the path is
+       * temporarily unavailable. Reopen against the current path so live
+       * streaming can resume without waiting for a later write event.
+       */
+      need_reopen = true;
+    }
+
+    if (need_reopen) {
+      open_log_file(i, false);
+      /* Log only successful recovery from the fully closed state.
+       * Do not log failed reopen attempts here on every timer tick because
+       * open_log_file() already suppresses repeated failure warnings.
+       */
+      if (was_closed && log_fps[i]) {
+        char path[256];
+        build_log_path(i, path, sizeof(path));
+        syslog(LOG_INFO, "log_stream: periodic resync reopened %s", path);
+      }
+    }
+    /* Consume any complete lines now available on the live FILE*.
+     * This uses the same oversized-line discard state as the inotify path,
+     * so the two paths stay consistent and do not duplicate already-read data.
+     */
+    read_new_lines(log_fps[i], &live_dropping_oversized_line[i], NULL, watched_levels[i]);
+  }
+
+  return G_SOURCE_CONTINUE;
+}
+
 /* -------------------------------------------------------------------------- */
 
 /*
@@ -635,15 +754,52 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
  *
  * Creates an inotify instance, adds a watch on LOG_STREAM_DIR, wraps the fd
  * in a GLib GIOChannel, and registers on_inotify_event() with the GLib main
- * loop. Idempotent: returns immediately if the monitor is already running.
+ * loop.
+ *
+ * If the inotify side is already running, ensures the periodic resync timer
+ * also exists and returns. If partial monitor state is left behind from an
+ * earlier failure, that state is torn down before a fresh start.
  */
 static void
 start_log_monitor(void)
 {
-  /* Already running */
-  if (inotify_fd >= 0) {
+  /* If the inotify side is already running, only make sure the periodic
+   * resync timer also exists.
+   */
+  if (inotify_fd >= 0 && inotify_watch_id != 0) {
+    if (resync_timer_id == 0) {
+      resync_timer_id = g_timeout_add(LOG_STREAM_RESYNC_INTERVAL_MS, resync_watched_files, NULL);
+      if (resync_timer_id == 0) {
+        syslog(LOG_WARNING, "log_stream: failed to start periodic resync timer");
+      }
+    }
     return;
   }
+
+  /* A previous monitor instance may have left partial state behind.
+   * Tear it down before starting a fresh monitor.
+   */
+  if (inotify_watch_id != 0) {
+    g_source_remove(inotify_watch_id);
+    inotify_watch_id = 0;
+  }
+
+  if (resync_timer_id != 0) {
+    g_source_remove(resync_timer_id);
+    resync_timer_id = 0;
+  }
+
+  if (inotify_chan) {
+    g_io_channel_unref(inotify_chan); /* also closes inotify_fd */
+    inotify_chan = NULL;
+    inotify_fd = -1;
+  } else if (inotify_fd >= 0) {
+    close(inotify_fd);
+    inotify_fd = -1;
+  }
+
+  inotify_dir_wd = -1;
+  close_all_log_files();
 
   inotify_fd = inotify_init1(IN_NONBLOCK);
   if (inotify_fd < 0) {
@@ -675,6 +831,15 @@ start_log_monitor(void)
   }
 
   open_all_log_files();
+
+  /* Ensure the periodic resync timer is running to recover from missed events and stale file handles. */
+  if (resync_timer_id == 0) {
+    resync_timer_id = g_timeout_add(LOG_STREAM_RESYNC_INTERVAL_MS, resync_watched_files, NULL);
+    if (resync_timer_id == 0) {
+      syslog(LOG_WARNING, "log_stream: failed to start periodic resync timer");
+    }
+  }
+
   syslog(LOG_INFO, "log_stream: monitoring %zu file(s) in %s via inotify", WATCHED_FILE_COUNT, LOG_STREAM_DIR);
 }
 
@@ -685,7 +850,7 @@ start_log_monitor(void)
 static void
 stop_log_monitor(void)
 {
-  if (inotify_watch_id == 0 && inotify_fd < 0) {
+  if (inotify_watch_id == 0 && inotify_fd < 0 && resync_timer_id == 0) {
     return; /* was never successfully started */
   }
 
@@ -694,10 +859,18 @@ stop_log_monitor(void)
     inotify_watch_id = 0;
   }
 
+  if (resync_timer_id != 0) {
+    g_source_remove(resync_timer_id);
+    resync_timer_id = 0;
+  }
+
   if (inotify_chan) {
     /* set_close_on_unref is TRUE, so this also closes inotify_fd */
     g_io_channel_unref(inotify_chan);
     inotify_chan = NULL;
+    inotify_fd = -1;
+  } else if (inotify_fd >= 0) {
+    close(inotify_fd);
     inotify_fd = -1;
   }
 
@@ -731,7 +904,7 @@ log_stream_handle_request(struct per_session_data *pss, json_t *root)
       return true;
     }
 
-    if (inotify_fd < 0 || inotify_watch_id == 0) {
+    if (inotify_fd < 0 || inotify_watch_id == 0 || resync_timer_id == 0) {
       start_log_monitor();
       if (inotify_fd < 0 || inotify_watch_id == 0) {
         syslog(LOG_WARNING, "log_stream: subscribe failed, monitor unavailable");
