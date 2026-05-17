@@ -252,16 +252,26 @@ const SystemStats: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        maxHeight: '80vh',
-        maxWidth: '90vw',
+        width: '100%',
+        minHeight: 0,
+        minWidth: 0,
         overflow: 'hidden',
         padding: '6px',
+        boxSizing: 'border-box',
         color: '#fff',
         '& .MuiTypography-root': { color: '#fff' },
         '& .MuiSvgIcon-root': { color: '#fff' }
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          height: '100%',
+          minHeight: 0
+        }}
+      >
         {!connected && !error && (
           <Alert
             severity="info"
@@ -297,8 +307,9 @@ const SystemStats: React.FC = () => {
           <Stack
             spacing={2}
             sx={{
-              overflowY: 'auto',
-              maxHeight: 'calc(80vh - 64px)'
+              overflow: 'hidden',
+              flex: '1 1 auto',
+              minHeight: 0
             }}
           >
             <Box
@@ -411,103 +422,105 @@ const SystemStats: React.FC = () => {
               </CustomButton>
             </Box>
 
-            {/* System stats info and bars */}
-            {viewMode === 'bars' && (
-              <SystemStatsBarsView
-                stats={stats}
-                cpuPercent={cpuPercent}
-                memUsedKb={memUsedKb}
-                memUsedPercent={memUsedPercent}
-                barsCoreSectionExpanded={barsCoreSectionExpanded}
-                toggleBarsCoreSectionExpanded={() =>
-                  setBarsCoreSectionExpanded((prev) => !prev)
-                }
-              />
-            )}
+            <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
+              {/* System stats info and bars */}
+              {viewMode === 'bars' && (
+                <SystemStatsBarsView
+                  stats={stats}
+                  cpuPercent={cpuPercent}
+                  memUsedKb={memUsedKb}
+                  memUsedPercent={memUsedPercent}
+                  barsCoreSectionExpanded={barsCoreSectionExpanded}
+                  toggleBarsCoreSectionExpanded={() =>
+                    setBarsCoreSectionExpanded((prev) => !prev)
+                  }
+                />
+              )}
 
-            {/* System stats chart */}
-            {viewMode === 'chart' && (
-              <SystemStatsChartView
-                stats={stats}
-                history={history}
-                cpuPercent={cpuPercent}
-                memUsedKb={memUsedKb}
-                sysChartMetrics={sysChartMetrics}
-                toggleSysChartMetric={toggleSysChartMetric}
-                sysChartCoreMetrics={sysChartCoreMetrics}
-                toggleSysChartCoreMetric={toggleSysChartCoreMetric}
-                toggleAllSysChartCoreMetrics={toggleAllSysChartCoreMetrics}
-                allSysChartCoresEnabled={allSysChartCoresEnabled}
-                chartCoreListExpanded={chartCoreListExpanded}
-                toggleChartCoreListExpanded={() =>
-                  setChartCoreListExpanded((prev) => !prev)
-                }
-                sysChartCoreSeries={sysChartCoreSeries}
-                sysChartYAxis={sysChartYAxis}
-              />
-            )}
+              {/* System stats chart */}
+              {viewMode === 'chart' && (
+                <SystemStatsChartView
+                  stats={stats}
+                  history={history}
+                  cpuPercent={cpuPercent}
+                  memUsedKb={memUsedKb}
+                  sysChartMetrics={sysChartMetrics}
+                  toggleSysChartMetric={toggleSysChartMetric}
+                  sysChartCoreMetrics={sysChartCoreMetrics}
+                  toggleSysChartCoreMetric={toggleSysChartCoreMetric}
+                  toggleAllSysChartCoreMetrics={toggleAllSysChartCoreMetrics}
+                  allSysChartCoresEnabled={allSysChartCoresEnabled}
+                  chartCoreListExpanded={chartCoreListExpanded}
+                  toggleChartCoreListExpanded={() =>
+                    setChartCoreListExpanded((prev) => !prev)
+                  }
+                  sysChartCoreSeries={sysChartCoreSeries}
+                  sysChartYAxis={sysChartYAxis}
+                />
+              )}
 
-            {/* Process monitor view */}
-            {viewMode === 'process' && (
-              <SystemStatsProcessView
-                procName={procName}
-                setProcName={setProcName}
-                sendMonitorRequest={sendMonitorRequest}
-                clearMonitorInput={clearMonitorInput}
-                procHistory={procHistory}
-                procError={procError}
-                procStats={procStats}
-                procMetrics={procMetrics}
-                toggleProcMetric={toggleProcMetric}
-              />
-            )}
+              {/* Process monitor view */}
+              {viewMode === 'process' && (
+                <SystemStatsProcessView
+                  procName={procName}
+                  setProcName={setProcName}
+                  sendMonitorRequest={sendMonitorRequest}
+                  clearMonitorInput={clearMonitorInput}
+                  procHistory={procHistory}
+                  procError={procError}
+                  procStats={procStats}
+                  procMetrics={procMetrics}
+                  toggleProcMetric={toggleProcMetric}
+                />
+              )}
 
-            {/* Process list view */}
-            {viewMode === 'list' && (
-              <SystemStatsProcessListView
-                processList={processList}
-                filteredProcesses={filteredProcesses}
-                processFilter={processFilter}
-                setProcessFilter={setProcessFilter}
-                requestProcessList={requestProcessList}
-                clearProcessList={clearProcessList}
-                selectedProcess={selectedProcess}
-                onSelectProcess={(name) => {
-                  setSelectedProcess(name);
-                  setProcName(name);
-                }}
-                canCopyToClipboard={canCopyToClipboard}
-                copyToClipboard={copyToClipboard}
-                monitorSelectedProcess={() => {
-                  setViewMode('process');
-                  sendMonitorRequest();
-                }}
-              />
-            )}
+              {/* Process list view */}
+              {viewMode === 'list' && (
+                <SystemStatsProcessListView
+                  processList={processList}
+                  filteredProcesses={filteredProcesses}
+                  processFilter={processFilter}
+                  setProcessFilter={setProcessFilter}
+                  requestProcessList={requestProcessList}
+                  clearProcessList={clearProcessList}
+                  selectedProcess={selectedProcess}
+                  onSelectProcess={(name) => {
+                    setSelectedProcess(name);
+                    setProcName(name);
+                  }}
+                  canCopyToClipboard={canCopyToClipboard}
+                  copyToClipboard={copyToClipboard}
+                  monitorSelectedProcess={() => {
+                    setViewMode('process');
+                    sendMonitorRequest();
+                  }}
+                />
+              )}
 
-            {/* Storage info view */}
-            {viewMode === 'storage' && (
-              <SystemStatsStorageView storageInfo={storageInfo} />
-            )}
+              {/* Storage info view */}
+              {viewMode === 'storage' && (
+                <SystemStatsStorageView storageInfo={storageInfo} />
+              )}
 
-            {/* System info view */}
-            {viewMode === 'system' && (
-              <SystemStatsSystemView
-                systemInfo={systemInfo}
-                osLabel={osLabel}
-              />
-            )}
+              {/* System info view */}
+              {viewMode === 'system' && (
+                <SystemStatsSystemView
+                  systemInfo={systemInfo}
+                  osLabel={osLabel}
+                />
+              )}
 
-            {/* Log stream view */}
-            {viewMode === 'logs' && (
-              <SystemStatsLogView
-                logLines={logLines}
-                logStreaming={logStreaming}
-                startLogStream={startLogStream}
-                stopLogStream={stopLogStream}
-                clearLogLines={clearLogLines}
-              />
-            )}
+              {/* Log stream view */}
+              {viewMode === 'logs' && (
+                <SystemStatsLogView
+                  logLines={logLines}
+                  logStreaming={logStreaming}
+                  startLogStream={startLogStream}
+                  stopLogStream={stopLogStream}
+                  clearLogLines={clearLogLines}
+                />
+              )}
+            </Box>
           </Stack>
         )}
       </Box>

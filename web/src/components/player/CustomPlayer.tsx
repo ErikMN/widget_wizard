@@ -28,9 +28,8 @@ import { NoVideoIndicator } from './NoVideoIndicator';
 import { Container, Layer } from './PlayerContainer';
 import { Limiter } from './Limiter';
 import { PlayerControls } from './PlayerControls';
+import { SystemStatsOverlay } from './SystemStatsOverlay';
 import { getImageURL } from './GetImageURL';
-import SystemStats from '../backend/SystemStats';
-import Draggable from 'react-draggable';
 
 import {
   useSwitch,
@@ -121,7 +120,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const backendAvailable =
       globalParameters?.['root.Widget_wizard.ApplicationRunning'];
 
-    const systemStatsRef = useRef<HTMLDivElement>(null);
     const onStreamChangeRef = useRef(onStreamChange);
     const skipNextStreamChangeRef = useRef(false);
 
@@ -186,6 +184,10 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         );
       }
     }, [showSystemStatsOverlay]);
+
+    const systemStatsVisible =
+      (appSettings.debug || backendAvailable !== undefined) &&
+      showSystemStatsOverlay;
 
     /**
      * Controls
@@ -420,33 +422,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             />
           </div>
         )}
-        <div style={{ flex: '1 1 auto', position: 'relative', margin: '3px' }}>
-          {/* Draggable system stats overlay (bound to player area) */}
-          {(appSettings.debug || backendAvailable !== undefined) &&
-            showSystemStatsOverlay && (
-              <Draggable
-                bounds="parent"
-                nodeRef={systemStatsRef}
-                /* NOTE: We need this for the inputs to work on touch screens: */
-                cancel="input, textarea, select, button, .process-row, .MuiChip-root, .selectable-text"
-              >
-                <div
-                  ref={systemStatsRef}
-                  style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    left: '20px',
-                    zIndex: 10,
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    cursor: 'move'
-                  }}
-                >
-                  <SystemStats />
-                </div>
-              </Draggable>
-            )}
+        <SystemStatsOverlay visible={systemStatsVisible}>
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
@@ -478,7 +454,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
               <Layer>{!host && <NoVideoIndicator />}</Layer>
             </Container>
           </Limiter>
-        </div>
+        </SystemStatsOverlay>
         <div style={{ position: 'relative', zIndex: 10 }}>
           <PlayerControls
             play={play}
