@@ -59,7 +59,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
   barsCoreSectionExpanded,
   toggleBarsCoreSectionExpanded
 }) => (
-  <>
+  <Stack spacing={2} sx={{ height: '100%', minHeight: 0, overflowY: 'auto' }}>
     {/* CPU */}
     <Box>
       <Typography
@@ -266,7 +266,7 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
         }}
       />
     </Box>
-  </>
+  </Stack>
 );
 
 interface SystemStatsChartViewProps {
@@ -313,7 +313,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
   sysChartCoreSeries,
   sysChartYAxis
 }) => (
-  <>
+  <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
     {/* Toggle system chart metrics */}
     <Box
       sx={{
@@ -414,7 +414,8 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         {chartCoreListExpanded && (
           <Box
             sx={{
-              maxHeight: '240px',
+              maxHeight: '35%',
+              minHeight: 0,
               width: '100%',
               overflowY: 'auto',
               whiteSpace: 'pre-wrap',
@@ -451,11 +452,17 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
     )}
 
     {/* System stats chart using MUI X */}
-    <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        width: '100%',
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflowX: 'hidden'
+      }}
+    >
       <LineChart
         skipAnimation
         hideLegend
-        height={220}
         margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
         series={[
           ...(sysChartMetrics.cpu
@@ -490,6 +497,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         ]}
         yAxis={sysChartYAxis}
         sx={{
+          height: '100%',
           '& .MuiAreaElement-root': {
             fillOpacity: 0.12
           },
@@ -508,5 +516,5 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         }}
       />
     </Box>
-  </>
+  </Stack>
 );

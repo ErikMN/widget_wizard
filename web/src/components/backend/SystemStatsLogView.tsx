@@ -104,7 +104,7 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
     LEVEL_COLOR[level as Level] ?? '#e8e8e8';
 
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
       {/* Log limits notice */}
       {showLogNotice && (
         <Alert
@@ -234,8 +234,9 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 1,
           padding: '6px 8px',
+          flex: '1 1 auto',
+          minHeight: 0,
           overflowY: 'auto',
-          maxHeight: '45vh',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-all',
           color: '#e8e8e8',

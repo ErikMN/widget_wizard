@@ -54,7 +54,7 @@ export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
   procMetrics,
   toggleProcMetric
 }) => (
-  <Stack spacing={1}>
+  <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
     <Typography variant="subtitle2">Monitor a process by name</Typography>
 
     <Box sx={{ display: 'flex', gap: 1 }}>
@@ -215,10 +215,16 @@ export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
 
     {/* Per-process history chart using MUI X */}
     {procHistory.length > 1 && (
-      <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+      <Box
+        sx={{
+          width: '100%',
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowX: 'hidden'
+        }}
+      >
         <LineChart
           skipAnimation
-          height={220}
           margin={{ left: 0, right: 8, top: 16, bottom: 8 }}
           series={[
             ...(procMetrics.cpu
@@ -283,6 +289,7 @@ export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
             }
           ]}
           sx={{
+            height: '100%',
             '& .MuiAreaElement-root': {
               fillOpacity: 0.12
             },
@@ -334,7 +341,7 @@ export const SystemStatsProcessListView: React.FC<
   copyToClipboard,
   monitorSelectedProcess
 }) => (
-  <Stack spacing={1}>
+  <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
     <Stack direction="row" spacing={1} alignItems="center">
       <Typography variant="subtitle2">Running processes</Typography>
       {processList.length > 0 && (
@@ -395,7 +402,8 @@ export const SystemStatsProcessListView: React.FC<
 
     <Box
       sx={{
-        maxHeight: '240px',
+        flex: '1 1 auto',
+        minHeight: 0,
         overflowY: 'auto',
         whiteSpace: 'pre-wrap',
         fontFamily: 'monospace',
@@ -465,7 +473,7 @@ interface SystemStatsStorageViewProps {
 export const SystemStatsStorageView: React.FC<SystemStatsStorageViewProps> = ({
   storageInfo
 }) => (
-  <Stack spacing={1}>
+  <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
     <Typography variant="subtitle2">Filesystem storage</Typography>
 
     {storageInfo.length === 0 && (
@@ -476,7 +484,8 @@ export const SystemStatsStorageView: React.FC<SystemStatsStorageViewProps> = ({
 
     <Box
       sx={{
-        maxHeight: '240px',
+        flex: '1 1 auto',
+        minHeight: 0,
         overflowY: 'auto'
       }}
     >
