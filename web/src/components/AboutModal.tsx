@@ -33,6 +33,28 @@ import license from '../assets/etc/LICENSE?raw';
 import github_logo from '../assets/img/github-mark.svg';
 import github_logo_white from '../assets/img/github-mark-white.svg';
 
+/* HACKING TUTORIAL:
+
+Test the release check by monkey-patching the global fetch function
+to return a fake latest release tag.
+
+Paste this in the browser inspector console before opening the About modal:
+
+const realFetch = window.fetch;
+window.fetch = (url, options) => {
+  if (String(url).includes('/releases/latest')) {
+    return Promise.resolve(
+      new Response(JSON.stringify({ tag_name: 'v999.0.0' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+  }
+  return realFetch(url, options);
+};
+
+*/
+
 interface AboutModalProps {
   open: boolean;
   handleClose: () => void;
@@ -77,29 +99,35 @@ const AboutModal: React.FC<AboutModalProps> = ({ open, handleClose }) => {
     parameters?.['root.Brand.ProdShortName'] ||
     'Product image';
 
-  /* Fetch the latest release info from GitHub on mount */
+  /* Fetch the latest release info from GitHub on mount
+   * https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10#get-the-latest-release
+   */
   useEffect(() => {
     if (open) {
       setShowProductImage(false);
       setProductImageAvailable(true);
-      fetch('https://api.github.com/repos/ErikMN/widget_wizard/releases', {
-        headers: {
-          Accept: 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28'
+      fetch(
+        'https://api.github.com/repos/ErikMN/widget_wizard/releases/latest',
+        {
+          headers: {
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2026-03-10'
+          }
         }
-      })
-        .then((res) => res.json())
+      )
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`GitHub release check failed: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
-          if (Array.isArray(data) && data.length > 0) {
-            const newest = data[0];
-            if (newest && newest.tag_name) {
-              // console.log(newest);
-              const tag = newest.tag_name;
-              if (isVersionNewer(import.meta.env.VITE_VERSION, tag)) {
-                playSound(newSoundUrl);
-              }
-              setLatestReleaseTag(tag);
+          if (typeof data?.tag_name === 'string') {
+            const tag = data.tag_name;
+            if (isVersionNewer(import.meta.env.VITE_VERSION, tag)) {
+              playSound(newSoundUrl);
             }
+            setLatestReleaseTag(tag);
           }
         })
         .catch((err) => {
