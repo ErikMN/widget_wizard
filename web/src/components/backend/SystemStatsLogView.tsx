@@ -41,6 +41,8 @@ interface SystemStatsLogViewProps {
   startLogStream: () => void;
   stopLogStream: () => void;
   clearLogLines: () => void;
+  showLogNotice: boolean;
+  closeLogNotice: () => void;
 }
 
 export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
@@ -48,10 +50,11 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
   logStreaming,
   startLogStream,
   stopLogStream,
-  clearLogLines
+  clearLogLines,
+  showLogNotice,
+  closeLogNotice
 }) => {
   /* Local state */
-  const [showLogNotice, setShowLogNotice] = useState(true);
   const [filter, setFilter] = useState('');
   const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(
     new Set(LEVELS)
@@ -109,7 +112,7 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
       {showLogNotice && (
         <Alert
           severity="warning"
-          onClose={() => setShowLogNotice(false)}
+          onClose={closeLogNotice}
           slotProps={{
             closeButton: {
               disableRipple: true

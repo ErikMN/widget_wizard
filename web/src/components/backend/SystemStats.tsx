@@ -78,6 +78,7 @@ const SystemStats: React.FC = () => {
     useState<boolean>(false);
   const [chartCoreListExpanded, setChartCoreListExpanded] =
     useState<boolean>(false);
+  const [showLogNotice, setShowLogNotice] = useState<boolean>(true);
 
   /* Refs */
   const mountMessageShownRef = useRef<boolean>(false);
@@ -518,6 +519,8 @@ const SystemStats: React.FC = () => {
                   startLogStream={startLogStream}
                   stopLogStream={stopLogStream}
                   clearLogLines={clearLogLines}
+                  showLogNotice={showLogNotice}
+                  closeLogNotice={() => setShowLogNotice(false)}
                 />
               )}
             </Box>
