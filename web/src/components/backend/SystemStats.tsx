@@ -1,7 +1,7 @@
 /* Stats
  * Get stats from WS backend and display them.
  */
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { useAppSettingsContext } from '../context/AppContext';
 import { CustomButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
@@ -26,6 +26,12 @@ import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+export type SystemStatsDisplayMode = 'message' | 'stats';
+
+interface SystemStatsProps {
+  readonly onDisplayModeChange?: (displayMode: SystemStatsDisplayMode) => void;
+}
+
 const formatOsName = (info: SystemInfo): string | null => {
   if (info.os_pretty_name && info.os_pretty_name.trim() !== '') {
     return info.os_pretty_name;
@@ -42,7 +48,7 @@ const formatOsName = (info: SystemInfo): string | null => {
   return null;
 };
 
-const SystemStats: React.FC = () => {
+const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
   /* Global context */
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
@@ -109,6 +115,12 @@ const SystemStats: React.FC = () => {
   } = useSystemStatsStream({
     url: WS_ADDRESS
   });
+  const displayMode: SystemStatsDisplayMode =
+    connected && stats ? 'stats' : 'message';
+
+  useLayoutEffect(() => {
+    onDisplayModeChange?.(displayMode);
+  }, [displayMode, onDisplayModeChange]);
 
   /* Toggle which per-process metric to show */
   const toggleProcMetric = (key: keyof typeof procMetrics) => {
@@ -252,8 +264,8 @@ const SystemStats: React.FC = () => {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
-        width: '100%',
+        height: displayMode === 'stats' ? '100%' : 'auto',
+        width: displayMode === 'stats' ? '100%' : 'auto',
         minHeight: 0,
         minWidth: 0,
         overflow: 'hidden',
@@ -269,7 +281,7 @@ const SystemStats: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: 1,
-          height: '100%',
+          height: displayMode === 'stats' ? '100%' : 'auto',
           minHeight: 0
         }}
       >

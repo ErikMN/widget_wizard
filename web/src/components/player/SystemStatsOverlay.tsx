@@ -5,7 +5,9 @@
  */
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Rnd, type Position } from 'react-rnd';
-import SystemStats from '../backend/SystemStats';
+import SystemStats, {
+  type SystemStatsDisplayMode
+} from '../backend/SystemStats';
 
 const SYSTEM_STATS_MIN_WIDTH = 280;
 const SYSTEM_STATS_MIN_HEIGHT = 180;
@@ -78,20 +80,59 @@ const getSystemStatsBounds = (
   };
 };
 
+const getSystemStatsMessageBounds = (
+  parent: HTMLDivElement,
+  element: HTMLElement | null,
+  position: Position | null
+): SystemStatsBounds => {
+  const availableWidth = Math.max(
+    1,
+    parent.clientWidth - SYSTEM_STATS_MARGIN * 2
+  );
+  const availableHeight = Math.max(
+    1,
+    parent.clientHeight - SYSTEM_STATS_MARGIN * 2
+  );
+  const measuredRect = element?.getBoundingClientRect();
+  const width = clamp(measuredRect?.width ?? 1, 1, availableWidth);
+  const height = clamp(measuredRect?.height ?? 1, 1, availableHeight);
+  const x = position?.x ?? SYSTEM_STATS_MARGIN;
+  const y =
+    position?.y ??
+    Math.max(
+      SYSTEM_STATS_MARGIN,
+      parent.clientHeight - height - SYSTEM_STATS_MARGIN
+    );
+
+  return {
+    x: clamp(x, 0, parent.clientWidth - width),
+    y: clamp(y, 0, parent.clientHeight - height),
+    width,
+    height
+  };
+};
+
 export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
   children,
   visible
 }) => {
   const playerAreaRef = useRef<HTMLDivElement>(null);
+  const rndRef = useRef<Rnd | null>(null);
   /* Keep the user's chosen size while the visible bounds are clamped on smaller screens. */
   const preferredBoundsRef = useRef<SystemStatsBounds | null>(null);
+  const messagePositionRef = useRef<Position | null>(null);
+  const [displayMode, setDisplayMode] =
+    useState<SystemStatsDisplayMode>('message');
   const [bounds, setBounds] = useState<SystemStatsBounds | null>(null);
+  const hasBounds = bounds !== null;
 
   useLayoutEffect(() => {
     const parent = playerAreaRef.current;
 
     if (!visible) {
       preferredBoundsRef.current = null;
+      messagePositionRef.current = null;
+      setDisplayMode('message');
       setBounds(null);
       return;
     }
@@ -101,13 +142,17 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
     }
 
     const resizePanel = () => {
-      const nextBounds = getSystemStatsBounds(
-        parent,
-        preferredBoundsRef.current
-      );
+      const nextBounds =
+        displayMode === 'message'
+          ? getSystemStatsMessageBounds(
+              parent,
+              rndRef.current?.resizableElement.current ?? null,
+              messagePositionRef.current
+            )
+          : getSystemStatsBounds(parent, preferredBoundsRef.current);
 
       /* First open starts at the bottom left with the default size. */
-      if (preferredBoundsRef.current === null) {
+      if (displayMode === 'stats' && preferredBoundsRef.current === null) {
         preferredBoundsRef.current = {
           ...nextBounds,
           width: SYSTEM_STATS_DEFAULT_WIDTH,
@@ -124,35 +169,63 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
 
     const observer = new window.ResizeObserver(resizePanel);
     observer.observe(parent);
-
-    return () => observer.disconnect();
-  }, [visible]);
-
-  const handleDragStop = useCallback((_event: unknown, data: Position) => {
-    const parent = playerAreaRef.current;
-
-    if (parent === null) {
-      return;
+    const element = rndRef.current?.resizableElement.current;
+    if (element !== undefined && element !== null) {
+      observer.observe(element);
     }
 
-    setBounds((current) => {
-      if (current === null) {
-        return current;
+    return () => observer.disconnect();
+  }, [displayMode, hasBounds, visible]);
+
+  const handleDragStop = useCallback(
+    (_event: unknown, data: Position) => {
+      const parent = playerAreaRef.current;
+
+      if (parent === null) {
+        return;
       }
 
-      /* Dragging changes position but keeps the preferred size. */
-      const preferredBounds = {
-        ...(preferredBoundsRef.current ?? current),
-        x: data.x,
-        y: data.y
-      };
-      const nextBounds = getSystemStatsBounds(parent, preferredBounds);
+      setBounds((current) => {
+        if (current === null) {
+          return current;
+        }
 
-      preferredBoundsRef.current = preferredBounds;
+        if (displayMode === 'message') {
+          const nextBounds = getSystemStatsMessageBounds(
+            parent,
+            rndRef.current?.resizableElement.current ?? null,
+            {
+              x: data.x,
+              y: data.y
+            }
+          );
+          messagePositionRef.current = {
+            x: data.x,
+            y: data.y
+          };
 
-      return sameSystemStatsBounds(current, nextBounds) ? current : nextBounds;
-    });
-  }, []);
+          return sameSystemStatsBounds(current, nextBounds)
+            ? current
+            : nextBounds;
+        }
+
+        /* Dragging changes position but keeps the preferred size. */
+        const preferredBounds = {
+          ...(preferredBoundsRef.current ?? current),
+          x: data.x,
+          y: data.y
+        };
+        const nextBounds = getSystemStatsBounds(parent, preferredBounds);
+
+        preferredBoundsRef.current = preferredBounds;
+
+        return sameSystemStatsBounds(current, nextBounds)
+          ? current
+          : nextBounds;
+      });
+    },
+    [displayMode]
+  );
 
   const handleResizeStop = useCallback(
     (
@@ -164,7 +237,7 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
     ) => {
       const parent = playerAreaRef.current;
 
-      if (parent === null) {
+      if (parent === null || displayMode === 'message') {
         return;
       }
 
@@ -181,6 +254,13 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
         sameSystemStatsBounds(current, nextBounds) ? current : nextBounds
       );
     },
+    [displayMode]
+  );
+
+  const handleDisplayModeChange = useCallback(
+    (nextDisplayMode: SystemStatsDisplayMode) => {
+      setDisplayMode(nextDisplayMode);
+    },
     []
   );
 
@@ -192,14 +272,24 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
       {/* Draggable system stats overlay (bound to player area) */}
       {visible && bounds !== null && (
         <Rnd
+          ref={rndRef}
           bounds="parent"
           position={{ x: bounds.x, y: bounds.y }}
           size={{
-            width: bounds.width,
-            height: bounds.height
+            width: displayMode === 'message' ? 'auto' : bounds.width,
+            height: displayMode === 'message' ? 'auto' : bounds.height
           }}
-          minWidth={Math.min(SYSTEM_STATS_MIN_WIDTH, bounds.width)}
-          minHeight={Math.min(SYSTEM_STATS_MIN_HEIGHT, bounds.height)}
+          minWidth={
+            displayMode === 'message'
+              ? 1
+              : Math.min(SYSTEM_STATS_MIN_WIDTH, bounds.width)
+          }
+          minHeight={
+            displayMode === 'message'
+              ? 1
+              : Math.min(SYSTEM_STATS_MIN_HEIGHT, bounds.height)
+          }
+          enableResizing={displayMode === 'stats'}
           onDragStop={handleDragStop}
           onResizeStop={handleResizeStop}
           /* NOTE: We need this for the inputs to work on touch screens: */
@@ -211,10 +301,18 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
             borderRadius: '4px',
             boxSizing: 'border-box',
             cursor: 'move',
-            overflow: 'hidden'
+            overflow: displayMode === 'message' ? 'auto' : 'hidden',
+            maxWidth:
+              displayMode === 'message'
+                ? `calc(100% - ${SYSTEM_STATS_MARGIN * 2}px)`
+                : undefined,
+            maxHeight:
+              displayMode === 'message'
+                ? `calc(100% - ${SYSTEM_STATS_MARGIN * 2}px)`
+                : undefined
           }}
         >
-          <SystemStats />
+          <SystemStats onDisplayModeChange={handleDisplayModeChange} />
         </Rnd>
       )}
       {children}
