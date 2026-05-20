@@ -401,6 +401,7 @@ export const SystemStatsProcessListView: React.FC<
     </Box>
 
     <Box
+      className="system-stats-scroll-area"
       sx={{
         flex: '1 1 auto',
         minHeight: 0,
@@ -483,6 +484,7 @@ export const SystemStatsStorageView: React.FC<SystemStatsStorageViewProps> = ({
     )}
 
     <Box
+      className="system-stats-scroll-area"
       sx={{
         flex: '1 1 auto',
         minHeight: 0,

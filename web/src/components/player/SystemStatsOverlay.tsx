@@ -293,7 +293,7 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
           onDragStop={handleDragStop}
           onResizeStop={handleResizeStop}
           /* NOTE: We need this for the inputs to work on touch screens: */
-          cancel="input, textarea, select, button, .process-row, .MuiChip-root, .selectable-text"
+          cancel="input, textarea, select, button, .process-row, .system-stats-scroll-area, .MuiChip-root, .selectable-text"
           style={{
             zIndex: 10,
             background: 'rgba(0, 0, 0, 0.4)',

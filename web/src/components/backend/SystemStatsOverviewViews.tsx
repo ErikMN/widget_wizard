@@ -59,7 +59,11 @@ export const SystemStatsBarsView: React.FC<SystemStatsBarsViewProps> = ({
   barsCoreSectionExpanded,
   toggleBarsCoreSectionExpanded
 }) => (
-  <Stack spacing={2} sx={{ height: '100%', minHeight: 0, overflowY: 'auto' }}>
+  <Stack
+    className="system-stats-scroll-area"
+    spacing={2}
+    sx={{ height: '100%', minHeight: 0, overflowY: 'auto' }}
+  >
     {/* CPU */}
     <Box>
       <Typography
@@ -313,7 +317,11 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
   sysChartCoreSeries,
   sysChartYAxis
 }) => (
-  <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
+  <Stack
+    className="system-stats-scroll-area"
+    spacing={1}
+    sx={{ height: '100%', minHeight: 0, overflowY: 'auto' }}
+  >
     {/* Toggle system chart metrics */}
     <Box
       sx={{
@@ -413,8 +421,9 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         {/* Per-core info dropdown */}
         {chartCoreListExpanded && (
           <Box
+            className="system-stats-scroll-area"
             sx={{
-              maxHeight: '35%',
+              maxHeight: 120,
               minHeight: 0,
               width: '100%',
               overflowY: 'auto',
@@ -424,7 +433,8 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
               backgroundColor: '#111',
               color: '#fff',
               padding: '8px',
-              border: '1px solid #333'
+              border: '1px solid #333',
+              boxSizing: 'border-box'
             }}
           >
             {stats.cpu_per_core.map((coreUsage, index) => (
@@ -455,8 +465,8 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
     <Box
       sx={{
         width: '100%',
-        flex: '1 1 auto',
-        minHeight: 0,
+        flex: '1 0 180px',
+        minHeight: 180,
         overflowX: 'hidden'
       }}
     >

@@ -228,7 +228,7 @@ export const SystemStatsLogView: React.FC<SystemStatsLogViewProps> = ({
       {/* Log output */}
       <Box
         ref={containerRef}
-        className="selectable-text"
+        className="selectable-text system-stats-scroll-area"
         sx={{
           fontFamily: 'monospace',
           fontSize: '0.72rem',
