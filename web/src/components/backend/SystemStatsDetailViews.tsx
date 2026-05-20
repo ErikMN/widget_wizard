@@ -290,7 +290,7 @@ export const SystemStatsProcessView: React.FC<SystemStatsProcessViewProps> = ({
           ]}
           sx={{
             height: '100%',
-            '& .MuiAreaElement-root': {
+            '& .MuiAreaElement-root, & .MuiLineChart-area': {
               fillOpacity: 0.12
             },
             '& .MuiChartsAxis-line': {
@@ -342,7 +342,7 @@ export const SystemStatsProcessListView: React.FC<
   monitorSelectedProcess
 }) => (
   <Stack spacing={1} sx={{ height: '100%', minHeight: 0 }}>
-    <Stack direction="row" spacing={1} alignItems="center">
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
       <Typography variant="subtitle2">Running processes</Typography>
       {processList.length > 0 && (
         <Chip

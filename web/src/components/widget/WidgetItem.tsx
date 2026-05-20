@@ -344,7 +344,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             aria-describedby="alert-dialog-description"
           >
             <DialogTitle id="alert-dialog-title">
-              <Box display="flex" alignItems="center">
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <WarningAmberIcon style={{ marginRight: '8px' }} />
                 {`Remove ${capitalizeFirstLetter(widget.generalParams.type)}`}
               </Box>

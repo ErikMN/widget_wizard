@@ -399,7 +399,7 @@ const OverlayBackupList: React.FC<{
         aria-describedby="restore-dialog-description"
       >
         <DialogTitle id="restore-dialog-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon style={{ marginRight: '8px' }} />
             {`Restore Backup`}
           </Box>
@@ -441,7 +441,7 @@ const OverlayBackupList: React.FC<{
         aria-describedby="delete-dialog-description"
       >
         <DialogTitle id="delete-dialog-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon style={{ marginRight: '8px' }} />
             {`Delete Backup`}
           </Box>
@@ -484,7 +484,7 @@ const OverlayBackupList: React.FC<{
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon style={{ marginRight: '8px' }} />
             {`Clear All Backups`}
           </Box>
@@ -527,7 +527,7 @@ const OverlayBackupList: React.FC<{
         aria-describedby="delete-marked-dialog-description"
       >
         <DialogTitle id="delete-marked-dialog-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon style={{ marginRight: '8px' }} />
             {`Delete Marked Backups`}
           </Box>

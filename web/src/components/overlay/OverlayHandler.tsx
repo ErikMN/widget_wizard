@@ -273,7 +273,7 @@ const OverlayHandler: React.FC = () => {
         aria-describedby="remove-overlays-description"
       >
         <DialogTitle id="remove-overlays-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon sx={{ mr: 1 }} />
             Remove all overlays
           </Box>

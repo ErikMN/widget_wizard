@@ -14,6 +14,9 @@ const SYSTEM_STATS_MIN_HEIGHT = 180;
 const SYSTEM_STATS_DEFAULT_WIDTH = 540;
 const SYSTEM_STATS_DEFAULT_HEIGHT = 360;
 const SYSTEM_STATS_MARGIN = 20;
+/* Controls should use their own mouse and touch handling instead of dragging. */
+const SYSTEM_STATS_DRAG_CANCEL_SELECTOR =
+  'input, textarea, select, button, .process-row, .MuiChip-root, .selectable-text';
 
 interface SystemStatsBounds {
   /* Position and size in player-area pixels. */
@@ -38,6 +41,41 @@ const sameSystemStatsBounds = (
   b: SystemStatsBounds
 ) =>
   a?.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+
+/* Let scrollbars handle mouse down while open panel space remains draggable. */
+const isScrollbarMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+  const target = event.target;
+
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const scrollArea = target.closest<HTMLElement>('.system-stats-scroll-area');
+
+  if (scrollArea === null) {
+    return false;
+  }
+
+  const rect = scrollArea.getBoundingClientRect();
+  const hasVerticalScrollbar =
+    scrollArea.scrollHeight > scrollArea.clientHeight;
+  const hasHorizontalScrollbar =
+    scrollArea.scrollWidth > scrollArea.clientWidth;
+  const verticalScrollbarWidth =
+    scrollArea.offsetWidth - scrollArea.clientWidth;
+  const horizontalScrollbarHeight =
+    scrollArea.offsetHeight - scrollArea.clientHeight;
+  const isVerticalScrollbar =
+    hasVerticalScrollbar &&
+    verticalScrollbarWidth > 0 &&
+    event.clientX >= rect.right - verticalScrollbarWidth;
+  const isHorizontalScrollbar =
+    hasHorizontalScrollbar &&
+    horizontalScrollbarHeight > 0 &&
+    event.clientY >= rect.bottom - horizontalScrollbarHeight;
+
+  return isVerticalScrollbar || isHorizontalScrollbar;
+};
 
 /* Clamp overlay bounds so the panel stays visible inside the player area. */
 const getSystemStatsBounds = (
@@ -264,6 +302,15 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
     []
   );
 
+  const handleMouseDownCapture = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (isScrollbarMouseDown(event)) {
+        event.stopPropagation();
+      }
+    },
+    []
+  );
+
   return (
     <div
       ref={playerAreaRef}
@@ -292,8 +339,9 @@ export const SystemStatsOverlay: React.FC<SystemStatsOverlayProps> = ({
           enableResizing={displayMode === 'stats'}
           onDragStop={handleDragStop}
           onResizeStop={handleResizeStop}
+          onMouseDownCapture={handleMouseDownCapture}
           /* NOTE: We need this for the inputs to work on touch screens: */
-          cancel="input, textarea, select, button, .process-row, .system-stats-scroll-area, .MuiChip-root, .selectable-text"
+          cancel={SYSTEM_STATS_DRAG_CANCEL_SELECTOR}
           style={{
             zIndex: 10,
             background: 'rgba(0, 0, 0, 0.4)',

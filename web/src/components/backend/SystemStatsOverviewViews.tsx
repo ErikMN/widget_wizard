@@ -377,8 +377,8 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         <Stack
           direction="row"
           spacing={1}
-          alignItems="center"
           sx={{
+            alignItems: 'center',
             flexWrap: 'wrap'
           }}
         >
@@ -508,7 +508,7 @@ export const SystemStatsChartView: React.FC<SystemStatsChartViewProps> = ({
         yAxis={sysChartYAxis}
         sx={{
           height: '100%',
-          '& .MuiAreaElement-root': {
+          '& .MuiAreaElement-root, & .MuiLineChart-area': {
             fillOpacity: 0.12
           },
           '& .MuiChartsAxis-line': {

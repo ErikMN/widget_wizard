@@ -285,7 +285,7 @@ const WidgetHandler: React.FC = () => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          <Box display="flex" alignItems="center">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningAmberIcon style={{ marginRight: '8px' }} />
             {'Remove all widgets'}
           </Box>

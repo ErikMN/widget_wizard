@@ -11,7 +11,7 @@ import { DRAW_BRUSH_SIZES, DRAW_COLORS } from './drawUtils';
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 import Box from '@mui/material/Box';
 import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import Divider from '@mui/material/Divider';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
