@@ -3,8 +3,8 @@ ARG ARCH=aarch64
 ARG REPO=axisecp
 
 # ACAP 4: https://hub.docker.com/r/axisecp/acap-native-sdk
-ARG VERSION=1.11
-ARG UBUNTU_VERSION=22.04
+ARG VERSION=13.0.0-preview
+ARG UBUNTU_VERSION=25.10
 ARG SDK=acap-native-sdk
 
 FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
@@ -87,10 +87,10 @@ RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.a /opt/app/libwebsockets
 ##################### Patch eap-install.sh #####################################
 # Patch eap-install.sh to support host and port in TARGET_IP variable
 
-COPY patches/eap-install-host-port.patch /tmp/
+# COPY patches/eap-install-host-port.patch /tmp/
 
-RUN patch -N \
-  /opt/axis/acapsdk/sysroots/x86_64-pokysdk-linux/usr/bin/eap-install.sh \
-  /tmp/eap-install-host-port.patch
+# RUN patch -N \
+#   /opt/axis/acapsdk/sysroots/x86_64-pokysdk-linux/usr/bin/eap-install.sh \
+#   /tmp/eap-install-host-port.patch
 
 ################################################################################
