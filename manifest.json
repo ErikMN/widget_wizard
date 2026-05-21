@@ -12,7 +12,13 @@
                 "group": "sdk"
             },
             "runMode": "never",
-            "version": "1.5.3"
+            "version": "1.5.3",
+            "compatibleOsVersions": [
+                {
+                    "min": "11",
+                    "max": "13"
+                }
+            ]
         },
         "configuration": {
             "paramConfig": [
