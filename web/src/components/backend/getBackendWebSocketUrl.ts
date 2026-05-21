@@ -22,5 +22,6 @@ export const getBackendWebSocketUrl = ({
   /* Fall back to the backend default port when no override is configured */
   const resolvedPort = typeof wsPort === 'number' ? wsPort : 9000;
 
-  return `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${resolvedAddress}:${resolvedPort}`;
+  /* Only use ws as WebSocket protocol */
+  return `ws://${resolvedAddress}:${resolvedPort}`;
 };
