@@ -362,11 +362,7 @@ const BackendControl: React.FC = () => {
             size="small"
             label="Address"
             value={wsAddressDraft}
-            placeholder={
-              import.meta.env.MODE === 'development'
-                ? import.meta.env.VITE_TARGET_IP
-                : window.location.hostname
-            }
+            placeholder="Default: reverse proxy"
             onChange={(e) => setWsAddressDraft(e.target.value)}
           />
 
@@ -375,7 +371,7 @@ const BackendControl: React.FC = () => {
             label="Port"
             type="number"
             value={wsPortDraft}
-            placeholder="9000"
+            placeholder="Custom backend port"
             onChange={(e) => setWsPortDraft(e.target.value)}
           />
 

@@ -721,6 +721,10 @@ ws_server_start(struct app_state *app, int port)
   memset(&info, 0, sizeof(info));
   info.port = port;
   info.protocols = protocols;
+#ifdef APP_BIND_WEBSOCKET_LOOPBACK
+  /* Only the local Axis reverse proxy should reach this port. */
+  info.iface = "127.0.0.1";
+#endif
   info.gid = -1;
   info.uid = -1;
   info.user = app;

@@ -58,6 +58,7 @@ SRCS = $(wildcard src/*.c)
 ifneq ($(APPTYPE), host)
   # Static linking of libwebsockets:
   LDLIBS += /opt/app/libwebsockets/libwebsockets.a
+  CFLAGS += -DAPP_BIND_WEBSOCKET_LOOPBACK
   PKGS += axparameter
   SRCS += src/platform/platform_ax.c
 else

@@ -37,12 +37,8 @@ export const getBackendWebSocketUrl = ({
   const hasCustomPort =
     typeof wsPort === 'number' && wsPort !== BACKEND_WEBSOCKET_PORT;
 
-  /* Production uses the reverse proxy by default */
-  if (
-    import.meta.env.MODE !== 'development' &&
-    !hasCustomAddress &&
-    !hasCustomPort
-  ) {
+  /* Use the reverse proxy by default */
+  if (!hasCustomAddress && !hasCustomPort) {
     return getProxiedBackendWebSocketUrl();
   }
 

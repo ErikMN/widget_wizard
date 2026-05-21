@@ -32,6 +32,11 @@ export default defineConfig({
     open: true,
     /* Proxy endpoints */
     proxy: {
+      '/local/widget_wizard/system-stats-ws': {
+        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        ws: true,
+        changeOrigin: true
+      },
       '/rtsp-over-websocket': {
         target: `ws://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         ws: true
