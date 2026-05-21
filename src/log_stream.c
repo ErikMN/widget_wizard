@@ -10,6 +10,8 @@
  * - The inotify watch is started when the first client sends
  *   { "log_stream": true } and stopped when the last subscriber
  *   disconnects or unsubscribes.
+ * - If the inotify monitor fails while clients remain subscribed, startup is
+ *   retried until it succeeds or the last subscriber leaves.
  * - Log rotation: when the watched directory reports that the log file was
  *   deleted or moved away, the FILE* handle is closed. When a new file with
  *   the same name appears (IN_CREATE or IN_MOVED_TO), it is opened from the
@@ -87,6 +89,17 @@
  *     |
  *     v
  *   libwebsockets write callback sends queued JSON
+ *
+ *   inotify monitor reports an error
+ *     |
+ *     v
+ *   on_inotify_event()
+ *     |
+ *     v
+ *   start_log_monitor() immediately if subscribers remain
+ *     |
+ *     v
+ *   retry_log_monitor() keeps retrying if the immediate restart fails
  *
  *   client sends { "log_stream": false } or disconnects
  *     |
@@ -187,6 +200,7 @@ static GIOChannel *inotify_chan = NULL;
 static guint inotify_watch_id = 0;
 static int inotify_dir_wd = -1;
 static guint resync_timer_id = 0;
+static guint monitor_retry_timer_id = 0;
 
 static FILE *log_fps[WATCHED_FILE_COUNT]; /* one handle per watched file */
 static GSList *log_subscribers = NULL;
@@ -214,6 +228,7 @@ static bool live_dropping_oversized_line[WATCHED_FILE_COUNT];
 /* -------------------------------------------------------------------------- */
 
 static void start_log_monitor(void);
+static void schedule_log_monitor_retry(void);
 
 /* -------------------------------------------------------------------------- */
 
@@ -590,18 +605,17 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
 
   if (condition & (G_IO_HUP | G_IO_ERR)) {
     syslog(LOG_WARNING, "log_stream: inotify channel error");
-    /* Clear state so start_log_monitor() can be called again if a new
-     * subscriber arrives. The periodic resync source must also be removed
-     * because it depends on the same monitor state.
+    /* Clear state so the monitor can be restarted cleanly. The periodic
+     * resync source must also be removed because it depends on the same
+     * monitor state.
      */
     if (resync_timer_id != 0) {
       g_source_remove(resync_timer_id);
       resync_timer_id = 0;
     }
-    /* Clear state so start_log_monitor() can be called again if a new
-     * subscriber arrives. The watch source is already being removed by
-     * GLib so we only need to drop the channel reference and reset the
-     * tracking variables.
+    /* Clear state so the monitor can be restarted cleanly. The watch source
+     * is already being removed by GLib so we only need to drop the channel
+     * reference and reset the tracking variables.
      */
     inotify_watch_id = 0;
     if (inotify_chan) {
@@ -612,15 +626,13 @@ on_inotify_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
     inotify_dir_wd = -1;
     close_all_log_files();
     /* If subscribers still exist, try to restore live streaming immediately.
-     * If restart fails, drop the subscriber list so sessions are not left
-     * subscribed to a monitor that no longer exists.
+     * If restart fails, keep subscribers and retry.
      */
     if (log_subscribers) {
       start_log_monitor();
       if (inotify_fd < 0 || inotify_watch_id == 0) {
-        syslog(LOG_WARNING, "log_stream: monitor restart failed, dropping subscribers");
-        g_slist_free(log_subscribers);
-        log_subscribers = NULL;
+        syslog(LOG_WARNING, "log_stream: monitor restart failed, retrying");
+        schedule_log_monitor_retry();
       }
     }
     return G_SOURCE_REMOVE;
@@ -749,6 +761,48 @@ resync_watched_files(gpointer user_data)
 
 /* -------------------------------------------------------------------------- */
 
+/* Try to restart the monitor after a failed immediate restart. */
+static gboolean
+retry_log_monitor(gpointer user_data)
+{
+  (void)user_data;
+
+  if (!log_subscribers) {
+    monitor_retry_timer_id = 0;
+    return G_SOURCE_REMOVE;
+  }
+
+  if (inotify_fd >= 0 && inotify_watch_id != 0) {
+    monitor_retry_timer_id = 0;
+    return G_SOURCE_REMOVE;
+  }
+
+  start_log_monitor();
+  if (inotify_fd >= 0 && inotify_watch_id != 0) {
+    syslog(LOG_INFO, "log_stream: monitor restart succeeded");
+    monitor_retry_timer_id = 0;
+    return G_SOURCE_REMOVE;
+  }
+
+  return G_SOURCE_CONTINUE;
+}
+
+/* Retry monitor startup while clients remain subscribed. */
+static void
+schedule_log_monitor_retry(void)
+{
+  if (monitor_retry_timer_id != 0) {
+    return;
+  }
+
+  monitor_retry_timer_id = g_timeout_add(LOG_STREAM_RESYNC_INTERVAL_MS, retry_log_monitor, NULL);
+  if (monitor_retry_timer_id == 0) {
+    syslog(LOG_WARNING, "log_stream: failed to start monitor retry timer");
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
 /*
  * Start the inotify directory monitor and open all watched log files.
  *
@@ -850,7 +904,7 @@ start_log_monitor(void)
 static void
 stop_log_monitor(void)
 {
-  if (inotify_watch_id == 0 && inotify_fd < 0 && resync_timer_id == 0) {
+  if (inotify_watch_id == 0 && inotify_fd < 0 && resync_timer_id == 0 && monitor_retry_timer_id == 0) {
     return; /* was never successfully started */
   }
 
@@ -862,6 +916,11 @@ stop_log_monitor(void)
   if (resync_timer_id != 0) {
     g_source_remove(resync_timer_id);
     resync_timer_id = 0;
+  }
+
+  if (monitor_retry_timer_id != 0) {
+    g_source_remove(monitor_retry_timer_id);
+    monitor_retry_timer_id = 0;
   }
 
   if (inotify_chan) {
