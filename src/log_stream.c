@@ -138,7 +138,7 @@
 #define LOG_STREAM_HISTORY_BYTES 8192
 
 /* Maximum number of queued log messages per subscriber before the oldest
- * pending message is dropped to prevent unbounded memory growth. */
+ * pending log message is dropped to prevent unbounded memory growth. */
 #define LOG_STREAM_MAX_PENDING_MESSAGES 1000
 
 /* How often to resync watched files even when no inotify event arrives.
@@ -302,9 +302,30 @@ log_file_replaced_or_truncated(size_t idx)
  * configured per-file label in the JSON "level" field.
  *
  * To keep per-session memory bounded, the queue is capped at
- * LOG_STREAM_MAX_PENDING_MESSAGES and the oldest pending entry is dropped
- * when the cap is reached.
+ * LOG_STREAM_MAX_PENDING_MESSAGES. When the cap is reached, older queued log
+ * messages are dropped before unrelated responses.
  */
+static bool
+drop_oldest_queued_log_message(GQueue *queue)
+{
+  GList *link = NULL;
+
+  if (!queue) {
+    return false;
+  }
+
+  for (link = g_queue_peek_head_link(queue); link; link = link->next) {
+    struct pending_ws_message *pending = link->data;
+    if (pending && pending->type == PENDING_WS_MESSAGE_LOG) {
+      g_queue_delete_link(queue, link);
+      g_free(pending);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static void
 queue_line_to_session(struct per_session_data *pss, const char *line, size_t line_len, const char *level)
 {
@@ -317,6 +338,16 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
     return;
   }
 
+  if (!pss->pending_tx_queue) {
+    pss->pending_tx_queue = g_queue_new();
+  }
+
+  if (g_queue_get_length(pss->pending_tx_queue) >= LOG_STREAM_MAX_PENDING_MESSAGES) {
+    if (!drop_oldest_queued_log_message(pss->pending_tx_queue)) {
+      return;
+    }
+  }
+
   /* g_malloc allocates n_bytes bytes of memory. If n_bytes is 0 it returns NULL.
    * If the allocation fails (because the system is out of memory), the program is terminated.
    * https://docs.gtk.org/glib/func.malloc.html
@@ -324,19 +355,9 @@ queue_line_to_session(struct per_session_data *pss, const char *line, size_t lin
    */
   struct pending_ws_message *msg = g_malloc(sizeof(*msg) + LWS_PRE + json_len);
 
+  msg->type = PENDING_WS_MESSAGE_LOG;
   msg->len = json_len;
   memcpy(&msg->buf[LWS_PRE], json_buf + LWS_PRE, json_len);
-
-  if (!pss->pending_tx_queue) {
-    pss->pending_tx_queue = g_queue_new();
-  }
-
-  if (g_queue_get_length(pss->pending_tx_queue) >= LOG_STREAM_MAX_PENDING_MESSAGES) {
-    struct pending_ws_message *oldest = g_queue_pop_head(pss->pending_tx_queue);
-    if (oldest) {
-      g_free(oldest);
-    }
-  }
 
   g_queue_push_tail(pss->pending_tx_queue, msg);
   if (pss->wsi) {

@@ -133,6 +133,7 @@ queue_list_buffer_json(struct lws *wsi, struct per_session_data *pss, size_t out
     return;
   }
 
+  pending->type = PENDING_WS_MESSAGE_RESPONSE;
   pending->len = out_len;
   memcpy(&pending->buf[LWS_PRE], &pss->list_buf[LWS_PRE], out_len);
   g_queue_push_tail(pss->pending_tx_queue, pending);

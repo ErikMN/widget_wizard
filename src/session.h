@@ -14,7 +14,13 @@
  * - buf[] is allocated with LWS_PRE bytes of headroom before the payload.
  * - len is the payload length (bytes after the LWS_PRE offset).
  */
+enum pending_ws_message_type {
+  PENDING_WS_MESSAGE_RESPONSE,
+  PENDING_WS_MESSAGE_LOG,
+};
+
 struct pending_ws_message {
+  enum pending_ws_message_type type;
   size_t len;
   unsigned char buf[]; /* layout: [LWS_PRE padding | payload] */
 };
