@@ -35,6 +35,12 @@
                     "apiType": "ws",
                     "target": "ws://127.0.0.1:9000",
                     "access": "admin"
+                },
+                {
+                    "apiPath": "file-upload",
+                    "apiType": "http",
+                    "target": "http://127.0.0.1:9000/file-upload",
+                    "access": "admin"
                 }
             ]
         }

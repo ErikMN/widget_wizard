@@ -11,6 +11,7 @@
 #include "ws_limits.h"
 #include "ws_server.h"
 #include "log_stream.h"
+#include "file_upload.h"
 
 /* Internal WebSocket server state (singleton instance).
  *
@@ -35,6 +36,9 @@ static struct {
  * - It is decremented either when the handshake completes
  *   (LWS_CALLBACK_ESTABLISHED) or when the connection is destroyed
  *   before establishment (LWS_CALLBACK_WSI_DESTROY).
+ * - HTTP requests do not pass through FILTER_PROTOCOL_CONNECTION. The
+ *   per-session pending_counted flag prevents HTTP cleanup from changing
+ *   WebSocket handshake accounting.
  *
  * - ws_connected_client_count tracks fully established WebSocket
  *   connections only and is decremented in LWS_CALLBACK_CLOSED.
@@ -451,14 +455,16 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
       /* Abort the connection */
       return -1;
     }
-    /* Convert one pending slot to active */
-    if (ws_pending_client_count > 0) {
+    /* Convert the reserved handshake slot to a connected WebSocket slot. */
+    if (pss->pending_counted && ws_pending_client_count > 0) {
       ws_pending_client_count--;
     }
 
     ws_connected_client_count++;
     pss->counted = true;
+    pss->pending_counted = false;
     pss->wsi = wsi;
+    pss->file_upload = NULL;
     pss->pending_tx_queue = NULL;
     pss->stats_stream_enabled = false;
     syslog(LOG_INFO, "WebSocket client connected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
@@ -562,20 +568,80 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
     }
     free_pending_tx_queue(pss);
     free_receive_buffer(pss);
+    if (pss) {
+      file_upload_destroy(&pss->file_upload);
+    }
     syslog(LOG_INFO, "WebSocket client disconnected (%u/%u)", ws_connected_client_count, MAX_WS_CONNECTED_CLIENTS);
     break;
   }
 
   case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: {
-    /* Enforce connection limit across both established and in-progress WebSocket handshakes */
+    /* Enforce connection limit across both established and in-progress WebSocket handshakes. */
     if (ws_connected_client_count + ws_pending_client_count >= MAX_WS_CONNECTED_CLIENTS) {
       syslog(LOG_WARNING, "Rejecting WebSocket connection: client limit (%u) reached", MAX_WS_CONNECTED_CLIENTS);
       return -1;
     }
 
-    /* Reserve a slot for this connection attempt */
+    /* Mark this session so WSI_DESTROY knows it owns one pending slot. */
     ws_pending_client_count++;
+    if (user) {
+      struct per_session_data *pss = user;
+      pss->pending_counted = true;
+    }
 
+    break;
+  }
+
+  case LWS_CALLBACK_HTTP: {
+    struct per_session_data *pss = user;
+    char *uri = NULL;
+    int uri_len = 0;
+    int method = lws_http_get_uri_and_method(wsi, &uri, &uri_len);
+
+    if (!pss) {
+      return -1;
+    }
+
+    /* This backend only serves the upload HTTP endpoint. */
+    if (!file_upload_is_path(uri, uri_len)) {
+      lws_return_http_status(wsi, HTTP_STATUS_NOT_FOUND, "Not found");
+      return 1;
+    }
+
+    /* The upload parser expects a multipart POST body. */
+    if (method != LWSHUMETH_POST) {
+      lws_return_http_status(wsi, HTTP_STATUS_METHOD_NOT_ALLOWED, "Use POST for file upload");
+      return 1;
+    }
+
+    /* Create request-local upload state before body chunks arrive. */
+    return file_upload_start(wsi, &pss->file_upload);
+  }
+
+  case LWS_CALLBACK_HTTP_BODY: {
+    struct per_session_data *pss = user;
+    if (!pss) {
+      return -1;
+    }
+    /* Feed each HTTP body chunk into the multipart parser. */
+    return file_upload_process_body(wsi, &pss->file_upload, in, len);
+  }
+
+  case LWS_CALLBACK_HTTP_BODY_COMPLETION: {
+    struct per_session_data *pss = user;
+    if (!pss) {
+      return -1;
+    }
+    /* Finalize the parser and send the upload result response. */
+    return file_upload_complete(wsi, &pss->file_upload);
+  }
+
+  case LWS_CALLBACK_CLOSED_HTTP: {
+    struct per_session_data *pss = user;
+    if (pss) {
+      /* Remove any unfinished temporary upload file. */
+      file_upload_destroy(&pss->file_upload);
+    }
     break;
   }
 
@@ -652,19 +718,23 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
      * FILTER_PROTOCOL_CONNECTION is not guaranteed to be paired with
      * ESTABLISHED or CLOSED on all libwebsockets failure paths.
      *
-     * If this session never reached ESTABLISHED, it still holds a
-     * pending slot that must be released here.
+     * If this session reserved a pending WebSocket slot and never reached
+     * ESTABLISHED, that slot must be released here.
      */
-    if (pss && !pss->counted) {
+    if (pss && pss->pending_counted) {
       if (ws_pending_client_count > 0) {
         ws_pending_client_count--;
       }
+      pss->pending_counted = false;
     }
     if (pss) {
       pss->wsi = NULL;
     }
     free_pending_tx_queue(pss);
     free_receive_buffer(pss);
+    if (pss) {
+      file_upload_destroy(&pss->file_upload);
+    }
     break;
   }
 

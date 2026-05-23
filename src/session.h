@@ -9,6 +9,8 @@
 #include "proc.h"
 #include "ws_limits.h"
 
+struct file_upload_state;
+
 /* Outgoing message queued for delivery from LWS_CALLBACK_SERVER_WRITEABLE.
  *
  * - buf[] is allocated with LWS_PRE bytes of headroom before the payload.
@@ -43,6 +45,12 @@ struct per_session_data {
 
   /* True if this connection was counted toward ws_connected_client_count */
   bool counted;
+
+  /* True if this session reserved a WebSocket handshake slot */
+  bool pending_counted;
+
+  /* File upload state for the active HTTP request, if any */
+  struct file_upload_state *file_upload;
 
   /* Queue of one-shot JSON responses waiting for LWS_CALLBACK_SERVER_WRITEABLE */
   GQueue *pending_tx_queue;
