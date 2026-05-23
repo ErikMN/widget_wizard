@@ -4,12 +4,14 @@
  *
  * This module handles one upload request at a time for one libwebsockets
  * connection. It is called from ws_server.c when the HTTP request path matches
- * FILE_UPLOAD_PATH. The request body is parsed by libwebsockets spa, so this
- * code receives file content in chunks instead of parsing multipart boundaries
- * by hand.
+ * one of the upload paths accepted by file_upload_is_path(). The request body
+ * is parsed by libwebsockets spa, so this code receives file content in chunks
+ * instead of parsing multipart boundaries by hand.
  *
  * Upload contract:
  * - The request must use HTTP POST.
+ * - Direct host calls use FILE_UPLOAD_PATH.
+ * - Packaged web calls use FILE_UPLOAD_PROXY_PATH.
  * - The request body must be multipart form data.
  * - The form must contain one file field named "file".
  * - The original client filename is used only as a basename.
@@ -83,6 +85,8 @@
 
 /* HTTP request path handled by this module. */
 #define FILE_UPLOAD_PATH "/file-upload"
+/* Path used when the packaged web server forwards the upload route. */
+#define FILE_UPLOAD_PROXY_PATH "/local/" APP_NAME FILE_UPLOAD_PATH
 /* Directory where completed uploads are stored. */
 #define FILE_UPLOAD_DEST_DIR "/tmp"
 /* Maximum accepted file content size. */
@@ -118,15 +122,32 @@ struct file_upload_state {
 /* Accepted multipart file field names. */
 static const char *const upload_param_names[] = { "file" };
 
-/* Return true only for this module's exact endpoint path. */
-bool
-file_upload_is_path(const char *uri, int uri_len)
+/* Return true when the request matches one accepted upload path. */
+static bool
+file_upload_path_matches(const char *uri, int uri_len, const char *path)
 {
-  if (!uri || uri_len != (int)strlen(FILE_UPLOAD_PATH)) {
+  size_t path_len = strlen(path);
+
+  if (uri_len != (int)path_len) {
     return false;
   }
 
-  return strncmp(uri, FILE_UPLOAD_PATH, (size_t)uri_len) == 0;
+  return strncmp(uri, path, path_len) == 0;
+}
+
+/* Accept direct host calls and calls forwarded by the packaged web server. */
+bool
+file_upload_is_path(const char *uri, int uri_len)
+{
+  if (!uri) {
+    return false;
+  }
+
+  if (file_upload_path_matches(uri, uri_len, FILE_UPLOAD_PATH)) {
+    return true;
+  }
+
+  return file_upload_path_matches(uri, uri_len, FILE_UPLOAD_PROXY_PATH);
 }
 
 /* Keep the first failure.

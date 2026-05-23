@@ -3,14 +3,17 @@
  * Control panel for draw mode.
  * Drawing tools should be exposed here and implemented in DrawCanvas.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { CustomButton } from '../CustomComponents';
+import { useAlertActionsContext } from '../context/AppContext';
+import { useParameters } from '../context/ParametersContext';
 import { useDrawContext } from './DrawContext';
 import { DRAW_BRUSH_SIZES, DRAW_COLORS } from './drawUtils';
 /* MUI */
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 import Box from '@mui/material/Box';
 import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import Divider from '@mui/material/Divider';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
@@ -19,7 +22,27 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 
+/* Repeated uploads replace the same file on the backend. */
+const DRAW_UPLOAD_FILENAME = 'draw.png';
+const DRAW_UPLOAD_PATH = 'file-upload';
+
+const getDrawUploadUrl = (): string => {
+  /* Use the app base path so packaged builds go through the reverse proxy. */
+  const baseUrl = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+
+  return new URL(
+    `${baseUrl}${DRAW_UPLOAD_PATH}`,
+    window.location.origin
+  ).toString();
+};
+
 const DrawControls: React.FC = () => {
+  /* Global state */
+  const { handleOpenAlert } = useAlertActionsContext();
+  const { parameters } = useParameters();
+
   /* Shared draw state */
   const {
     activeTool,
@@ -35,18 +58,64 @@ const DrawControls: React.FC = () => {
     undoLastEdit,
     redoLastEdit,
     clearDrawing,
+    createDrawingPngExport,
     saveDrawingAsPng
   } = useDrawContext();
+
+  /* Local state */
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleSave = useCallback(() => {
     void saveDrawingAsPng();
   }, [saveDrawingAsPng]);
+
+  /* ApplicationRunning is yes only when the optional backend is running. */
+  const backendRunning =
+    parameters?.['root.Widget_wizard.ApplicationRunning'] === 'yes';
 
   const exportDisabled =
     !hasDrawing ||
     !surfaceDimensions ||
     surfaceDimensions.videoWidth <= 0 ||
     surfaceDimensions.videoHeight <= 0;
+
+  const uploadDisabled = exportDisabled || !backendRunning || isUploading;
+
+  const handleUpload = useCallback(async () => {
+    if (!backendRunning || isUploading) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      /* Reuse the same PNG export path as Save PNG. */
+      const pngExport = await createDrawingPngExport();
+      if (!pngExport) {
+        return;
+      }
+
+      /* The backend expects one multipart field named file. */
+      const formData = new FormData();
+      formData.append('file', pngExport.blob, DRAW_UPLOAD_FILENAME);
+
+      const response = await fetch(getDrawUploadUrl(), {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      handleOpenAlert('Drawing uploaded as PNG', 'success');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown upload error';
+      handleOpenAlert(`Failed to upload drawing: ${message}`, 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [backendRunning, createDrawingPngExport, handleOpenAlert, isUploading]);
 
   return (
     <Box
@@ -223,6 +292,16 @@ const DrawControls: React.FC = () => {
           Save PNG
         </CustomButton>
       </Box>
+
+      <CustomButton
+        variant="outlined"
+        fullWidth
+        startIcon={<CloudUploadOutlinedIcon />}
+        onClick={() => void handleUpload()}
+        disabled={uploadDisabled}
+      >
+        {isUploading ? 'Uploading...' : 'Upload PNG'}
+      </CustomButton>
     </Box>
   );
 };
