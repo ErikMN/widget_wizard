@@ -15,6 +15,7 @@
  * - Each WebSocket client can request a one-shot list of running process names.
  * - Each WebSocket client can request a one-shot filesystem storage summary.
  * - Each WebSocket client can request a one-shot system information summary.
+ * - HTTP clients can upload one file using multipart form data.
  *
  * Data flow:
  *   /proc -> app_state.stats
@@ -96,6 +97,14 @@
  * - Log streaming is intended for lightweight live viewing not audit.
  * - To stop log streaming without closing the socket, the client sends:
  *     { "log_stream": false }
+ *
+ * HTTP file upload:
+ * - The client can upload one file with HTTP multipart form data:
+ *     POST /file-upload
+ *     form field: file
+ * - Example:
+ *     curl -F "file=@local.bin" http://<device>:9000/file-upload
+ * - Uploaded files are limited to 10 MB and stored in the temporary directory.
  *
  * Returned JSON message format example:
  * {
