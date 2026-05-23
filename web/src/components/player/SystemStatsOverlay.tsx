@@ -16,7 +16,7 @@ const SYSTEM_STATS_DEFAULT_HEIGHT = 360;
 const SYSTEM_STATS_MARGIN = 20;
 /* Controls should use their own mouse and touch handling instead of dragging. */
 const SYSTEM_STATS_DRAG_CANCEL_SELECTOR =
-  'input, textarea, select, button, .process-row, .MuiChip-root, .selectable-text';
+  'input, textarea, select, button, .process-row, .MuiChip-root, .selectable-text, .system-stats-upload-drop-zone';
 
 interface SystemStatsBounds {
   /* Position and size in player-area pixels. */

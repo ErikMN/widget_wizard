@@ -7,6 +7,7 @@ import { CustomButton } from '../CustomComponents';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import { getBackendWebSocketUrl } from './getBackendWebSocketUrl';
 import { SystemStatsLogView } from './SystemStatsLogView';
+import { SystemStatsUploadView } from './SystemStatsUploadView';
 import {
   SystemStatsProcessListView,
   SystemStatsProcessView,
@@ -57,7 +58,14 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
 
   /* Local state */
   const [viewMode, setViewMode] = useState<
-    'bars' | 'chart' | 'process' | 'list' | 'storage' | 'system' | 'logs'
+    | 'bars'
+    | 'chart'
+    | 'process'
+    | 'list'
+    | 'storage'
+    | 'system'
+    | 'logs'
+    | 'upload'
   >('bars');
   const [processFilter, setProcessFilter] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
@@ -329,7 +337,11 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
               sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 1
+                gap: 1,
+                '& .MuiButton-root': {
+                  minWidth: 'auto',
+                  px: 0.75
+                }
               }}
             >
               <CustomButton
@@ -433,6 +445,19 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
               >
                 Logs
               </CustomButton>
+
+              <CustomButton
+                size="small"
+                variant="outlined"
+                onClick={() => setViewMode('upload')}
+                sx={{
+                  cursor: 'pointer',
+                  color: '#fff',
+                  opacity: viewMode === 'upload' ? 1 : 0.5
+                }}
+              >
+                Upload
+              </CustomButton>
             </Box>
 
             <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
@@ -535,6 +560,9 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
                   closeLogNotice={() => setShowLogNotice(false)}
                 />
               )}
+
+              {/* File upload view */}
+              {viewMode === 'upload' && <SystemStatsUploadView />}
             </Box>
           </Stack>
         )}
