@@ -5,6 +5,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import { CustomButton } from '../CustomComponents';
+import { getBackendUploadUrl } from '../backend/getBackendUploadUrl';
 import { useAlertActionsContext } from '../context/AppContext';
 import { useParameters } from '../context/ParametersContext';
 import { useDrawContext } from './DrawContext';
@@ -24,19 +25,6 @@ import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 
 /* Repeated uploads replace the same file on the backend. */
 const DRAW_UPLOAD_FILENAME = 'draw.png';
-const DRAW_UPLOAD_PATH = 'file-upload';
-
-const getDrawUploadUrl = (): string => {
-  /* Use the app base path so packaged builds go through the reverse proxy. */
-  const baseUrl = import.meta.env.BASE_URL.endsWith('/')
-    ? import.meta.env.BASE_URL
-    : `${import.meta.env.BASE_URL}/`;
-
-  return new URL(
-    `${baseUrl}${DRAW_UPLOAD_PATH}`,
-    window.location.origin
-  ).toString();
-};
 
 const DrawControls: React.FC = () => {
   /* Global state */
@@ -98,7 +86,7 @@ const DrawControls: React.FC = () => {
       const formData = new FormData();
       formData.append('file', pngExport.blob, DRAW_UPLOAD_FILENAME);
 
-      const response = await fetch(getDrawUploadUrl(), {
+      const response = await fetch(getBackendUploadUrl(), {
         method: 'POST',
         body: formData
       });
