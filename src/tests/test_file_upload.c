@@ -14,12 +14,15 @@
 #include "ws_server.h"
 
 #define TEST_UPLOAD_PATH "/tmp/widget_wizard_upload_test.txt"
+#define TEST_DIRECT_UPLOAD_ROUTE "/file-upload"
+#define TEST_PROXIED_UPLOAD_ROUTE "/local/widget_wizard/file-upload"
 #define TEST_BOUNDARY "widgetwizardtestboundary"
 #define TEST_TIMEOUT_US (5 * G_TIME_SPAN_SECOND)
 
 /* Request data shared between the test thread and the client thread. */
 struct http_client_request {
   int port;
+  const char *path;
   const char *content_type;
   const char *body;
   size_t body_len;
@@ -119,12 +122,13 @@ http_client_thread(gpointer data)
   /* Build a minimal HTTP request by hand so the test has no curl dependency. */
   http = g_string_new(NULL);
   g_string_append_printf(http,
-                         "POST /file-upload HTTP/1.1\r\n"
+                         "POST %s HTTP/1.1\r\n"
                          "Host: 127.0.0.1\r\n"
                          "Content-Type: %s\r\n"
                          "Content-Length: %zu\r\n"
                          "Connection: close\r\n"
                          "\r\n",
+                         request->path,
                          request->content_type,
                          request->body_len);
   if (!send_all(fd, http->str, http->len) || !send_all(fd, request->body, request->body_len)) {
@@ -220,6 +224,7 @@ test_upload_stores_file(void **state)
 
   /* Use the same multipart Content Type shape a browser form would send. */
   request.port = port;
+  request.path = TEST_DIRECT_UPLOAD_ROUTE;
   request.content_type = "multipart/form-data; boundary=" TEST_BOUNDARY;
   request.body = body;
   request.body_len = body_len;
@@ -238,6 +243,42 @@ test_upload_stores_file(void **state)
   assert_int_equal(fread(read_buf, 1, strlen(payload), fp), strlen(payload));
   fclose(fp);
   assert_memory_equal(read_buf, payload, strlen(payload));
+
+  unlink(TEST_UPLOAD_PATH);
+  g_free(body);
+}
+
+/* Successful upload through the packaged web route. */
+static void
+test_upload_accepts_proxied_path(void **state)
+{
+  (void)state;
+
+  struct app_state app;
+  struct http_client_request request;
+  const char payload[] = "hello proxy upload\n";
+  size_t body_len = 0;
+  char *body = build_multipart_body("widget_wizard_upload_test.txt", payload, strlen(payload), &body_len);
+  int port = get_free_loopback_port();
+
+  memset(&app, 0, sizeof(app));
+  memset(&request, 0, sizeof(request));
+  unlink(TEST_UPLOAD_PATH);
+
+  assert_true(ws_server_start(&app, port));
+
+  request.port = port;
+  request.path = TEST_PROXIED_UPLOAD_ROUTE;
+  request.content_type = "multipart/form-data; boundary=" TEST_BOUNDARY;
+  request.body = body;
+  request.body_len = body_len;
+  request.status = -1;
+
+  run_http_request(&request);
+  ws_server_stop();
+
+  assert_int_equal(request.status, 200);
+  assert_int_equal(access(TEST_UPLOAD_PATH, F_OK), 0);
 
   unlink(TEST_UPLOAD_PATH);
   g_free(body);
@@ -271,6 +312,7 @@ test_upload_rejects_overlong_filename(void **state)
   assert_true(ws_server_start(&app, port));
 
   request.port = port;
+  request.path = TEST_DIRECT_UPLOAD_ROUTE;
   request.content_type = "multipart/form-data; boundary=" TEST_BOUNDARY;
   request.body = body;
   request.body_len = body_len;
@@ -290,6 +332,7 @@ main(void)
 {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_upload_stores_file),
+    cmocka_unit_test(test_upload_accepts_proxied_path),
     cmocka_unit_test(test_upload_rejects_overlong_filename),
   };
 

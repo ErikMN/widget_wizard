@@ -100,10 +100,13 @@
  *
  * HTTP file upload:
  * - The client can upload one file with HTTP multipart form data:
- *     POST /file-upload
  *     form field: file
- * - Example:
- *     curl -F "file=@local.bin" http://<device>:9000/file-upload
+ * - Direct backend path:
+ *     POST /file-upload
+ * - Packaged web path:
+ *     POST /local/widget_wizard/file-upload
+ * - Direct backend example:
+ *     curl -F "file=@local.bin" http://<host>:9000/file-upload
  * - Uploaded files are limited to 10 MB and stored in the temporary directory.
  *
  * Returned JSON message format example:
