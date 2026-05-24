@@ -4,7 +4,7 @@
  * Drawing tools should be exposed here and implemented in DrawCanvas.
  */
 import React, { useCallback, useState } from 'react';
-import { CustomButton } from '../CustomComponents';
+import { CustomButton, CustomCheckbox } from '../CustomComponents';
 import { getBackendUploadUrl } from '../backend/getBackendUploadUrl';
 import { useAlertActionsContext } from '../context/AppContext';
 import { useParameters } from '../context/ParametersContext';
@@ -18,6 +18,7 @@ import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import Divider from '@mui/material/Divider';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -52,10 +53,11 @@ const DrawControls: React.FC = () => {
 
   /* Local state */
   const [isUploading, setIsUploading] = useState(false);
+  const [saveVideoImage, setSaveVideoImage] = useState(false);
 
   const handleSave = useCallback(() => {
-    void saveDrawingAsPng();
-  }, [saveDrawingAsPng]);
+    void saveDrawingAsPng({ includeVideoImage: saveVideoImage });
+  }, [saveDrawingAsPng, saveVideoImage]);
 
   /* ApplicationRunning is yes only when the optional backend is running. */
   const backendRunning =
@@ -77,7 +79,9 @@ const DrawControls: React.FC = () => {
     setIsUploading(true);
     try {
       /* Reuse the same PNG export path as Save PNG. */
-      const pngExport = await createDrawingPngExport();
+      const pngExport = await createDrawingPngExport({
+        includeVideoImage: saveVideoImage
+      });
       if (!pngExport) {
         return;
       }
@@ -103,7 +107,13 @@ const DrawControls: React.FC = () => {
     } finally {
       setIsUploading(false);
     }
-  }, [backendRunning, createDrawingPngExport, handleOpenAlert, isUploading]);
+  }, [
+    backendRunning,
+    createDrawingPngExport,
+    handleOpenAlert,
+    isUploading,
+    saveVideoImage
+  ]);
 
   return (
     <Box
@@ -235,6 +245,17 @@ const DrawControls: React.FC = () => {
             : 'Waiting for the video stream dimensions...'}
         </Typography>
       </Box>
+
+      {/* This option is shared by local save and backend upload. */}
+      <FormControlLabel
+        control={
+          <CustomCheckbox
+            checked={saveVideoImage}
+            onChange={(event) => setSaveVideoImage(event.target.checked)}
+          />
+        }
+        label="Save video image with drawing"
+      />
 
       {/* Undo and redo buttons */}
       <Box sx={{ display: 'flex', gap: 1 }}>

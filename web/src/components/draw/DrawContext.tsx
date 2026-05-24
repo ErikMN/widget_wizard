@@ -12,7 +12,10 @@ import React, {
   useState
 } from 'react';
 import { Dimensions } from '../appInterface';
-import { useAlertActionsContext } from '../context/AppContext';
+import {
+  useAlertActionsContext,
+  useChannelContext
+} from '../context/AppContext';
 import { loadIndexedDbDrawState, saveIndexedDbDrawState } from './drawStorage';
 import { DrawHistoryEntry, DrawStroke, DrawTool } from './drawInterfaces';
 import {
@@ -37,8 +40,10 @@ interface DrawContextProps {
   undoLastEdit: () => void;
   redoLastEdit: () => void;
   clearDrawing: () => void;
-  createDrawingPngExport: () => Promise<DrawPngExport | null>;
-  saveDrawingAsPng: () => Promise<void>;
+  createDrawingPngExport: (
+    options?: DrawPngExportOptions
+  ) => Promise<DrawPngExport | null>;
+  saveDrawingAsPng: (options?: DrawPngExportOptions) => Promise<void>;
   hasDrawing: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -66,6 +71,11 @@ interface DrawPngExport {
   blob: Blob;
   videoWidth: number;
   videoHeight: number;
+  includesVideoImage: boolean;
+}
+
+interface DrawPngExportOptions {
+  includeVideoImage?: boolean;
 }
 
 const MAX_UNDO_HISTORY = 100;
@@ -83,6 +93,44 @@ const DEFAULT_DRAW_STORAGE_STATE: DrawStorageState = {
 
 const getTimestampLabel = (): string => {
   return new Date().toISOString().replace(/[:.]/g, '-');
+};
+
+/* Build the still image request for the active stream size. */
+const getVideoImageUrl = ({
+  camera,
+  width,
+  height
+}: {
+  camera: string;
+  width: number;
+  height: number;
+}): string => {
+  const params = new URLSearchParams({
+    camera,
+    resolution: `${width}x${height}`
+  });
+
+  return `/axis-cgi/jpg/image.cgi?${params.toString()}`;
+};
+
+/* Load the still image through the same origin path used by the web UI. */
+const loadVideoImage = async ({
+  camera,
+  width,
+  height
+}: {
+  camera: string;
+  width: number;
+  height: number;
+}): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    /* Use normal image loading so the browser handles the image response. */
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Failed to load video image'));
+    image.src = getVideoImageUrl({ camera, width, height });
+  });
 };
 
 /* Persisted storage is user-controlled, so validate before trusting loaded data */
@@ -190,6 +238,7 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   /* Global state */
   const { handleOpenAlert } = useAlertActionsContext();
+  const { currentChannel } = useChannelContext();
 
   /* Local state */
   const [drawState, setDrawState] = useState<DrawStorageState>(
@@ -480,76 +529,145 @@ export const DrawProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  const createDrawingPngExport = useCallback(async () => {
-    /* Export is generated from native coordinates onto a transparent canvas */
-    const videoWidth = surfaceDimensions?.videoWidth ?? 0;
-    const videoHeight = surfaceDimensions?.videoHeight ?? 0;
+  /*
+   * Build the PNG used by Save and Upload.
+   * The normal export contains only the drawing on a transparent background.
+   * When requested, a current video still image is drawn first and the drawing layer
+   * is composited on top.
+   */
+  const createDrawingPngExport = useCallback(
+    async (options?: DrawPngExportOptions) => {
+      const includeVideoImage = options?.includeVideoImage === true;
 
-    if (videoWidth <= 0 || videoHeight <= 0) {
-      handleOpenAlert(
-        'Native video resolution is not available yet',
-        'warning'
-      );
-      return null;
-    }
+      /* The export canvas uses native video coordinates. */
+      const videoWidth = surfaceDimensions?.videoWidth ?? 0;
+      const videoHeight = surfaceDimensions?.videoHeight ?? 0;
 
-    if (strokes.length === 0) {
-      handleOpenAlert('There is no drawing to save yet', 'warning');
-      return null;
-    }
+      if (videoWidth <= 0 || videoHeight <= 0) {
+        handleOpenAlert(
+          'Native video resolution is not available yet',
+          'warning'
+        );
+        return null;
+      }
 
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = videoWidth;
-    exportCanvas.height = videoHeight;
+      if (strokes.length === 0) {
+        handleOpenAlert('There is no drawing to save yet', 'warning');
+        return null;
+      }
 
-    const context = exportCanvas.getContext('2d');
-    if (!context) {
-      handleOpenAlert('Failed to initialize PNG export canvas', 'error');
-      return null;
-    }
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = videoWidth;
+      exportCanvas.height = videoHeight;
 
-    renderDrawStrokes({
-      context,
-      strokes,
-      renderWidth: exportCanvas.width,
-      renderHeight: exportCanvas.height,
-      sourceWidth: videoWidth,
-      sourceHeight: videoHeight
-    });
+      const context = exportCanvas.getContext('2d');
+      if (!context) {
+        handleOpenAlert('Failed to initialize PNG export canvas', 'error');
+        return null;
+      }
 
-    const blob = await new Promise<Blob | null>((resolve) => {
-      exportCanvas.toBlob((value) => resolve(value), 'image/png');
-    });
+      /* Default export draws strokes directly onto a transparent PNG. */
+      let strokeContext = context;
+      let strokeCanvas: HTMLCanvasElement | null = null;
 
-    if (!blob) {
-      handleOpenAlert('Failed to encode drawing as PNG', 'error');
-      return null;
-    }
+      if (includeVideoImage) {
+        try {
+          /* Draw the still image before compositing the drawing layer. */
+          const videoImage = await loadVideoImage({
+            camera: currentChannel || '1',
+            width: videoWidth,
+            height: videoHeight
+          });
 
-    return {
-      blob,
-      videoWidth,
-      videoHeight
-    };
-  }, [handleOpenAlert, strokes, surfaceDimensions]);
+          /* The still image is a snapshot taken when the export starts. */
+          context.drawImage(
+            videoImage,
+            0,
+            0,
+            exportCanvas.width,
+            exportCanvas.height
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Unknown image error';
+          handleOpenAlert(`Failed to load video image: ${message}`, 'error');
+          return null;
+        }
 
-  const saveDrawingAsPng = useCallback(async () => {
-    const pngExport = await createDrawingPngExport();
-    if (!pngExport) {
-      return;
-    }
+        /* Eraser strokes must affect only the drawing, not the video image. */
+        strokeCanvas = document.createElement('canvas');
+        strokeCanvas.width = exportCanvas.width;
+        strokeCanvas.height = exportCanvas.height;
+        const layerContext = strokeCanvas.getContext('2d');
+        if (!layerContext) {
+          handleOpenAlert('Failed to initialize drawing export layer', 'error');
+          return null;
+        }
+        strokeContext = layerContext;
+      }
 
-    const url = URL.createObjectURL(pngExport.blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `draw_${pngExport.videoWidth}x${pngExport.videoHeight}_${getTimestampLabel()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+      renderDrawStrokes({
+        context: strokeContext,
+        strokes,
+        renderWidth: exportCanvas.width,
+        renderHeight: exportCanvas.height,
+        sourceWidth: videoWidth,
+        sourceHeight: videoHeight
+      });
 
-    handleOpenAlert('Drawing saved as PNG', 'success');
-  }, [createDrawingPngExport, handleOpenAlert]);
+      if (strokeCanvas) {
+        /* Merge the transparent drawing layer over the video snapshot. */
+        context.drawImage(strokeCanvas, 0, 0);
+      }
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        exportCanvas.toBlob((value) => resolve(value), 'image/png');
+      });
+
+      if (!blob) {
+        handleOpenAlert('Failed to encode drawing as PNG', 'error');
+        return null;
+      }
+
+      return {
+        blob,
+        videoWidth,
+        videoHeight,
+        includesVideoImage: includeVideoImage
+      };
+    },
+    [currentChannel, handleOpenAlert, strokes, surfaceDimensions]
+  );
+
+  /*
+   * Save the generated PNG by creating a temporary download link.
+   * The actual image content is built by createDrawingPngExport so Save and
+   * Upload always use the same export rules.
+   */
+  const saveDrawingAsPng = useCallback(
+    async (options?: DrawPngExportOptions) => {
+      const pngExport = await createDrawingPngExport(options);
+      if (!pngExport) {
+        return;
+      }
+
+      const url = URL.createObjectURL(pngExport.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${
+        pngExport.includesVideoImage ? 'draw_video' : 'draw'
+      }_${pngExport.videoWidth}x${
+        pngExport.videoHeight
+      }_${getTimestampLabel()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      handleOpenAlert('Drawing saved as PNG', 'success');
+    },
+    [createDrawingPngExport, handleOpenAlert]
+  );
 
   const value = useMemo(
     () => ({
