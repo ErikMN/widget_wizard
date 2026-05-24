@@ -558,7 +558,8 @@ export const SystemStatsSystemView: React.FC<SystemStatsSystemViewProps> = ({
           padding: '8px',
           fontFamily: 'monospace',
           fontSize: '12px',
-          userSelect: 'text'
+          userSelect: 'text',
+          cursor: 'text'
         }}
       >
         <>
