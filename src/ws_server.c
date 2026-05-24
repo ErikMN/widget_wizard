@@ -28,6 +28,15 @@ static struct {
   guint lws_timer_id;
 } ws;
 
+/* HTTP upload body chunks are delivered from lws_service().
+ *
+ * NOTE: A slow service interval throttles uploads because each service pass
+ * handles only a limited amount of incoming request data.
+ * Keep this timer short so multipart uploads are not paced by the GLib timer.
+ */
+#define LWS_SERVICE_INTERVAL_MS 1
+#define LWS_SERVICE_TIMEOUT_MS 0
+
 /******************************************************************************/
 
 /* Connection accounting:
@@ -752,8 +761,8 @@ ws_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void 
  * libwebsockets is not automatically integrated with GLib, so we call
  * lws_service() periodically to allow it to process network events.
  *
- * The timeout argument (1ms) is the maximum time lws_service() may block
- * while waiting for network activity.
+ * The timeout argument is zero so this timer never blocks the GLib loop when
+ * there is no libwebsockets work ready.
  *
  * Returning G_SOURCE_CONTINUE keeps the timer active.
  */
@@ -762,8 +771,7 @@ lws_glib_service(gpointer user_data)
 {
   struct lws_context *context = user_data;
 
-  /* Service libwebsockets may block up to 1ms */
-  lws_service(context, 1);
+  lws_service(context, LWS_SERVICE_TIMEOUT_MS);
 
   return G_SOURCE_CONTINUE;
 }
@@ -817,7 +825,7 @@ ws_server_start(struct app_state *app, int port)
    *   updates app_state::stats while at least one client has enabled
    *   stats_stream.
    */
-  ws.lws_timer_id = g_timeout_add(10, lws_glib_service, ws.ctx);
+  ws.lws_timer_id = g_timeout_add(LWS_SERVICE_INTERVAL_MS, lws_glib_service, ws.ctx);
 
   return true;
 }
