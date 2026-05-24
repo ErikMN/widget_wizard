@@ -55,6 +55,7 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
   const { showMessage } = useOnScreenMessage();
 
   const WS_ADDRESS = getBackendWebSocketUrl(appSettings);
+  const showUploadView = appSettings.experimental;
 
   /* Local state */
   const [viewMode, setViewMode] = useState<
@@ -175,6 +176,12 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
       );
     });
   }, [stats?.cpu_per_core?.length]);
+
+  useEffect(() => {
+    if (!showUploadView && viewMode === 'upload') {
+      setViewMode('bars');
+    }
+  }, [showUploadView, viewMode]);
 
   /* Recreate the Y-axis only when at least one system metric is enabled, so the chart rescales correctly when toggling */
   const sysChartYAxis =
@@ -446,18 +453,20 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
                 Logs
               </CustomButton>
 
-              <CustomButton
-                size="small"
-                variant="outlined"
-                onClick={() => setViewMode('upload')}
-                sx={{
-                  cursor: 'pointer',
-                  color: '#fff',
-                  opacity: viewMode === 'upload' ? 1 : 0.5
-                }}
-              >
-                Upload
-              </CustomButton>
+              {showUploadView && (
+                <CustomButton
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setViewMode('upload')}
+                  sx={{
+                    cursor: 'pointer',
+                    color: '#fff',
+                    opacity: viewMode === 'upload' ? 1 : 0.5
+                  }}
+                >
+                  Upload
+                </CustomButton>
+              )}
             </Box>
 
             <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
@@ -562,7 +571,9 @@ const SystemStats: React.FC<SystemStatsProps> = ({ onDisplayModeChange }) => {
               )}
 
               {/* File upload view */}
-              {viewMode === 'upload' && <SystemStatsUploadView />}
+              {showUploadView && viewMode === 'upload' && (
+                <SystemStatsUploadView />
+              )}
             </Box>
           </Stack>
         )}
