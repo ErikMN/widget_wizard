@@ -9,11 +9,16 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #include "app_state.h"
 #include "ws_server.h"
 
-#define TEST_UPLOAD_PATH "/tmp/widget_wizard_upload_test.txt"
+#define TEST_UPLOAD_DIR "/tmp/widget_wizard_uploads"
+#define TEST_UPLOAD_PATH "/tmp/widget_wizard_uploads/widget_wizard_upload_test.txt"
+#define TEST_UPLOAD_FILENAME "widget_wizard_upload_test.txt"
+#define TEST_UPLOAD_DIR_MODE 0755
+#define TEST_UPLOAD_FILE_MODE 0644
 #define TEST_DIRECT_UPLOAD_ROUTE "/file-upload"
 #define TEST_PROXIED_UPLOAD_ROUTE "/local/widget_wizard/file-upload"
 #define TEST_BOUNDARY "widgetwizardtestboundary"
@@ -30,6 +35,16 @@ struct http_client_request {
   char response[1024];
   volatile bool done;
 };
+
+/* Assert only the permission bits that are relevant to local readers. */
+static void
+assert_path_mode(const char *path, mode_t expected_mode)
+{
+  struct stat st;
+
+  assert_int_equal(stat(path, &st), 0);
+  assert_int_equal(st.st_mode & 0777, expected_mode);
+}
 
 /* Ask the OS for an unused loopback port for one test server instance. */
 static int
@@ -213,11 +228,13 @@ test_upload_stores_file(void **state)
   struct http_client_request request;
   const char payload[] = "hello upload\n";
   size_t body_len = 0;
-  char *body = build_multipart_body("widget_wizard_upload_test.txt", payload, strlen(payload), &body_len);
+  char *body = build_multipart_body(TEST_UPLOAD_FILENAME, payload, strlen(payload), &body_len);
   int port = get_free_loopback_port();
 
   memset(&app, 0, sizeof(app));
   memset(&request, 0, sizeof(request));
+  assert_int_equal(g_mkdir_with_parents(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE), 0);
+  assert_int_equal(chmod(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE), 0);
   unlink(TEST_UPLOAD_PATH);
 
   assert_true(ws_server_start(&app, port));
@@ -235,6 +252,8 @@ test_upload_stores_file(void **state)
 
   assert_int_equal(request.status, 200);
   assert_int_equal(access(TEST_UPLOAD_PATH, F_OK), 0);
+  assert_path_mode(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE);
+  assert_path_mode(TEST_UPLOAD_PATH, TEST_UPLOAD_FILE_MODE);
 
   /* Check the file contents, not only the HTTP status. */
   FILE *fp = fopen(TEST_UPLOAD_PATH, "rb");
@@ -258,11 +277,13 @@ test_upload_accepts_proxied_path(void **state)
   struct http_client_request request;
   const char payload[] = "hello proxy upload\n";
   size_t body_len = 0;
-  char *body = build_multipart_body("widget_wizard_upload_test.txt", payload, strlen(payload), &body_len);
+  char *body = build_multipart_body(TEST_UPLOAD_FILENAME, payload, strlen(payload), &body_len);
   int port = get_free_loopback_port();
 
   memset(&app, 0, sizeof(app));
   memset(&request, 0, sizeof(request));
+  assert_int_equal(g_mkdir_with_parents(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE), 0);
+  assert_int_equal(chmod(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE), 0);
   unlink(TEST_UPLOAD_PATH);
 
   assert_true(ws_server_start(&app, port));
@@ -279,6 +300,46 @@ test_upload_accepts_proxied_path(void **state)
 
   assert_int_equal(request.status, 200);
   assert_int_equal(access(TEST_UPLOAD_PATH, F_OK), 0);
+  assert_path_mode(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE);
+  assert_path_mode(TEST_UPLOAD_PATH, TEST_UPLOAD_FILE_MODE);
+
+  unlink(TEST_UPLOAD_PATH);
+  g_free(body);
+}
+
+/* Rejected upload: the shared upload directory must not be writable by others. */
+static void
+test_upload_rejects_unsafe_upload_dir(void **state)
+{
+  (void)state;
+
+  struct app_state app;
+  struct http_client_request request;
+  const char payload[] = "unsafe directory\n";
+  size_t body_len = 0;
+  char *body = build_multipart_body(TEST_UPLOAD_FILENAME, payload, strlen(payload), &body_len);
+  int port = get_free_loopback_port();
+
+  memset(&app, 0, sizeof(app));
+  memset(&request, 0, sizeof(request));
+  assert_int_equal(g_mkdir_with_parents(TEST_UPLOAD_DIR, 0700), 0);
+  assert_int_equal(chmod(TEST_UPLOAD_DIR, 0777), 0);
+  unlink(TEST_UPLOAD_PATH);
+
+  assert_true(ws_server_start(&app, port));
+
+  request.port = port;
+  request.path = TEST_DIRECT_UPLOAD_ROUTE;
+  request.content_type = "multipart/form-data; boundary=" TEST_BOUNDARY;
+  request.body = body;
+  request.body_len = body_len;
+  request.status = -1;
+
+  run_http_request(&request);
+  ws_server_stop();
+
+  assert_int_equal(request.status, 500);
+  assert_int_equal(chmod(TEST_UPLOAD_DIR, TEST_UPLOAD_DIR_MODE), 0);
 
   unlink(TEST_UPLOAD_PATH);
   g_free(body);
@@ -333,6 +394,7 @@ main(void)
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_upload_stores_file),
     cmocka_unit_test(test_upload_accepts_proxied_path),
+    cmocka_unit_test(test_upload_rejects_unsafe_upload_dir),
     cmocka_unit_test(test_upload_rejects_overlong_filename),
   };
 

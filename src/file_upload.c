@@ -28,6 +28,7 @@
  * - Failed and aborted uploads remove the temporary file.
  * - Existing files with the same cleaned filename are replaced only after the
  *   new upload has completed.
+ * - The destination directory must be owned by the process user.
  *
  * Response behavior:
  * - Success returns HTTP 200.
@@ -75,6 +76,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -88,7 +90,11 @@
 /* Path used when the packaged web server forwards the upload route. */
 #define FILE_UPLOAD_PROXY_PATH "/local/" APP_NAME FILE_UPLOAD_PATH
 /* Directory where completed uploads are stored. */
-#define FILE_UPLOAD_DEST_DIR "/tmp"
+#define FILE_UPLOAD_DEST_DIR "/tmp/widget_wizard_uploads"
+/* Other local apps may read uploaded files but must not write here. */
+#define FILE_UPLOAD_DEST_DIR_MODE 0755
+/* Completed uploads are readable by other local apps. */
+#define FILE_UPLOAD_FILE_MODE 0644
 /* Maximum accepted file content size. */
 #define FILE_UPLOAD_MAX_BYTES (10U * 1024U * 1024U)
 /* Maximum sanitized filename length including the string terminator. */
@@ -121,6 +127,51 @@ struct file_upload_state {
 
 /* Accepted multipart file field names. */
 static const char *const upload_param_names[] = { "file" };
+
+/* Make sure the upload directory exists before opening the temporary file.
+ *
+ * The path is stable so other local code can find uploaded files.
+ * The directory is readable by other users, but only the owner may write to it.
+ * If the directory belongs to another user, fail instead of trying to repair it.
+ * A root-created directory must be cleaned up by the operator.
+ */
+static bool
+ensure_upload_dir(void)
+{
+  struct stat st;
+
+  if (g_mkdir_with_parents(FILE_UPLOAD_DEST_DIR, FILE_UPLOAD_DEST_DIR_MODE) != 0) {
+    syslog(LOG_WARNING, "file_upload: failed to create upload directory: %m");
+    return false;
+  }
+
+  if (lstat(FILE_UPLOAD_DEST_DIR, &st) != 0) {
+    syslog(LOG_WARNING, "file_upload: failed to inspect upload directory: %m");
+    return false;
+  }
+
+  if (!S_ISDIR(st.st_mode)) {
+    syslog(LOG_WARNING, "file_upload: upload path is not a directory");
+    return false;
+  }
+
+  if (st.st_uid != getuid()) {
+    syslog(LOG_WARNING, "file_upload: upload directory is owned by another user");
+    return false;
+  }
+
+  if ((st.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
+    syslog(LOG_WARNING, "file_upload: upload directory is writable by another user");
+    return false;
+  }
+
+  if (chmod(FILE_UPLOAD_DEST_DIR, FILE_UPLOAD_DEST_DIR_MODE) != 0) {
+    syslog(LOG_WARNING, "file_upload: failed to set upload directory mode: %m");
+    return false;
+  }
+
+  return true;
+}
 
 /* Return true when the request matches one accepted upload path. */
 static bool
@@ -322,6 +373,12 @@ finish_file(struct file_upload_state *state)
   }
   state->fp = NULL;
 
+  if (chmod(state->part_path, FILE_UPLOAD_FILE_MODE) != 0) {
+    syslog(LOG_WARNING, "file_upload: chmod failed: %m");
+    file_upload_set_error(state, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to store uploaded file");
+    return false;
+  }
+
   if (rename(state->part_path, state->path) != 0) {
     syslog(LOG_WARNING, "file_upload: rename failed: %m");
     file_upload_set_error(state, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to store uploaded file");
@@ -365,6 +422,11 @@ file_upload_callback(void *data,
   case LWS_UFS_OPEN:
     if (state->file_seen || !name || strcmp(name, "file") != 0) {
       file_upload_set_error(state, HTTP_STATUS_BAD_REQUEST, "Expected one file field named file");
+      return -1;
+    }
+
+    if (!ensure_upload_dir()) {
+      file_upload_set_error(state, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to open upload directory");
       return -1;
     }
 

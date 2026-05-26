@@ -107,7 +107,8 @@
  *     POST /local/widget_wizard/file-upload
  * - Direct backend example:
  *     curl -F "file=@local.bin" http://<host>:9000/file-upload
- * - Uploaded files are limited to 10 MB and stored in the temporary directory.
+ * - Uploaded files are limited to 10 MB and stored below the temporary directory.
+ * - Completed uploads are readable by other local users.
  *
  * Returned JSON message format example:
  * {

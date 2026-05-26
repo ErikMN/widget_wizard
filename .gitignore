@@ -4,6 +4,7 @@ release
 .history
 *.exe
 *.o
+src/tests/bin/
 *.pyc
 *.eap
 *.old
