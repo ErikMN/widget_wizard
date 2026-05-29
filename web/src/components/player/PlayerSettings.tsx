@@ -78,11 +78,18 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
 
   /* Global parameter list */
   const { parameters } = useParameters();
+
+  /* Backend availability */
   const backendAvailable =
     parameters?.['root.Widget_wizard.ApplicationRunning'];
+  /* Resolutions list */
   const Resolution = parameters?.['root.Properties.Image.Resolution'];
+  /* Number of camera sources */
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
   const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
+  /* Number of views */
+  const NbrOfViewsStr = parameters?.['root.Properties.Image.NbrOfViews'] ?? '1';
+  const NbrOfViews = parseInt(NbrOfViewsStr, 10);
 
   useEffect(() => {
     setCameraValue(vapixParameters['camera'] ?? '');
@@ -308,6 +315,9 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         Camera
         <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
           Sources: {NbrOfSources}
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
+          Views: {NbrOfViews}
         </Typography>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
