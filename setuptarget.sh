@@ -70,11 +70,11 @@ else
   CREDENTIALS_FILE="$SCRIPT_DIR/credentials.json"
 fi
 
-# Default credentials:
+# Default credentials (use HTTPS):
 DEFAULT_IP="192.168.0.90"
 DEFAULT_USR="root"
 DEFAULT_PWD="pass"
-DEFAULT_PORT="80"
+DEFAULT_PORT="443"
 DEFAULT_SSH_PORT="22"
 
 # Check if the credentials file exists:

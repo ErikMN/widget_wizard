@@ -30,36 +30,43 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 8080,
     open: true,
-    /* Proxy endpoints */
+    /* Proxy endpoints (use HTTPS) */
     proxy: {
       '/local/widget_wizard/system-stats-ws': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
         ws: true,
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       },
       '/local/widget_wizard/file-upload': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        changeOrigin: true
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true,
+        secure: false
       },
       '/rtsp-over-websocket': {
-        target: `ws://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        ws: true
+        target: `wss://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        ws: true,
+        secure: false
       },
       '/axis-cgi/': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        changeOrigin: true
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true,
+        secure: false
       },
       '/mjpg/': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        changeOrigin: true
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true,
+        secure: false
       },
       '/img/': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        changeOrigin: true
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true,
+        secure: false
       },
       '/config/rest/': {
-        target: `http://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
-        changeOrigin: true
+        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        changeOrigin: true,
+        secure: false
       }
     }
   },
