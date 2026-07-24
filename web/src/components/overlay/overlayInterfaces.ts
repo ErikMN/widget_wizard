@@ -113,6 +113,4 @@ export interface OverlayActionResponse {
 
 /* Common response union */
 export type OverlayApiResponse =
-  | OverlayListResponse
-  | OverlayCapabilities
-  | OverlayActionResponse;
+  OverlayListResponse | OverlayCapabilities | OverlayActionResponse;

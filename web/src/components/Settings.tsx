@@ -172,9 +172,7 @@ const Settings: React.FC = () => {
     event: SelectChangeEvent<'small' | 'medium' | 'large'>
   ) => {
     const selectedThickness = event.target.value as
-      | 'small'
-      | 'medium'
-      | 'large';
+      'small' | 'medium' | 'large';
     setAppSettings((prevSettings: AppSettings) => ({
       ...prevSettings,
       bboxThickness: selectedThickness
