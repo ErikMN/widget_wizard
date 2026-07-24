@@ -1,7 +1,13 @@
 /* WidgetSpecificParams: Auto generate widget specific parameter UI elements. (WIP) */
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
 import { useAppSettingsContext } from '../context/AppContext';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetData, useWidgetActions } from './WidgetContext';
 import { Widget } from './widgetInterfaces';
 import { debounce } from 'lodash';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
@@ -33,6 +39,13 @@ interface WidgetSpecificParamsProps {
   widget: Widget;
 }
 
+/* Lets the parent flush or cancel pending edits before hiding this
+ * section or removing the widget. */
+export interface WidgetSpecificParamsHandle {
+  flushPendingChanges: () => void;
+  cancelPendingChanges: () => void;
+}
+
 /* Define keys that are metadata, not actual nested params */
 const META_KEYS = [
   'minimum',
@@ -43,11 +56,13 @@ const META_KEYS = [
   'step'
 ];
 
-const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
-  widget
-}) => {
+const WidgetSpecificParams = forwardRef<
+  WidgetSpecificParamsHandle,
+  WidgetSpecificParamsProps
+>(({ widget }, ref) => {
   /* Global context */
-  const { widgetCapabilities, updateWidget } = useWidgetContext();
+  const { widgetCapabilities } = useWidgetData();
+  const { updateWidget } = useWidgetActions();
   const { appSettings } = useAppSettingsContext();
 
   /* Store local values for all widget parameters */
@@ -56,14 +71,12 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
   );
 
   /* Refs */
-  const widgetRef = useRef(widget);
   const updateWidgetRef = useRef(updateWidget);
 
-  /* Update refs when widget or updateWidget change */
+  /* Update ref when updateWidget changes */
   useEffect(() => {
-    widgetRef.current = widget;
     updateWidgetRef.current = updateWidget;
-  }, [widget, updateWidget]);
+  }, [updateWidget]);
 
   /**
    * If external changes come in (widget.widgetParams changes),
@@ -74,18 +87,38 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
   }, [widget.widgetParams]);
 
   /**
-   * Debounced: whenever a param changes, we store it in local state
-   * and after 500ms, call updateWidget with the *entire* nested structure
+   * Debounced: whenever a param changes, store it in local state and
+   * call updateWidget with the entire nested structure.
    */
   const debouncedUpdate = useRef(
     debounce((newLocalValues: Record<string, any>) => {
-      const updatedWidget = {
-        ...widgetRef.current,
-        widgetParams: newLocalValues /* pass the nested object as-is */
-      };
-      updateWidgetRef.current(updatedWidget);
+      updateWidgetRef.current(widget.generalParams.id, (current) => ({
+        ...current,
+        widgetParams: newLocalValues
+      }));
     }, 500)
   ).current;
+
+  /* Cancel pending updates when the editor is removed or the page
+   * navigates away. */
+  useEffect(() => {
+    return () => {
+      debouncedUpdate.cancel();
+    };
+  }, [debouncedUpdate]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flushPendingChanges: () => {
+        debouncedUpdate.flush();
+      },
+      cancelPendingChanges: () => {
+        debouncedUpdate.cancel();
+      }
+    }),
+    [debouncedUpdate]
+  );
 
   /**
    * Called whenever a user changes a field (including nested).
@@ -721,6 +754,8 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
       )}
     </Box>
   );
-};
+});
+
+WidgetSpecificParams.displayName = 'WidgetSpecificParams';
 
 export default WidgetSpecificParams;

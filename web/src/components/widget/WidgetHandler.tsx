@@ -1,12 +1,18 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { log, enableLogging } from '../../helpers/logger';
-import WidgetItem from './WidgetItem';
+import WidgetItem, { WidgetItemHandle } from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useAppSettingsContext } from '../context/AppContext';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetData, useWidgetUi, useWidgetActions } from './WidgetContext';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
@@ -14,6 +20,7 @@ import { CustomButton } from './../CustomComponents';
 import WidgetBackupList from './WidgetBackupList';
 import { loadWidgetBackups } from './widgetBackupStorage';
 import messageSoundUrl from '../../assets/audio/message.oga';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
@@ -37,28 +44,98 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<
+    number | null
+  >(null);
   const [backupList, setBackupList] = useState(loadWidgetBackups());
   const widgetHotkeysShownRef = useRef(false);
 
+  /* Registered WidgetItem handles by widget id, so a confirmed removal
+   * can cancel that item's pending edits before the delete request
+   * starts. */
+  const widgetItemRefs = useRef<Map<number, WidgetItemHandle>>(new Map());
+
+  /* One stable ref callback per widget id, cached across renders, so
+   * WidgetItem's ref prop identity doesn't change on every WidgetHandler
+   * render and React.memo can still bail out. */
+  const widgetItemRefCallbacks = useRef<
+    Map<number, (handle: WidgetItemHandle | null) => void>
+  >(new Map());
+
+  const registerWidgetItemRef = useCallback(
+    (id: number, handle: WidgetItemHandle | null) => {
+      if (handle) {
+        widgetItemRefs.current.set(id, handle);
+      } else {
+        widgetItemRefs.current.delete(id);
+        widgetItemRefCallbacks.current.delete(id);
+      }
+    },
+    []
+  );
+
+  const getWidgetItemRefCallback = useCallback(
+    (id: number) => {
+      let callback = widgetItemRefCallbacks.current.get(id);
+      if (!callback) {
+        callback = (handle) => registerWidgetItemRef(id, handle);
+        widgetItemRefCallbacks.current.set(id, callback);
+      }
+      return callback;
+    },
+    [registerWidgetItemRef]
+  );
+
   /* Global context */
+  const { activeWidgets, widgetCapabilities, widgetSupported, selectedWidget } =
+    useWidgetData();
   const {
     activeDraggableWidget,
     setActiveDraggableWidget,
-    activeWidgets,
+    openWidgetId,
+    setOpenWidgetId,
+    setSelectedWidget
+  } = useWidgetUi();
+  const {
     listWidgets,
     listWidgetCapabilities,
     addWidget,
+    removeWidget,
     removeAllWidgets,
-    selectedWidget,
-    setSelectedWidget,
-    widgetCapabilities,
-    openWidgetId,
-    setOpenWidgetId,
-    widgetSupported,
     updateWidget
-  } = useWidgetContext();
+  } = useWidgetActions();
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
+
+  /* Backup slots are shared across all widgets, so compute the limit once */
+  const backupLimitReached = backupList.length >= MAX_LS_BACKUPS;
+
+  /* Sort without mutating the context-owned activeWidgets array, and only
+   * recompute when the inputs actually change.
+   */
+  const sortedWidgets = useMemo(() => {
+    return [...activeWidgets].sort((a, b) => {
+      let sortResult = 0;
+      switch (appSettings.sortBy) {
+        case 'id':
+          sortResult = a.generalParams.id - b.generalParams.id;
+          break;
+        case 'type':
+          sortResult = a.generalParams.type.localeCompare(b.generalParams.type);
+          break;
+        default:
+          break;
+      }
+      return appSettings.sortAscending ? sortResult : -sortResult;
+    });
+  }, [activeWidgets, appSettings.sortBy, appSettings.sortAscending]);
+
+  /* Stable callback so WidgetItem's React.memo isn't defeated by a new
+   * function identity on every render.
+   */
+  const handleBackupRequested = useCallback(() => {
+    setBackupList(loadWidgetBackups());
+  }, []);
 
   enableLogging(false);
 
@@ -94,7 +171,11 @@ const WidgetHandler: React.FC = () => {
     });
   }, [showMessage]);
 
-  /* Keyboard Shift+Delete shortcut: remove all widgets (but not when typing) */
+  /* Keyboard Delete shortcuts (but not when typing):
+   * - Shift + Delete: remove all widgets
+   * - Delete: remove the currently active widget
+   * Centralized here instead of one listener per widget row.
+   */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       /* Ignore if typing in input, textarea, or contenteditable */
@@ -106,16 +187,26 @@ const WidgetHandler: React.FC = () => {
       if (isTyping) {
         return;
       }
-      /* Do nothing if no widgets exist */
-      if (activeWidgets.length === 0) {
+      if (event.key !== 'Delete') {
         return;
       }
-      /* Trigger only on Shift + Delete */
-      if (!event.shiftKey || event.key !== 'Delete') {
+
+      if (event.shiftKey) {
+        /* Do nothing if no widgets exist */
+        if (activeWidgets.length === 0) {
+          return;
+        }
+        /* Open remove-all dialog */
+        setOpenDialog(true);
         return;
       }
-      /* Open remove-all dialog */
-      setOpenDialog(true);
+
+      /* Only the active widget reacts */
+      if (activeDraggableWidget.id == null) {
+        return;
+      }
+      setPendingDeleteWidgetId(activeDraggableWidget.id);
+      playSound(messageSoundUrl);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -124,7 +215,7 @@ const WidgetHandler: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeWidgets.length]);
+  }, [activeWidgets.length, activeDraggableWidget.id]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
@@ -142,22 +233,25 @@ const WidgetHandler: React.FC = () => {
 
   const setDepth = useCallback(
     (mode: string, widget: Widget) => {
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           depth: mode
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [updateWidget]
   );
 
-  /* Handle dropdown toggle */
+  /* Handle dropdown toggle. Takes the widget and its current isOpen state
+   * as call-time arguments (WidgetItem already has both) instead of
+   * deriving them from openWidgetId/activeWidgets, so this callback stays
+   * stable across renders and doesn't defeat React.memo(WidgetItem) for
+   * every row whenever any row opens/closes or any widget updates. */
   const toggleDropdown = useCallback(
-    (widgetId: number) => {
-      const newId = openWidgetId === widgetId ? null : widgetId;
+    (widget: Widget, isOpen: boolean) => {
+      const newId = isOpen ? null : widget.generalParams.id;
 
       setActiveDraggableWidget((prev) => ({
         ...prev,
@@ -170,17 +264,10 @@ const WidgetHandler: React.FC = () => {
       setOpenWidgetId(newId);
 
       if (appSettings.widgetAutoBringFront) {
-        const widget = activeWidgets.find(
-          (w) => w.generalParams.id === widgetId
-        );
-        if (widget) {
-          setDepth('front', widget);
-        }
+        setDepth('front', widget);
       }
     },
     [
-      openWidgetId,
-      activeWidgets,
       setActiveDraggableWidget,
       setOpenWidgetId,
       appSettings.widgetAutoBringFront,
@@ -198,9 +285,34 @@ const WidgetHandler: React.FC = () => {
   };
 
   const handleConfirmRemoveAll = () => {
+    widgetItemRefs.current.forEach((handle) => handle.cancelPendingChanges());
     removeAllWidgets();
     setOpenDialog(false);
   };
+
+  /* Single widget removal: triggered from a widget row's Remove button
+   * or the centralized Delete keyboard shortcut.
+   */
+  const handleRemoveRequested = useCallback((widgetId: number) => {
+    setPendingDeleteWidgetId(widgetId);
+    playSound(messageSoundUrl);
+  }, []);
+
+  const handleCancelDeleteWidget = useCallback(() => {
+    setPendingDeleteWidgetId(null);
+  }, []);
+
+  const handleConfirmDeleteWidget = useCallback(() => {
+    if (pendingDeleteWidgetId != null) {
+      widgetItemRefs.current.get(pendingDeleteWidgetId)?.cancelPendingChanges();
+      removeWidget(pendingDeleteWidgetId);
+    }
+    setPendingDeleteWidgetId(null);
+  }, [pendingDeleteWidgetId, removeWidget]);
+
+  const pendingDeleteWidget = activeWidgets.find(
+    (w) => w.generalParams.id === pendingDeleteWidgetId
+  );
 
   if (!widgetSupported) {
     return <WidgetsDisabled />;
@@ -315,33 +427,74 @@ const WidgetHandler: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Remove single widget confirmation dialog (shared by all widget rows) */}
+      <Dialog
+        open={pendingDeleteWidgetId != null}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleCancelDeleteWidget();
+        }}
+        aria-labelledby="remove-widget-dialog-title"
+        aria-describedby="remove-widget-dialog-description"
+      >
+        <DialogTitle id="remove-widget-dialog-title">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Remove ${
+              pendingDeleteWidget
+                ? capitalizeFirstLetter(pendingDeleteWidget.generalParams.type)
+                : 'widget'
+            }`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="remove-widget-dialog-description">
+            Are you sure you want to remove{' '}
+            {pendingDeleteWidget
+              ? capitalizeFirstLetter(pendingDeleteWidget.generalParams.type)
+              : 'this widget'}
+            ? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={handleCancelDeleteWidget}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={handleConfirmDeleteWidget}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
       {/* List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
-        {activeWidgets
-          .sort((a, b) => {
-            let sortResult = 0;
-            switch (appSettings.sortBy) {
-              case 'id':
-                sortResult = a.generalParams.id - b.generalParams.id;
-                break;
-              case 'type':
-                sortResult = a.generalParams.type.localeCompare(
-                  b.generalParams.type
-                );
-                break;
-              default:
-                break;
+        {sortedWidgets.map((widget) => (
+          <WidgetItem
+            key={widget.generalParams.id}
+            ref={getWidgetItemRefCallback(widget.generalParams.id)}
+            widget={widget}
+            toggleDropdown={toggleDropdown}
+            onBackupRequested={handleBackupRequested}
+            onRemoveRequested={handleRemoveRequested}
+            backupLimitReached={backupLimitReached}
+            isOpen={openWidgetId === widget.generalParams.id}
+            isActive={
+              activeDraggableWidget.id === widget.generalParams.id &&
+              activeDraggableWidget.active
             }
-            return appSettings.sortAscending ? sortResult : -sortResult;
-          })
-          .map((widget) => (
-            <WidgetItem
-              key={widget.generalParams.id}
-              widget={widget}
-              toggleDropdown={toggleDropdown}
-              onBackupRequested={() => setBackupList(loadWidgetBackups())}
-            />
-          ))}
+          />
+        ))}
       </Box>
 
       {/* Remove all widgets button */}

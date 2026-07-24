@@ -1,447 +1,394 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
 import { Widget } from './widgetInterfaces';
-import { useWidgetContext } from './WidgetContext';
-import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
+import { useWidgetActions } from './WidgetContext';
+import { capitalizeFirstLetter } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
-import WidgetGeneralParams from './WidgetGeneralParams';
-import WidgetSpecificParams from './WidgetSpecificParams';
-import messageSoundUrl from '../../assets/audio/message.oga';
-import { saveWidgetBackup, loadWidgetBackups } from './widgetBackupStorage';
+import WidgetGeneralParams, {
+  WidgetGeneralParamsHandle
+} from './WidgetGeneralParams';
+import WidgetSpecificParams, {
+  WidgetSpecificParamsHandle
+} from './WidgetSpecificParams';
+import { saveWidgetBackup } from './widgetBackupStorage';
 import { useAlertActionsContext } from '../context/AppContext';
-import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 import Typography from '@mui/material/Typography';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
 import '../../assets/css/prism-theme.css';
 
 interface WidgetItemProps {
   widget: Widget;
-  toggleDropdown: (id: number) => void;
+  toggleDropdown: (widget: Widget, isOpen: boolean) => void;
   onBackupRequested: () => void;
+  onRemoveRequested: (id: number) => void;
+  backupLimitReached: boolean;
+  isOpen: boolean;
+  isActive: boolean;
 }
 
-const WidgetItem: React.FC<WidgetItemProps> = ({
-  widget,
-  toggleDropdown,
-  onBackupRequested
-}) => {
-  /* Local state */
-  const [widgetParamsVisible, setWidgetParamsVisible] =
-    useState<boolean>(false);
-  const [jsonInput, setJsonInput] = useState<string>(
-    JSON.stringify(widget, null, 2)
-  );
-  const [parsedJSON, setParsedJSON] = useState<any | null>(null);
-  const [jsonError, setJsonError] = useState<string | null>(null);
+/* Lets the parent cancel pending child edits before a confirmed removal
+ * starts its delete request. */
+export interface WidgetItemHandle {
+  cancelPendingChanges: () => void;
+}
 
-  /* Combined widget general param state */
-  const [widgetState, setWidgetState] = useState({
-    isVisible: widget.generalParams.isVisible,
-    widgetId: null as number | null,
-    sliderValue: widget.generalParams.transparency,
-    datasource: widget.generalParams.datasource,
-    channel: widget.generalParams.channel,
-    updateTime: widget.generalParams.updateTime
-  });
+const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
+  (
+    {
+      widget,
+      toggleDropdown,
+      onBackupRequested,
+      onRemoveRequested,
+      backupLimitReached,
+      isOpen,
+      isActive
+    },
+    ref
+  ) => {
+    /* Local state */
+    const [widgetParamsVisible, setWidgetParamsVisible] =
+      useState<boolean>(false);
+    const [jsonInput, setJsonInput] = useState<string>('');
+    const [jsonError, setJsonError] = useState<string | null>(null);
 
-  /* Global context */
-  const {
-    removeWidget,
-    updateWidget,
-    addCustomWidget,
-    openWidgetId,
-    setOpenWidgetId,
-    activeDraggableWidget
-  } = useWidgetContext();
+    /* Combined widget general param state */
+    const [widgetState, setWidgetState] = useState({
+      isVisible: widget.generalParams.isVisible,
+      widgetId: null as number | null,
+      sliderValue: widget.generalParams.transparency,
+      datasource: widget.generalParams.datasource,
+      channel: widget.generalParams.channel,
+      updateTime: widget.generalParams.updateTime
+    });
 
-  const { handleOpenAlert } = useAlertActionsContext();
+    /* Global context */
+    const { updateWidget, addCustomWidget } = useWidgetActions();
 
-  const backupCount = loadWidgetBackups().length;
+    const { handleOpenAlert } = useAlertActionsContext();
 
-  /* Update jsonInput whenever widget prop changes */
-  useEffect(() => {
-    /* Store the widget's id */
-    if (widget.generalParams && widget.generalParams.id) {
-      setWidgetState((prevState) => ({
-        ...prevState,
-        widgetId: widget.generalParams.id
-      }));
-    }
-    /* Deep widget copy */
-    const widgetCopy = safeParseJson(JSON.stringify(widget));
-    if (widgetCopy == null) {
-      return;
-    }
-    /* Remove ID in order to not edit other widgets */
-    if (widgetCopy.generalParams && widgetCopy.generalParams.id) {
-      delete widgetCopy.generalParams.id;
-    }
-    setJsonInput(JSON.stringify(widgetCopy, null, 2));
-    setJsonError(null);
-  }, [widget]);
+    /* Tracks which widget object jsonInput was generated from, to
+     * preserve an unsaved draft when reopening the same widget. */
+    const lastSyncedWidgetRef = useRef<Widget | null>(null);
 
-  /* Keyboard Delete shortcut: remove active widget (but not when typing) */
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      /* Ignore if typing in input, textarea, or contenteditable */
-      const target = event.target as HTMLElement;
-      const isTyping =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
-      if (isTyping) {
-        return;
+    /* Flush pending edits when the row or parameter section closes. */
+    const generalParamsRef = useRef<WidgetGeneralParamsHandle>(null);
+    const specificParamsRef = useRef<WidgetSpecificParamsHandle>(null);
+    const wasOpenRef = useRef(isOpen);
+    const wasWidgetParamsVisibleRef = useRef(widgetParamsVisible);
+
+    useEffect(() => {
+      if (wasOpenRef.current && !isOpen) {
+        generalParamsRef.current?.flushPendingChanges();
+        specificParamsRef.current?.flushPendingChanges();
       }
-      /* Trigger only on the Delete key */
-      if (event.key !== 'Delete') {
-        return;
+      wasOpenRef.current = isOpen;
+    }, [isOpen]);
+
+    useEffect(() => {
+      if (wasWidgetParamsVisibleRef.current && !widgetParamsVisible) {
+        specificParamsRef.current?.flushPendingChanges();
       }
-      /* Only the active widget reacts */
-      if (activeDraggableWidget.id !== widget.generalParams.id) {
-        return;
-      }
-      /* Open delete dialog */
-      setOpenDialog(true);
-    };
+      wasWidgetParamsVisibleRef.current = widgetParamsVisible;
+    }, [widgetParamsVisible]);
 
-    window.addEventListener('keydown', handleKeyDown);
-
-    /* Unmount cleanup */
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [activeDraggableWidget.id, widget.generalParams.id]);
-
-  /****************************************************************************/
-
-  /* Toggle Widget Params */
-  const toggleWidgetParams = useCallback(() => {
-    setWidgetParamsVisible((prev) => !prev);
-  }, []);
-
-  /****************************************************************************/
-
-  const handleUpdateJSON = () => {
-    try {
-      const parsed = safeParseJson(jsonInput);
-      if (parsed == null) {
-        setJsonError('Invalid JSON format');
-        return;
-      }
-      /* Re-attach the widget ID */
-      if (widgetState.widgetId == null) {
-        setJsonError('Missing widget ID');
-        return;
-      }
-      const parsedWidget = {
-        ...parsed,
-        generalParams: {
-          ...parsed.generalParams,
-          id: widgetState.widgetId
+    useImperativeHandle(
+      ref,
+      () => ({
+        cancelPendingChanges: () => {
+          generalParamsRef.current?.cancelPendingChanges();
+          specificParamsRef.current?.cancelPendingChanges();
         }
-      };
-      updateWidget(parsedWidget);
+      }),
+      []
+    );
+
+    /* Regenerate jsonInput only when the widget actually changes, and
+     * only while the editor is open. Preserves an unsaved draft across
+     * close and reopen, and avoids serializing every widget on render. */
+    useEffect(() => {
+      if (!isOpen) {
+        return;
+      }
+      if (lastSyncedWidgetRef.current === widget) {
+        return;
+      }
+      lastSyncedWidgetRef.current = widget;
+      /* Store the widget's id */
+      if (widget.generalParams && widget.generalParams.id) {
+        setWidgetState((prevState) => ({
+          ...prevState,
+          widgetId: widget.generalParams.id
+        }));
+      }
+      /* Deep widget copy */
+      const widgetCopy = safeParseJson(JSON.stringify(widget));
+      if (widgetCopy == null) {
+        return;
+      }
+      /* Remove ID in order to not edit other widgets */
+      if (widgetCopy.generalParams && widgetCopy.generalParams.id) {
+        delete widgetCopy.generalParams.id;
+      }
+      setJsonInput(JSON.stringify(widgetCopy, null, 2));
       setJsonError(null);
-      /* NOTE: Update UI controls for manual JSON updates */
-      setWidgetState((prevState) => ({
-        ...prevState,
-        isVisible: parsedWidget.generalParams.isVisible,
-        sliderValue: parsedWidget.generalParams.transparency,
-        datasource: parsedWidget.generalParams.datasource,
-        channel: parsedWidget.generalParams.channel,
-        updateTime: parsedWidget.generalParams.updateTime
-      }));
-    } catch (err) {
-      console.error(err);
-      setJsonError('Invalid JSON format');
-    }
-  };
+    }, [isOpen, widget]);
 
-  /****************************************************************************/
-  /* Remove widget dialog handlers */
-  const [openDialog, setOpenDialog] = useState<boolean>(false);
+    /****************************************************************************/
 
-  const handleRemoveClick = () => {
-    setOpenDialog(true);
-    playSound(messageSoundUrl);
-  };
+    /* Toggle Widget Params */
+    const toggleWidgetParams = useCallback(() => {
+      setWidgetParamsVisible((prev) => !prev);
+    }, []);
 
-  const handleDialogClose = () => {
-    setOpenDialog(false);
-  };
+    /****************************************************************************/
 
-  const handleConfirmRemove = () => {
-    removeWidget(widget.generalParams.id);
-    setOpenDialog(false);
-  };
-
-  /****************************************************************************/
-
-  return (
-    <Box key={widget.generalParams.id} sx={{ marginBottom: 1.4 }}>
-      <CustomButton
-        variant="outlined"
-        fullWidth
-        onClick={() => toggleDropdown(widget.generalParams.id)}
-        sx={(theme) => ({
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: 1,
-          color: 'text.primary',
-          /* Highlight selected widget */
-          backgroundColor:
-            (activeDraggableWidget.id === widget.generalParams.id &&
-              activeDraggableWidget.active) ||
-            openWidgetId === widget.generalParams.id
-              ? 'primary.light'
-              : 'unset',
-          borderColor:
-            (activeDraggableWidget.id === widget.generalParams.id &&
-              activeDraggableWidget.active) ||
-            openWidgetId === widget.generalParams.id
-              ? 'primary.main'
-              : 'grey.600',
-          borderBottomLeftRadius:
-            openWidgetId === widget.generalParams.id ? '0px' : '4px',
-          borderBottomRightRadius:
-            openWidgetId === widget.generalParams.id ? '0px' : '4px',
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          /* Text shadow */
-          ...(theme.palette.mode === 'dark'
-            ? { textShadow: '0px 1px 4px rgba(0, 0, 0, 0.8)' }
-            : { textShadow: '0px 1px 2px rgba(255, 255, 255, 0.8)' })
-        })}
-        startIcon={<WidgetsIcon color="primary" />}
-        endIcon={
-          openWidgetId === widget.generalParams.id ? (
-            <ExpandLessIcon />
-          ) : (
-            <ExpandMoreIcon />
-          )
+    const handleUpdateJSON = () => {
+      try {
+        const parsed = safeParseJson(jsonInput);
+        if (parsed == null) {
+          setJsonError('Invalid JSON format');
+          return;
         }
-      >
-        <div
-          style={{
+        /* Re-attach the widget ID */
+        if (widgetState.widgetId == null) {
+          setJsonError('Missing widget ID');
+          return;
+        }
+        const parsedWidget = {
+          ...parsed,
+          generalParams: {
+            ...parsed.generalParams,
+            id: widgetState.widgetId
+          }
+        };
+        generalParamsRef.current?.cancelPendingChanges();
+        specificParamsRef.current?.cancelPendingChanges();
+        updateWidget(widgetState.widgetId, () => parsedWidget);
+        setJsonError(null);
+        /* NOTE: Update UI controls for manual JSON updates */
+        setWidgetState((prevState) => ({
+          ...prevState,
+          isVisible: parsedWidget.generalParams.isVisible,
+          sliderValue: parsedWidget.generalParams.transparency,
+          datasource: parsedWidget.generalParams.datasource,
+          channel: parsedWidget.generalParams.channel,
+          updateTime: parsedWidget.generalParams.updateTime
+        }));
+      } catch (err) {
+        console.error(err);
+        setJsonError('Invalid JSON format');
+      }
+    };
+
+    /****************************************************************************/
+
+    return (
+      <Box key={widget.generalParams.id} sx={{ marginBottom: 1.4 }}>
+        <CustomButton
+          variant="outlined"
+          fullWidth
+          onClick={() => toggleDropdown(widget, isOpen)}
+          sx={(theme) => ({
             display: 'flex',
             alignItems: 'center',
-            flex: 1,
-            /* Don't break line, don't show scrollbar */
-            overflowX: 'auto',
-            whiteSpace: 'nowrap',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
-          title={`${capitalizeFirstLetter(widget.generalParams.type)} (${widget.width}x${widget.height}) ID: ${widget.generalParams.id}`}
-        >
-          {/* Widget title and info */}
-          <Typography
-            variant="subtitle2"
-            sx={{ marginRight: '12px', fontWeight: 'bold' }}
-          >
-            {capitalizeFirstLetter(widget.generalParams.type)} ({widget.width}x
-            {widget.height})
-          </Typography>
-          <Chip
-            label={`ID: ${widget.generalParams.id}`}
-            size="small"
-            sx={{ fontWeight: 'bold' }}
-          />
-        </div>
-      </CustomButton>
-
-      {/* Dropdown for current widget settings */}
-      <Collapse in={openWidgetId === widget.generalParams.id}>
-        <Box
-          sx={(theme) => ({
-            backgroundColor: theme.palette.background.default,
-            padding: '10px',
-            border: `1px solid ${theme.palette.grey[600]}`,
-            borderTop: 'none',
-            borderRadius: '0 0 4px 4px',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            marginTop: 0
+            justifyContent: 'space-between',
+            padding: 1,
+            color: 'text.primary',
+            /* Highlight selected widget */
+            backgroundColor: isActive || isOpen ? 'primary.light' : 'unset',
+            borderColor: isActive || isOpen ? 'primary.main' : 'grey.600',
+            borderBottomLeftRadius: isOpen ? '0px' : '4px',
+            borderBottomRightRadius: isOpen ? '0px' : '4px',
+            transition: 'background-color 0.3s ease, border-color 0.3s ease',
+            /* Text shadow */
+            ...(theme.palette.mode === 'dark'
+              ? { textShadow: '0px 1px 4px rgba(0, 0, 0, 0.8)' }
+              : { textShadow: '0px 1px 2px rgba(255, 255, 255, 0.8)' })
           })}
+          startIcon={<WidgetsIcon color="primary" />}
+          endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         >
-          {/* General Params */}
-          <WidgetGeneralParams
-            widget={widget}
-            widgetState={widgetState}
-            setWidgetState={setWidgetState}
-          />
-
-          {/* Widget Params */}
-          <CustomButton
-            variant={widgetParamsVisible ? 'contained' : 'outlined'}
-            fullWidth
-            onClick={toggleWidgetParams}
-            startIcon={<WidgetsIcon />}
-            endIcon={
-              widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            }
-            sx={{
-              color: 'text.secondary',
-              backgroundColor: 'background.default',
+          <div
+            style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: 1,
-              height: '32px',
+              flex: 1,
+              /* Don't break line, don't show scrollbar */
+              overflowX: 'auto',
               whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              overflow: 'hidden'
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
             }}
+            title={`${capitalizeFirstLetter(widget.generalParams.type)} (${widget.width}x${widget.height}) ID: ${widget.generalParams.id}`}
           >
-            {widgetParamsVisible
-              ? 'Hide widget parameters'
-              : 'Show widget parameters'}
-          </CustomButton>
-          <Collapse in={widgetParamsVisible}>
-            <WidgetSpecificParams widget={widget} />
-          </Collapse>
-          {/* Widget Params End */}
+            {/* Widget title and info */}
+            <Typography
+              variant="subtitle2"
+              sx={{ marginRight: '12px', fontWeight: 'bold' }}
+            >
+              {capitalizeFirstLetter(widget.generalParams.type)} ({widget.width}
+              x{widget.height})
+            </Typography>
+            <Chip
+              label={`ID: ${widget.generalParams.id}`}
+              size="small"
+              sx={{ fontWeight: 'bold' }}
+            />
+          </div>
+        </CustomButton>
 
-          {/* JSON editor */}
-          <JsonEditor
-            jsonInput={jsonInput}
-            setJsonInput={setJsonInput}
-            jsonError={jsonError}
-            setJsonError={setJsonError}
-            onUpdate={handleUpdateJSON}
-            onParseJson={setParsedJSON}
-            updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
-          />
-
-          {/* Remove this widget confirmation dialog */}
-          <Dialog
-            open={openDialog}
-            onClose={(event, reason) => {
-              if (reason === 'backdropClick') {
-                return;
-              }
-              handleDialogClose();
-            }}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <WarningAmberIcon style={{ marginRight: '8px' }} />
-                {`Remove ${capitalizeFirstLetter(widget.generalParams.type)}`}
-              </Box>
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText id="alert-dialog-description">
-                Are you sure you want to remove{' '}
-                {capitalizeFirstLetter(widget.generalParams.type)}? This action
-                cannot be undone.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <CustomButton
-                variant="outlined"
-                onClick={handleDialogClose}
-                color="primary"
-              >
-                No
-              </CustomButton>
-              <CustomButton
-                variant="contained"
-                onClick={handleConfirmRemove}
-                color="error"
-                autoFocus
-              >
-                Yes
-              </CustomButton>
-            </DialogActions>
-          </Dialog>
-
-          {/* Remove, Backup and Duplicate buttons*/}
+        {/* Dropdown for current widget settings */}
+        <Collapse in={isOpen} unmountOnExit>
           <Box
-            sx={{
-              marginTop: 2,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 1.5
-            }}
+            sx={(theme) => ({
+              backgroundColor: theme.palette.background.default,
+              padding: '10px',
+              border: `1px solid ${theme.palette.grey[600]}`,
+              borderTop: 'none',
+              borderRadius: '0 0 4px 4px',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              marginTop: 0
+            })}
           >
-            {/* Remove widget button */}
-            <CustomButton
-              color="error"
-              variant="contained"
-              onClick={handleRemoveClick}
-              startIcon={<DeleteIcon />}
-              sx={{
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-              }}
-            >
-              Remove
-            </CustomButton>
-            {/* Backup widget button */}
-            <CustomButton
-              color="secondary"
-              variant="contained"
-              startIcon={<SaveIcon />}
-              disabled={backupCount >= MAX_LS_BACKUPS}
-              onClick={() => {
-                if (backupCount >= MAX_LS_BACKUPS) {
-                  return;
-                }
-                saveWidgetBackup(widget);
-                onBackupRequested();
-                handleOpenAlert('Widget backup created', 'success');
-              }}
-              sx={{
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-              }}
-            >
-              Backup
-            </CustomButton>
-            {/* Duplicate widget button */}
-            <CustomButton
-              color="secondary"
-              variant="contained"
-              onClick={() => addCustomWidget({ ...widget })}
-              startIcon={<ContentCopyIcon />}
-              sx={{
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden'
-              }}
-            >
-              Duplicate
-            </CustomButton>
-          </Box>
-          {/* Remove and Duplicate buttons end */}
-        </Box>
-      </Collapse>
-      {/* Dropdown for current widget settings end */}
-    </Box>
-  );
-};
+            {/* General Params */}
+            <WidgetGeneralParams
+              ref={generalParamsRef}
+              widget={widget}
+              widgetState={widgetState}
+              setWidgetState={setWidgetState}
+            />
 
-export default WidgetItem;
+            {/* Widget Params */}
+            <CustomButton
+              variant={widgetParamsVisible ? 'contained' : 'outlined'}
+              fullWidth
+              onClick={toggleWidgetParams}
+              startIcon={<WidgetsIcon />}
+              endIcon={
+                widgetParamsVisible ? <ExpandLessIcon /> : <ExpandMoreIcon />
+              }
+              sx={{
+                color: 'text.secondary',
+                backgroundColor: 'background.default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 1,
+                height: '32px',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
+            >
+              {widgetParamsVisible
+                ? 'Hide widget parameters'
+                : 'Show widget parameters'}
+            </CustomButton>
+            <Collapse in={widgetParamsVisible} unmountOnExit>
+              <WidgetSpecificParams ref={specificParamsRef} widget={widget} />
+            </Collapse>
+            {/* Widget Params End */}
+
+            {/* JSON editor */}
+            <JsonEditor
+              jsonInput={jsonInput}
+              setJsonInput={setJsonInput}
+              jsonError={jsonError}
+              setJsonError={setJsonError}
+              onUpdate={handleUpdateJSON}
+              updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
+            />
+
+            {/* Remove, Backup and Duplicate buttons*/}
+            <Box
+              sx={{
+                marginTop: 2,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 1.5
+              }}
+            >
+              {/* Remove widget button */}
+              <CustomButton
+                color="error"
+                variant="contained"
+                onClick={() => onRemoveRequested(widget.generalParams.id)}
+                startIcon={<DeleteIcon />}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden'
+                }}
+              >
+                Remove
+              </CustomButton>
+              {/* Backup widget button */}
+              <CustomButton
+                color="secondary"
+                variant="contained"
+                startIcon={<SaveIcon />}
+                disabled={backupLimitReached}
+                onClick={() => {
+                  if (backupLimitReached) {
+                    return;
+                  }
+                  saveWidgetBackup(widget);
+                  onBackupRequested();
+                  handleOpenAlert('Widget backup created', 'success');
+                }}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden'
+                }}
+              >
+                Backup
+              </CustomButton>
+              {/* Duplicate widget button */}
+              <CustomButton
+                color="secondary"
+                variant="contained"
+                onClick={() => addCustomWidget({ ...widget })}
+                startIcon={<ContentCopyIcon />}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden'
+                }}
+              >
+                Duplicate
+              </CustomButton>
+            </Box>
+            {/* Remove and Duplicate buttons end */}
+          </Box>
+        </Collapse>
+        {/* Dropdown for current widget settings end */}
+      </Box>
+    );
+  }
+);
+
+WidgetItem.displayName = 'WidgetItem';
+
+export default React.memo(WidgetItem);

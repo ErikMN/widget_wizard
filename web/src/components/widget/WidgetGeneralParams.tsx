@@ -1,11 +1,18 @@
 /* Widget Wizard
  * General widget params.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
+import { debounce } from 'lodash';
 import { Widget } from './widgetInterfaces';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetData, useWidgetUi, useWidgetActions } from './WidgetContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
-import { useDebouncedValue } from '../../helpers/hooks';
 import { playSound } from '../../helpers/utils';
 import lockSoundUrl from '../../assets/audio/lock.oga';
 import unlockSoundUrl from '../../assets/audio/unlock.oga';
@@ -52,18 +59,22 @@ interface WidgetGeneralParamsProps {
     }>
   >;
 }
-const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
-  widget,
-  widgetState,
-  setWidgetState
-}) => {
+
+/* Lets the parent flush or cancel pending edits before closing or
+ * removing the row. */
+export interface WidgetGeneralParamsHandle {
+  flushPendingChanges: () => void;
+  cancelPendingChanges: () => void;
+}
+
+const WidgetGeneralParams = forwardRef<
+  WidgetGeneralParamsHandle,
+  WidgetGeneralParamsProps
+>(({ widget, widgetState, setWidgetState }, ref) => {
   /* Global context */
-  const {
-    updateWidget,
-    widgetCapabilities,
-    activeDraggableWidget,
-    setActiveDraggableWidget
-  } = useWidgetContext();
+  const { widgetCapabilities } = useWidgetData();
+  const { activeDraggableWidget, setActiveDraggableWidget } = useWidgetUi();
+  const { updateWidget } = useWidgetActions();
 
   /****************************************************************************/
   /* Handle UI updates for general parameters */
@@ -71,33 +82,30 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
   const handleVisibilityChange = useCallback(() => {
     const newVisibility = !widgetState.isVisible;
 
-    // setIsVisible(newVisibility);
     setWidgetState((prevState) => ({
       ...prevState,
       isVisible: newVisibility
     }));
 
-    const updatedWidget = {
-      ...widget,
+    updateWidget(widget.generalParams.id, (current) => ({
+      ...current,
       generalParams: {
-        ...widget.generalParams,
+        ...current.generalParams,
         isVisible: newVisibility
       }
-    };
-    updateWidget(updatedWidget);
+    }));
   }, [widgetState.isVisible, widget, updateWidget]);
 
   const handleAnchorChange = useCallback(
     (event: SelectChangeEvent<string>) => {
       const newAnchor = event.target.value as string;
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           anchor: newAnchor
         }
-      };
-      updateWidget(updatedWidget);
+      }));
       /* Play sound if anchored */
       if (newAnchor !== 'none') {
         playSound(lockSoundUrl);
@@ -111,14 +119,13 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
   const handleSizeChange = useCallback(
     (event: SelectChangeEvent<string>) => {
       const newSize = event.target.value;
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           size: newSize
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [widget, updateWidget]
   );
@@ -134,91 +141,111 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
   );
 
   const handleTransparencyChangeCommitted = useCallback(() => {
-    const updatedWidget = {
-      ...widget,
+    updateWidget(widget.generalParams.id, (current) => ({
+      ...current,
       generalParams: {
-        ...widget.generalParams,
+        ...current.generalParams,
         transparency: widgetState.sliderValue
       }
-    };
-    updateWidget(updatedWidget);
+    }));
   }, [widgetState.sliderValue, widget, updateWidget]);
-
-  /* Debounced textfield handlers */
-  const debouncedDatasource = useDebouncedValue(widgetState.datasource, 300);
-  const debouncedChannel = useDebouncedValue(widgetState.channel, 200);
-  const debouncedUpdateTime = useDebouncedValue(widgetState.updateTime, 500);
-
-  /* FIXME: HACK: to not fire updateWidget on mount */
-  const [isReady, setIsReady] = useState(false);
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
-
-  useEffect(() => {
-    /* HACK: */
-    if (!isReady) {
-      return;
-    }
-
-    let updatedWidget = { ...widget };
-    if (debouncedDatasource !== undefined && debouncedDatasource !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          datasource: debouncedDatasource
-        }
-      };
-    }
-    if (debouncedChannel !== undefined && debouncedChannel !== null) {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          channel: debouncedChannel
-        }
-      };
-    }
-    if (debouncedUpdateTime !== undefined && debouncedUpdateTime !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          updateTime: debouncedUpdateTime
-        }
-      };
-    }
-    if (
-      debouncedDatasource !== undefined ||
-      debouncedChannel !== undefined ||
-      debouncedUpdateTime !== undefined
-    ) {
-      updateWidget(updatedWidget);
-    }
-  }, [debouncedDatasource, debouncedChannel, debouncedUpdateTime]);
 
   const [updateTimeInput, setUpdateTimeInput] = useState(
     String(widgetState.updateTime)
   );
 
+  /* Latest values for the debounced sender, updated after every render. */
+  const latestRef = useRef({
+    widgetId: widget.generalParams.id,
+    widgetState,
+    updateTimeInput,
+    updateWidget
+  });
+  useEffect(() => {
+    latestRef.current = {
+      widgetId: widget.generalParams.id,
+      widgetState,
+      updateTimeInput,
+      updateWidget
+    };
+  });
+
+  /* One cancellable debounced sender for datasource, channel and update
+   * time. Reads the latest widget when it runs. */
+  const debouncedSend = useRef(
+    debounce(() => {
+      const {
+        widgetId,
+        widgetState: latestState,
+        updateTimeInput: latestUpdateTimeInput,
+        updateWidget: latestUpdateWidget
+      } = latestRef.current;
+
+      latestUpdateWidget(widgetId, (current) => {
+        const pending: Partial<typeof current.generalParams> = {};
+
+        if (
+          latestState.datasource !== '' &&
+          latestState.datasource !== current.generalParams.datasource
+        ) {
+          pending.datasource = latestState.datasource;
+        }
+
+        if (latestState.channel !== current.generalParams.channel) {
+          pending.channel = latestState.channel;
+        }
+
+        const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
+        if (
+          !isNaN(parsedUpdateTime) &&
+          parsedUpdateTime >= 0 &&
+          parsedUpdateTime !== current.generalParams.updateTime
+        ) {
+          pending.updateTime = parsedUpdateTime;
+        }
+
+        if (Object.keys(pending).length === 0) {
+          return current;
+        }
+
+        return {
+          ...current,
+          generalParams: { ...current.generalParams, ...pending }
+        };
+      });
+    }, 300)
+  ).current;
+
+  /* Cancel pending updates when the editor is removed or the page
+   * navigates away. */
+  useEffect(() => {
+    return () => {
+      debouncedSend.cancel();
+    };
+  }, [debouncedSend]);
+
+  /* Flush pending edits before closing the row. debouncedSend() ensures a
+   * call is pending even if the row closes before the sender was
+   * scheduled. */
+  const flushPendingChanges = useCallback(() => {
+    debouncedSend();
+    debouncedSend.flush();
+  }, [debouncedSend]);
+
+  /* Cancel pending edits without sending them, for a confirmed removal. */
+  const cancelPendingChanges = useCallback(() => {
+    debouncedSend.cancel();
+  }, [debouncedSend]);
+
+  useImperativeHandle(
+    ref,
+    () => ({ flushPendingChanges, cancelPendingChanges }),
+    [flushPendingChanges, cancelPendingChanges]
+  );
+
   useEffect(() => {
     setUpdateTimeInput(String(widgetState.updateTime));
   }, [widgetState.updateTime]);
-
-  const debouncedUpdateTimeInput = useDebouncedValue(updateTimeInput, 500);
-
-  useEffect(() => {
-    if (debouncedUpdateTimeInput !== '') {
-      const parsed = parseFloat(debouncedUpdateTimeInput);
-      if (!isNaN(parsed) && parsed >= 0) {
-        setWidgetState((prevState) => ({
-          ...prevState,
-          updateTime: parsed
-        }));
-      }
-    }
-  }, [debouncedUpdateTimeInput]);
 
   const handleDatasourceChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -227,6 +254,7 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       ...prevState,
       datasource: event.target.value
     }));
+    debouncedSend();
   };
 
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,12 +270,14 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         channel: 0
       }));
     }
+    debouncedSend();
   };
 
   const handleUpdateTimeChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setUpdateTimeInput(event.target.value);
+    debouncedSend();
   };
 
   const handleUpdateTimeBlur = () => {
@@ -278,14 +308,13 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
 
   const handleSetDepth = useCallback(
     (mode: string) => {
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           depth: mode
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [widget, updateWidget]
   );
@@ -553,6 +582,8 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       {/* General Params End */}
     </Box>
   );
-};
+});
+
+WidgetGeneralParams.displayName = 'WidgetGeneralParams';
 
 export default WidgetGeneralParams;

@@ -28,7 +28,7 @@ import { diagonalTrianglePatternSx } from '../helpers/backgrounds';
 import VideoPlayer from './VideoPlayer';
 import AlertSnackbar from './AlertSnackbar';
 /* Widgets */
-import { useWidgetContext } from './widget/WidgetContext';
+import { useWidgetData, useWidgetActions } from './widget/WidgetContext';
 import WidgetsDisabled from './widget/WidgetsDisabled';
 /* Overlays */
 import { useOverlayContext } from './overlay/OverlayContext';
@@ -72,7 +72,8 @@ const Settings: React.FC = () => {
   const backendAvailable =
     parameters?.['root.Widget_wizard.ApplicationRunning'];
 
-  const { listWidgets, widgetSupported } = useWidgetContext();
+  const { widgetSupported } = useWidgetData();
+  const { listWidgets } = useWidgetActions();
   const { listOverlays, overlaySupported } = useOverlayContext();
 
   /* Refs */

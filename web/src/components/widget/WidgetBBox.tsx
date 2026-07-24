@@ -26,7 +26,12 @@ import {
   useAppSettingsContext,
   useChannelContext
 } from '../context/AppContext';
-import { useWidgetContext } from './WidgetContext';
+import {
+  useWidgetUi,
+  useWidgetUiSetters,
+  useWidgetActions,
+  useWidgetData
+} from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -37,6 +42,35 @@ import Typography from '@mui/material/Typography';
 
 const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
+
+interface AlignmentGuides {
+  showVerticalCenter: boolean;
+  showHorizontalCenter: boolean;
+  showTop: boolean;
+  showBottom: boolean;
+  showLeft: boolean;
+  showRight: boolean;
+}
+
+const NO_ALIGNMENT_GUIDES: AlignmentGuides = {
+  showVerticalCenter: false,
+  showHorizontalCenter: false,
+  showTop: false,
+  showBottom: false,
+  showLeft: false,
+  showRight: false
+};
+
+/* Shallow equality check so drag-driven pointer-move events don't trigger a
+ * rerender when the alignment guide flags haven't actually changed.
+ */
+const guidesEqual = (a: AlignmentGuides, b: AlignmentGuides): boolean =>
+  a.showVerticalCenter === b.showVerticalCenter &&
+  a.showHorizontalCenter === b.showHorizontalCenter &&
+  a.showTop === b.showTop &&
+  a.showBottom === b.showBottom &&
+  a.showLeft === b.showLeft &&
+  a.showRight === b.showRight;
 
 /* Anchor snap zones in percent: */
 const CORNER_THRESHOLD_PERCENT = 0.005;
@@ -49,12 +83,20 @@ const LEFTRIGHT_THRESHOLD_Y_PERCENT = 0.02;
 interface WidgetBoxProps {
   widget: Widget;
   dimensions: Dimensions;
-  registerRef?: (el: HTMLElement | null) => void;
+  registerRef?: (id: number, el: HTMLElement | null) => void;
+  /* Primitive UI state, computed by the parent. Passing primitives instead
+   * of letting this component read the full context directly means
+   * React.memo can bail out for widgets whose own state hasn't changed,
+   * even while another widget is being dragged.
+   */
+  isActive: boolean;
+  isHighlighted: boolean;
+  isOpen: boolean;
 }
 
 // prettier-ignore
 export const WidgetBox = React.memo(
-  ({ widget, dimensions, registerRef }: WidgetBoxProps) => {
+  ({ widget, dimensions, registerRef, isActive, isHighlighted, isOpen }: WidgetBoxProps) => {
 
   /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
@@ -95,33 +137,26 @@ export const WidgetBox = React.memo(
     y: number;
   } | null>(null);
 
-  const [alignmentGuides, setAlignmentGuides] = React.useState<{
-    showVerticalCenter: boolean;
-    showHorizontalCenter: boolean;
-    showTop: boolean;
-    showBottom: boolean;
-    showLeft: boolean;
-    showRight: boolean;
-  }>({
-    showVerticalCenter: false,
-    showHorizontalCenter: false,
-    showTop: false,
-    showBottom: false,
-    showLeft: false,
-    showRight: false
-  });
+  const [alignmentGuides, setAlignmentGuides] =
+    React.useState<AlignmentGuides>(NO_ALIGNMENT_GUIDES);
+
+  /* Skip the state update entirely when the guide flags haven't changed, so
+   * pointer-move events during a drag don't force a rerender every time.
+   */
+  const updateAlignmentGuides = useCallback((next: AlignmentGuides) => {
+    setAlignmentGuides((current) =>
+      guidesEqual(current, next) ? current : next
+    );
+  }, []);
 
   /* Global context */
   const { appSettings } = useAppSettingsContext();
-  const {
-    activeWidgets,
-    setActiveWidgets,
-    updateWidget,
-    activeDraggableWidget,
-    setActiveDraggableWidget,
-    openWidgetId,
-    setOpenWidgetId
-  } = useWidgetContext();
+  const { updateWidget } = useWidgetActions();
+  /* Only the setters are needed here. isActive/isHighlighted/isOpen are
+   * supplied as primitive props by the parent, so subscribing to the full
+   * UI state context would rerender every bbox whenever any widget's
+   * active/open state changes, defeating React.memo. */
+  const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
 
   /* BBox colors */
   const bboxColor = useMemo(() => {
@@ -250,14 +285,7 @@ export const WidgetBox = React.memo(
       setShowIndicators(false);
 
       if (!appSettings.snapToAnchor) {
-        setAlignmentGuides({
-          showVerticalCenter: false,
-          showHorizontalCenter: false,
-          showTop: false,
-          showBottom: false,
-          showLeft: false,
-          showRight: false
-        });
+        updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
         return;
       }
       const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
@@ -277,7 +305,7 @@ export const WidgetBox = React.memo(
       );
 
       /* Update alignment guides */
-      setAlignmentGuides({
+      updateAlignmentGuides({
         showVerticalCenter: flags.nearVerticalCenter,
         showHorizontalCenter: flags.nearHorizontalCenter,
         showTop: flags.nearTop || flags.nearTopCenter,
@@ -286,7 +314,13 @@ export const WidgetBox = React.memo(
         showRight: flags.nearRight || flags.nearCenterRight
       });
     },
-    [appSettings.snapToAnchor, dimensions, scaleFactor, thresholds]
+    [
+      appSettings.snapToAnchor,
+      dimensions,
+      scaleFactor,
+      thresholds,
+      updateAlignmentGuides
+    ]
   );
 
   /* Handle drag stop */
@@ -319,14 +353,7 @@ export const WidgetBox = React.memo(
           highlight: false
         });
         setDragStartPos(null);
-        setAlignmentGuides({
-          showVerticalCenter: false,
-          showHorizontalCenter: false,
-          showTop: false,
-          showBottom: false,
-          showLeft: false,
-          showRight: false
-        });
+        updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
         return;
       }
       if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
@@ -433,23 +460,21 @@ export const WidgetBox = React.memo(
         Math.abs(posY - currentPosY) > EPSILON ||
         finalAnchor !== widget.generalParams.anchor
       ) {
-        const updatedWidget = {
-          ...widget,
-          generalParams: {
-            ...widget.generalParams,
-            position: { x: posX, y: posY },
-            anchor: finalAnchor,
-            ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
-          }
-        };
-        /* Update the active widget state */
-        setActiveWidgets((prevWidgets) =>
-          prevWidgets.map((w) =>
-            w.generalParams.id === widget.generalParams.id ? updatedWidget : w
-          )
+        /* Update local and backend state in one optimistic call, without
+         * toggling the global loading indicator for a routine drag. */
+        updateWidget(
+          widget.generalParams.id,
+          (current) => ({
+            ...current,
+            generalParams: {
+              ...current.generalParams,
+              position: { x: posX, y: posY },
+              anchor: finalAnchor,
+              ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
+            }
+          }),
+          { optimistic: true, showLoading: false }
         );
-        /* Update the widget */
-        updateWidget(updatedWidget);
       }
 
       setActiveDraggableWidget({
@@ -459,22 +484,15 @@ export const WidgetBox = React.memo(
         highlight: false
       });
 
-      setAlignmentGuides({
-        showVerticalCenter: false,
-        showHorizontalCenter: false,
-        showTop: false,
-        showBottom: false,
-        showLeft: false,
-        showRight: false
-      });
+      updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
     },
     [
       dimensions,
       scaleFactor,
       thresholds,
-      setActiveWidgets,
       setActiveDraggableWidget,
       updateWidget,
+      updateAlignmentGuides,
       dragStartPos,
       showIndicators,
       appSettings.widgetAutoBringFront
@@ -484,14 +502,13 @@ export const WidgetBox = React.memo(
   /* widgetAutoBringFront enabled will trigger an update call for every click on the widget */
   const setDepth = useCallback(
     (mode: string, widget: Widget) => {
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           depth: mode
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [updateWidget]
   );
@@ -506,7 +523,7 @@ export const WidgetBox = React.memo(
       }
 
       const widgetId = widget.generalParams.id;
-      const isCurrentlyOpen = openWidgetId === widgetId;
+      const isCurrentlyOpen = isOpen;
 
       setActiveDraggableWidget({
         id: widgetId,
@@ -523,7 +540,7 @@ export const WidgetBox = React.memo(
       }
     },
     [
-      openWidgetId,
+      isOpen,
       setActiveDraggableWidget,
       setOpenWidgetId,
       appSettings.widgetAutoBringFront,
@@ -540,7 +557,7 @@ export const WidgetBox = React.memo(
 
   const { x, y } = anchoredPosition;
 
-  const widgetIsActive = activeDraggableWidget?.id === widget.generalParams.id;
+  const widgetIsActive = isActive;
 
   /* NOTE: React 19: ReactDOM.findDOMNode() is removed.
    * react-draggable still tries to use findDOMNode unless a `nodeRef` is provided.
@@ -561,7 +578,6 @@ export const WidgetBox = React.memo(
         <div>
           <Draggable
             nodeRef={nodeRef as React.RefObject<HTMLElement>}
-            key={`${widget.generalParams.id}-${x}-${y}`}
             position={{ x, y }}
             bounds={{
               left: 0,
@@ -576,7 +592,7 @@ export const WidgetBox = React.memo(
             <Box
               ref={(el) => {
                 nodeRef.current = el as HTMLElement | null;
-                registerRef?.(el as HTMLElement | null);
+                registerRef?.(widget.generalParams.id, el as HTMLElement | null);
               }}
               sx={{
                 width: `${widget.width * scaleFactor}px`,
@@ -589,15 +605,12 @@ export const WidgetBox = React.memo(
                 pointerEvents: 'auto',
                 cursor: 'move',
                 backgroundColor:
-                  widgetIsActive && activeDraggableWidget?.highlight
+                  widgetIsActive && isHighlighted
                     ? `${bboxColor}4D`
                     : 'transparent',
                 zIndex: widgetIsActive ? 1000 : 1,
                 opacity:
-                  appSettings.bboxOnlyShowActive &&
-                  activeDraggableWidget?.id !== widget.generalParams.id
-                    ? 0
-                    : 1
+                  appSettings.bboxOnlyShowActive && !widgetIsActive ? 0 : 1
               }}
             >
               {/* Anchor point indicators */}
@@ -743,12 +756,13 @@ interface WidgetBBoxProps {
 const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const { currentChannel } = useChannelContext();
+  const { activeWidgets } = useWidgetData();
   const {
-    activeWidgets,
     activeDraggableWidget,
     setActiveDraggableWidget,
+    openWidgetId,
     setOpenWidgetId
-  } = useWidgetContext();
+  } = useWidgetUi();
 
   /* Refs: keep live refs to all BBox elements */
   const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());
@@ -805,14 +819,19 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
               key={widget.generalParams.id}
               widget={widget}
               dimensions={dimensions}
-              /* Each bbox has its own ref */
-              registerRef={(el) => {
+              isActive={activeDraggableWidget?.id === widgetId}
+              isHighlighted={
+                activeDraggableWidget?.id === widgetId &&
+                !!activeDraggableWidget?.highlight
+              }
+              isOpen={openWidgetId === widgetId}
+              /* Single stable callback. The id is passed as an argument
+               * rather than baked into a per-widget closure. */
+              registerRef={(id, el) => {
                 if (el) {
-                  /* Mount: store the bbox element reference using widget ID */
-                  bboxRefs.current.set(widgetId, el);
+                  bboxRefs.current.set(id, el);
                 } else {
-                  /* Unmount: remove the bbox reference by widget ID */
-                  bboxRefs.current.delete(widgetId);
+                  bboxRefs.current.delete(id);
                 }
               }}
             />

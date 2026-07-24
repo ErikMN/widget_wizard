@@ -128,9 +128,9 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
         {jsonVisible ? 'Hide JSON editor' : 'Show JSON editor'}
       </CustomButton>
 
-      <Collapse in={jsonVisible}>
+      <Collapse in={jsonVisible} unmountOnExit>
         <div>
-          {!useJsonEditorPro ? (
+          {jsonVisible && !useJsonEditorPro && (
             <div style={codeStyles}>
               <CodeEditor
                 value={jsonInput}
@@ -161,7 +161,8 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
                 spellCheck={false}
               />
             </div>
-          ) : (
+          )}
+          {jsonVisible && useJsonEditorPro && (
             <ReactJson
               src={safeParseJson(jsonInput)}
               onEdit={(edit) => {

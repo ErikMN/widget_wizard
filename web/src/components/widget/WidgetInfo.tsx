@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScreenSizes } from '../../helpers/hooks.jsx';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetData, useWidgetActions } from './WidgetContext';
 import { CustomStyledIconButton } from '../CustomComponents';
 /* MUI */
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
@@ -14,7 +14,8 @@ const WidgetInfo: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   /* Global context */
-  const { activeWidgets, widgetSupported, listWidgets } = useWidgetContext();
+  const { activeWidgets, widgetSupported } = useWidgetData();
+  const { listWidgets } = useWidgetActions();
 
   /* Navigation */
   const navigate = useNavigate();

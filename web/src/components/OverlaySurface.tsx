@@ -9,14 +9,14 @@
  * - Render PTZ crosshair control
  * - Render draw mode canvas layer
  */
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Dimensions } from './appInterface';
 import { useAppSettingsContext, useChannelContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */
-import { useWidgetContext } from './widget/WidgetContext';
+import { useWidgetData, useWidgetUi } from './widget/WidgetContext';
 import { WidgetBox } from './widget/WidgetBBox';
 
 /* Overlay bbox */
@@ -46,12 +46,13 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const { appSettings } = useAppSettingsContext();
 
   /* Widget context */
+  const { activeWidgets } = useWidgetData();
   const {
-    activeWidgets,
     activeDraggableWidget,
     setActiveDraggableWidget,
+    openWidgetId,
     setOpenWidgetId
-  } = useWidgetContext();
+  } = useWidgetUi();
 
   /* Overlay context */
   const {
@@ -66,6 +67,37 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const overlayRefs = useRef<Map<number, HTMLElement>>(new Map());
   const [stableDimensions, setStableDimensions] = useState<Dimensions | null>(
     null
+  );
+
+  /* Stable ref-registration callbacks.
+   *
+   * Without this, `registerRef={(el) => {...}}` would create a brand new
+   * function on every render, which would defeat React.memo on WidgetBox /
+   * OverlayBox: their props would never be shallow-equal across renders.
+   * The id is passed as an argument at call time (rather than captured
+   * per-id in a growing cache), so a single stable function covers every
+   * row and nothing needs to be cleaned up as widgets/overlays come and go.
+   */
+  const registerWidgetRef = useCallback(
+    (id: number, el: HTMLElement | null) => {
+      if (el) {
+        widgetRefs.current.set(id, el);
+      } else {
+        widgetRefs.current.delete(id);
+      }
+    },
+    []
+  );
+
+  const registerOverlayRef = useCallback(
+    (id: number, el: HTMLElement | null) => {
+      if (el) {
+        overlayRefs.current.set(id, el);
+      } else {
+        overlayRefs.current.delete(id);
+      }
+    },
+    []
   );
 
   /* Only one bbox system should have an active bbox at any time:
@@ -220,13 +252,13 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
                 key={widgetId}
                 widget={widget}
                 dimensions={surfaceDimensions}
-                registerRef={(el) => {
-                  if (el) {
-                    widgetRefs.current.set(widgetId, el);
-                  } else {
-                    widgetRefs.current.delete(widgetId);
-                  }
-                }}
+                registerRef={registerWidgetRef}
+                isActive={activeDraggableWidget.id === widgetId}
+                isHighlighted={
+                  activeDraggableWidget.id === widgetId &&
+                  activeDraggableWidget.highlight
+                }
+                isOpen={openWidgetId === widgetId}
               />
             );
           }
@@ -249,13 +281,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
               overlay={overlay}
               dimensions={surfaceDimensions}
               onSelect={onSelectOverlay}
-              registerRef={(el) => {
-                if (el) {
-                  overlayRefs.current.set(overlay.identity, el);
-                } else {
-                  overlayRefs.current.delete(overlay.identity);
-                }
-              }}
+              registerRef={registerOverlayRef}
             />
           ))}
 

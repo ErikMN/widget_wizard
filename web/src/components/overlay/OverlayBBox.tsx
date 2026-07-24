@@ -45,7 +45,7 @@ interface OverlayBoxProps {
   overlay: ImageOverlay | TextOverlay;
   dimensions: Dimensions;
   onSelect: (id: number | null) => void;
-  registerRef?: (el: HTMLElement | null) => void;
+  registerRef?: (id: number, el: HTMLElement | null) => void;
 }
 
 export const OverlayBox: React.FC<OverlayBoxProps> = ({
@@ -643,7 +643,7 @@ export const OverlayBox: React.FC<OverlayBoxProps> = ({
             <Box
               ref={(el) => {
                 nodeRef.current = el as HTMLElement | null;
-                registerRef?.(el as HTMLElement | null);
+                registerRef?.(overlay.identity, el as HTMLElement | null);
               }}
               sx={{
                 width: `${wPx}px`,
@@ -930,14 +930,13 @@ const OverlayBBox: React.FC<OverlayBBoxProps> = ({ dimensions }) => {
             overlay={overlay}
             dimensions={dimensions}
             onSelect={onSelectOverlay}
-            /* Each bbox has its own ref */
-            registerRef={(el) => {
+            /* Single stable callback. The id is passed as an argument
+             * rather than baked into a per-overlay closure. */
+            registerRef={(id, el) => {
               if (el) {
-                /* Mount: store the bbox element reference using overlay ID */
-                bboxRefs.current.set(overlay.identity, el);
+                bboxRefs.current.set(id, el);
               } else {
-                /* Unmount: remove the bbox reference by overlay ID */
-                bboxRefs.current.delete(overlay.identity);
+                bboxRefs.current.delete(id);
               }
             }}
           />
