@@ -16,6 +16,7 @@
     "@types/lodash": "^4.17.24",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "lodash": "^4.18.1",
     "luxon": "^3.7.2",
@@ -30,7 +31,7 @@
     "react-syntax-highlighter": "^16.1.1",
     "rehype-prism-plus": "^2.0.2",
     "styled-components": "^6.4.4",
-    "typescript": "^7.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
@@ -58,7 +59,7 @@
     "build": "./version.sh && tsc && vite build",
     "deploy": "make -C ../ deployweb",
     "license": "license-checker --json",
-    "lint": "npx eslint .",
+    "lint": "eslint .",
     "format": "npx prettier --write .",
     "stylelint": "npx stylelint './src/**/*.css'",
     "checkupdate": "npx npm-check-updates",
