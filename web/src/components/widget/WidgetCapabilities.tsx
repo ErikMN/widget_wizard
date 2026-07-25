@@ -5,7 +5,7 @@ import { useThemeContext } from '../context/AppContext';
 import { useWidgetActions, useWidgetData } from './WidgetContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import WidgetsDisabled from './WidgetsDisabled';
-import ReactJson from 'react-json-view';
+import ReactJson from '../ReactJsonView';
 import { diagonalTrianglePatternSx } from '../../helpers/backgrounds';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';

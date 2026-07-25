@@ -5,7 +5,7 @@ import { useThemeContext } from '../context/AppContext';
 import { useOverlayContext } from './OverlayContext';
 import { CustomContainer, CustomBox, CustomButton } from '../CustomComponents';
 import OverlaysDisabled from './OverlaysDisabled';
-import ReactJson from 'react-json-view';
+import ReactJson from '../ReactJsonView';
 import { diagonalTrianglePatternSx } from '../../helpers/backgrounds';
 /* MUI */
 import { ThemeProvider, CssBaseline } from '@mui/material';

@@ -8,7 +8,7 @@ import { useAppSettingsContext, useThemeContext } from './context/AppContext';
 import { CustomButton, CustomSwitch } from './CustomComponents';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import rehypePrism from 'rehype-prism-plus';
-import ReactJson from 'react-json-view';
+import ReactJson from './ReactJsonView';
 /* MUI */
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
@@ -25,6 +25,10 @@ interface JsonEditorProps {
   onUpdate: () => void;
   onParseJson?: (parsed: any | null) => void;
   updateLabel?: string;
+}
+
+interface ReactJsonChange {
+  updated_src: unknown;
 }
 
 /* Safe JSON parser */
@@ -165,21 +169,21 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
           {jsonVisible && useJsonEditorPro && (
             <ReactJson
               src={safeParseJson(jsonInput)}
-              onEdit={(edit) => {
+              onEdit={(edit: ReactJsonChange) => {
                 const updated = JSON.stringify(edit.updated_src, null, 2);
                 setJsonInput(updated);
                 if (onParseJson) {
                   onParseJson(edit.updated_src);
                 }
               }}
-              onAdd={(add) => {
+              onAdd={(add: ReactJsonChange) => {
                 const updated = JSON.stringify(add.updated_src, null, 2);
                 setJsonInput(updated);
                 if (onParseJson) {
                   onParseJson(add.updated_src);
                 }
               }}
-              onDelete={(del) => {
+              onDelete={(del: ReactJsonChange) => {
                 const updated = JSON.stringify(del.updated_src, null, 2);
                 setJsonInput(updated);
                 if (onParseJson) {
