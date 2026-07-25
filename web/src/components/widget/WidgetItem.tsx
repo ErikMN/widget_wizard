@@ -1,14 +1,18 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
 import { useWidgetActions } from './WidgetContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
-import WidgetGeneralParams from './WidgetGeneralParams';
-import WidgetSpecificParams from './WidgetSpecificParams';
+import WidgetGeneralParams, {
+  WidgetGeneralParamsHandle
+} from './WidgetGeneralParams';
+import WidgetSpecificParams, {
+  WidgetSpecificParamsHandle
+} from './WidgetSpecificParams';
 import { saveWidgetBackup } from './widgetBackupStorage';
 import { useAlertActionsContext } from '../context/AppContext';
 /* MUI */
@@ -67,6 +71,26 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   const { updateWidget, addCustomWidget } = useWidgetActions();
 
   const { handleOpenAlert } = useAlertActionsContext();
+
+  const generalParamsRef = useRef<WidgetGeneralParamsHandle>(null);
+  const specificParamsRef = useRef<WidgetSpecificParamsHandle>(null);
+  const wasOpenRef = useRef(isOpen);
+  const wasWidgetParamsVisibleRef = useRef(widgetParamsVisible);
+
+  useEffect(() => {
+    if (wasOpenRef.current && !isOpen) {
+      generalParamsRef.current?.flushPendingChanges();
+      specificParamsRef.current?.flushPendingChanges();
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (wasWidgetParamsVisibleRef.current && !widgetParamsVisible) {
+      specificParamsRef.current?.flushPendingChanges();
+    }
+    wasWidgetParamsVisibleRef.current = widgetParamsVisible;
+  }, [widgetParamsVisible]);
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
@@ -205,6 +229,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
         >
           {/* General Params */}
           <WidgetGeneralParams
+            ref={generalParamsRef}
             widget={widget}
             widgetState={widgetState}
             setWidgetState={setWidgetState}
@@ -237,7 +262,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               : 'Show widget parameters'}
           </CustomButton>
           <Collapse in={widgetParamsVisible}>
-            <WidgetSpecificParams widget={widget} />
+            <WidgetSpecificParams ref={specificParamsRef} widget={widget} />
           </Collapse>
           {/* Widget Params End */}
 

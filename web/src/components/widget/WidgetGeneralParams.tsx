@@ -1,11 +1,18 @@
 /* Widget Wizard
  * General widget params.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
+import { debounce } from 'lodash';
 import { Widget } from './widgetInterfaces';
 import { useWidgetActions, useWidgetData, useWidgetUi } from './WidgetContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
-import { useDebouncedValue } from '../../helpers/hooks';
 import { playSound } from '../../helpers/utils';
 import lockSoundUrl from '../../assets/audio/lock.oga';
 import unlockSoundUrl from '../../assets/audio/unlock.oga';
@@ -52,11 +59,16 @@ interface WidgetGeneralParamsProps {
     }>
   >;
 }
-const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
-  widget,
-  widgetState,
-  setWidgetState
-}) => {
+
+export interface WidgetGeneralParamsHandle {
+  flushPendingChanges: () => void;
+  cancelPendingChanges: () => void;
+}
+
+const WidgetGeneralParams = forwardRef<
+  WidgetGeneralParamsHandle,
+  WidgetGeneralParamsProps
+>(({ widget, widgetState, setWidgetState }, ref) => {
   /* Global context */
   const { widgetCapabilities } = useWidgetData();
   const { activeDraggableWidget, setActiveDraggableWidget } = useWidgetUi();
@@ -141,89 +153,105 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
     updateWidget(updatedWidget);
   }, [widgetState.sliderValue, widget, updateWidget]);
 
-  /* Debounced textfield handlers */
-  const debouncedDatasource = useDebouncedValue(widgetState.datasource, 300);
-  const debouncedChannel = useDebouncedValue(widgetState.channel, 200);
-  const debouncedUpdateTime = useDebouncedValue(widgetState.updateTime, 500);
-
-  /* FIXME: HACK: to not fire updateWidget on mount */
-  const [isReady, setIsReady] = useState(false);
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
-
-  useEffect(() => {
-    /* HACK: */
-    if (!isReady) {
-      return;
-    }
-
-    let updatedWidget = { ...widget };
-    if (debouncedDatasource !== undefined && debouncedDatasource !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          datasource: debouncedDatasource
-        }
-      };
-    }
-    if (debouncedChannel !== undefined && debouncedChannel !== null) {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          channel: debouncedChannel
-        }
-      };
-    }
-    if (debouncedUpdateTime !== undefined && debouncedUpdateTime !== '') {
-      updatedWidget = {
-        ...updatedWidget,
-        generalParams: {
-          ...updatedWidget.generalParams,
-          updateTime: debouncedUpdateTime
-        }
-      };
-    }
-    if (
-      debouncedDatasource !== undefined ||
-      debouncedChannel !== undefined ||
-      debouncedUpdateTime !== undefined
-    ) {
-      updateWidget(updatedWidget);
-    }
-  }, [debouncedDatasource, debouncedChannel, debouncedUpdateTime]);
-
   const [updateTimeInput, setUpdateTimeInput] = useState(
     String(widgetState.updateTime)
+  );
+
+  const latestRef = useRef({
+    widget,
+    widgetState,
+    updateTimeInput,
+    updateWidget
+  });
+
+  useEffect(() => {
+    latestRef.current = {
+      widget,
+      widgetState,
+      updateTimeInput,
+      updateWidget
+    };
+  });
+
+  const debouncedSend = useRef(
+    debounce(() => {
+      const {
+        widget: latestWidget,
+        widgetState: latestState,
+        updateTimeInput: latestUpdateTimeInput,
+        updateWidget: latestUpdateWidget
+      } = latestRef.current;
+
+      const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
+      const nextGeneralParams = {
+        ...latestWidget.generalParams,
+        datasource:
+          latestState.datasource !== ''
+            ? latestState.datasource
+            : latestWidget.generalParams.datasource,
+        channel: latestState.channel,
+        updateTime:
+          !isNaN(parsedUpdateTime) && parsedUpdateTime >= 0
+            ? parsedUpdateTime
+            : latestWidget.generalParams.updateTime
+      };
+
+      if (
+        nextGeneralParams.datasource === latestWidget.generalParams.datasource &&
+        nextGeneralParams.channel === latestWidget.generalParams.channel &&
+        nextGeneralParams.updateTime === latestWidget.generalParams.updateTime
+      ) {
+        return;
+      }
+
+      latestUpdateWidget({
+        ...latestWidget,
+        generalParams: nextGeneralParams
+      });
+    }, 300)
+  ).current;
+
+  useEffect(() => {
+    return () => {
+      debouncedSend.cancel();
+    };
+  }, [debouncedSend]);
+
+  const flushPendingChanges = useCallback(() => {
+    debouncedSend();
+    debouncedSend.flush();
+  }, [debouncedSend]);
+
+  const cancelPendingChanges = useCallback(() => {
+    debouncedSend.cancel();
+  }, [debouncedSend]);
+
+  useImperativeHandle(
+    ref,
+    () => ({ flushPendingChanges, cancelPendingChanges }),
+    [flushPendingChanges, cancelPendingChanges]
   );
 
   useEffect(() => {
     setUpdateTimeInput(String(widgetState.updateTime));
   }, [widgetState.updateTime]);
 
-  const debouncedUpdateTimeInput = useDebouncedValue(updateTimeInput, 500);
-
-  useEffect(() => {
-    if (debouncedUpdateTimeInput !== '') {
-      const parsed = parseFloat(debouncedUpdateTimeInput);
-      if (!isNaN(parsed) && parsed >= 0) {
-        setWidgetState((prevState) => ({
-          ...prevState,
-          updateTime: parsed
-        }));
-      }
-    }
-  }, [debouncedUpdateTimeInput]);
-
   const handleDatasourceChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    const datasource = event.target.value;
     setWidgetState((prevState) => ({
       ...prevState,
-      datasource: event.target.value
+      datasource
     }));
+    latestRef.current = {
+      ...latestRef.current,
+      widgetState: {
+        ...latestRef.current.widgetState,
+        datasource
+      }
+    };
+    debouncedSend();
   };
 
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,18 +261,39 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         ...prevState,
         channel: newChannel
       }));
+      latestRef.current = {
+        ...latestRef.current,
+        widgetState: {
+          ...latestRef.current.widgetState,
+          channel: newChannel
+        }
+      };
     } else if (event.target.value === '') {
       setWidgetState((prevState) => ({
         ...prevState,
         channel: 0
       }));
+      latestRef.current = {
+        ...latestRef.current,
+        widgetState: {
+          ...latestRef.current.widgetState,
+          channel: 0
+        }
+      };
     }
+    debouncedSend();
   };
 
   const handleUpdateTimeChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setUpdateTimeInput(event.target.value);
+    const updateTimeText = event.target.value;
+    setUpdateTimeInput(updateTimeText);
+    latestRef.current = {
+      ...latestRef.current,
+      updateTimeInput: updateTimeText
+    };
+    debouncedSend();
   };
 
   const handleUpdateTimeBlur = () => {
@@ -254,6 +303,15 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
         ...prevState,
         updateTime: parsed
       }));
+      latestRef.current = {
+        ...latestRef.current,
+        widgetState: {
+          ...latestRef.current.widgetState,
+          updateTime: parsed
+        },
+        updateTimeInput
+      };
+      debouncedSend();
     } else {
       setUpdateTimeInput(String(widgetState.updateTime));
     }
@@ -550,6 +608,8 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
       {/* General Params End */}
     </Box>
   );
-};
+});
+
+WidgetGeneralParams.displayName = 'WidgetGeneralParams';
 
 export default WidgetGeneralParams;

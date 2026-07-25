@@ -1,5 +1,11 @@
 /* WidgetSpecificParams: Auto generate widget specific parameter UI elements. (WIP) */
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
 import { useAppSettingsContext } from '../context/AppContext';
 import { useWidgetActions, useWidgetData } from './WidgetContext';
 import { Widget } from './widgetInterfaces';
@@ -33,6 +39,11 @@ interface WidgetSpecificParamsProps {
   widget: Widget;
 }
 
+export interface WidgetSpecificParamsHandle {
+  flushPendingChanges: () => void;
+  cancelPendingChanges: () => void;
+}
+
 /* Define keys that are metadata, not actual nested params */
 const META_KEYS = [
   'minimum',
@@ -43,9 +54,10 @@ const META_KEYS = [
   'step'
 ];
 
-const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
-  widget
-}) => {
+const WidgetSpecificParams = forwardRef<
+  WidgetSpecificParamsHandle,
+  WidgetSpecificParamsProps
+>(({ widget }, ref) => {
   /* Global context */
   const { widgetCapabilities } = useWidgetData();
   const { updateWidget } = useWidgetActions();
@@ -87,6 +99,25 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
       updateWidgetRef.current(updatedWidget);
     }, 500)
   ).current;
+
+  useEffect(() => {
+    return () => {
+      debouncedUpdate.cancel();
+    };
+  }, [debouncedUpdate]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flushPendingChanges: () => {
+        debouncedUpdate.flush();
+      },
+      cancelPendingChanges: () => {
+        debouncedUpdate.cancel();
+      }
+    }),
+    [debouncedUpdate]
+  );
 
   /**
    * Called whenever a user changes a field (including nested).
@@ -722,6 +753,8 @@ const WidgetSpecificParams: React.FC<WidgetSpecificParamsProps> = ({
       )}
     </Box>
   );
-};
+});
+
+WidgetSpecificParams.displayName = 'WidgetSpecificParams';
 
 export default WidgetSpecificParams;
