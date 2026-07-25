@@ -16,10 +16,7 @@ import { useAppSettingsContext, useChannelContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */
-import {
-  useWidgetData,
-  useWidgetUi
-} from './widget/WidgetContext';
+import { useWidgetData, useWidgetUi } from './widget/WidgetContext';
 import { WidgetBox } from './widget/WidgetBBox';
 
 /* Overlay bbox */

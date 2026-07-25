@@ -1,7 +1,13 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem, { WidgetItemHandle } from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
@@ -269,9 +275,7 @@ const WidgetHandler: React.FC = () => {
 
   const handleConfirmDeleteWidget = useCallback(() => {
     if (pendingDeleteWidgetId != null) {
-      widgetItemRefs.current
-        .get(pendingDeleteWidgetId)
-        ?.cancelPendingChanges();
+      widgetItemRefs.current.get(pendingDeleteWidgetId)?.cancelPendingChanges();
       removeWidget(pendingDeleteWidgetId);
     }
     setPendingDeleteWidgetId(null);
