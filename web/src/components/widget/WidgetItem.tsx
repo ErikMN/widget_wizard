@@ -51,10 +51,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
-  const [jsonInput, setJsonInput] = useState<string>(
-    JSON.stringify(widget, null, 2)
-  );
-  const [parsedJSON, setParsedJSON] = useState<any | null>(null);
+  const [jsonInput, setJsonInput] = useState<string>('');
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   /* Combined widget general param state */
@@ -74,6 +71,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
 
   const generalParamsRef = useRef<WidgetGeneralParamsHandle>(null);
   const specificParamsRef = useRef<WidgetSpecificParamsHandle>(null);
+  const lastSyncedWidgetRef = useRef<Widget | null>(null);
   const wasOpenRef = useRef(isOpen);
   const wasWidgetParamsVisibleRef = useRef(widgetParamsVisible);
 
@@ -92,8 +90,16 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     wasWidgetParamsVisibleRef.current = widgetParamsVisible;
   }, [widgetParamsVisible]);
 
-  /* Update jsonInput whenever widget prop changes */
+  /* Preserve an unsaved JSON draft when reopening the same widget. */
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    if (lastSyncedWidgetRef.current === widget) {
+      return;
+    }
+    lastSyncedWidgetRef.current = widget;
+
     /* Store the widget's id */
     if (widget.generalParams && widget.generalParams.id) {
       setWidgetState((prevState) => ({
@@ -112,7 +118,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     }
     setJsonInput(JSON.stringify(widgetCopy, null, 2));
     setJsonError(null);
-  }, [widget]);
+  }, [isOpen, widget]);
 
   /****************************************************************************/
 
@@ -215,7 +221,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       </CustomButton>
 
       {/* Dropdown for current widget settings */}
-      <Collapse in={isOpen}>
+      <Collapse in={isOpen} unmountOnExit>
         <Box
           sx={(theme) => ({
             backgroundColor: theme.palette.background.default,
@@ -261,7 +267,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               ? 'Hide widget parameters'
               : 'Show widget parameters'}
           </CustomButton>
-          <Collapse in={widgetParamsVisible}>
+          <Collapse in={widgetParamsVisible} unmountOnExit>
             <WidgetSpecificParams ref={specificParamsRef} widget={widget} />
           </Collapse>
           {/* Widget Params End */}
@@ -273,7 +279,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             jsonError={jsonError}
             setJsonError={setJsonError}
             onUpdate={handleUpdateJSON}
-            onParseJson={setParsedJSON}
             updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
           />
 
