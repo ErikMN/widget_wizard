@@ -67,6 +67,11 @@ interface WidgetUiSettersContextProps {
 
 type WidgetUpdater = (current: Widget) => Widget;
 
+interface UpdateWidgetOptions {
+  showLoading?: boolean;
+  optimistic?: boolean;
+}
+
 type WidgetUiContextProps = WidgetUiStateContextProps &
   WidgetUiSettersContextProps;
 
@@ -83,7 +88,11 @@ interface WidgetActionsContextProps {
   addCustomWidget: (params: Widget) => Promise<void>;
   removeWidget: (widgetID: number) => Promise<void>;
   removeAllWidgets: () => Promise<void>;
-  updateWidget: (widgetId: number, updater: WidgetUpdater) => Promise<void>;
+  updateWidget: (
+    widgetId: number,
+    updater: WidgetUpdater,
+    options?: UpdateWidgetOptions
+  ) => Promise<void>;
 }
 
 type WidgetContextProps = WidgetDataContextProps &
@@ -153,7 +162,11 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Updates the parameters of a widget */
   const updateWidget = useCallback(
-    async (widgetId: number, updater: WidgetUpdater) => {
+    async (
+      widgetId: number,
+      updater: WidgetUpdater,
+      { showLoading = true, optimistic = false }: UpdateWidgetOptions = {}
+    ) => {
       if (removingWidgetIdsRef.current.has(widgetId)) {
         return;
       }
@@ -177,9 +190,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
               return;
             }
 
-            setAppLoading(true);
+            if (optimistic) {
+              setActiveWidgets((prevWidgets) =>
+                prevWidgets.map((widget) =>
+                  widget.generalParams.id === widgetId ? widgetItem : widget
+                )
+              );
+            }
+
+            if (showLoading) {
+              setAppLoading(true);
+            }
             const resp: ApiResponse = await apiUpdateWidget(widgetItem);
-            setAppLoading(false);
+            if (showLoading) {
+              setAppLoading(false);
+            }
             if (resp.error) {
               playSound(warningSoundUrl);
               handleOpenAlert(resp.error.message, 'error');
@@ -195,7 +220,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
               );
             }
           } catch (error) {
-            setAppLoading(false);
+            if (showLoading) {
+              setAppLoading(false);
+            }
             playSound(warningSoundUrl);
             handleOpenAlert(`Widget ${widgetId} failed to update`, 'error');
             console.error('Error:', error);

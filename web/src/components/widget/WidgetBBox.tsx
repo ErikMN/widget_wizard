@@ -452,15 +452,19 @@ export const WidgetBox = React.memo(
         Math.abs(posY - currentPosY) > EPSILON ||
         finalAnchor !== widget.generalParams.anchor
       ) {
-        updateWidget(widget.generalParams.id, (current) => ({
-          ...current,
-          generalParams: {
-            ...current.generalParams,
-            position: { x: posX, y: posY },
-            anchor: finalAnchor,
-            ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
-          }
-        }));
+        updateWidget(
+          widget.generalParams.id,
+          (current) => ({
+            ...current,
+            generalParams: {
+              ...current.generalParams,
+              position: { x: posX, y: posY },
+              anchor: finalAnchor,
+              ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
+            }
+          }),
+          { optimistic: true, showLoading: false }
+        );
       }
 
       setActiveDraggableWidget({
