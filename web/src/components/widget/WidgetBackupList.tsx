@@ -7,7 +7,7 @@ import {
   deleteWidgetBackup,
   clearWidgetBackups
 } from './widgetBackupStorage';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetActions } from './WidgetContext';
 import { CustomButton, CustomStyledIconButton } from './../CustomComponents';
 import { useAlertActionsContext } from '../context/AppContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
@@ -35,7 +35,7 @@ const WidgetBackupList: React.FC<{
   setBackupList: (list: any[]) => void;
 }> = ({ backupList, setBackupList }) => {
   /* Global context */
-  const { addCustomWidget } = useWidgetContext();
+  const { addCustomWidget } = useWidgetActions();
   const { handleOpenAlert } = useAlertActionsContext();
 
   /* Local state */

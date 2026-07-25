@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetActions, useWidgetUi } from './WidgetContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
@@ -64,14 +64,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   });
 
   /* Global context */
-  const {
-    removeWidget,
-    updateWidget,
-    addCustomWidget,
-    openWidgetId,
-    setOpenWidgetId,
-    activeDraggableWidget
-  } = useWidgetContext();
+  const { openWidgetId, setOpenWidgetId, activeDraggableWidget } =
+    useWidgetUi();
+  const { removeWidget, updateWidget, addCustomWidget } = useWidgetActions();
 
   const { handleOpenAlert } = useAlertActionsContext();
 

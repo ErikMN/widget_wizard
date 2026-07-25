@@ -26,7 +26,12 @@ import {
   useAppSettingsContext,
   useChannelContext
 } from '../context/AppContext';
-import { useWidgetContext } from './WidgetContext';
+import {
+  useWidgetActions,
+  useWidgetData,
+  useWidgetUi,
+  useWidgetUiSetters
+} from './WidgetContext';
 /* MUI */
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -113,15 +118,11 @@ export const WidgetBox = React.memo(
 
   /* Global context */
   const { appSettings } = useAppSettingsContext();
-  const {
-    activeWidgets,
-    setActiveWidgets,
-    updateWidget,
-    activeDraggableWidget,
-    setActiveDraggableWidget,
-    openWidgetId,
-    setOpenWidgetId
-  } = useWidgetContext();
+  const { activeWidgets } = useWidgetData();
+  const { activeDraggableWidget, openWidgetId, setActiveDraggableWidget } =
+    useWidgetUi();
+  const { setOpenWidgetId } = useWidgetUiSetters();
+  const { setActiveWidgets, updateWidget } = useWidgetActions();
 
   /* BBox colors */
   const bboxColor = useMemo(() => {
@@ -743,12 +744,9 @@ interface WidgetBBoxProps {
 const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const { currentChannel } = useChannelContext();
-  const {
-    activeWidgets,
-    activeDraggableWidget,
-    setActiveDraggableWidget,
-    setOpenWidgetId
-  } = useWidgetContext();
+  const { activeWidgets } = useWidgetData();
+  const { activeDraggableWidget } = useWidgetUi();
+  const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
 
   /* Refs: keep live refs to all BBox elements */
   const bboxRefs = useRef<Map<number, HTMLElement>>(new Map());

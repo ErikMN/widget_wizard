@@ -16,7 +16,11 @@ import { useAppSettingsContext, useChannelContext } from './context/AppContext';
 import PtzCrosshairControl from './PtzCrosshairControl';
 
 /* Widget bbox */
-import { useWidgetContext } from './widget/WidgetContext';
+import {
+  useWidgetData,
+  useWidgetUi,
+  useWidgetUiSetters
+} from './widget/WidgetContext';
 import { WidgetBox } from './widget/WidgetBBox';
 
 /* Overlay bbox */
@@ -46,12 +50,9 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const { appSettings } = useAppSettingsContext();
 
   /* Widget context */
-  const {
-    activeWidgets,
-    activeDraggableWidget,
-    setActiveDraggableWidget,
-    setOpenWidgetId
-  } = useWidgetContext();
+  const { activeWidgets } = useWidgetData();
+  const { activeDraggableWidget } = useWidgetUi();
+  const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
 
   /* Overlay context */
   const {

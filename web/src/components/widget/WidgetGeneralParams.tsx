@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetActions, useWidgetData, useWidgetUi } from './WidgetContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { useDebouncedValue } from '../../helpers/hooks';
 import { playSound } from '../../helpers/utils';
@@ -58,12 +58,9 @@ const WidgetGeneralParams: React.FC<WidgetGeneralParamsProps> = ({
   setWidgetState
 }) => {
   /* Global context */
-  const {
-    updateWidget,
-    widgetCapabilities,
-    activeDraggableWidget,
-    setActiveDraggableWidget
-  } = useWidgetContext();
+  const { widgetCapabilities } = useWidgetData();
+  const { activeDraggableWidget, setActiveDraggableWidget } = useWidgetUi();
+  const { updateWidget } = useWidgetActions();
 
   /****************************************************************************/
   /* Handle UI updates for general parameters */

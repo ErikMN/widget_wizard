@@ -6,7 +6,7 @@ import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useAppSettingsContext } from '../context/AppContext';
-import { useWidgetContext } from './WidgetContext';
+import { useWidgetActions, useWidgetData, useWidgetUi } from './WidgetContext';
 import { useOnScreenMessage } from '../context/OnScreenMessageContext';
 import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
 import { Widget } from './widgetInterfaces';
@@ -41,22 +41,22 @@ const WidgetHandler: React.FC = () => {
   const widgetHotkeysShownRef = useRef(false);
 
   /* Global context */
+  const { activeWidgets, widgetCapabilities, widgetSupported, selectedWidget } =
+    useWidgetData();
   const {
     activeDraggableWidget,
     setActiveDraggableWidget,
-    activeWidgets,
+    openWidgetId,
+    setOpenWidgetId,
+    setSelectedWidget
+  } = useWidgetUi();
+  const {
     listWidgets,
     listWidgetCapabilities,
     addWidget,
     removeAllWidgets,
-    selectedWidget,
-    setSelectedWidget,
-    widgetCapabilities,
-    openWidgetId,
-    setOpenWidgetId,
-    widgetSupported,
     updateWidget
-  } = useWidgetContext();
+  } = useWidgetActions();
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
 

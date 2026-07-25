@@ -2,7 +2,13 @@
  * This context manages widget-related operations and state
  * throughout the app.
  */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo
+} from 'react';
 import { useTabVisibility } from '../../helpers/hooks.jsx';
 import { log, enableLogging } from '../../helpers/logger.js';
 import { playSound } from '../../helpers/utils';
@@ -25,36 +31,27 @@ import {
   apiRemoveAllWidgets
 } from './widgetApi';
 
-/* Interface defining the structure of the context */
-interface WidgetContextProps {
-  /* Widget operations */
-  listWidgets: () => Promise<void>;
-  listWidgetCapabilities: () => Promise<void>;
-  addWidget: (widgetType: string) => Promise<void>;
-  addCustomWidget: (params: Widget) => Promise<void>;
-  removeWidget: (widgetID: number) => Promise<void>;
-  removeAllWidgets: () => Promise<void>;
-  updateWidget: (widgetItem: Widget) => Promise<void>;
-
-  /* Widget-related state */
+/* Widget data */
+interface WidgetDataContextProps {
   activeWidgets: Widget[];
-  setActiveWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
   widgetCapabilities: WidgetCapabilities | null;
-  setWidgetCapabilities: React.Dispatch<
-    React.SetStateAction<WidgetCapabilities | null>
-  >;
-
-  /* Widget support state (widget context) */
   widgetSupported: boolean;
-  setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedWidget: string;
+}
 
-  /* Draggable widget state */
+/* Widget UI state */
+interface WidgetUiStateContextProps {
   activeDraggableWidget: {
     id: number | null;
     active: boolean;
     clickBBox: boolean;
     highlight: boolean;
   };
+  openWidgetId: number | null;
+}
+
+/* Widget UI setters */
+interface WidgetUiSettersContextProps {
   setActiveDraggableWidget: React.Dispatch<
     React.SetStateAction<{
       id: number | null;
@@ -63,16 +60,45 @@ interface WidgetContextProps {
       highlight: boolean;
     }>
   >;
-
-  /* UI-related state */
-  openWidgetId: number | null;
   setOpenWidgetId: React.Dispatch<React.SetStateAction<number | null>>;
-  selectedWidget: string;
   setSelectedWidget: React.Dispatch<React.SetStateAction<string>>;
 }
 
-/* Creating the Widget context */
-const WidgetContext = createContext<WidgetContextProps | undefined>(undefined);
+type WidgetUiContextProps = WidgetUiStateContextProps &
+  WidgetUiSettersContextProps;
+
+/* Widget actions */
+interface WidgetActionsContextProps {
+  setActiveWidgets: React.Dispatch<React.SetStateAction<Widget[]>>;
+  setWidgetCapabilities: React.Dispatch<
+    React.SetStateAction<WidgetCapabilities | null>
+  >;
+  setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
+  listWidgets: () => Promise<void>;
+  listWidgetCapabilities: () => Promise<void>;
+  addWidget: (widgetType: string) => Promise<void>;
+  addCustomWidget: (params: Widget) => Promise<void>;
+  removeWidget: (widgetID: number) => Promise<void>;
+  removeAllWidgets: () => Promise<void>;
+  updateWidget: (widgetItem: Widget) => Promise<void>;
+}
+
+type WidgetContextProps = WidgetDataContextProps &
+  WidgetUiContextProps &
+  WidgetActionsContextProps;
+
+const WidgetDataContext = createContext<WidgetDataContextProps | undefined>(
+  undefined
+);
+const WidgetUiStateContext = createContext<
+  WidgetUiStateContextProps | undefined
+>(undefined);
+const WidgetUiSettersContext = createContext<
+  WidgetUiSettersContextProps | undefined
+>(undefined);
+const WidgetActionsContext = createContext<
+  WidgetActionsContextProps | undefined
+>(undefined);
 
 /* Inner provider that sits under AppProvider so it can consume app state */
 export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -337,38 +363,101 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /****************************************************************************/
   /* Provider */
 
-  const value: WidgetContextProps = {
-    activeDraggableWidget,
-    setActiveDraggableWidget,
-    activeWidgets,
-    setActiveWidgets,
-    widgetCapabilities,
-    setWidgetCapabilities,
-    widgetSupported,
-    setWidgetSupported,
-    selectedWidget,
-    setSelectedWidget,
-    openWidgetId,
-    setOpenWidgetId,
-    listWidgets,
-    listWidgetCapabilities,
-    addWidget,
-    addCustomWidget,
-    removeWidget,
-    removeAllWidgets,
-    updateWidget
-  };
+  const dataValue: WidgetDataContextProps = useMemo(
+    () => ({
+      activeWidgets,
+      widgetCapabilities,
+      widgetSupported,
+      selectedWidget
+    }),
+    [activeWidgets, widgetCapabilities, widgetSupported, selectedWidget]
+  );
+
+  const uiStateValue: WidgetUiStateContextProps = useMemo(
+    () => ({
+      activeDraggableWidget,
+      openWidgetId
+    }),
+    [activeDraggableWidget, openWidgetId]
+  );
+
+  const uiSettersValue: WidgetUiSettersContextProps = useMemo(
+    () => ({
+      setActiveDraggableWidget,
+      setOpenWidgetId,
+      setSelectedWidget
+    }),
+    [setActiveDraggableWidget, setOpenWidgetId, setSelectedWidget]
+  );
+
+  const actionsValue: WidgetActionsContextProps = useMemo(
+    () => ({
+      setActiveWidgets,
+      setWidgetCapabilities,
+      setWidgetSupported,
+      listWidgets,
+      listWidgetCapabilities,
+      addWidget,
+      addCustomWidget,
+      removeWidget,
+      removeAllWidgets,
+      updateWidget
+    }),
+    [
+      setWidgetCapabilities,
+      setWidgetSupported,
+      listWidgets,
+      listWidgetCapabilities,
+      addWidget,
+      addCustomWidget,
+      removeWidget,
+      removeAllWidgets,
+      updateWidget
+    ]
+  );
 
   return (
-    <WidgetContext.Provider value={value}>{children}</WidgetContext.Provider>
+    <WidgetActionsContext.Provider value={actionsValue}>
+      <WidgetDataContext.Provider value={dataValue}>
+        <WidgetUiSettersContext.Provider value={uiSettersValue}>
+          <WidgetUiStateContext.Provider value={uiStateValue}>
+            {children}
+          </WidgetUiStateContext.Provider>
+        </WidgetUiSettersContext.Provider>
+      </WidgetDataContext.Provider>
+    </WidgetActionsContext.Provider>
   );
 };
 
-/* Hook to use the WidgetContext, with an error if used outside the provider */
-export const useWidgetContext = (): WidgetContextProps => {
-  const context = useContext(WidgetContext);
-  if (!context) {
-    throw new Error('useWidgetContext must be used within a WidgetProvider');
+function useRequiredWidgetContext<T>(
+  context: React.Context<T | undefined>,
+  name: string
+): T {
+  const value = useContext(context);
+  if (!value) {
+    throw new Error(`${name} must be used within a WidgetProvider`);
   }
-  return context;
+  return value;
+}
+
+export const useWidgetData = (): WidgetDataContextProps =>
+  useRequiredWidgetContext(WidgetDataContext, 'useWidgetData');
+
+export const useWidgetUiSetters = (): WidgetUiSettersContextProps =>
+  useRequiredWidgetContext(WidgetUiSettersContext, 'useWidgetUiSetters');
+
+export const useWidgetUi = (): WidgetUiContextProps => {
+  const state = useRequiredWidgetContext(WidgetUiStateContext, 'useWidgetUi');
+  const setters = useWidgetUiSetters();
+  return { ...state, ...setters };
+};
+
+export const useWidgetActions = (): WidgetActionsContextProps =>
+  useRequiredWidgetContext(WidgetActionsContext, 'useWidgetActions');
+
+export const useWidgetContext = (): WidgetContextProps => {
+  const data = useWidgetData();
+  const ui = useWidgetUi();
+  const actions = useWidgetActions();
+  return { ...data, ...ui, ...actions };
 };
