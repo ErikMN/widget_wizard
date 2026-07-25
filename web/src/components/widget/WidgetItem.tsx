@@ -1,15 +1,14 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Widget } from './widgetInterfaces';
-import { useWidgetActions, useWidgetUi } from './WidgetContext';
-import { capitalizeFirstLetter, playSound } from '../../helpers/utils';
+import { useWidgetActions } from './WidgetContext';
+import { capitalizeFirstLetter } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
-import messageSoundUrl from '../../assets/audio/message.oga';
 import { saveWidgetBackup } from './widgetBackupStorage';
 import { useAlertActionsContext } from '../context/AppContext';
 /* MUI */
@@ -18,16 +17,10 @@ import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 import Typography from '@mui/material/Typography';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
 import '../../assets/css/prism-theme.css';
@@ -36,6 +29,7 @@ interface WidgetItemProps {
   widget: Widget;
   toggleDropdown: (widget: Widget, isOpen: boolean) => void;
   onBackupRequested: () => void;
+  onRemoveRequested: (id: number) => void;
   backupLimitReached: boolean;
   isOpen: boolean;
   isActive: boolean;
@@ -45,6 +39,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   widget,
   toggleDropdown,
   onBackupRequested,
+  onRemoveRequested,
   backupLimitReached,
   isOpen,
   isActive
@@ -69,8 +64,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   });
 
   /* Global context */
-  const { activeDraggableWidget } = useWidgetUi();
-  const { removeWidget, updateWidget, addCustomWidget } = useWidgetActions();
+  const { updateWidget, addCustomWidget } = useWidgetActions();
 
   const { handleOpenAlert } = useAlertActionsContext();
 
@@ -95,38 +89,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     setJsonInput(JSON.stringify(widgetCopy, null, 2));
     setJsonError(null);
   }, [widget]);
-
-  /* Keyboard Delete shortcut: remove active widget (but not when typing) */
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      /* Ignore if typing in input, textarea, or contenteditable */
-      const target = event.target as HTMLElement;
-      const isTyping =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
-      if (isTyping) {
-        return;
-      }
-      /* Trigger only on the Delete key */
-      if (event.key !== 'Delete') {
-        return;
-      }
-      /* Only the active widget reacts */
-      if (activeDraggableWidget.id !== widget.generalParams.id) {
-        return;
-      }
-      /* Open delete dialog */
-      setOpenDialog(true);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    /* Unmount cleanup */
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [activeDraggableWidget.id, widget.generalParams.id]);
 
   /****************************************************************************/
 
@@ -172,26 +134,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       setJsonError('Invalid JSON format');
     }
   };
-
-  /****************************************************************************/
-  /* Remove widget dialog handlers */
-  const [openDialog, setOpenDialog] = useState<boolean>(false);
-
-  const handleRemoveClick = () => {
-    setOpenDialog(true);
-    playSound(messageSoundUrl);
-  };
-
-  const handleDialogClose = () => {
-    setOpenDialog(false);
-  };
-
-  const handleConfirmRemove = () => {
-    removeWidget(widget.generalParams.id);
-    setOpenDialog(false);
-  };
-
-  /****************************************************************************/
 
   return (
     <Box key={widget.generalParams.id} sx={{ marginBottom: 1.4 }}>
@@ -310,50 +252,6 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             updateLabel={`Update ${capitalizeFirstLetter(widget.generalParams.type)}`}
           />
 
-          {/* Remove this widget confirmation dialog */}
-          <Dialog
-            open={openDialog}
-            onClose={(event, reason) => {
-              if (reason === 'backdropClick') {
-                return;
-              }
-              handleDialogClose();
-            }}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <WarningAmberIcon style={{ marginRight: '8px' }} />
-                {`Remove ${capitalizeFirstLetter(widget.generalParams.type)}`}
-              </Box>
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText id="alert-dialog-description">
-                Are you sure you want to remove{' '}
-                {capitalizeFirstLetter(widget.generalParams.type)}? This action
-                cannot be undone.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <CustomButton
-                variant="outlined"
-                onClick={handleDialogClose}
-                color="primary"
-              >
-                No
-              </CustomButton>
-              <CustomButton
-                variant="contained"
-                onClick={handleConfirmRemove}
-                color="error"
-                autoFocus
-              >
-                Yes
-              </CustomButton>
-            </DialogActions>
-          </Dialog>
-
           {/* Remove, Backup and Duplicate buttons*/}
           <Box
             sx={{
@@ -368,7 +266,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             <CustomButton
               color="error"
               variant="contained"
-              onClick={handleRemoveClick}
+              onClick={() => onRemoveRequested(widget.generalParams.id)}
               startIcon={<DeleteIcon />}
               sx={{
                 whiteSpace: 'nowrap',

@@ -38,6 +38,9 @@ import WidgetsIcon from '@mui/icons-material/Widgets';
 const WidgetHandler: React.FC = () => {
   /* Local state */
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<
+    number | null
+  >(null);
   const [backupList, setBackupList] = useState(loadWidgetBackups());
   const widgetHotkeysShownRef = useRef(false);
 
@@ -55,6 +58,7 @@ const WidgetHandler: React.FC = () => {
     listWidgets,
     listWidgetCapabilities,
     addWidget,
+    removeWidget,
     removeAllWidgets,
     updateWidget
   } = useWidgetActions();
@@ -118,7 +122,7 @@ const WidgetHandler: React.FC = () => {
     });
   }, [showMessage]);
 
-  /* Keyboard Shift+Delete shortcut: remove all widgets (but not when typing) */
+  /* Keyboard Delete shortcuts */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       /* Ignore if typing in input, textarea, or contenteditable */
@@ -130,16 +134,23 @@ const WidgetHandler: React.FC = () => {
       if (isTyping) {
         return;
       }
-      /* Do nothing if no widgets exist */
-      if (activeWidgets.length === 0) {
+      if (event.key !== 'Delete') {
         return;
       }
-      /* Trigger only on Shift + Delete */
-      if (!event.shiftKey || event.key !== 'Delete') {
+
+      if (event.shiftKey) {
+        if (activeWidgets.length === 0) {
+          return;
+        }
+        setOpenDialog(true);
         return;
       }
-      /* Open remove-all dialog */
-      setOpenDialog(true);
+
+      if (activeDraggableWidget.id == null) {
+        return;
+      }
+      setPendingDeleteWidgetId(activeDraggableWidget.id);
+      playSound(messageSoundUrl);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -148,7 +159,7 @@ const WidgetHandler: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeWidgets.length]);
+  }, [activeWidgets.length, activeDraggableWidget.id]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
@@ -218,6 +229,26 @@ const WidgetHandler: React.FC = () => {
     removeAllWidgets();
     setOpenDialog(false);
   };
+
+  const handleRemoveRequested = useCallback((widgetId: number) => {
+    setPendingDeleteWidgetId(widgetId);
+    playSound(messageSoundUrl);
+  }, []);
+
+  const handleCancelDeleteWidget = useCallback(() => {
+    setPendingDeleteWidgetId(null);
+  }, []);
+
+  const handleConfirmDeleteWidget = useCallback(() => {
+    if (pendingDeleteWidgetId != null) {
+      removeWidget(pendingDeleteWidgetId);
+    }
+    setPendingDeleteWidgetId(null);
+  }, [pendingDeleteWidgetId, removeWidget]);
+
+  const pendingDeleteWidget = activeWidgets.find(
+    (widget) => widget.generalParams.id === pendingDeleteWidgetId
+  );
 
   if (!widgetSupported) {
     return <WidgetsDisabled />;
@@ -332,6 +363,56 @@ const WidgetHandler: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Remove single widget confirmation dialog */}
+      <Dialog
+        open={pendingDeleteWidgetId != null}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick') {
+            return;
+          }
+          handleCancelDeleteWidget();
+        }}
+        aria-labelledby="remove-widget-dialog-title"
+        aria-describedby="remove-widget-dialog-description"
+      >
+        <DialogTitle id="remove-widget-dialog-title">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <WarningAmberIcon style={{ marginRight: '8px' }} />
+            {`Remove ${
+              pendingDeleteWidget
+                ? capitalizeFirstLetter(pendingDeleteWidget.generalParams.type)
+                : 'widget'
+            }`}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="remove-widget-dialog-description">
+            Are you sure you want to remove{' '}
+            {pendingDeleteWidget
+              ? capitalizeFirstLetter(pendingDeleteWidget.generalParams.type)
+              : 'this widget'}
+            ? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton
+            variant="outlined"
+            onClick={handleCancelDeleteWidget}
+            color="primary"
+          >
+            No
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            onClick={handleConfirmDeleteWidget}
+            color="error"
+            autoFocus
+          >
+            Yes
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
       {/* List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
         {sortedWidgets.map((widget) => (
@@ -340,6 +421,7 @@ const WidgetHandler: React.FC = () => {
             widget={widget}
             toggleDropdown={toggleDropdown}
             onBackupRequested={handleBackupRequested}
+            onRemoveRequested={handleRemoveRequested}
             backupLimitReached={backupLimitReached}
             isOpen={openWidgetId === widget.generalParams.id}
             isActive={
