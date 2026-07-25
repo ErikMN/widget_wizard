@@ -18,6 +18,16 @@ interface VapixConfig {
   resolution: string;
 }
 
+const DIMENSIONS_EPSILON = 0.5;
+
+const dimensionsEqual = (a: Dimensions, b: Dimensions): boolean =>
+  a.videoWidth === b.videoWidth &&
+  a.videoHeight === b.videoHeight &&
+  Math.abs(a.pixelWidth - b.pixelWidth) < DIMENSIONS_EPSILON &&
+  Math.abs(a.pixelHeight - b.pixelHeight) < DIMENSIONS_EPSILON &&
+  Math.abs(a.offsetX - b.offsetX) < DIMENSIONS_EPSILON &&
+  Math.abs(a.offsetY - b.offsetY) < DIMENSIONS_EPSILON;
+
 /* Force a login by fetching usergroup */
 const authorize = async (): Promise<void> => {
   try {
@@ -202,13 +212,16 @@ const VideoPlayer: React.FC = () => {
        * - pixelWidth/pixelHeight being fully visible on screen
        * - offsetX/offsetY pointing to the top-left corner of that area
        */
-      setDimensions({
-        videoWidth, // Stream width
-        videoHeight, // Stream height
-        pixelWidth, // Pixel width (visible content only)
-        pixelHeight, // Pixel height (visible content only)
-        offsetX, // Offset X (left margin of the video content in the container)
-        offsetY // Offset Y (top margin of the video content in the container)
+      setDimensions((prev) => {
+        const next = {
+          videoWidth, // Stream width
+          videoHeight, // Stream height
+          pixelWidth, // Pixel width (visible content only)
+          pixelHeight, // Pixel height (visible content only)
+          offsetX, // Offset X (left margin of the video content in the container)
+          offsetY // Offset Y (top margin of the video content in the container)
+        };
+        return dimensionsEqual(prev, next) ? prev : next;
       });
     }
   };
