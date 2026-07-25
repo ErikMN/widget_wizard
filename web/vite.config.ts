@@ -4,15 +4,18 @@ import react from '@vitejs/plugin-react';
 import viteTsconfigPaths from 'vite-tsconfig-paths';
 import svgr from 'vite-plugin-svgr';
 
-/* Set true for HTTPS or false for HTTP */
-const USE_HTTPS = true;
+const targetProtocol = process.env.TARGET_PROTOCOL ?? 'https';
 
-const targetProtocol = USE_HTTPS ? 'https' : 'http';
-const websocketProtocol = USE_HTTPS ? 'wss' : 'ws';
+if (targetProtocol !== 'http' && targetProtocol !== 'https') {
+  throw new Error('TARGET_PROTOCOL must be either http or https');
+}
 
-const targetPort = USE_HTTPS
-  ? process.env.TARGET_HTTPS_PORT || '443'
-  : process.env.TARGET_HTTP_PORT || '80';
+const websocketProtocol = targetProtocol === 'https' ? 'wss' : 'ws';
+
+const targetPort =
+  targetProtocol === 'https'
+    ? (process.env.TARGET_HTTPS_PORT ?? '443')
+    : (process.env.TARGET_HTTP_PORT ?? '80');
 
 const target = `${targetProtocol}://${process.env.TARGET_IP}:${targetPort}`;
 const websocketTarget = `${websocketProtocol}://${process.env.TARGET_IP}:${targetPort}`;
