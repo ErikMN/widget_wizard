@@ -146,6 +146,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Run updates for one widget in order. */
   const widgetUpdateQueueRef = useRef<Map<number, Promise<void>>>(new Map());
+  const removingWidgetIdsRef = useRef<Set<number>>(new Set());
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -153,6 +154,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Updates the parameters of a widget */
   const updateWidget = useCallback(
     async (widgetId: number, updater: WidgetUpdater) => {
+      if (removingWidgetIdsRef.current.has(widgetId)) {
+        return;
+      }
+
       const previousRequest =
         widgetUpdateQueueRef.current.get(widgetId) ?? Promise.resolve();
 
@@ -347,6 +352,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Removes a specified widget */
   const removeWidget = useCallback(
     async (widgetID: number) => {
+      removingWidgetIdsRef.current.add(widgetID);
+      const pendingUpdate = widgetUpdateQueueRef.current.get(widgetID);
+      if (pendingUpdate) {
+        await pendingUpdate;
+      }
+
       try {
         setAppLoading(true);
         const resp: ApiResponse = await apiRemoveWidget(widgetID);
@@ -368,6 +379,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         handleOpenAlert(`Failed to remove widget ${widgetID}`, 'error');
         console.error('Error:', error);
         playSound(warningSoundUrl);
+      } finally {
+        widgetUpdateQueueRef.current.delete(widgetID);
+        removingWidgetIdsRef.current.delete(widgetID);
       }
     },
     [handleOpenAlert, setAppLoading]
@@ -375,6 +389,18 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Removes all currently active widgets */
   const removeAllWidgets = useCallback(async () => {
+    const widgetIds = latestWidgetsRef.current.map(
+      (widget) => widget.generalParams.id
+    );
+    widgetIds.forEach((id) => removingWidgetIdsRef.current.add(id));
+
+    const pendingUpdates = widgetIds
+      .map((id) => widgetUpdateQueueRef.current.get(id))
+      .filter((request): request is Promise<void> => request !== undefined);
+    if (pendingUpdates.length > 0) {
+      await Promise.all(pendingUpdates);
+    }
+
     try {
       setAppLoading(true);
       const resp: ApiResponse = await apiRemoveAllWidgets();
@@ -392,6 +418,11 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to remove all widgets', 'error');
       console.error('Error:', error);
       playSound(warningSoundUrl);
+    } finally {
+      widgetIds.forEach((id) => {
+        widgetUpdateQueueRef.current.delete(id);
+        removingWidgetIdsRef.current.delete(id);
+      });
     }
     /* Refresh the active widget list after removing all */
     listWidgets();

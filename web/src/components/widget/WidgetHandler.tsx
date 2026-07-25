@@ -3,7 +3,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
-import WidgetItem from './WidgetItem';
+import WidgetItem, { WidgetItemHandle } from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
 import { useAppSettingsContext } from '../context/AppContext';
 import { useWidgetActions, useWidgetData, useWidgetUi } from './WidgetContext';
@@ -43,6 +43,34 @@ const WidgetHandler: React.FC = () => {
   >(null);
   const [backupList, setBackupList] = useState(loadWidgetBackups());
   const widgetHotkeysShownRef = useRef(false);
+  const widgetItemRefs = useRef<Map<number, WidgetItemHandle>>(new Map());
+  const widgetItemRefCallbacks = useRef<
+    Map<number, (handle: WidgetItemHandle | null) => void>
+  >(new Map());
+
+  const registerWidgetItemRef = useCallback(
+    (id: number, handle: WidgetItemHandle | null) => {
+      if (handle) {
+        widgetItemRefs.current.set(id, handle);
+      } else {
+        widgetItemRefs.current.delete(id);
+        widgetItemRefCallbacks.current.delete(id);
+      }
+    },
+    []
+  );
+
+  const getWidgetItemRefCallback = useCallback(
+    (id: number) => {
+      let callback = widgetItemRefCallbacks.current.get(id);
+      if (!callback) {
+        callback = (handle) => registerWidgetItemRef(id, handle);
+        widgetItemRefCallbacks.current.set(id, callback);
+      }
+      return callback;
+    },
+    [registerWidgetItemRef]
+  );
 
   /* Global context */
   const { activeWidgets, widgetCapabilities, widgetSupported, selectedWidget } =
@@ -225,6 +253,7 @@ const WidgetHandler: React.FC = () => {
   };
 
   const handleConfirmRemoveAll = () => {
+    widgetItemRefs.current.forEach((handle) => handle.cancelPendingChanges());
     removeAllWidgets();
     setOpenDialog(false);
   };
@@ -240,6 +269,9 @@ const WidgetHandler: React.FC = () => {
 
   const handleConfirmDeleteWidget = useCallback(() => {
     if (pendingDeleteWidgetId != null) {
+      widgetItemRefs.current
+        .get(pendingDeleteWidgetId)
+        ?.cancelPendingChanges();
       removeWidget(pendingDeleteWidgetId);
     }
     setPendingDeleteWidgetId(null);
@@ -417,6 +449,7 @@ const WidgetHandler: React.FC = () => {
         {sortedWidgets.map((widget) => (
           <WidgetItem
             key={widget.generalParams.id}
+            ref={getWidgetItemRefCallback(widget.generalParams.id)}
             widget={widget}
             toggleDropdown={toggleDropdown}
             onBackupRequested={handleBackupRequested}

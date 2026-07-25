@@ -1,7 +1,14 @@
 /* Widget Wizard
  * WidgetItem: Represent one widget.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle
+} from 'react';
 import { Widget } from './widgetInterfaces';
 import { useWidgetActions } from './WidgetContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
@@ -39,15 +46,23 @@ interface WidgetItemProps {
   isActive: boolean;
 }
 
-const WidgetItem: React.FC<WidgetItemProps> = ({
-  widget,
-  toggleDropdown,
-  onBackupRequested,
-  onRemoveRequested,
-  backupLimitReached,
-  isOpen,
-  isActive
-}) => {
+export interface WidgetItemHandle {
+  cancelPendingChanges: () => void;
+}
+
+const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
+  (
+    {
+      widget,
+      toggleDropdown,
+      onBackupRequested,
+      onRemoveRequested,
+      backupLimitReached,
+      isOpen,
+      isActive
+    },
+    ref
+  ) => {
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
     useState<boolean>(false);
@@ -89,6 +104,17 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
     }
     wasWidgetParamsVisibleRef.current = widgetParamsVisible;
   }, [widgetParamsVisible]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      cancelPendingChanges: () => {
+        generalParamsRef.current?.cancelPendingChanges();
+        specificParamsRef.current?.cancelPendingChanges();
+      }
+    }),
+    []
+  );
 
   /* Preserve an unsaved JSON draft when reopening the same widget. */
   useEffect(() => {
@@ -351,6 +377,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       {/* Dropdown for current widget settings end */}
     </Box>
   );
-};
+  }
+);
+
+WidgetItem.displayName = 'WidgetItem';
 
 export default React.memo(WidgetItem);
