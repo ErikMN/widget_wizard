@@ -43,6 +43,32 @@ import Typography from '@mui/material/Typography';
 const EPSILON = 1e-6;
 const MOVE_THRESHOLD = 5; /* Increase for bigger anchor move threshold */
 
+interface AlignmentGuides {
+  showVerticalCenter: boolean;
+  showHorizontalCenter: boolean;
+  showTop: boolean;
+  showBottom: boolean;
+  showLeft: boolean;
+  showRight: boolean;
+}
+
+const NO_ALIGNMENT_GUIDES: AlignmentGuides = {
+  showVerticalCenter: false,
+  showHorizontalCenter: false,
+  showTop: false,
+  showBottom: false,
+  showLeft: false,
+  showRight: false
+};
+
+const guidesEqual = (a: AlignmentGuides, b: AlignmentGuides): boolean =>
+  a.showVerticalCenter === b.showVerticalCenter &&
+  a.showHorizontalCenter === b.showHorizontalCenter &&
+  a.showTop === b.showTop &&
+  a.showBottom === b.showBottom &&
+  a.showLeft === b.showLeft &&
+  a.showRight === b.showRight;
+
 /* Anchor snap zones in percent: */
 const CORNER_THRESHOLD_PERCENT = 0.005;
 const CENTER_DISTANCE_THRESHOLD_PERCENT = 0.01;
@@ -110,21 +136,14 @@ export const WidgetBox = React.memo(
     y: number;
   } | null>(null);
 
-  const [alignmentGuides, setAlignmentGuides] = React.useState<{
-    showVerticalCenter: boolean;
-    showHorizontalCenter: boolean;
-    showTop: boolean;
-    showBottom: boolean;
-    showLeft: boolean;
-    showRight: boolean;
-  }>({
-    showVerticalCenter: false,
-    showHorizontalCenter: false,
-    showTop: false,
-    showBottom: false,
-    showLeft: false,
-    showRight: false
-  });
+  const [alignmentGuides, setAlignmentGuides] =
+    React.useState<AlignmentGuides>(NO_ALIGNMENT_GUIDES);
+
+  const updateAlignmentGuides = useCallback((next: AlignmentGuides) => {
+    setAlignmentGuides((current) =>
+      guidesEqual(current, next) ? current : next
+    );
+  }, []);
 
   /* Global context */
   const { appSettings } = useAppSettingsContext();
@@ -258,14 +277,7 @@ export const WidgetBox = React.memo(
       setShowIndicators(false);
 
       if (!appSettings.snapToAnchor) {
-        setAlignmentGuides({
-          showVerticalCenter: false,
-          showHorizontalCenter: false,
-          showTop: false,
-          showBottom: false,
-          showLeft: false,
-          showRight: false
-        });
+        updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
         return;
       }
       const { widgetWidthPx, widgetHeightPx } = calculateWidgetSizeInPixels(
@@ -285,7 +297,7 @@ export const WidgetBox = React.memo(
       );
 
       /* Update alignment guides */
-      setAlignmentGuides({
+      updateAlignmentGuides({
         showVerticalCenter: flags.nearVerticalCenter,
         showHorizontalCenter: flags.nearHorizontalCenter,
         showTop: flags.nearTop || flags.nearTopCenter,
@@ -294,7 +306,13 @@ export const WidgetBox = React.memo(
         showRight: flags.nearRight || flags.nearCenterRight
       });
     },
-    [appSettings.snapToAnchor, dimensions, scaleFactor, thresholds]
+    [
+      appSettings.snapToAnchor,
+      dimensions,
+      scaleFactor,
+      thresholds,
+      updateAlignmentGuides
+    ]
   );
 
   /* Handle drag stop */
@@ -327,14 +345,7 @@ export const WidgetBox = React.memo(
           highlight: false
         });
         setDragStartPos(null);
-        setAlignmentGuides({
-          showVerticalCenter: false,
-          showHorizontalCenter: false,
-          showTop: false,
-          showBottom: false,
-          showLeft: false,
-          showRight: false
-        });
+        updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
         return;
       }
       if (dimensions.pixelWidth <= 0 || dimensions.pixelHeight <= 0) {
@@ -467,14 +478,7 @@ export const WidgetBox = React.memo(
         highlight: false
       });
 
-      setAlignmentGuides({
-        showVerticalCenter: false,
-        showHorizontalCenter: false,
-        showTop: false,
-        showBottom: false,
-        showLeft: false,
-        showRight: false
-      });
+      updateAlignmentGuides(NO_ALIGNMENT_GUIDES);
     },
     [
       dimensions,
@@ -483,6 +487,7 @@ export const WidgetBox = React.memo(
       setActiveWidgets,
       setActiveDraggableWidget,
       updateWidget,
+      updateAlignmentGuides,
       dragStartPos,
       showIndicators,
       appSettings.widgetAutoBringFront
