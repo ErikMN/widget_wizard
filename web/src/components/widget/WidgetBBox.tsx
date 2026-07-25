@@ -54,12 +54,22 @@ const LEFTRIGHT_THRESHOLD_Y_PERCENT = 0.02;
 interface WidgetBoxProps {
   widget: Widget;
   dimensions: Dimensions;
-  registerRef?: (el: HTMLElement | null) => void;
+  registerRef?: (id: number, el: HTMLElement | null) => void;
+  isActive: boolean;
+  isHighlighted: boolean;
+  isOpen: boolean;
 }
 
 // prettier-ignore
 export const WidgetBox = React.memo(
-  ({ widget, dimensions, registerRef }: WidgetBoxProps) => {
+  ({
+    widget,
+    dimensions,
+    registerRef,
+    isActive,
+    isHighlighted,
+    isOpen
+  }: WidgetBoxProps) => {
 
   /* Return null if dimensions.videoWidth or dimensions.videoHeight is 0 */
   if (dimensions.videoWidth === 0 || dimensions.videoHeight === 0) {
@@ -118,10 +128,7 @@ export const WidgetBox = React.memo(
 
   /* Global context */
   const { appSettings } = useAppSettingsContext();
-  const { activeWidgets } = useWidgetData();
-  const { activeDraggableWidget, openWidgetId, setActiveDraggableWidget } =
-    useWidgetUi();
-  const { setOpenWidgetId } = useWidgetUiSetters();
+  const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
   const { setActiveWidgets, updateWidget } = useWidgetActions();
 
   /* BBox colors */
@@ -507,7 +514,7 @@ export const WidgetBox = React.memo(
       }
 
       const widgetId = widget.generalParams.id;
-      const isCurrentlyOpen = openWidgetId === widgetId;
+      const isCurrentlyOpen = isOpen;
 
       setActiveDraggableWidget({
         id: widgetId,
@@ -524,7 +531,7 @@ export const WidgetBox = React.memo(
       }
     },
     [
-      openWidgetId,
+      isOpen,
       setActiveDraggableWidget,
       setOpenWidgetId,
       appSettings.widgetAutoBringFront,
@@ -541,7 +548,7 @@ export const WidgetBox = React.memo(
 
   const { x, y } = anchoredPosition;
 
-  const widgetIsActive = activeDraggableWidget?.id === widget.generalParams.id;
+  const widgetIsActive = isActive;
 
   /* NOTE: React 19: ReactDOM.findDOMNode() is removed.
    * react-draggable still tries to use findDOMNode unless a `nodeRef` is provided.
@@ -577,7 +584,10 @@ export const WidgetBox = React.memo(
             <Box
               ref={(el) => {
                 nodeRef.current = el as HTMLElement | null;
-                registerRef?.(el as HTMLElement | null);
+                registerRef?.(
+                  widget.generalParams.id,
+                  el as HTMLElement | null
+                );
               }}
               sx={{
                 width: `${widget.width * scaleFactor}px`,
@@ -590,15 +600,12 @@ export const WidgetBox = React.memo(
                 pointerEvents: 'auto',
                 cursor: 'move',
                 backgroundColor:
-                  widgetIsActive && activeDraggableWidget?.highlight
+                  widgetIsActive && isHighlighted
                     ? `${bboxColor}4D`
                     : 'transparent',
                 zIndex: widgetIsActive ? 1000 : 1,
                 opacity:
-                  appSettings.bboxOnlyShowActive &&
-                  activeDraggableWidget?.id !== widget.generalParams.id
-                    ? 0
-                    : 1
+                  appSettings.bboxOnlyShowActive && !widgetIsActive ? 0 : 1
               }}
             >
               {/* Anchor point indicators */}
@@ -745,7 +752,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const { currentChannel } = useChannelContext();
   const { activeWidgets } = useWidgetData();
-  const { activeDraggableWidget } = useWidgetUi();
+  const { activeDraggableWidget, openWidgetId } = useWidgetUi();
   const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
 
   /* Refs: keep live refs to all BBox elements */
@@ -803,14 +810,17 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
               key={widget.generalParams.id}
               widget={widget}
               dimensions={dimensions}
-              /* Each bbox has its own ref */
-              registerRef={(el) => {
+              isActive={activeDraggableWidget?.id === widgetId}
+              isHighlighted={
+                activeDraggableWidget?.id === widgetId &&
+                !!activeDraggableWidget?.highlight
+              }
+              isOpen={openWidgetId === widgetId}
+              registerRef={(id, el) => {
                 if (el) {
-                  /* Mount: store the bbox element reference using widget ID */
-                  bboxRefs.current.set(widgetId, el);
+                  bboxRefs.current.set(id, el);
                 } else {
-                  /* Unmount: remove the bbox reference by widget ID */
-                  bboxRefs.current.delete(widgetId);
+                  bboxRefs.current.delete(id);
                 }
               }}
             />

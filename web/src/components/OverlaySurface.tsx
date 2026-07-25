@@ -9,7 +9,7 @@
  * - Render PTZ crosshair control
  * - Render draw mode canvas layer
  */
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Dimensions } from './appInterface';
 import { useAppSettingsContext, useChannelContext } from './context/AppContext';
@@ -18,8 +18,7 @@ import PtzCrosshairControl from './PtzCrosshairControl';
 /* Widget bbox */
 import {
   useWidgetData,
-  useWidgetUi,
-  useWidgetUiSetters
+  useWidgetUi
 } from './widget/WidgetContext';
 import { WidgetBox } from './widget/WidgetBBox';
 
@@ -51,8 +50,12 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
 
   /* Widget context */
   const { activeWidgets } = useWidgetData();
-  const { activeDraggableWidget } = useWidgetUi();
-  const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
+  const {
+    activeDraggableWidget,
+    openWidgetId,
+    setActiveDraggableWidget,
+    setOpenWidgetId
+  } = useWidgetUi();
 
   /* Overlay context */
   const {
@@ -67,6 +70,28 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const overlayRefs = useRef<Map<number, HTMLElement>>(new Map());
   const [stableDimensions, setStableDimensions] = useState<Dimensions | null>(
     null
+  );
+
+  const registerWidgetRef = useCallback(
+    (id: number, el: HTMLElement | null) => {
+      if (el) {
+        widgetRefs.current.set(id, el);
+      } else {
+        widgetRefs.current.delete(id);
+      }
+    },
+    []
+  );
+
+  const registerOverlayRef = useCallback(
+    (id: number, el: HTMLElement | null) => {
+      if (el) {
+        overlayRefs.current.set(id, el);
+      } else {
+        overlayRefs.current.delete(id);
+      }
+    },
+    []
   );
 
   /* Only one bbox system should have an active bbox at any time:
@@ -221,13 +246,13 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
                 key={widgetId}
                 widget={widget}
                 dimensions={surfaceDimensions}
-                registerRef={(el) => {
-                  if (el) {
-                    widgetRefs.current.set(widgetId, el);
-                  } else {
-                    widgetRefs.current.delete(widgetId);
-                  }
-                }}
+                registerRef={registerWidgetRef}
+                isActive={activeDraggableWidget.id === widgetId}
+                isHighlighted={
+                  activeDraggableWidget.id === widgetId &&
+                  activeDraggableWidget.highlight
+                }
+                isOpen={openWidgetId === widgetId}
               />
             );
           }
@@ -250,13 +275,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
               overlay={overlay}
               dimensions={surfaceDimensions}
               onSelect={onSelectOverlay}
-              registerRef={(el) => {
-                if (el) {
-                  overlayRefs.current.set(overlay.identity, el);
-                } else {
-                  overlayRefs.current.delete(overlay.identity);
-                }
-              }}
+              registerRef={registerOverlayRef}
             />
           ))}
 
