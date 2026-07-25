@@ -148,7 +148,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           id: widgetState.widgetId
         }
       };
-      updateWidget(parsedWidget);
+      generalParamsRef.current?.cancelPendingChanges();
+      specificParamsRef.current?.cancelPendingChanges();
+      updateWidget(widgetState.widgetId, () => parsedWidget);
       setJsonError(null);
       /* NOTE: Update UI controls for manual JSON updates */
       setWidgetState((prevState) => ({

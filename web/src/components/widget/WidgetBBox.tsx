@@ -148,7 +148,7 @@ export const WidgetBox = React.memo(
   /* Global context */
   const { appSettings } = useAppSettingsContext();
   const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
-  const { setActiveWidgets, updateWidget } = useWidgetActions();
+  const { updateWidget } = useWidgetActions();
 
   /* BBox colors */
   const bboxColor = useMemo(() => {
@@ -452,23 +452,15 @@ export const WidgetBox = React.memo(
         Math.abs(posY - currentPosY) > EPSILON ||
         finalAnchor !== widget.generalParams.anchor
       ) {
-        const updatedWidget = {
-          ...widget,
+        updateWidget(widget.generalParams.id, (current) => ({
+          ...current,
           generalParams: {
-            ...widget.generalParams,
+            ...current.generalParams,
             position: { x: posX, y: posY },
             anchor: finalAnchor,
             ...(appSettings.widgetAutoBringFront ? { depth: 'front' } : {})
           }
-        };
-        /* Update the active widget state */
-        setActiveWidgets((prevWidgets) =>
-          prevWidgets.map((w) =>
-            w.generalParams.id === widget.generalParams.id ? updatedWidget : w
-          )
-        );
-        /* Update the widget */
-        updateWidget(updatedWidget);
+        }));
       }
 
       setActiveDraggableWidget({
@@ -484,7 +476,6 @@ export const WidgetBox = React.memo(
       dimensions,
       scaleFactor,
       thresholds,
-      setActiveWidgets,
       setActiveDraggableWidget,
       updateWidget,
       updateAlignmentGuides,
@@ -497,14 +488,13 @@ export const WidgetBox = React.memo(
   /* widgetAutoBringFront enabled will trigger an update call for every click on the widget */
   const setDepth = useCallback(
     (mode: string, widget: Widget) => {
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           depth: mode
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [updateWidget]
   );

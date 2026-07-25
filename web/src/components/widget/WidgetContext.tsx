@@ -7,7 +7,8 @@ import React, {
   useContext,
   useState,
   useCallback,
-  useMemo
+  useMemo,
+  useRef
 } from 'react';
 import { useTabVisibility } from '../../helpers/hooks.jsx';
 import { log, enableLogging } from '../../helpers/logger.js';
@@ -64,6 +65,8 @@ interface WidgetUiSettersContextProps {
   setSelectedWidget: React.Dispatch<React.SetStateAction<string>>;
 }
 
+type WidgetUpdater = (current: Widget) => Widget;
+
 type WidgetUiContextProps = WidgetUiStateContextProps &
   WidgetUiSettersContextProps;
 
@@ -80,7 +83,7 @@ interface WidgetActionsContextProps {
   addCustomWidget: (params: Widget) => Promise<void>;
   removeWidget: (widgetID: number) => Promise<void>;
   removeAllWidgets: () => Promise<void>;
-  updateWidget: (widgetItem: Widget) => Promise<void>;
+  updateWidget: (widgetId: number, updater: WidgetUpdater) => Promise<void>;
 }
 
 type WidgetContextProps = WidgetDataContextProps &
@@ -108,7 +111,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   enableLogging(false);
 
   /* Widget-related state variables */
-  const [activeWidgets, setActiveWidgets] = useState<Widget[]>([]);
+  const [activeWidgets, setActiveWidgetsState] = useState<Widget[]>([]);
   const [widgetCapabilities, setWidgetCapabilities] =
     useState<WidgetCapabilities | null>(null);
   const [selectedWidget, setSelectedWidget] = useState<string>('');
@@ -128,43 +131,79 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const { setAppLoading } = useAppStatusContext();
   const { currentChannel } = useChannelContext();
 
+  const latestWidgetsRef = useRef<Widget[]>([]);
+
+  const setActiveWidgets = useCallback(
+    (update: React.SetStateAction<Widget[]>) => {
+      const current = latestWidgetsRef.current;
+      const next = typeof update === 'function' ? update(current) : update;
+
+      latestWidgetsRef.current = next;
+      setActiveWidgetsState(next);
+    },
+    []
+  );
+
+  /* Run updates for one widget in order. */
+  const widgetUpdateQueueRef = useRef<Map<number, Promise<void>>>(new Map());
+
   /****************************************************************************/
   /* Widget endpoint communication functions */
 
   /* Updates the parameters of a widget */
   const updateWidget = useCallback(
-    async (widgetItem: Widget) => {
-      try {
-        setAppLoading(true);
-        const resp: ApiResponse = await apiUpdateWidget(widgetItem);
-        setAppLoading(false);
-        if (resp.error) {
-          playSound(warningSoundUrl);
-          handleOpenAlert(resp.error.message, 'error');
-          return;
-        }
-        /* If response contains updated generalParams, update the widget state */
-        if (resp?.data?.generalParams) {
-          const updatedWidgetId = resp.data.generalParams.id;
-          setActiveWidgets((prevWidgets) =>
-            prevWidgets.map((widget) =>
-              widget.generalParams.id === updatedWidgetId
-                ? { ...widget, ...resp.data }
-                : widget
-            )
+    async (widgetId: number, updater: WidgetUpdater) => {
+      const previousRequest =
+        widgetUpdateQueueRef.current.get(widgetId) ?? Promise.resolve();
+
+      const thisRequest = previousRequest
+        .catch(() => undefined)
+        .then(async () => {
+          const current = latestWidgetsRef.current.find(
+            (widget) => widget.generalParams.id === widgetId
           );
-        }
-      } catch (error) {
-        setAppLoading(false);
-        playSound(warningSoundUrl);
-        handleOpenAlert(
-          `Widget ${widgetItem.generalParams.id} failed to update`,
-          'error'
-        );
-        console.error('Error:', error);
+          if (!current) {
+            return;
+          }
+
+          try {
+            const widgetItem = updater(current);
+            if (widgetItem === current) {
+              return;
+            }
+
+            setAppLoading(true);
+            const resp: ApiResponse = await apiUpdateWidget(widgetItem);
+            setAppLoading(false);
+            if (resp.error) {
+              playSound(warningSoundUrl);
+              handleOpenAlert(resp.error.message, 'error');
+              return;
+            }
+            /* If response contains updated generalParams, update the widget state */
+            if (resp?.data?.generalParams) {
+              const updatedWidget = { ...widgetItem, ...resp.data };
+              setActiveWidgets((prevWidgets) =>
+                prevWidgets.map((widget) =>
+                  widget.generalParams.id === widgetId ? updatedWidget : widget
+                )
+              );
+            }
+          } catch (error) {
+            setAppLoading(false);
+            playSound(warningSoundUrl);
+            handleOpenAlert(`Widget ${widgetId} failed to update`, 'error');
+            console.error('Error:', error);
+          }
+        });
+
+      widgetUpdateQueueRef.current.set(widgetId, thisRequest);
+      await thisRequest;
+      if (widgetUpdateQueueRef.current.get(widgetId) === thisRequest) {
+        widgetUpdateQueueRef.current.delete(widgetId);
       }
     },
-    [handleOpenAlert, setAppLoading]
+    [handleOpenAlert, setAppLoading, setActiveWidgets]
   );
 
   /* Lists all currently active widgets and their parameter values.

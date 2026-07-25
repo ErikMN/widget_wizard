@@ -92,11 +92,11 @@ const WidgetSpecificParams = forwardRef<
    */
   const debouncedUpdate = useRef(
     debounce((newLocalValues: Record<string, any>) => {
-      const updatedWidget = {
-        ...widgetRef.current,
+      const currentWidget = widgetRef.current;
+      updateWidgetRef.current(currentWidget.generalParams.id, (current) => ({
+        ...current,
         widgetParams: newLocalValues /* pass the nested object as-is */
-      };
-      updateWidgetRef.current(updatedWidget);
+      }));
     }, 500)
   ).current;
 

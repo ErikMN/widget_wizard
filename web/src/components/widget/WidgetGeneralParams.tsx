@@ -86,27 +86,25 @@ const WidgetGeneralParams = forwardRef<
       isVisible: newVisibility
     }));
 
-    const updatedWidget = {
-      ...widget,
+    updateWidget(widget.generalParams.id, (current) => ({
+      ...current,
       generalParams: {
-        ...widget.generalParams,
+        ...current.generalParams,
         isVisible: newVisibility
       }
-    };
-    updateWidget(updatedWidget);
+    }));
   }, [widgetState.isVisible, widget, updateWidget]);
 
   const handleAnchorChange = useCallback(
     (event: SelectChangeEvent<string>) => {
       const newAnchor = event.target.value as string;
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           anchor: newAnchor
         }
-      };
-      updateWidget(updatedWidget);
+      }));
       /* Play sound if anchored */
       if (newAnchor !== 'none') {
         playSound(lockSoundUrl);
@@ -120,14 +118,13 @@ const WidgetGeneralParams = forwardRef<
   const handleSizeChange = useCallback(
     (event: SelectChangeEvent<string>) => {
       const newSize = event.target.value;
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           size: newSize
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [widget, updateWidget]
   );
@@ -143,14 +140,13 @@ const WidgetGeneralParams = forwardRef<
   );
 
   const handleTransparencyChangeCommitted = useCallback(() => {
-    const updatedWidget = {
-      ...widget,
+    updateWidget(widget.generalParams.id, (current) => ({
+      ...current,
       generalParams: {
-        ...widget.generalParams,
+        ...current.generalParams,
         transparency: widgetState.sliderValue
       }
-    };
-    updateWidget(updatedWidget);
+    }));
   }, [widgetState.sliderValue, widget, updateWidget]);
 
   const [updateTimeInput, setUpdateTimeInput] = useState(
@@ -158,7 +154,7 @@ const WidgetGeneralParams = forwardRef<
   );
 
   const latestRef = useRef({
-    widget,
+    widgetId: widget.generalParams.id,
     widgetState,
     updateTimeInput,
     updateWidget
@@ -166,7 +162,7 @@ const WidgetGeneralParams = forwardRef<
 
   useEffect(() => {
     latestRef.current = {
-      widget,
+      widgetId: widget.generalParams.id,
       widgetState,
       updateTimeInput,
       updateWidget
@@ -176,37 +172,43 @@ const WidgetGeneralParams = forwardRef<
   const debouncedSend = useRef(
     debounce(() => {
       const {
-        widget: latestWidget,
+        widgetId,
         widgetState: latestState,
         updateTimeInput: latestUpdateTimeInput,
         updateWidget: latestUpdateWidget
       } = latestRef.current;
 
-      const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
-      const nextGeneralParams = {
-        ...latestWidget.generalParams,
-        datasource:
-          latestState.datasource !== ''
-            ? latestState.datasource
-            : latestWidget.generalParams.datasource,
-        channel: latestState.channel,
-        updateTime:
-          !isNaN(parsedUpdateTime) && parsedUpdateTime >= 0
-            ? parsedUpdateTime
-            : latestWidget.generalParams.updateTime
-      };
+      latestUpdateWidget(widgetId, (current) => {
+        const pending: Partial<typeof current.generalParams> = {};
 
-      if (
-        nextGeneralParams.datasource === latestWidget.generalParams.datasource &&
-        nextGeneralParams.channel === latestWidget.generalParams.channel &&
-        nextGeneralParams.updateTime === latestWidget.generalParams.updateTime
-      ) {
-        return;
-      }
+        if (
+          latestState.datasource !== '' &&
+          latestState.datasource !== current.generalParams.datasource
+        ) {
+          pending.datasource = latestState.datasource;
+        }
 
-      latestUpdateWidget({
-        ...latestWidget,
-        generalParams: nextGeneralParams
+        if (latestState.channel !== current.generalParams.channel) {
+          pending.channel = latestState.channel;
+        }
+
+        const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
+        if (
+          !isNaN(parsedUpdateTime) &&
+          parsedUpdateTime >= 0 &&
+          parsedUpdateTime !== current.generalParams.updateTime
+        ) {
+          pending.updateTime = parsedUpdateTime;
+        }
+
+        if (Object.keys(pending).length === 0) {
+          return current;
+        }
+
+        return {
+          ...current,
+          generalParams: { ...current.generalParams, ...pending }
+        };
       });
     }, 300)
   ).current;
@@ -333,14 +335,13 @@ const WidgetGeneralParams = forwardRef<
 
   const handleSetDepth = useCallback(
     (mode: string) => {
-      const updatedWidget = {
-        ...widget,
+      updateWidget(widget.generalParams.id, (current) => ({
+        ...current,
         generalParams: {
-          ...widget.generalParams,
+          ...current.generalParams,
           depth: mode
         }
-      };
-      updateWidget(updatedWidget);
+      }));
     },
     [widget, updateWidget]
   );
