@@ -10,9 +10,8 @@ import JsonEditor, { safeParseJson } from '../JsonEditor';
 import WidgetGeneralParams from './WidgetGeneralParams';
 import WidgetSpecificParams from './WidgetSpecificParams';
 import messageSoundUrl from '../../assets/audio/message.oga';
-import { saveWidgetBackup, loadWidgetBackups } from './widgetBackupStorage';
+import { saveWidgetBackup } from './widgetBackupStorage';
 import { useAlertActionsContext } from '../context/AppContext';
-import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -35,14 +34,20 @@ import '../../assets/css/prism-theme.css';
 
 interface WidgetItemProps {
   widget: Widget;
-  toggleDropdown: (id: number) => void;
+  toggleDropdown: (widget: Widget, isOpen: boolean) => void;
   onBackupRequested: () => void;
+  backupLimitReached: boolean;
+  isOpen: boolean;
+  isActive: boolean;
 }
 
 const WidgetItem: React.FC<WidgetItemProps> = ({
   widget,
   toggleDropdown,
-  onBackupRequested
+  onBackupRequested,
+  backupLimitReached,
+  isOpen,
+  isActive
 }) => {
   /* Local state */
   const [widgetParamsVisible, setWidgetParamsVisible] =
@@ -64,13 +69,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   });
 
   /* Global context */
-  const { openWidgetId, setOpenWidgetId, activeDraggableWidget } =
-    useWidgetUi();
+  const { activeDraggableWidget } = useWidgetUi();
   const { removeWidget, updateWidget, addCustomWidget } = useWidgetActions();
 
   const { handleOpenAlert } = useAlertActionsContext();
-
-  const backupCount = loadWidgetBackups().length;
 
   /* Update jsonInput whenever widget prop changes */
   useEffect(() => {
@@ -196,7 +198,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       <CustomButton
         variant="outlined"
         fullWidth
-        onClick={() => toggleDropdown(widget.generalParams.id)}
+        onClick={() => toggleDropdown(widget, isOpen)}
         sx={(theme) => ({
           display: 'flex',
           alignItems: 'center',
@@ -204,22 +206,10 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
           padding: 1,
           color: 'text.primary',
           /* Highlight selected widget */
-          backgroundColor:
-            (activeDraggableWidget.id === widget.generalParams.id &&
-              activeDraggableWidget.active) ||
-            openWidgetId === widget.generalParams.id
-              ? 'primary.light'
-              : 'unset',
-          borderColor:
-            (activeDraggableWidget.id === widget.generalParams.id &&
-              activeDraggableWidget.active) ||
-            openWidgetId === widget.generalParams.id
-              ? 'primary.main'
-              : 'grey.600',
-          borderBottomLeftRadius:
-            openWidgetId === widget.generalParams.id ? '0px' : '4px',
-          borderBottomRightRadius:
-            openWidgetId === widget.generalParams.id ? '0px' : '4px',
+          backgroundColor: isActive || isOpen ? 'primary.light' : 'unset',
+          borderColor: isActive || isOpen ? 'primary.main' : 'grey.600',
+          borderBottomLeftRadius: isOpen ? '0px' : '4px',
+          borderBottomRightRadius: isOpen ? '0px' : '4px',
           transition: 'background-color 0.3s ease, border-color 0.3s ease',
           /* Text shadow */
           ...(theme.palette.mode === 'dark'
@@ -227,13 +217,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
             : { textShadow: '0px 1px 2px rgba(255, 255, 255, 0.8)' })
         })}
         startIcon={<WidgetsIcon color="primary" />}
-        endIcon={
-          openWidgetId === widget.generalParams.id ? (
-            <ExpandLessIcon />
-          ) : (
-            <ExpandMoreIcon />
-          )
-        }
+        endIcon={isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       >
         <div
           style={{
@@ -265,7 +249,7 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
       </CustomButton>
 
       {/* Dropdown for current widget settings */}
-      <Collapse in={openWidgetId === widget.generalParams.id}>
+      <Collapse in={isOpen}>
         <Box
           sx={(theme) => ({
             backgroundColor: theme.palette.background.default,
@@ -399,9 +383,9 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
               color="secondary"
               variant="contained"
               startIcon={<SaveIcon />}
-              disabled={backupCount >= MAX_LS_BACKUPS}
+              disabled={backupLimitReached}
               onClick={() => {
-                if (backupCount >= MAX_LS_BACKUPS) {
+                if (backupLimitReached) {
                   return;
                 }
                 saveWidgetBackup(widget);
@@ -439,4 +423,4 @@ const WidgetItem: React.FC<WidgetItemProps> = ({
   );
 };
 
-export default WidgetItem;
+export default React.memo(WidgetItem);

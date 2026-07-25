@@ -1,7 +1,7 @@
 /* Widget Wizard
  * WidgetHandler: Handler of widgets.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { log, enableLogging } from '../../helpers/logger';
 import WidgetItem from './WidgetItem';
 import WidgetsDisabled from './WidgetsDisabled';
@@ -14,6 +14,7 @@ import { CustomButton } from './../CustomComponents';
 import WidgetBackupList from './WidgetBackupList';
 import { loadWidgetBackups } from './widgetBackupStorage';
 import messageSoundUrl from '../../assets/audio/message.oga';
+import { MAX_LS_BACKUPS } from '../constants';
 /* MUI */
 import { SelectChangeEvent } from '@mui/material/Select';
 import { green } from '@mui/material/colors';
@@ -59,6 +60,29 @@ const WidgetHandler: React.FC = () => {
   } = useWidgetActions();
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
+
+  const backupLimitReached = backupList.length >= MAX_LS_BACKUPS;
+
+  const sortedWidgets = useMemo(() => {
+    return [...activeWidgets].sort((a, b) => {
+      let sortResult = 0;
+      switch (appSettings.sortBy) {
+        case 'id':
+          sortResult = a.generalParams.id - b.generalParams.id;
+          break;
+        case 'type':
+          sortResult = a.generalParams.type.localeCompare(b.generalParams.type);
+          break;
+        default:
+          break;
+      }
+      return appSettings.sortAscending ? sortResult : -sortResult;
+    });
+  }, [activeWidgets, appSettings.sortBy, appSettings.sortAscending]);
+
+  const handleBackupRequested = useCallback(() => {
+    setBackupList(loadWidgetBackups());
+  }, []);
 
   enableLogging(false);
 
@@ -156,8 +180,8 @@ const WidgetHandler: React.FC = () => {
 
   /* Handle dropdown toggle */
   const toggleDropdown = useCallback(
-    (widgetId: number) => {
-      const newId = openWidgetId === widgetId ? null : widgetId;
+    (widget: Widget, isOpen: boolean) => {
+      const newId = isOpen ? null : widget.generalParams.id;
 
       setActiveDraggableWidget((prev) => ({
         ...prev,
@@ -170,17 +194,10 @@ const WidgetHandler: React.FC = () => {
       setOpenWidgetId(newId);
 
       if (appSettings.widgetAutoBringFront) {
-        const widget = activeWidgets.find(
-          (w) => w.generalParams.id === widgetId
-        );
-        if (widget) {
-          setDepth('front', widget);
-        }
+        setDepth('front', widget);
       }
     },
     [
-      openWidgetId,
-      activeWidgets,
       setActiveDraggableWidget,
       setOpenWidgetId,
       appSettings.widgetAutoBringFront,
@@ -317,31 +334,20 @@ const WidgetHandler: React.FC = () => {
 
       {/* List of Active Widgets */}
       <Box sx={{ marginTop: 2 }}>
-        {activeWidgets
-          .sort((a, b) => {
-            let sortResult = 0;
-            switch (appSettings.sortBy) {
-              case 'id':
-                sortResult = a.generalParams.id - b.generalParams.id;
-                break;
-              case 'type':
-                sortResult = a.generalParams.type.localeCompare(
-                  b.generalParams.type
-                );
-                break;
-              default:
-                break;
+        {sortedWidgets.map((widget) => (
+          <WidgetItem
+            key={widget.generalParams.id}
+            widget={widget}
+            toggleDropdown={toggleDropdown}
+            onBackupRequested={handleBackupRequested}
+            backupLimitReached={backupLimitReached}
+            isOpen={openWidgetId === widget.generalParams.id}
+            isActive={
+              activeDraggableWidget.id === widget.generalParams.id &&
+              activeDraggableWidget.active
             }
-            return appSettings.sortAscending ? sortResult : -sortResult;
-          })
-          .map((widget) => (
-            <WidgetItem
-              key={widget.generalParams.id}
-              widget={widget}
-              toggleDropdown={toggleDropdown}
-              onBackupRequested={() => setBackupList(loadWidgetBackups())}
-            />
-          ))}
+          />
+        ))}
       </Box>
 
       {/* Remove all widgets button */}
