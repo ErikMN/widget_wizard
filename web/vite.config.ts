@@ -4,6 +4,19 @@ import react from '@vitejs/plugin-react';
 import viteTsconfigPaths from 'vite-tsconfig-paths';
 import svgr from 'vite-plugin-svgr';
 
+/* Set true for HTTPS or false for HTTP */
+const USE_HTTPS = true;
+
+const targetProtocol = USE_HTTPS ? 'https' : 'http';
+const websocketProtocol = USE_HTTPS ? 'wss' : 'ws';
+
+const targetPort = USE_HTTPS
+  ? process.env.TARGET_HTTPS_PORT || '443'
+  : process.env.TARGET_HTTP_PORT || '80';
+
+const target = `${targetProtocol}://${process.env.TARGET_IP}:${targetPort}`;
+const websocketTarget = `${websocketProtocol}://${process.env.TARGET_IP}:${targetPort}`;
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/local/widget_wizard',
@@ -30,41 +43,41 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 8080,
     open: true,
-    /* Proxy endpoints (use HTTPS) */
+    /* Proxy endpoints (use HTTP or HTTPS) */
     proxy: {
       '/local/widget_wizard/system-stats-ws': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         ws: true,
         changeOrigin: true,
         secure: false
       },
       '/local/widget_wizard/file-upload': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         changeOrigin: true,
         secure: false
       },
       '/rtsp-over-websocket': {
-        target: `wss://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target: websocketTarget,
         ws: true,
         secure: false
       },
       '/axis-cgi/': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         changeOrigin: true,
         secure: false
       },
       '/mjpg/': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         changeOrigin: true,
         secure: false
       },
       '/img/': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         changeOrigin: true,
         secure: false
       },
       '/config/rest/': {
-        target: `https://${process.env.TARGET_IP}:${process.env.TARGET_PORT}`,
+        target,
         changeOrigin: true,
         secure: false
       }
