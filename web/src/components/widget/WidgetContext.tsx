@@ -238,9 +238,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     [handleOpenAlert, setAppLoading, setActiveWidgets]
   );
 
-  /* Lists all currently active widgets and their parameter values.
-   * NOTE: This needs to be done after add, remove, update
-   */
+  /* Lists all currently active widgets and their parameter values. */
   const listWidgets = useCallback(async () => {
     try {
       setAppLoading(true);
@@ -316,7 +314,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [handleOpenAlert, setAppLoading]);
 
-  /* Adds a new widget and refreshes the widget list */
+  /* Adds a new widget to the active widget state */
   const addWidget = useCallback(
     async (widgetType: string) => {
       try {
@@ -332,8 +330,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           handleOpenAlert(resp.error.message, 'error');
           return;
         }
-        if (resp?.data) {
-          /* After adding the widget, refresh the active widgets list */
+        /* Use the complete widget returned by the backend when available */
+        if (resp?.data?.generalParams?.id != null) {
+          const addedWidget = resp.data as Widget;
+          /* Preserve existing widget objects and avoid adding the same ID twice */
+          setActiveWidgets((currentWidgets) => {
+            const alreadyExists = currentWidgets.some(
+              (widget) =>
+                widget.generalParams.id === addedWidget.generalParams.id
+            );
+            return alreadyExists
+              ? currentWidgets
+              : [...currentWidgets, addedWidget];
+          });
+        } else {
+          /* Fall back to a full refresh for incomplete backend responses */
           await listWidgets();
         }
         playSound(newSoundUrl);
@@ -345,7 +356,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Error:', error);
       }
     },
-    [currentChannel, listWidgets, handleOpenAlert, setAppLoading]
+    [
+      currentChannel,
+      handleOpenAlert,
+      listWidgets,
+      setAppLoading,
+      setActiveWidgets
+    ]
   );
 
   const addCustomWidget = useCallback(
@@ -360,8 +377,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           handleOpenAlert(resp.error.message, 'error');
           return;
         }
-        if (resp?.data) {
-          /* After adding the widget, refresh the active widgets list */
+        /* Use the complete widget returned by the backend when available */
+        if (resp?.data?.generalParams?.id != null) {
+          const addedWidget = resp.data as Widget;
+          /* Preserve existing widget objects and avoid adding the same ID twice */
+          setActiveWidgets((currentWidgets) => {
+            const alreadyExists = currentWidgets.some(
+              (widget) =>
+                widget.generalParams.id === addedWidget.generalParams.id
+            );
+            return alreadyExists
+              ? currentWidgets
+              : [...currentWidgets, addedWidget];
+          });
+        } else {
+          /* Fall back to a full refresh for incomplete backend responses */
           await listWidgets();
         }
         playSound(newSoundUrl);
@@ -373,7 +403,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Error:', error);
       }
     },
-    [listWidgets, handleOpenAlert, setAppLoading]
+    [listWidgets, handleOpenAlert, setAppLoading, setActiveWidgets]
   );
 
   /* Removes a specified widget */
