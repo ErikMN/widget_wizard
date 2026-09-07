@@ -37,7 +37,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/preset-react": "^8.0.1",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
-    "@typescript-eslint/parser": "^8.65.0",
+    "@typescript-eslint/parser": "^8.69.0",
     "@vitejs/plugin-react": "^6.0.4",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
