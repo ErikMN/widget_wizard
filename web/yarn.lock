@@ -4300,10 +4300,10 @@ react-dom@^19.2.8:
   dependencies:
     scheduler "^0.27.0"
 
-react-draggable@^4.5.0:
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/react-draggable/-/react-draggable-4.5.0.tgz#0b274ccb6965fcf97ed38fcf7e3cc223bc48cdf5"
-  integrity sha512-VC+HBLEZ0XJxnOxVAZsdRi8rD04Iz3SiiKOoYzamjylUcju/hP9np/aZdLHf/7WOD268WMoNJMvYfB5yAK45cw==
+react-draggable@^4.5.0, react-draggable@^4.7.1:
+  version "4.7.1"
+  resolved "https://registry.yarnpkg.com/react-draggable/-/react-draggable-4.7.1.tgz#e502c3cfe0cc97d691e12aaa377a975fce097d71"
+  integrity sha512-wa3tzfFnYt3yaZLuyU58fl1TNunfWfBekDgWhZA1+gb2jnp42wZ0ymuopR6M5kqDYmm4hKmzGlcKWjZf3Zb6RQ==
   dependencies:
     clsx "^2.1.1"
     prop-types "^15.8.1"

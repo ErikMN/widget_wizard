@@ -24,7 +24,7 @@
     "media-stream-player": "^13.3.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-draggable": "^4.5.0",
+    "react-draggable": "^4.7.1",
     "react-json-view": "^1.21.3",
     "react-rnd": "^10.5.3",
     "react-router-dom": "^7.18.1",
