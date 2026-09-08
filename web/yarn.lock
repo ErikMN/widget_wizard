@@ -861,7 +861,7 @@
   dependencies:
     "@babel/runtime" "^7.29.7"
 
-"@mui/utils@^9.3.0", "@mui/utils@^9.4.0":
+"@mui/utils@^9.4.0":
   version "9.4.0"
   resolved "https://registry.yarnpkg.com/@mui/utils/-/utils-9.4.0.tgz#3e4946c1bf0d8f735e71d4d90d4fb9d1afa48cec"
   integrity sha512-WkzY8uYtqUDyGKPShrRQRBomfMQHddlsyKu/gRRESYO24tDPD2z0xRE8CBoUsWqpBa+YrFs9KixiS7kQRjsPAQ==
@@ -873,7 +873,7 @@
     prop-types "^15.8.1"
     react-is "^19.2.8"
 
-"@mui/x-charts-vendor@^9.11.1":
+"@mui/x-charts-vendor@^9.13.0":
   version "9.13.0"
   resolved "https://registry.yarnpkg.com/@mui/x-charts-vendor/-/x-charts-vendor-9.13.0.tgz#00cf22d2c8b56a5d69b3a4bb0bed33e7dace22d2"
   integrity sha512-Pp3lTklKjQX0SEobj8qbdgWEH2KXFMjAmUYUYT/DSDogXyNZmMIsyiCaN3stroQ2QZ30BaTa4fL0K/RVzNGnBA==
@@ -904,23 +904,23 @@
     flatqueue "^3.1.0"
     internmap "^2.0.3"
 
-"@mui/x-charts@^9.12.0":
-  version "9.12.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.12.0.tgz#0fcd77ddb559f410426881209dbfb60e8e29a6f8"
-  integrity sha512-JIDI/keG3Ek5ObYGZWx8aqKsvEIaSSZmSA9y2n2qf8beUbm2tmFAoTFShYmQw9tFU4YOp+tWR1stmvk1znGGsA==
+"@mui/x-charts@^9.13.0":
+  version "9.13.0"
+  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.13.0.tgz#e20638696f07180ec0a4bacae672de023fb1c01b"
+  integrity sha512-jpvIYoWISUQRrKz1/yu00SSU+bbyPo6rT/fhTQd0BTo07qxm4ZQ9Pseg9+WXztNVVhbzt4fsVElCcTxDyQocqw==
   dependencies:
     "@babel/runtime" "^7.29.7"
-    "@mui/utils" "^9.3.0"
-    "@mui/x-charts-vendor" "^9.11.1"
-    "@mui/x-internal-gestures" "^9.12.0"
-    "@mui/x-internals" "^9.12.0"
+    "@mui/utils" "^9.4.0"
+    "@mui/x-charts-vendor" "^9.13.0"
+    "@mui/x-internal-gestures" "^9.13.0"
+    "@mui/x-internals" "^9.13.0"
     bezier-easing "^3.0.1"
     clsx "^2.1.1"
     prop-types "^15.8.1"
     reselect "^5.2.0"
     use-sync-external-store "^1.6.0"
 
-"@mui/x-internal-gestures@^9.12.0":
+"@mui/x-internal-gestures@^9.13.0":
   version "9.13.0"
   resolved "https://registry.yarnpkg.com/@mui/x-internal-gestures/-/x-internal-gestures-9.13.0.tgz#f2df86332d9e18c8d046b7ecff3533b3e9ad8ddd"
   integrity sha512-GbjgDPLAZeVUu9ng09wS9oEzZlkRQQ5xi1355muG+UX+Ot5VLNqPQmv8PPIXt0HxpfaN67kF1YJpQBLIzOsj/g==
@@ -928,7 +928,7 @@
     "@babel/runtime" "^7.29.7"
     "@base-ui/utils" "^0.3.2"
 
-"@mui/x-internals@^9.12.0":
+"@mui/x-internals@^9.13.0":
   version "9.13.0"
   resolved "https://registry.yarnpkg.com/@mui/x-internals/-/x-internals-9.13.0.tgz#320cf718cccaa36734c913a9c05b6c5a4acd203c"
   integrity sha512-TAxYhWSQR351zhUO709ShsGlvbI9RSsh6zIn99tLmkxKav+QFoxAlullzd79dQOxjUsau6spw/hmYcB+zLGipQ==
