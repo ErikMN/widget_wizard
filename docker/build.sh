@@ -66,7 +66,7 @@ sed -i "s/APPNAME=\"[^\"]*\"/APPNAME=\"${PROGS}\"/" package.conf
 sed -i "s/\"appName\": \"[^\"]*\"/\"appName\": \"${PROGS}\"/" manifest.json
 
 if [ "$BUILD_WEB" = "1" ] || [ "$BUILD_WEB" = "y" ]; then
-  # Build full ACAP with web:
+  # Build full ACAP package with web:
   make clean && FINAL=$FINAL make -j"$N_THREADS" && make web && eap-create.sh
 else
   # Build app only:

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Update the version number of the ACAP
+# Update the version number of the ACAP package
 # Version must be on format major.minor.micro
 #
 # Files updated: package.conf manifest.json web/package.json

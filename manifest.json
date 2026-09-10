@@ -1,11 +1,11 @@
 {
-    "schemaVersion": "1.9.0",
+    "schemaVersion": "2.0.0",
     "acapPackageConf": {
         "setup": {
             "appName": "widget_wizard",
             "friendlyName": "Widget Wizard",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
+            "vendorId": "1234567890",
             "architecture": "aarch64",
             "user": {
                 "username": "sdk",
