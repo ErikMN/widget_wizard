@@ -11,6 +11,7 @@ echo -e "${GREEN}>>> Installing using ACAPSDK $OECORE_SDK_VERSION for $OECORE_TA
 
 # NOTE: Make sure SDK eap-install.sh supports setting the HTTP port:
 export axis_device_ip=$TARGET_IP:$TARGET_PORT
+export user=$TARGET_USR
 export password=$TARGET_PWD
 
 # Try to enable unsigned app mode on target:
