@@ -47,11 +47,11 @@ fi
 OUT_DIR="release_$GIT_TAG"
 
 echo
-echo "${FMT_BOLD}*** Building ACAP for aarch64${FMT_RESET}"
+echo "${FMT_BOLD}*** Building ACAP package for aarch64${FMT_RESET}"
 echo "${FMT_BLUE}*** Output directory: $OUT_DIR${FMT_RESET}"
 echo
 
-# Remove old ACAPs first:
+# Remove old ACAP packages first:
 rm -rf "$OUT_DIR"
 
 mkdir -p "$OUT_DIR" || {
@@ -64,15 +64,15 @@ mkdir -p "$OUT_DIR" || {
 cleanup || exit 1
 
 ################################################################################
-# Build ACAP:
+# Build ACAP package:
 
 FINAL=y make acap || {
-  echo "${FMT_RED}*** Failed to build aarch64 ACAP${FMT_RESET}"
+  echo "${FMT_RED}*** Failed to build aarch64 ACAP package${FMT_RESET}"
   exit 1
 }
 
 mv ./*_aarch64.eap "$OUT_DIR" || {
-  echo "${FMT_RED}*** Failed to move aarch64 ACAP to $OUT_DIR${FMT_RESET}"
+  echo "${FMT_RED}*** Failed to move aarch64 ACAP package to $OUT_DIR${FMT_RESET}"
   exit 1
 }
 

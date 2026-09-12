@@ -1,14 +1,28 @@
-##################### ACAP SDK aarch64 image ###################################
+##################### Overridable arguments ####################################
 ARG ARCH=aarch64
-ARG REPO=axisecp
+ARG REPO=docker.io/axisecp
 
 # ACAP 4: https://hub.docker.com/r/axisecp/acap-native-sdk
-ARG VERSION=1.11
-ARG UBUNTU_VERSION=22.04
+ARG SDK_VERSION=12.11.0
+ARG UBUNTU_VERSION=24.04
 ARG SDK=acap-native-sdk
+ARG LWS_VER=v4.5-stable
+ARG LWS_SHA256=8a7017656055c2d7416e8a68535395e240ba5e309a35c219cb705bd701e01a23
 
-FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
 
+##################### ACAP SDK aarch64 image ###################################
+FROM $REPO/$SDK:$SDK_VERSION-aarch64-ubuntu$UBUNTU_VERSION AS builder-aarch64
+
+##################### ACAP SDK armv7hf image ###################################
+FROM $REPO/$SDK:$SDK_VERSION-armv7hf-ubuntu$UBUNTU_VERSION AS builder-armv7hf
+ARG EXTRA_WS_ARGS='-D ENABLE_NEON=ON -D ENABLE_VFPV3=ON'
+
+##################### ACAP SDK image ###########################################
+FROM builder-$ARCH
+ARG ARCH
+ARG LWS_VER
+ARG LWS_SHA256
+ARG EXTRA_WS_ARGS
 ##################### General setup ############################################
 
 # Install some utils:
@@ -33,24 +47,24 @@ RUN DEBIAN_FRONTEND=noninteractive \
   rm -rf /var/lib/apt/lists/*
 
 # ACAP SDK install path:
-ARG ACAP_SDK_INSTALL_DIR=/opt/axis/acapsdk/sysroots/aarch64/usr
+ARG ACAP_SDK_INSTALL_DIR=/opt/axis/acapsdk/sysroots/$ARCH/usr
 
 # Install libs here:
 ARG INC_DIR=${ACAP_SDK_INSTALL_DIR}/include
 
-##################### Setup and build libwebsockets for aarch64 ################
+##################### Setup and build libwebsockets ############################
 
 # libwebsockets paths and version:
-ARG LWS_VER=v4.5-stable
 ARG BUILD_DIR=/opt/build
 ARG LWS_SRC_DIR=${BUILD_DIR}/LWS
 ARG LWS_BUILD_DIR=${LWS_SRC_DIR}/build
 
-# Clone libwebsockets to LWS_SRC_DIR:
-RUN git clone https://github.com/warmcat/libwebsockets.git --branch=${LWS_VER} ${LWS_SRC_DIR}
-
-# Create build directory:
-RUN mkdir -p ${LWS_BUILD_DIR}
+# Download and verify libwebsockets to LWS_SRC_DIR:
+WORKDIR "$LWS_SRC_DIR"
+RUN curl -fsSLo /tmp/libwebsockets.tar.gz "https://github.com/warmcat/libwebsockets/archive/refs/heads/$LWS_VER.tar.gz" && \
+    echo "$LWS_SHA256  /tmp/libwebsockets.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/libwebsockets.tar.gz --strip-components=1 && \
+    rm /tmp/libwebsockets.tar.gz
 
 # Configure and build libwebsockets statically:
 WORKDIR ${LWS_BUILD_DIR}
@@ -71,12 +85,13 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
   -D LWS_WITHOUT_TESTAPPS=ON \
   -D LWS_HAVE_LIBCAP=OFF \
   -D LWS_WITH_LIBCAP=OFF \
-  ${LWS_SRC_DIR} && \
-  make -j$(nproc) install
+  $EXTRA_WS_ARGS \
+  "$LWS_SRC_DIR" && \
+  make -j"$(nproc)" install
 
 # Copy static libwebsockets archive for linking:
-RUN mkdir -p /opt/app/libwebsockets
-RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.a /opt/app/libwebsockets
+WORKDIR /opt/app/libwebsockets
+RUN cp -P ${ACAP_SDK_INSTALL_DIR}/lib/libwebsockets.a .
 
 ################################################################################
 

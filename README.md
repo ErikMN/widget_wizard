@@ -20,7 +20,7 @@ Also useful for rapid prototyping of modern UI against a target device for featu
 
 The UI runs directly on the camera as part of the installed ACAP application (see below).
 
-The ACAP also provides an optional WebSocket server backend to stream real-time
+The ACAP application also provides an optional WebSocket server backend to stream real-time
 system metrics to the frontend. \
 The backend application needs to be running for this feature to be working.
 
@@ -70,5 +70,5 @@ Standalone web deployment isn’t possible because the device does not expose th
 [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
 headers required for browser access.
 
-The system-monitor is an embedded C WebSocket server bundled with the ACAP. \
-Starting the ACAP on the device will start the WebSocket server for realtime system analytics.
+The system-monitor is an embedded C WebSocket server bundled with the ACAP application. \
+Starting the ACAP application on the device will start the WebSocket server for realtime system analytics.

@@ -95,7 +95,7 @@ else
 	$(error Please source setuptarget.sh first)
 endif
 
-# Build ACAP release for all arch and put in a build dir:
+# Build ACAP release package for all arch and put in a build dir:
 .PHONY: release
 release:
 	@./scripts/make_acap_release.sh
@@ -197,9 +197,9 @@ testclean:
 # Create Docker image to build 32-bit app in:
 .PHONY: dockersetup32
 dockersetup32: checkdocker
-	@docker build -f docker/Dockerfile.armv7hf ./docker -t $(DOCKER_X32_IMG)
+	@docker build --build-arg ARCH=armv7hf ./docker -t $(DOCKER_X32_IMG)
 
-# Build ACAP for ARM32 using Docker:
+# Build ACAP package for ARM32 using Docker:
 .PHONY: acap32
 acap32: checkdocker
 	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
@@ -209,11 +209,11 @@ acap32: checkdocker
 build32: checkdocker
 	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/build.sh 0 $(PROGS) $(ACAP_NAME) $(FINAL)
 
-# Fast target to setup Docker image and build the 32-bit ACAP:
+# Fast target to setup Docker image and build the 32-bit ACAP package:
 .PHONY: app32
 app32: dockersetup32 acap32
 
-# Install 32-bit ACAP using Docker:
+# Install 32-bit ACAP package using Docker:
 .PHONY: install32
 install32: checkdocker acap32
 	@$(DOCKER_CMD) $(DOCKER_X32_IMG) ./docker/eap-install.sh

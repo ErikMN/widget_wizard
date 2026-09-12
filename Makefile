@@ -110,19 +110,19 @@ help:
 	@echo "  dockerrun      : Log in to the Docker image for current arch"
 	@echo "  acap           : Build for 64-bit ARM in Docker"
 	@echo "  build          : Fast build ACAP binary for current arch"
-	@echo "  install        : Install the ACAP to target device"
-	@echo "  deploy         : Deploy the ACAP binary to target device (requires ACAP already installed)"
+	@echo "  install        : Install the ACAP application to target device"
+	@echo "  deploy         : Deploy the ACAP binary to target device (requires ACAP package already installed)"
 	@echo "  deployprofile  : Deploy shell profile to target device"
 	@echo "  deploygdb      : Deploy gdbserver to target device"
 	@echo "  checksdk       : Check SDK information for target device"
 	@echo "  logon          : Logon to ACAP dir"
 	@echo "  log            : Trace logs on target"
-	@echo "  kill           : Kill ACAP running on target device"
+	@echo "  kill           : Kill ACAP application instance running on target device"
 	@echo "  hosttest       : Build and run backend cmocka unit tests on the host PC"
 	@echo "  openweb        : Open ACAP web on target device"
 	@echo "  web            : Build the web using Node.js and Yarn"
 	@echo "  deployweb      : Deploy the web to target device"
-	@echo "  release        : Build ACAP release for all arch and put in a release dir"
+	@echo "  release        : Build ACAP release package for all arch and put in a release dir"
 	@echo "  clean          : Clean the build"
 	@echo "  distclean      : Clean everything, web and *.old *.orig"
 
@@ -179,7 +179,7 @@ endif
 dockersetup: checkdocker
 	@docker build -f docker/Dockerfile ./docker -t $(DOCKER_X64_IMG)
 
-# Build ACAP for ARM64 using Docker:
+# Build ACAP package for ARM64 using Docker:
 .PHONY: acap
 acap: checkdocker
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh $(BUILD_WEB) $(PROGS) $(ACAP_NAME) $(FINAL)
@@ -189,11 +189,11 @@ acap: checkdocker
 build: checkdocker
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/build.sh 0 $(PROGS) $(ACAP_NAME) $(FINAL)
 
-# Fast target to setup Docker image and build the ACAP:
+# Fast target to setup Docker image and build the ACAP package:
 .PHONY: app
 app: dockersetup acap
 
-# Install ACAP using Docker:
+# Install ACAP package using Docker:
 .PHONY: install
 install: checkdocker acap
 	@$(DOCKER_CMD) $(DOCKER_X64_IMG) ./docker/eap-install.sh
