@@ -318,7 +318,7 @@ const WidgetHandler: React.FC = () => {
               }
             }}
           >
-            {widgetCapabilities?.data.widgets.map((widget, index) => (
+            {widgetCapabilities?.data?.widgets?.map((widget, index) => (
               <MenuItem key={index} value={widget.type}>
                 {capitalizeFirstLetter(widget.type)}
               </MenuItem>
