@@ -27,6 +27,7 @@ The backend application needs to be running for this feature to be working.
 ### Features
 
 * Create and edit in-stream widgets and overlays
+* Switch between the legacy widget API and the v3 API on supported devices
 * Auto-generated UI controls for different types of widgets
 * Fine-tune widgets and overlays with the built-in JSON editor
 * Customizable bounding boxes for easy repositioning of widgets and overlays

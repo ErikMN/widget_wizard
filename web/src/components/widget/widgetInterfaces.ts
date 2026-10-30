@@ -21,6 +21,7 @@ export interface Widget {
     type: string;
     updateTime: number;
     depth: string;
+    plane?: number | null;
   };
   /* Will change depending on widget */
   widgetParams: object;
@@ -28,28 +29,28 @@ export interface Widget {
 
 /* Structure returned from listCapabilities */
 export interface WidgetCapabilities {
-  apiVersion: string;
-  method: string;
+  apiVersion?: string;
+  method?: string;
   /* On success */
-  data: {
-    anchor: {
+  data?: {
+    anchor?: {
       type: string;
       enum: string[];
     };
-    channel: {
+    channel?: {
       type: 'integer';
     };
-    datasource: {
+    datasource?: {
       type: string;
     };
-    depth: {
+    depth?: {
       type: string;
       enum: string[];
     };
-    isVisible: {
+    isVisible?: {
       type: 'bool';
     };
-    position: {
+    position?: {
       x: {
         type: 'float';
       };
@@ -57,30 +58,31 @@ export interface WidgetCapabilities {
         type: 'float';
       };
     };
-    size: {
+    size?: {
       type: string;
       enum: string[];
     };
-    transparency: {
+    transparency?: {
       type: 'float';
       minimum: number;
       maximum: number;
     };
-    type: {
+    type?: {
       type: string;
     };
-    updateTime: {
+    updateTime?: {
       type: 'float';
       minimum: number;
     };
-    widgets: Array<{
+    widgets?: Array<{
       type: string;
       /* Will change depending on widget */
       widgetParams: object;
     }>;
+    [key: string]: unknown;
   };
   /* On error */
-  error: {
+  error?: {
     code: number;
     message: string;
   };
@@ -88,18 +90,19 @@ export interface WidgetCapabilities {
 
 /* FIXME: Common response for listWidgets and updateWidget */
 export interface ApiResponse {
-  apiVersion: string;
-  method: string;
+  apiVersion?: string;
+  method?: string;
   /* On success */
-  data: {
-    widgets: Widget[]; // listWidgets
-    generalParams: Widget['generalParams']; // updateWidget
-    widgetParams: Widget['widgetParams']; // updateWidget
-    height: number; // updateWidget
-    width: number; // updateWidget
+  data?: {
+    widgets?: Widget[]; // listWidgets
+    generalParams?: Widget['generalParams']; // updateWidget
+    widgetParams?: Widget['widgetParams']; // updateWidget
+    height?: number; // updateWidget
+    width?: number; // updateWidget
+    id?: string | number;
   };
   /* On error */
-  error: {
+  error?: {
     code: number;
     message: string;
   };

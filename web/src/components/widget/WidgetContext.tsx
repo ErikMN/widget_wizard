@@ -29,7 +29,8 @@ import {
   apiAddWidget,
   apiAddCustomWidget,
   apiRemoveWidget,
-  apiRemoveAllWidgets
+  apiRemoveAllWidgets,
+  WidgetApiMode
 } from './widgetApi';
 
 /* Widget data */
@@ -38,6 +39,7 @@ interface WidgetDataContextProps {
   widgetCapabilities: WidgetCapabilities | null;
   widgetSupported: boolean;
   selectedWidget: string;
+  widgetApiMode: WidgetApiMode;
 }
 
 /* Widget UI state */
@@ -84,6 +86,7 @@ interface WidgetActionsContextProps {
   setWidgetSupported: React.Dispatch<React.SetStateAction<boolean>>;
   listWidgets: () => Promise<void>;
   listWidgetCapabilities: () => Promise<void>;
+  switchWidgetApi: (mode: WidgetApiMode) => Promise<void>;
   addWidget: (widgetType: string) => Promise<void>;
   addCustomWidget: (params: Widget) => Promise<void>;
   removeWidget: (widgetID: number) => Promise<void>;
@@ -126,6 +129,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [openWidgetId, setOpenWidgetId] = useState<number | null>(null);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
+  const [widgetApiMode, setWidgetApiMode] = useState<WidgetApiMode>('legacy');
 
   /* Draggable widget state */
   const [activeDraggableWidget, setActiveDraggableWidget] = useState<{
@@ -201,7 +205,11 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             if (showLoading) {
               setAppLoading(true);
             }
-            const resp: ApiResponse = await apiUpdateWidget(widgetItem);
+            const resp: ApiResponse = await apiUpdateWidget(
+              widgetItem,
+              widgetApiMode,
+              current
+            );
             if (showLoading) {
               setAppLoading(false);
             }
@@ -211,7 +219,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
               return;
             }
             /* If response contains updated generalParams, update the widget state */
-            if (resp?.data?.generalParams) {
+            if (widgetApiMode === 'v3') {
+              setActiveWidgets((prevWidgets) =>
+                prevWidgets.map((widget) =>
+                  widget.generalParams.id === widgetId ? widgetItem : widget
+                )
+              );
+            } else if (resp?.data?.generalParams) {
               const updatedWidget = { ...widgetItem, ...resp.data };
               setActiveWidgets((prevWidgets) =>
                 prevWidgets.map((widget) =>
@@ -235,14 +249,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         widgetUpdateQueueRef.current.delete(widgetId);
       }
     },
-    [handleOpenAlert, setAppLoading, setActiveWidgets]
+    [handleOpenAlert, setAppLoading, setActiveWidgets, widgetApiMode]
   );
 
   /* Lists all currently active widgets and their parameter values. */
   const listWidgets = useCallback(async () => {
     try {
       setAppLoading(true);
-      const resp: ApiResponse | null = await apiListWidgets();
+      const resp: ApiResponse | null = await apiListWidgets(widgetApiMode);
       setAppLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -270,7 +284,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setAppLoading]);
+  }, [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]);
 
   /* List widgets on tab switch */
   useTabVisibility(listWidgets);
@@ -279,7 +293,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const listWidgetCapabilities = useCallback(async () => {
     try {
       setAppLoading(true);
-      const resp: WidgetCapabilities | null = await apiListWidgetCapabilities();
+      const resp: WidgetCapabilities | null =
+        await apiListWidgetCapabilities(widgetApiMode);
       setAppLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -312,7 +327,80 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setAppLoading]);
+  }, [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]);
+
+  const switchWidgetApi = useCallback(
+    async (mode: WidgetApiMode) => {
+      if (mode === widgetApiMode) {
+        return;
+      }
+
+      try {
+        setAppLoading(true);
+        const pendingUpdates = [...widgetUpdateQueueRef.current.values()];
+        if (pendingUpdates.length > 0) {
+          await Promise.all(pendingUpdates);
+        }
+        const [capabilities, widgets] = await Promise.all([
+          apiListWidgetCapabilities(mode),
+          apiListWidgets(mode)
+        ]);
+        if (
+          !capabilities ||
+          capabilities.error ||
+          !Array.isArray(capabilities.data?.widgets)
+        ) {
+          throw new Error(
+            capabilities?.error?.message ??
+              `The ${mode === 'v3' ? 'v3' : 'legacy'} widget API is unavailable`
+          );
+        }
+        if (
+          !widgets ||
+          widgets.error ||
+          !Array.isArray(widgets.data?.widgets)
+        ) {
+          throw new Error(
+            widgets?.error?.message ?? 'Failed to list widgets with this API'
+          );
+        }
+
+        setWidgetApiMode(mode);
+        setWidgetSupported(true);
+        setWidgetCapabilities(capabilities);
+        setActiveWidgets(widgets.data.widgets);
+        if (
+          !capabilities.data.widgets.some(
+            (widget) => widget.type === selectedWidget
+          )
+        ) {
+          setSelectedWidget(capabilities.data.widgets[0]?.type ?? '');
+        }
+        handleOpenAlert(
+          `Switched to the ${mode === 'v3' ? 'v3' : 'legacy'} widget API`,
+          'success'
+        );
+      } catch (error) {
+        playSound(warningSoundUrl);
+        handleOpenAlert(
+          error instanceof Error
+            ? error.message
+            : 'Failed to switch widget API',
+          'error'
+        );
+        console.error('Error switching widget API:', error);
+      } finally {
+        setAppLoading(false);
+      }
+    },
+    [
+      handleOpenAlert,
+      selectedWidget,
+      setActiveWidgets,
+      setAppLoading,
+      widgetApiMode
+    ]
+  );
 
   /* Adds a new widget to the active widget state */
   const addWidget = useCallback(
@@ -321,7 +409,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setAppLoading(true);
         const resp: ApiResponse = await apiAddWidget(
           widgetType,
-          currentChannel
+          currentChannel,
+          widgetApiMode
         );
         setAppLoading(false);
         log('*** ADD WIDGET', { resp });
@@ -361,7 +450,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert,
       listWidgets,
       setAppLoading,
-      setActiveWidgets
+      setActiveWidgets,
+      widgetApiMode
     ]
   );
 
@@ -369,7 +459,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     async (params: Widget) => {
       try {
         setAppLoading(true);
-        const resp: ApiResponse = await apiAddCustomWidget(params);
+        const resp: ApiResponse = await apiAddCustomWidget(
+          params,
+          widgetApiMode
+        );
         setAppLoading(false);
         log('*** ADD WIDGET', { resp });
         if (resp.error) {
@@ -403,7 +496,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Error:', error);
       }
     },
-    [listWidgets, handleOpenAlert, setAppLoading, setActiveWidgets]
+    [
+      listWidgets,
+      handleOpenAlert,
+      setAppLoading,
+      setActiveWidgets,
+      widgetApiMode
+    ]
   );
 
   /* Removes a specified widget */
@@ -417,7 +516,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setAppLoading(true);
-        const resp: ApiResponse = await apiRemoveWidget(widgetID);
+        const resp: ApiResponse = await apiRemoveWidget(
+          widgetID,
+          widgetApiMode
+        );
         setAppLoading(false);
         log('*** REMOVE WIDGET', { resp });
         if (resp.error) {
@@ -441,7 +543,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         removingWidgetIdsRef.current.delete(widgetID);
       }
     },
-    [handleOpenAlert, setAppLoading]
+    [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]
   );
 
   /* Removes all currently active widgets */
@@ -460,7 +562,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setAppLoading(true);
-      const resp: ApiResponse = await apiRemoveAllWidgets();
+      const resp: ApiResponse = await apiRemoveAllWidgets(widgetApiMode);
       setAppLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
@@ -485,7 +587,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     listWidgets();
     /* Reset dropdown state after all widgets are removed */
     setOpenWidgetId(null);
-  }, [listWidgets, handleOpenAlert, setAppLoading]);
+  }, [listWidgets, handleOpenAlert, setAppLoading, widgetApiMode]);
 
   /****************************************************************************/
   /* Provider */
@@ -495,9 +597,16 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       activeWidgets,
       widgetCapabilities,
       widgetSupported,
-      selectedWidget
+      selectedWidget,
+      widgetApiMode
     }),
-    [activeWidgets, widgetCapabilities, widgetSupported, selectedWidget]
+    [
+      activeWidgets,
+      widgetCapabilities,
+      widgetSupported,
+      selectedWidget,
+      widgetApiMode
+    ]
   );
 
   const uiStateValue: WidgetUiStateContextProps = useMemo(
@@ -524,6 +633,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       setWidgetSupported,
       listWidgets,
       listWidgetCapabilities,
+      switchWidgetApi,
       addWidget,
       addCustomWidget,
       removeWidget,
@@ -531,10 +641,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       updateWidget
     }),
     [
+      setActiveWidgets,
       setWidgetCapabilities,
       setWidgetSupported,
       listWidgets,
       listWidgetCapabilities,
+      switchWidgetApi,
       addWidget,
       addCustomWidget,
       removeWidget,

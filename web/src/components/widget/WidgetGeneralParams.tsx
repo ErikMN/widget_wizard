@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { debounce } from 'lodash';
 import { Widget } from './widgetInterfaces';
+import { isValidV3Datasource } from './widgetApi';
 import { useWidgetActions, useWidgetData, useWidgetUi } from './WidgetContext';
 import { capitalizeFirstLetter, toNiceName } from '../../helpers/utils';
 import { playSound } from '../../helpers/utils';
@@ -70,9 +71,12 @@ const WidgetGeneralParams = forwardRef<
   WidgetGeneralParamsProps
 >(({ widget, widgetState, setWidgetState }, ref) => {
   /* Global context */
-  const { widgetCapabilities } = useWidgetData();
+  const { widgetCapabilities, widgetApiMode } = useWidgetData();
   const { activeDraggableWidget, setActiveDraggableWidget } = useWidgetUi();
   const { updateWidget } = useWidgetActions();
+  const minimumUpdateTime = widgetCapabilities?.data?.updateTime?.minimum ?? 0;
+  const datasourceInvalid =
+    widgetApiMode === 'v3' && !isValidV3Datasource(widgetState.datasource);
 
   /****************************************************************************/
   /* Handle UI updates for general parameters */
@@ -93,7 +97,7 @@ const WidgetGeneralParams = forwardRef<
         isVisible: newVisibility
       }
     }));
-  }, [widgetState.isVisible, widget, updateWidget]);
+  }, [widgetState.isVisible, widget, setWidgetState, updateWidget]);
 
   const handleAnchorChange = useCallback(
     (event: SelectChangeEvent<string>) => {
@@ -136,7 +140,7 @@ const WidgetGeneralParams = forwardRef<
         sliderValue: Array.isArray(newValue) ? newValue[0] : newValue
       }));
     },
-    []
+    [setWidgetState]
   );
 
   const handleTransparencyChangeCommitted = useCallback(() => {
@@ -157,6 +161,8 @@ const WidgetGeneralParams = forwardRef<
     widgetId: widget.generalParams.id,
     widgetState,
     updateTimeInput,
+    minimumUpdateTime,
+    widgetApiMode,
     updateWidget
   });
 
@@ -165,6 +171,8 @@ const WidgetGeneralParams = forwardRef<
       widgetId: widget.generalParams.id,
       widgetState,
       updateTimeInput,
+      minimumUpdateTime,
+      widgetApiMode,
       updateWidget
     };
   });
@@ -175,6 +183,8 @@ const WidgetGeneralParams = forwardRef<
         widgetId,
         widgetState: latestState,
         updateTimeInput: latestUpdateTimeInput,
+        minimumUpdateTime: latestMinimumUpdateTime,
+        widgetApiMode: latestApiMode,
         updateWidget: latestUpdateWidget
       } = latestRef.current;
 
@@ -182,7 +192,9 @@ const WidgetGeneralParams = forwardRef<
         const pending: Partial<typeof current.generalParams> = {};
 
         if (
-          latestState.datasource !== '' &&
+          (latestApiMode === 'v3'
+            ? isValidV3Datasource(latestState.datasource)
+            : latestState.datasource !== '') &&
           latestState.datasource !== current.generalParams.datasource
         ) {
           pending.datasource = latestState.datasource;
@@ -195,7 +207,7 @@ const WidgetGeneralParams = forwardRef<
         const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
         if (
           !isNaN(parsedUpdateTime) &&
-          parsedUpdateTime >= 0 &&
+          parsedUpdateTime >= latestMinimumUpdateTime &&
           parsedUpdateTime !== current.generalParams.updateTime
         ) {
           pending.updateTime = parsedUpdateTime;
@@ -300,7 +312,7 @@ const WidgetGeneralParams = forwardRef<
 
   const handleUpdateTimeBlur = () => {
     const parsed = parseFloat(updateTimeInput);
-    if (!isNaN(parsed) && parsed >= 0) {
+    if (!isNaN(parsed) && parsed >= minimumUpdateTime) {
       setWidgetState((prevState) => ({
         ...prevState,
         updateTime: parsed
@@ -367,17 +379,19 @@ const WidgetGeneralParams = forwardRef<
           }}
         >
           {/* Set widget depth */}
-          <Tooltip title={`Cycle widgets`} arrow placement="top">
-            <div>
-              <CustomStyledIconButton
-                width="32px"
-                height="32px"
-                onClick={() => handleSetDepth('cycle')}
-              >
-                <RecyclingIcon />
-              </CustomStyledIconButton>
-            </div>
-          </Tooltip>
+          {widgetApiMode === 'legacy' && (
+            <Tooltip title={`Cycle widgets`} arrow placement="top">
+              <div>
+                <CustomStyledIconButton
+                  width="32px"
+                  height="32px"
+                  onClick={() => handleSetDepth('cycle')}
+                >
+                  <RecyclingIcon />
+                </CustomStyledIconButton>
+              </div>
+            </Tooltip>
+          )}
           <Tooltip
             title={`Bring ${capitalizeFirstLetter(widget.generalParams.type)} to back`}
             arrow
@@ -447,7 +461,7 @@ const WidgetGeneralParams = forwardRef<
         }}
       >
         {/* Visible toggle */}
-        {widgetCapabilities && widgetCapabilities.data.isVisible && (
+        {widgetCapabilities?.data?.isVisible && (
           <Box sx={{ flex: 1 }}>
             <FormControlLabel
               control={
@@ -487,7 +501,7 @@ const WidgetGeneralParams = forwardRef<
 
       <Box sx={{ display: 'flex', gap: 1, width: '100%', mb: 3 }}>
         {/* Anchor Dropdown */}
-        {widgetCapabilities && widgetCapabilities.data.anchor && (
+        {widgetCapabilities?.data?.anchor && (
           <Box sx={{ flex: 1 }}>
             <FormControl sx={{ marginTop: 2, width: '100%' }}>
               <InputLabel id="anchor-label" sx={{ top: '-4px' }}>
@@ -514,7 +528,7 @@ const WidgetGeneralParams = forwardRef<
           </Box>
         )}
         {/* Size Dropdown */}
-        {widgetCapabilities && widgetCapabilities.data.size && (
+        {widgetCapabilities?.data?.size && (
           <Box sx={{ flex: 1 }}>
             <FormControl sx={{ marginTop: 2, width: '100%' }}>
               <InputLabel id="size-label" sx={{ top: '-4px' }}>
@@ -551,6 +565,12 @@ const WidgetGeneralParams = forwardRef<
               label="Datasource"
               value={widgetState.datasource}
               onChange={handleDatasourceChange}
+              error={datasourceInvalid}
+              helperText={
+                datasourceInvalid
+                  ? 'Use # or % followed by letters, digits or dots.'
+                  : undefined
+              }
               fullWidth
               variant="outlined"
               placeholder="Enter datasource"
@@ -591,7 +611,7 @@ const WidgetGeneralParams = forwardRef<
       </Box>
 
       {/* Transparency Slider */}
-      {widgetCapabilities && widgetCapabilities.data.transparency && (
+      {widgetCapabilities?.data?.transparency && (
         <Box sx={{ marginTop: 2 }}>
           <Typography variant="body2">Transparency</Typography>
           <CustomSlider
