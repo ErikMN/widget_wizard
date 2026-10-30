@@ -12,7 +12,7 @@
     "@fontsource/roboto": "^5.3.0",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
-    "@mui/x-charts": "^9.15.0",
+    "@mui/x-charts": "^9.16.0",
     "@types/lodash": "^4.17.27",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
