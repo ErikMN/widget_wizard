@@ -1,7 +1,7 @@
 /*
  * OverlayItemText: Renders an individual text overlay.
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useOverlayContext } from './OverlayContext';
 import { saveOverlayBackup, loadOverlayBackups } from './overlayBackupStorage';
 import { TextOverlay } from './overlayInterfaces';
@@ -66,6 +66,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
 
   /* Local state */
   const [text, setText] = useState(overlay.text ?? '');
+  const textDirtyRef = useRef(false);
   const [textColor, setTextColor] = useState(overlay.textColor ?? 'white');
   const [textBGColor, setTextBGColor] = useState(
     overlay.textBGColor ?? 'transparent'
@@ -100,16 +101,24 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setIsReady(true);
   }, []);
 
+  /* Preserve unsaved text until the backend confirms it */
+  useEffect(() => {
+    const confirmedText = overlay.text ?? '';
+    if (textDirtyRef.current && text !== confirmedText) {
+      return;
+    }
+    textDirtyRef.current = false;
+    setText(confirmedText);
+  }, [overlay.text, text]);
+
   /* Sync editable fields when overlay values change */
   useEffect(() => {
-    setText(overlay.text ?? '');
     setTextColor(overlay.textColor ?? 'white');
     setTextBGColor(overlay.textBGColor ?? 'transparent');
     setTextOLColor(overlay.textOLColor ?? 'black');
     setFontSize(overlay.fontSize ?? 100);
     setReference(overlay.reference ?? 'channel');
   }, [
-    overlay.text,
     overlay.textColor,
     overlay.textBGColor,
     overlay.textOLColor,
@@ -275,6 +284,7 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     updateTextOverlay(parsed as TextOverlay);
 
     /* Keep UI state in sync with JSON */
+    textDirtyRef.current = true;
     setText(parsed.text ?? '');
     setTextColor(parsed.textColor ?? 'white');
     setTextBGColor(parsed.textBGColor ?? 'transparent');
@@ -446,7 +456,10 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
             fullWidth
             label="Text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              textDirtyRef.current = true;
+              setText(e.target.value);
+            }}
             sx={{
               mb: 1.5,
               '& .MuiInputBase-root': { height: '40px' }
