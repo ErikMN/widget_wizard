@@ -84,7 +84,8 @@ const WidgetHandler: React.FC = () => {
     widgetCapabilities,
     widgetSupported,
     selectedWidget,
-    widgetApiMode
+    widgetApiMode,
+    widgetApiSwitching
   } = useWidgetData();
   const {
     activeDraggableWidget,
@@ -96,6 +97,7 @@ const WidgetHandler: React.FC = () => {
   const {
     listWidgets,
     listWidgetCapabilities,
+    registerPendingWidgetChanges,
     addWidget,
     removeWidget,
     removeAllWidgets,
@@ -128,6 +130,14 @@ const WidgetHandler: React.FC = () => {
   }, []);
 
   enableLogging(false);
+
+  useEffect(() => {
+    return registerPendingWidgetChanges(() => {
+      widgetItemRefs.current.forEach((handle) => {
+        handle.flushPendingChanges();
+      });
+    });
+  }, [registerPendingWidgetChanges]);
 
   /* Component mount: Calls listWidgetCapabilities and listWidgets */
   useEffect(() => {
@@ -164,6 +174,9 @@ const WidgetHandler: React.FC = () => {
   /* Keyboard Delete shortcuts */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (widgetApiSwitching) {
+        return;
+      }
       /* Ignore if typing in input, textarea, or contenteditable */
       const target = event.target as HTMLElement;
       const isTyping =
@@ -198,7 +211,7 @@ const WidgetHandler: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeWidgets.length, activeDraggableWidget.id]);
+  }, [activeWidgets.length, activeDraggableWidget.id, widgetApiSwitching]);
 
   /* Handle dropdown change */
   const handleWidgetChange = useCallback(
@@ -300,6 +313,7 @@ const WidgetHandler: React.FC = () => {
 
   return (
     <Box
+      inert={widgetApiSwitching}
       sx={{
         display: 'flex',
         flexDirection: 'column',

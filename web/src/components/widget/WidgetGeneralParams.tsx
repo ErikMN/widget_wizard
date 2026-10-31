@@ -232,7 +232,6 @@ const WidgetGeneralParams = forwardRef<
   }, [debouncedSend]);
 
   const flushPendingChanges = useCallback(() => {
-    debouncedSend();
     debouncedSend.flush();
   }, [debouncedSend]);
 

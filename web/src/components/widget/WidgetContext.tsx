@@ -40,6 +40,7 @@ interface WidgetDataContextProps {
   widgetSupported: boolean;
   selectedWidget: string;
   widgetApiMode: WidgetApiMode;
+  widgetApiSwitching: boolean;
 }
 
 /* Widget UI state */
@@ -88,6 +89,7 @@ interface WidgetActionsContextProps {
   listWidgets: () => Promise<void>;
   listWidgetCapabilities: () => Promise<void>;
   switchWidgetApi: (mode: WidgetApiMode) => Promise<void>;
+  registerPendingWidgetChanges: (flush: () => void) => () => void;
   addWidget: (widgetType: string) => Promise<void>;
   addCustomWidget: (params: Widget) => Promise<void>;
   removeWidget: (widgetID: number) => Promise<void>;
@@ -131,6 +133,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [openWidgetId, setOpenWidgetId] = useState<number | null>(null);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
   const [widgetApiMode, setWidgetApiMode] = useState<WidgetApiMode>('legacy');
+  const [widgetApiSwitching, setWidgetApiSwitching] = useState(false);
 
   /* Draggable widget state */
   const [activeDraggableWidget, setActiveDraggableWidget] = useState<{
@@ -161,6 +164,15 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   /* Run updates for one widget in order. */
   const widgetUpdateQueueRef = useRef<Map<number, Promise<void>>>(new Map());
   const removingWidgetIdsRef = useRef<Set<number>>(new Set());
+  const widgetApiSwitchingRef = useRef(false);
+  const pendingWidgetChangesRef = useRef<Set<() => void>>(new Set());
+
+  const registerPendingWidgetChanges = useCallback((flush: () => void) => {
+    pendingWidgetChangesRef.current.add(flush);
+    return () => {
+      pendingWidgetChangesRef.current.delete(flush);
+    };
+  }, []);
 
   /****************************************************************************/
   /* Widget endpoint communication functions */
@@ -176,7 +188,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         forceDepthAction = false
       }: UpdateWidgetOptions = {}
     ) => {
-      if (removingWidgetIdsRef.current.has(widgetId)) {
+      if (
+        widgetApiSwitchingRef.current ||
+        removingWidgetIdsRef.current.has(widgetId)
+      ) {
         return;
       }
 
@@ -337,11 +352,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const switchWidgetApi = useCallback(
     async (mode: WidgetApiMode) => {
-      if (mode === widgetApiMode) {
+      if (mode === widgetApiMode || widgetApiSwitchingRef.current) {
         return;
       }
 
       try {
+        pendingWidgetChangesRef.current.forEach((flush) => flush());
+        widgetApiSwitchingRef.current = true;
+        setWidgetApiSwitching(true);
         setAppLoading(true);
         const pendingUpdates = [...widgetUpdateQueueRef.current.values()];
         if (pendingUpdates.length > 0) {
@@ -403,6 +421,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         );
         console.error('Error switching widget API:', error);
       } finally {
+        widgetApiSwitchingRef.current = false;
+        setWidgetApiSwitching(false);
         setAppLoading(false);
       }
     },
@@ -611,14 +631,16 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       widgetCapabilities,
       widgetSupported,
       selectedWidget,
-      widgetApiMode
+      widgetApiMode,
+      widgetApiSwitching
     }),
     [
       activeWidgets,
       widgetCapabilities,
       widgetSupported,
       selectedWidget,
-      widgetApiMode
+      widgetApiMode,
+      widgetApiSwitching
     ]
   );
 
@@ -647,6 +669,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       listWidgets,
       listWidgetCapabilities,
       switchWidgetApi,
+      registerPendingWidgetChanges,
       addWidget,
       addCustomWidget,
       removeWidget,
@@ -660,6 +683,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       listWidgets,
       listWidgetCapabilities,
       switchWidgetApi,
+      registerPendingWidgetChanges,
       addWidget,
       addCustomWidget,
       removeWidget,

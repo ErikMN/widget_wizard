@@ -47,6 +47,7 @@ interface WidgetItemProps {
 }
 
 export interface WidgetItemHandle {
+  flushPendingChanges: () => void;
   cancelPendingChanges: () => void;
 }
 
@@ -108,6 +109,10 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
     useImperativeHandle(
       ref,
       () => ({
+        flushPendingChanges: () => {
+          generalParamsRef.current?.flushPendingChanges();
+          specificParamsRef.current?.flushPendingChanges();
+        },
         cancelPendingChanges: () => {
           generalParamsRef.current?.cancelPendingChanges();
           specificParamsRef.current?.cancelPendingChanges();
