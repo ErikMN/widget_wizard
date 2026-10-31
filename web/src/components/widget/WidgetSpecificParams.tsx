@@ -235,7 +235,9 @@ const WidgetArrayInput: React.FC<WidgetArrayInputProps> = ({
                         label={subKey}
                         paramConfig={fieldConfig}
                         value={fieldValue}
-                        onUpdate={onUpdate}
+                        onUpdate={(_path, newValue) =>
+                          handleFieldChange(index, subKey, newValue)
+                        }
                       />
                     </Box>
                   );
