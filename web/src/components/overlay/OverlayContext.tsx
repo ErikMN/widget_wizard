@@ -396,27 +396,27 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
       return queueOverlayUpdate(overlay.identity, async () => {
         try {
-        setAppLoading(true);
-        const resp = await apiUpdateImageOverlay(overlay);
-        setAppLoading(false);
+          setAppLoading(true);
+          const resp = await apiUpdateImageOverlay(overlay);
+          setAppLoading(false);
 
-        log('[Overlay] setImage:', resp);
+          log('[Overlay] setImage:', resp);
 
-        if (!handleResponse(resp, 'setImage')) {
-          return;
+          if (!handleResponse(resp, 'setImage')) {
+            return;
+          }
+
+          await listOverlays();
+        } catch (err) {
+          setAppLoading(false);
+          console.error('Failed to update image overlay:', err);
+          playSound(warningSoundUrl);
+          handleOpenAlert(
+            `Failed to update image overlay #${overlay.identity}`,
+            'error'
+          );
         }
-
-        await listOverlays();
-      } catch (err) {
-        setAppLoading(false);
-        console.error('Failed to update image overlay:', err);
-        playSound(warningSoundUrl);
-        handleOpenAlert(
-          `Failed to update image overlay #${overlay.identity}`,
-          'error'
-        );
-        }
-         });
+      });
     },
     [queueOverlayUpdate, listOverlays, handleOpenAlert, setAppLoading]
   );
@@ -430,27 +430,27 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
       return queueOverlayUpdate(overlay.identity, async () => {
         try {
-        setAppLoading(true);
-        const json = await apiUpdateTextOverlay(overlay);
-        setAppLoading(false);
+          setAppLoading(true);
+          const json = await apiUpdateTextOverlay(overlay);
+          setAppLoading(false);
 
-        log('[Overlay] setText:', json);
+          log('[Overlay] setText:', json);
 
-        if (!handleResponse(json, 'setText')) {
-          return;
+          if (!handleResponse(json, 'setText')) {
+            return;
+          }
+
+          await listOverlays();
+        } catch (err) {
+          setAppLoading(false);
+          console.error('Failed to update text overlay:', err);
+          playSound(warningSoundUrl);
+          handleOpenAlert(
+            `Failed to update text overlay #${overlay.identity}`,
+            'error'
+          );
         }
-
-        await listOverlays();
-      } catch (err) {
-        setAppLoading(false);
-        console.error('Failed to update text overlay:', err);
-        playSound(warningSoundUrl);
-        handleOpenAlert(
-          `Failed to update text overlay #${overlay.identity}`,
-          'error'
-        );
-        }
-         });
+      });
     },
     [queueOverlayUpdate, listOverlays, handleOpenAlert, setAppLoading]
   );

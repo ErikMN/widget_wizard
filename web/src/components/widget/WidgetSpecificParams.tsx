@@ -312,10 +312,7 @@ const WidgetArrayInput: React.FC<WidgetArrayInputProps> = ({
                         key={subKey}
                         sx={{ flex: '1 1 120px', minWidth: '120px' }}
                       >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'grey.500' }}
-                        >
+                        <Typography variant="body2" sx={{ color: 'grey.500' }}>
                           Unsupported type: {fieldConfig.type}
                         </Typography>
                       </Box>
