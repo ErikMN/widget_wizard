@@ -190,53 +190,57 @@ const WidgetGeneralParams = forwardRef<
       } = latestRef.current;
 
       const editRevision = editRevisionRef.current;
-      latestUpdateWidget(widgetId, (current) => {
-        const pending: Partial<typeof current.generalParams> = {};
+      latestUpdateWidget(
+        widgetId,
+        (current) => {
+          const pending: Partial<typeof current.generalParams> = {};
 
-        if (
-          (latestApiMode === 'v3'
-            ? isValidV3Datasource(latestState.datasource)
-            : latestState.datasource !== '') &&
-          latestState.datasource !== current.generalParams.datasource
-        ) {
-          pending.datasource = latestState.datasource;
-        }
-
-        if (latestState.channel !== current.generalParams.channel) {
-          pending.channel = latestState.channel;
-        }
-
-        const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
-        if (
-          !isNaN(parsedUpdateTime) &&
-          parsedUpdateTime >= latestMinimumUpdateTime &&
-          parsedUpdateTime !== current.generalParams.updateTime
-        ) {
-          pending.updateTime = parsedUpdateTime;
-        }
-
-        if (Object.keys(pending).length === 0) {
-          return current;
-        }
-
-        return {
-          ...current,
-          generalParams: { ...current.generalParams, ...pending }
-        };
-      }, {
-        onFailure: (current) => {
-          if (editRevision !== editRevisionRef.current) {
-            return;
+          if (
+            (latestApiMode === 'v3'
+              ? isValidV3Datasource(latestState.datasource)
+              : latestState.datasource !== '') &&
+            latestState.datasource !== current.generalParams.datasource
+          ) {
+            pending.datasource = latestState.datasource;
           }
-          setWidgetState((previous) => ({
-            ...previous,
-            datasource: current.generalParams.datasource,
-            channel: current.generalParams.channel,
-            updateTime: current.generalParams.updateTime
-          }));
-          setUpdateTimeInput(String(current.generalParams.updateTime));
+
+          if (latestState.channel !== current.generalParams.channel) {
+            pending.channel = latestState.channel;
+          }
+
+          const parsedUpdateTime = parseFloat(latestUpdateTimeInput);
+          if (
+            !isNaN(parsedUpdateTime) &&
+            parsedUpdateTime >= latestMinimumUpdateTime &&
+            parsedUpdateTime !== current.generalParams.updateTime
+          ) {
+            pending.updateTime = parsedUpdateTime;
+          }
+
+          if (Object.keys(pending).length === 0) {
+            return current;
+          }
+
+          return {
+            ...current,
+            generalParams: { ...current.generalParams, ...pending }
+          };
+        },
+        {
+          onFailure: (current) => {
+            if (editRevision !== editRevisionRef.current) {
+              return;
+            }
+            setWidgetState((previous) => ({
+              ...previous,
+              datasource: current.generalParams.datasource,
+              channel: current.generalParams.channel,
+              updateTime: current.generalParams.updateTime
+            }));
+            setUpdateTimeInput(String(current.generalParams.updateTime));
+          }
         }
-      });
+      );
     }, 300)
   ).current;
 

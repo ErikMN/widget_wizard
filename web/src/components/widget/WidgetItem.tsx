@@ -144,9 +144,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
             ? next.datasource
             : current.datasource,
         channel:
-          current.channel === previous.channel
-            ? next.channel
-            : current.channel,
+          current.channel === previous.channel ? next.channel : current.channel,
         updateTime:
           current.updateTime === previous.updateTime
             ? next.updateTime
