@@ -143,6 +143,20 @@ export const useSystemStatsStream = ({
           return;
         }
 
+        if (
+          !Number.isFinite(data?.ts) ||
+          !Number.isFinite(data?.cpu) ||
+          !Number.isFinite(data?.mem_total_kb) ||
+          data.mem_total_kb <= 0 ||
+          !Number.isFinite(data?.mem_available_kb)
+        ) {
+          if (typeof data?.error?.message === 'string') {
+            setError(data.error.message);
+          }
+          return;
+        }
+
+        setError(null);
         setConnected(true);
         setStats(data);
 
