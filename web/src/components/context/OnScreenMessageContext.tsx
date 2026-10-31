@@ -44,6 +44,7 @@ export const OnScreenMessageProvider: React.FC<{
 
   /* Store timeout for the currently active message */
   const timeoutRef = useRef<number | null>(null);
+  const activeMessageIdRef = useRef<string | null>(null);
 
   const clearCurrentTimeout = () => {
     if (timeoutRef.current !== null) {
@@ -53,6 +54,11 @@ export const OnScreenMessageProvider: React.FC<{
   };
 
   const dismissMessage = useCallback((id: string) => {
+    if (activeMessageIdRef.current !== id) {
+      return;
+    }
+
+    activeMessageIdRef.current = null;
     clearCurrentTimeout();
     setMessage((prev) => (prev?.id === id ? null : prev));
   }, []);
@@ -68,6 +74,7 @@ export const OnScreenMessageProvider: React.FC<{
       clearCurrentTimeout();
 
       const id = Math.random().toString(36).substr(2, 9);
+      activeMessageIdRef.current = id;
 
       const newMessage: OnScreenMessage = {
         id,
