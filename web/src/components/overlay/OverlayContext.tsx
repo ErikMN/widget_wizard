@@ -45,7 +45,7 @@ interface OverlayContextProps {
   listOverlays: () => Promise<void>;
   addImageOverlay: (params?: Partial<ImageOverlay>) => Promise<void>;
   addTextOverlay: (params?: Partial<TextOverlay>) => Promise<void>;
-  removeOverlay: (id: number) => Promise<void>;
+  removeOverlay: (id: number) => Promise<boolean>;
   removeAllOverlays: () => Promise<void>;
   updateImageOverlay: (overlay: ImageOverlay) => Promise<void>;
   updateTextOverlay: (overlay: TextOverlay) => Promise<void>;
@@ -274,18 +274,20 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         log('[Overlay] remove:', resp);
 
         if (!handleResponse(resp)) {
-          return;
+          return false;
         }
 
         playSound(trashSoundUrl);
         handleOpenAlert(`Removed overlay #${id}`, 'success');
 
         await listOverlays();
+        return true;
       } catch (err) {
         setAppLoading(false);
         console.error('Failed to remove overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to remove overlay #${id}`, 'error');
+        return false;
       }
     },
     [listOverlays, handleOpenAlert, setAppLoading]
@@ -296,10 +298,17 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
     try {
       log('[Overlay] removeAllOverlays');
       setAppLoading(true);
+      let allRemoved = true;
       for (const overlay of activeOverlays) {
-        await removeOverlay(overlay.identity);
+        if (!(await removeOverlay(overlay.identity))) {
+          allRemoved = false;
+        }
       }
       setAppLoading(false);
+      if (!allRemoved) {
+        handleOpenAlert('Failed to remove all overlays', 'error');
+        return;
+      }
       setActiveOverlays([]);
       playSound(trashSoundUrl);
       handleOpenAlert('Removed all overlays', 'success');
