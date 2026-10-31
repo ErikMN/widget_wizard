@@ -89,6 +89,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
     const generalParamsRef = useRef<WidgetGeneralParamsHandle>(null);
     const specificParamsRef = useRef<WidgetSpecificParamsHandle>(null);
     const lastSyncedWidgetRef = useRef<Widget | null>(null);
+    const previousGeneralParamsRef = useRef(widget.generalParams);
     const wasOpenRef = useRef(isOpen);
     const wasWidgetParamsVisibleRef = useRef(widgetParamsVisible);
 
@@ -121,6 +122,37 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
       }),
       []
     );
+
+    /* Sync backend changes without replacing unsaved field edits */
+    useEffect(() => {
+      const previous = previousGeneralParamsRef.current;
+      const next = widget.generalParams;
+      previousGeneralParamsRef.current = next;
+
+      setWidgetState((current) => ({
+        ...current,
+        isVisible:
+          current.isVisible === previous.isVisible
+            ? next.isVisible
+            : current.isVisible,
+        sliderValue:
+          current.sliderValue === previous.transparency
+            ? next.transparency
+            : current.sliderValue,
+        datasource:
+          current.datasource === previous.datasource
+            ? next.datasource
+            : current.datasource,
+        channel:
+          current.channel === previous.channel
+            ? next.channel
+            : current.channel,
+        updateTime:
+          current.updateTime === previous.updateTime
+            ? next.updateTime
+            : current.updateTime
+      }));
+    }, [widget.generalParams]);
 
     /* Preserve an unsaved JSON draft when reopening the same widget. */
     useEffect(() => {

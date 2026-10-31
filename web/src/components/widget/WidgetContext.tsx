@@ -74,6 +74,7 @@ interface UpdateWidgetOptions {
   showLoading?: boolean;
   optimistic?: boolean;
   forceDepthAction?: boolean;
+  onFailure?: (current: Widget) => void;
 }
 
 type WidgetUiContextProps = WidgetUiStateContextProps &
@@ -195,7 +196,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       {
         showLoading = true,
         optimistic = false,
-        forceDepthAction = false
+        forceDepthAction = false,
+        onFailure
       }: UpdateWidgetOptions = {}
     ) => {
       if (
@@ -278,6 +280,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
               playSound(warningSoundUrl);
               handleOpenAlert(resp.error.message, 'error');
               await restoreOptimisticUpdate(widgetItem);
+              onFailure?.(current);
               return;
             }
             /* If response contains updated generalParams, update the widget state */
@@ -310,6 +313,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             if (attemptedWidget) {
               await restoreOptimisticUpdate(attemptedWidget);
             }
+            onFailure?.(current);
           }
         });
 

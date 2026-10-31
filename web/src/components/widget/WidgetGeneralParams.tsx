@@ -156,6 +156,7 @@ const WidgetGeneralParams = forwardRef<
   const [updateTimeInput, setUpdateTimeInput] = useState(
     String(widgetState.updateTime)
   );
+  const editRevisionRef = useRef(0);
 
   const latestRef = useRef({
     widgetId: widget.generalParams.id,
@@ -188,6 +189,7 @@ const WidgetGeneralParams = forwardRef<
         updateWidget: latestUpdateWidget
       } = latestRef.current;
 
+      const editRevision = editRevisionRef.current;
       latestUpdateWidget(widgetId, (current) => {
         const pending: Partial<typeof current.generalParams> = {};
 
@@ -221,6 +223,19 @@ const WidgetGeneralParams = forwardRef<
           ...current,
           generalParams: { ...current.generalParams, ...pending }
         };
+      }, {
+        onFailure: (current) => {
+          if (editRevision !== editRevisionRef.current) {
+            return;
+          }
+          setWidgetState((previous) => ({
+            ...previous,
+            datasource: current.generalParams.datasource,
+            channel: current.generalParams.channel,
+            updateTime: current.generalParams.updateTime
+          }));
+          setUpdateTimeInput(String(current.generalParams.updateTime));
+        }
       });
     }, 300)
   ).current;
@@ -253,6 +268,7 @@ const WidgetGeneralParams = forwardRef<
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const datasource = event.target.value;
+    editRevisionRef.current += 1;
     setWidgetState((prevState) => ({
       ...prevState,
       datasource
@@ -269,6 +285,7 @@ const WidgetGeneralParams = forwardRef<
 
   const handleChannelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newChannel = parseInt(event.target.value, 10);
+    editRevisionRef.current += 1;
     if (!isNaN(newChannel) && newChannel >= -1) {
       setWidgetState((prevState) => ({
         ...prevState,
@@ -301,6 +318,7 @@ const WidgetGeneralParams = forwardRef<
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const updateTimeText = event.target.value;
+    editRevisionRef.current += 1;
     setUpdateTimeInput(updateTimeText);
     latestRef.current = {
       ...latestRef.current,
