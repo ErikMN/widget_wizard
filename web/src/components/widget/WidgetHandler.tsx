@@ -211,13 +211,17 @@ const WidgetHandler: React.FC = () => {
 
   const setDepth = useCallback(
     (mode: string, widget: Widget) => {
-      updateWidget(widget.generalParams.id, (current) => ({
-        ...current,
-        generalParams: {
-          ...current.generalParams,
-          depth: mode
-        }
-      }));
+      updateWidget(
+        widget.generalParams.id,
+        (current) => ({
+          ...current,
+          generalParams: {
+            ...current.generalParams,
+            depth: mode
+          }
+        }),
+        { forceDepthAction: mode === 'front' || mode === 'back' }
+      );
     },
     [updateWidget]
   );

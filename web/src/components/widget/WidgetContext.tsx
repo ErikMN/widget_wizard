@@ -72,6 +72,7 @@ type WidgetUpdater = (current: Widget) => Widget;
 interface UpdateWidgetOptions {
   showLoading?: boolean;
   optimistic?: boolean;
+  forceDepthAction?: boolean;
 }
 
 type WidgetUiContextProps = WidgetUiStateContextProps &
@@ -169,7 +170,11 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     async (
       widgetId: number,
       updater: WidgetUpdater,
-      { showLoading = true, optimistic = false }: UpdateWidgetOptions = {}
+      {
+        showLoading = true,
+        optimistic = false,
+        forceDepthAction = false
+      }: UpdateWidgetOptions = {}
     ) => {
       if (removingWidgetIdsRef.current.has(widgetId)) {
         return;
@@ -208,7 +213,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             const resp: ApiResponse = await apiUpdateWidget(
               widgetItem,
               widgetApiMode,
-              current
+              current,
+              forceDepthAction
             );
             if (showLoading) {
               setAppLoading(false);

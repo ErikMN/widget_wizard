@@ -347,13 +347,17 @@ const WidgetGeneralParams = forwardRef<
 
   const handleSetDepth = useCallback(
     (mode: string) => {
-      updateWidget(widget.generalParams.id, (current) => ({
-        ...current,
-        generalParams: {
-          ...current.generalParams,
-          depth: mode
-        }
-      }));
+      updateWidget(
+        widget.generalParams.id,
+        (current) => ({
+          ...current,
+          generalParams: {
+            ...current.generalParams,
+            depth: mode
+          }
+        }),
+        { forceDepthAction: mode === 'front' || mode === 'back' }
+      );
     },
     [widget, updateWidget]
   );

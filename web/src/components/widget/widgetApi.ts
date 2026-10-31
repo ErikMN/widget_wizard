@@ -275,13 +275,15 @@ function normalizeV3Capabilities(
 export async function apiUpdateWidget(
   widgetItem: Widget,
   mode: WidgetApiMode = 'legacy',
-  previousWidget?: Widget
+  previousWidget?: Widget,
+  forceDepthAction = false
 ): Promise<ApiResponse> {
   if (mode === 'v3') {
     const widgetId = widgetItem.generalParams.id;
     if (
       previousWidget &&
-      widgetItem.generalParams.depth !== previousWidget.generalParams.depth
+      (forceDepthAction ||
+        widgetItem.generalParams.depth !== previousWidget.generalParams.depth)
     ) {
       const depth = widgetItem.generalParams.depth;
       if (depth !== 'front' && depth !== 'back') {

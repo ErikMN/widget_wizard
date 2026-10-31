@@ -199,6 +199,97 @@ test('v3 stacking actions do not patch data source or widget parameters', async 
   assert.equal(fetch.mock.callCount(), 1);
 });
 
+test('v3 repeats stacking commands even when the stored depth is unchanged', async (t) => {
+  const widget = await readAnnotation(t);
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({
+      url,
+      method: options.method,
+      body: JSON.parse(options.body)
+    });
+    return Response.json({ status: 'success' });
+  });
+
+  const frontWidget = {
+    ...widget,
+    generalParams: { ...widget.generalParams, depth: 'front' }
+  };
+  await api.apiUpdateWidget(frontWidget, 'v3', widget, true);
+  await api.apiUpdateWidget(frontWidget, 'v3', frontWidget, true);
+  await api.apiUpdateWidget(widget, 'v3', widget, true);
+
+  const base = '/config/rest/overlaywidget/v3beta/widgets/1/';
+  assert.deepEqual(requests, [
+    { url: base + 'moveToFront', method: 'POST', body: {} },
+    { url: base + 'moveToFront', method: 'POST', body: {} },
+    { url: base + 'moveToBack', method: 'POST', body: {} }
+  ]);
+});
+
+test('v3 property edits do not repeat a previous stacking action', async (t) => {
+  const widget = await readAnnotation(t);
+  const frontWidget = {
+    ...widget,
+    generalParams: { ...widget.generalParams, depth: 'front' }
+  };
+  const movedWidget = {
+    ...frontWidget,
+    generalParams: {
+      ...frontWidget.generalParams,
+      position: { x: 0.5, y: -0.5 }
+    }
+  };
+
+  const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/config/rest/overlaywidget/v3beta/widgets/1');
+    assert.equal(options.method, 'PATCH');
+    assert.deepEqual(JSON.parse(options.body), {
+      data: { position: { x: 0.5, y: -0.5 } }
+    });
+    return Response.json({ status: 'success' });
+  });
+
+  await api.apiUpdateWidget(movedWidget, 'v3', frontWidget);
+  assert.equal(fetch.mock.callCount(), 1);
+});
+
+test('v3 drag updates can also bring a widget to the front', async (t) => {
+  const widget = await readAnnotation(t);
+  const movedWidget = {
+    ...widget,
+    generalParams: {
+      ...widget.generalParams,
+      position: { x: 0.5, y: -0.5 },
+      depth: 'front'
+    }
+  };
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({
+      url,
+      method: options.method,
+      body: JSON.parse(options.body)
+    });
+    return Response.json({ status: 'success' });
+  });
+
+  await api.apiUpdateWidget(movedWidget, 'v3', widget, true);
+
+  assert.deepEqual(requests, [
+    {
+      url: '/config/rest/overlaywidget/v3beta/widgets/1/moveToFront',
+      method: 'POST',
+      body: {}
+    },
+    {
+      url: '/config/rest/overlaywidget/v3beta/widgets/1',
+      method: 'PATCH',
+      body: { data: { position: { x: 0.5, y: -0.5 } } }
+    }
+  ]);
+});
+
 test('v3 no-op updates send no requests', async (t) => {
   const widget = await readAnnotation(t);
   const fetch = t.mock.method(globalThis, 'fetch', () => {
