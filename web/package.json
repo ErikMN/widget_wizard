@@ -60,6 +60,7 @@
     "deploy": "make -C ../ deployweb",
     "license": "license-checker --json",
     "lint": "eslint .",
+    "test": "node --test tests/widgetApi.test.mjs",
     "format": "npx prettier --write .",
     "stylelint": "npx stylelint './src/**/*.css'",
     "checkupdate": "npx npm-check-updates",
