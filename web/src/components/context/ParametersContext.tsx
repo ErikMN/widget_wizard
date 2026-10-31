@@ -7,7 +7,13 @@
  *
  * NOTE: Try to NOT rely too much on these parameters in the app!
  */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { P_CGI } from '../constants';
 
 interface ParametersContextType {
@@ -36,6 +42,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
   const [paramsLoading, setParamsLoading] = useState<boolean>(true);
   const [paramsInitialized, setParamsInitialized] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const paramsInitializedRef = useRef(false);
 
   /* Parses param.cgi key=value output into a string-to-string map */
   const parseParameters = (text: string): { [key: string]: string } => {
@@ -67,6 +74,7 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
       setParameters(parsedParameters);
       setError(null);
       /* The parameters are initialized */
+      paramsInitializedRef.current = true;
       setParamsInitialized(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -125,7 +133,24 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Fetch all parameters on mount */
   useEffect(() => {
-    fetchParameters();
+    let retryTimer: number | null = null;
+    let cancelled = false;
+
+    const initializeParameters = async () => {
+      await fetchParameters();
+      if (!cancelled && !paramsInitializedRef.current) {
+        retryTimer = window.setTimeout(initializeParameters, 2000);
+      }
+    };
+
+    initializeParameters();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) {
+        clearTimeout(retryTimer);
+      }
+    };
   }, []);
 
   return (
