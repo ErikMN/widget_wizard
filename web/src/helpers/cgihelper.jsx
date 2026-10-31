@@ -45,10 +45,13 @@ export const jsonRequest = async (url, body) => {
     const response = await serverPost(url, JSON.stringify(body));
     if (!response.ok) {
       console.error(`jsonRequest: HTTP ${response.status} from ${url}`);
-      return null;
     }
     try {
-      return await response.json();
+      const json = await response.json();
+      if (!response.ok && !json?.error) {
+        return null;
+      }
+      return json;
     } catch (jsonError) {
       console.error('jsonRequest: invalid JSON response', jsonError);
       return null;

@@ -418,6 +418,27 @@ test('legacy widget updates continue to omit the type field', async (t) => {
   assert.equal(fetch.mock.callCount(), 1);
 });
 
+test('preserves legacy widget API errors returned with HTTP 400', async (t) => {
+  const widget = await readAnnotation(t);
+  const error = {
+    code: 2104,
+    message:
+      'Specified camera channel (2) does not exist. Valid values are 1 or -1 (to add widget on all channels) '
+  };
+
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/axis-cgi/overlaywidget/overlaywidget.cgi');
+    assert.equal(options.method, 'POST');
+    return Response.json(
+      { apiVersion: '2.1', method: 'updateWidget', error },
+      { status: 400 }
+    );
+  });
+
+  const response = await api.apiUpdateWidget(widget, 'legacy');
+  assert.deepEqual(response.error, error);
+});
+
 test('v3 no-op updates send no requests', async (t) => {
   const widget = await readAnnotation(t);
   const fetch = t.mock.method(globalThis, 'fetch', () => {
