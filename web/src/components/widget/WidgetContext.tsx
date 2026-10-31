@@ -628,6 +628,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveWidgets((prevWidgets) =>
           prevWidgets.filter((widget) => widget.generalParams.id !== widgetID)
         );
+        setOpenWidgetId((currentId) =>
+          currentId === widgetID ? null : currentId
+        );
+        setActiveDraggableWidget((current) =>
+          current.id === widgetID
+            ? { id: null, active: false, clickBBox: false, highlight: false }
+            : current
+        );
         playSound(trashSoundUrl);
         handleOpenAlert(`Removed widget ${widgetID}`, 'success');
       } catch (error) {
@@ -667,6 +675,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         handleOpenAlert(resp.error.message, 'error');
         return;
       }
+      /* Reset dropdown state after all widgets are removed */
+      setOpenWidgetId(null);
+      setActiveDraggableWidget({
+        id: null,
+        active: false,
+        clickBBox: false,
+        highlight: false
+      });
       playSound(trashSoundUrl);
       handleOpenAlert('Removed all widgets', 'success');
     } catch (error) {
@@ -682,8 +698,6 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     /* Refresh the active widget list after removing all */
     listWidgets();
-    /* Reset dropdown state after all widgets are removed */
-    setOpenWidgetId(null);
   }, [listWidgets, handleOpenAlert, setAppLoading, widgetApiMode]);
 
   /****************************************************************************/
