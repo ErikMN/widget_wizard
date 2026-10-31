@@ -218,8 +218,38 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             return;
           }
 
+          const restoreOptimisticUpdate = async (widgetItem: Widget) => {
+            if (!optimistic) {
+              return;
+            }
+
+            let restoredWidget = current;
+            try {
+              const response = await apiListWidgets(widgetApiMode);
+              const backendWidget = response?.data?.widgets?.find(
+                (widget) => widget.generalParams.id === widgetId
+              );
+              if (backendWidget) {
+                restoredWidget = backendWidget;
+              }
+            } catch (error) {
+              console.error(
+                'Failed to refresh widget after update error:',
+                error
+              );
+            }
+
+            setActiveWidgets((prevWidgets) =>
+              prevWidgets.map((widget) =>
+                widget === widgetItem ? restoredWidget : widget
+              )
+            );
+          };
+
+          let attemptedWidget: Widget | undefined;
           try {
             const widgetItem = updater(current);
+            attemptedWidget = widgetItem;
             if (widgetItem === current) {
               return;
             }
@@ -247,6 +277,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             if (resp.error) {
               playSound(warningSoundUrl);
               handleOpenAlert(resp.error.message, 'error');
+              await restoreOptimisticUpdate(widgetItem);
               return;
             }
             /* If response contains updated generalParams, update the widget state */
@@ -276,6 +307,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             playSound(warningSoundUrl);
             handleOpenAlert(`Widget ${widgetId} failed to update`, 'error');
             console.error('Error:', error);
+            if (attemptedWidget) {
+              await restoreOptimisticUpdate(attemptedWidget);
+            }
           }
         });
 
