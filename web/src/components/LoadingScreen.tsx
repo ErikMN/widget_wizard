@@ -53,8 +53,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
   /* On app mount */
   useEffect(() => {
     let retryTimer: number | null = null;
+    let cancelled = false;
     /* Check system state */
     const fetchSystemReady = async () => {
+      if (cancelled) {
+        return;
+      }
+
       setAppLoading(true);
       setStatus({
         message: 'Checking system ready...',
@@ -69,6 +74,12 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
       };
       try {
         const resp = await jsonRequest(SR_CGI, payload);
+        if (cancelled) {
+          return;
+        }
+        if (!resp?.data) {
+          throw new Error('Invalid systemready response');
+        }
         const systemReadyState = resp.data.systemready;
         /* If the system is not ready, wait a couple of seconds and retry */
         if (systemReadyState !== 'yes') {
@@ -88,18 +99,23 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ Component }) => {
           setSystemReady(systemReadyState);
         }
       } catch (error) {
+        if (cancelled) {
+          return;
+        }
         console.error(error);
         setStatus({
-          message: 'Failed to check system status.',
+          message: 'Failed to check system status. Retrying...',
           severity: 'error'
         });
         setAppLoading(false);
+        retryTimer = window.setTimeout(fetchSystemReady, 2000);
         /* We don't continue from here */
       }
     };
     fetchSystemReady();
 
     return () => {
+      cancelled = true;
       if (retryTimer !== null) {
         clearTimeout(retryTimer);
       }
