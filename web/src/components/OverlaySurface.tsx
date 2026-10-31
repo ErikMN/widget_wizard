@@ -46,7 +46,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const { appSettings } = useAppSettingsContext();
 
   /* Widget context */
-  const { activeWidgets } = useWidgetData();
+  const { activeWidgets, widgetApiMode } = useWidgetData();
   const {
     activeDraggableWidget,
     openWidgetId,
@@ -240,7 +240,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
             const widgetId = widget.generalParams.id;
             return (
               <WidgetBox
-                key={widgetId}
+                key={`${widgetApiMode}-${widgetId}`}
                 widget={widget}
                 dimensions={surfaceDimensions}
                 registerRef={registerWidgetRef}

@@ -758,7 +758,7 @@ interface WidgetBBoxProps {
 const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
   /* Global context */
   const { currentChannel } = useChannelContext();
-  const { activeWidgets } = useWidgetData();
+  const { activeWidgets, widgetApiMode } = useWidgetData();
   const { activeDraggableWidget, openWidgetId } = useWidgetUi();
   const { setActiveDraggableWidget, setOpenWidgetId } = useWidgetUiSetters();
 
@@ -814,7 +814,7 @@ const WidgetBBox: React.FC<WidgetBBoxProps> = ({ dimensions }) => {
           return (
             /* One BBox per active widget */
             <WidgetBox
-              key={widget.generalParams.id}
+              key={`${widgetApiMode}-${widget.generalParams.id}`}
               widget={widget}
               dimensions={dimensions}
               isActive={activeDraggableWidget?.id === widgetId}

@@ -79,8 +79,13 @@ const WidgetHandler: React.FC = () => {
   );
 
   /* Global context */
-  const { activeWidgets, widgetCapabilities, widgetSupported, selectedWidget } =
-    useWidgetData();
+  const {
+    activeWidgets,
+    widgetCapabilities,
+    widgetSupported,
+    selectedWidget,
+    widgetApiMode
+  } = useWidgetData();
   const {
     activeDraggableWidget,
     setActiveDraggableWidget,
@@ -456,7 +461,7 @@ const WidgetHandler: React.FC = () => {
       <Box sx={{ marginTop: 2 }}>
         {sortedWidgets.map((widget) => (
           <WidgetItem
-            key={widget.generalParams.id}
+            key={`${widgetApiMode}-${widget.generalParams.id}`}
             ref={getWidgetItemRefCallback(widget.generalParams.id)}
             widget={widget}
             toggleDropdown={toggleDropdown}

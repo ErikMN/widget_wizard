@@ -371,6 +371,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         }
 
+        setOpenWidgetId(null);
+        setActiveDraggableWidget({
+          id: null,
+          active: false,
+          clickBBox: false,
+          highlight: false
+        });
         setWidgetApiMode(mode);
         setWidgetSupported(true);
         setWidgetCapabilities(capabilities);
