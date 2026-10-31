@@ -43,6 +43,10 @@ export const getCgiResponseJSON = async (path) => {
 export const jsonRequest = async (url, body) => {
   try {
     const response = await serverPost(url, JSON.stringify(body));
+    if (!response.ok) {
+      console.error(`jsonRequest: HTTP ${response.status} from ${url}`);
+      return null;
+    }
     try {
       return await response.json();
     } catch (jsonError) {

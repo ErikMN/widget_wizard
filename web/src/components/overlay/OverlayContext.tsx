@@ -99,7 +99,11 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   /* Response helper */
-  const handleResponse = (json: any, successMsg: string | null = null) => {
+  const handleResponse = (
+    json: any,
+    expectedMethod: string,
+    successMsg: string | null = null
+  ) => {
     if (!json || typeof json !== 'object' || Array.isArray(json)) {
       playSound(warningSoundUrl);
       handleOpenAlert('Invalid overlay API response', 'error');
@@ -114,6 +118,23 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         'error'
       );
       console.error('Overlay API error:', json.error);
+      return false;
+    }
+
+    if (
+      typeof json.apiVersion !== 'string' ||
+      json.method !== expectedMethod ||
+      !json.data ||
+      typeof json.data !== 'object' ||
+      Array.isArray(json.data) ||
+      json.data.success === false ||
+      ((expectedMethod === 'addText' || expectedMethod === 'addImage') &&
+        (!Number.isInteger(json.data.identity) ||
+          !Number.isInteger(json.data.camera)))
+    ) {
+      playSound(warningSoundUrl);
+      handleOpenAlert('Invalid overlay API response', 'error');
+      console.error('Invalid overlay API response:', json);
       return false;
     }
 
@@ -221,7 +242,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] addImage:', resp);
 
-        if (!handleResponse(resp, 'Added image overlay')) {
+        if (!handleResponse(resp, 'addImage', 'Added image overlay')) {
           return false;
         }
         playSound(newSoundUrl);
@@ -259,7 +280,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] addText:', resp);
 
-        if (!handleResponse(resp, 'Added text overlay')) {
+        if (!handleResponse(resp, 'addText', 'Added text overlay')) {
           return false;
         }
         playSound(newSoundUrl);
@@ -287,7 +308,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] remove:', resp);
 
-        if (!handleResponse(resp)) {
+        if (!handleResponse(resp, 'remove')) {
           return false;
         }
 
@@ -364,7 +385,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] setImage:', resp);
 
-        if (!handleResponse(resp)) {
+        if (!handleResponse(resp, 'setImage')) {
           return;
         }
 
@@ -393,7 +414,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] setText:', json);
 
-        if (!handleResponse(json)) {
+        if (!handleResponse(json, 'setText')) {
           return;
         }
 
