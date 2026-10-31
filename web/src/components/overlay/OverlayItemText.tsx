@@ -100,6 +100,23 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
     setIsReady(true);
   }, []);
 
+  /* Sync editable fields when overlay values change */
+  useEffect(() => {
+    setText(overlay.text ?? '');
+    setTextColor(overlay.textColor ?? 'white');
+    setTextBGColor(overlay.textBGColor ?? 'transparent');
+    setTextOLColor(overlay.textOLColor ?? 'black');
+    setFontSize(overlay.fontSize ?? 100);
+    setReference(overlay.reference ?? 'channel');
+  }, [
+    overlay.text,
+    overlay.textColor,
+    overlay.textBGColor,
+    overlay.textOLColor,
+    overlay.fontSize,
+    overlay.reference
+  ]);
+
   /* Keyboard Delete shortcut: remove active overlay (but not when typing) */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -169,7 +186,12 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   const debouncedRotation = useDebouncedValue(rotation, 300);
 
   useEffect(() => {
-    if (!isReady) {
+    if (
+      !isReady ||
+      debouncedText !== text ||
+      debouncedFontSize !== fontSize ||
+      debouncedRotation !== rotation
+    ) {
       return;
     }
 
@@ -198,11 +220,14 @@ const OverlayItemText: React.FC<OverlayItemTextProps> = ({
   }, [
     isReady,
     debouncedText,
+    text,
     textColor,
     textBGColor,
     textOLColor,
     debouncedFontSize,
+    fontSize,
     debouncedRotation,
+    rotation,
     reference,
     position,
     customPosition,
