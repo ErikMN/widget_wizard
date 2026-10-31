@@ -57,8 +57,12 @@ const putStoredValue = async (
     const store = transaction.objectStore(DRAW_STORE_NAME);
     const request = store.put(value, DRAW_RECORD_KEY);
 
-    request.onsuccess = () => {
+    transaction.oncomplete = () => {
       resolve();
+    };
+
+    transaction.onabort = () => {
+      reject(transaction.error ?? new Error('Failed to write draw state'));
     };
 
     request.onerror = () => {
