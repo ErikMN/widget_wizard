@@ -21,3 +21,5 @@ jobs:
       - run: corepack enable
       - run: yarn install --frozen-lockfile
       - run: yarn lint && yarn format && yarn build
+      - run: node --test tests/widgetApi.test.mjs
+      - run: git diff -- src
