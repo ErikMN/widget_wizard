@@ -62,13 +62,15 @@ const OverlayBackupList: React.FC<{
 
   /* Restore one backup */
   const handleRestore = useCallback(
-    (index: number) => {
+    async (index: number) => {
       const restored = restoreOverlayBackup(index);
       if (!restored) {
         return;
       }
 
-      duplicateOverlay(restored);
+      if (!(await duplicateOverlay(restored))) {
+        return;
+      }
 
       /* Parent manages the actual list */
       setBackupList([...backupList]);

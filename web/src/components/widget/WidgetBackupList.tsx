@@ -63,13 +63,15 @@ const WidgetBackupList: React.FC<{
 
   /* Restore one backup */
   const handleRestore = useCallback(
-    (index: number) => {
+    async (index: number) => {
       const restored = restoreWidgetBackup(index);
       if (!restored) {
         return;
       }
 
-      addCustomWidget(restored);
+      if (!(await addCustomWidget(restored))) {
+        return;
+      }
 
       /* Parent manages the actual list */
       setBackupList([...backupList]);

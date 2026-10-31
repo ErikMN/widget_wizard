@@ -91,7 +91,7 @@ interface WidgetActionsContextProps {
   switchWidgetApi: (mode: WidgetApiMode) => Promise<void>;
   registerPendingWidgetChanges: (flush: () => void) => () => void;
   addWidget: (widgetType: string) => Promise<void>;
-  addCustomWidget: (params: Widget) => Promise<void>;
+  addCustomWidget: (params: Widget) => Promise<boolean>;
   removeWidget: (widgetID: number) => Promise<void>;
   removeAllWidgets: () => Promise<void>;
   updateWidget: (
@@ -599,7 +599,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         if (resp.error) {
           playSound(warningSoundUrl);
           handleOpenAlert(resp.error.message, 'error');
-          return;
+          return false;
         }
         /* Use the complete widget returned by the backend when available */
         if (resp?.data?.generalParams?.id != null) {
@@ -620,11 +620,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         playSound(newSoundUrl);
         handleOpenAlert(`Added ${params.generalParams.type}`, 'success');
+        return true;
       } catch (error) {
         setAppLoading(false);
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to add ${params.generalParams.type}`, 'error');
         console.error('Error:', error);
+        return false;
       }
     },
     [

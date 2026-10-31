@@ -44,13 +44,13 @@ interface OverlayContextProps {
   onSelectOverlay: (id: number | null) => void;
   listOverlayCapabilities: () => Promise<void>;
   listOverlays: () => Promise<void>;
-  addImageOverlay: (params?: Partial<ImageOverlay>) => Promise<void>;
-  addTextOverlay: (params?: Partial<TextOverlay>) => Promise<void>;
+  addImageOverlay: (params?: Partial<ImageOverlay>) => Promise<boolean>;
+  addTextOverlay: (params?: Partial<TextOverlay>) => Promise<boolean>;
   removeOverlay: (id: number) => Promise<boolean>;
   removeAllOverlays: () => Promise<void>;
   updateImageOverlay: (overlay: ImageOverlay) => Promise<void>;
   updateTextOverlay: (overlay: TextOverlay) => Promise<void>;
-  duplicateOverlay: (overlay: ImageOverlay | TextOverlay) => Promise<void>;
+  duplicateOverlay: (overlay: ImageOverlay | TextOverlay) => Promise<boolean>;
   activeDraggableOverlay: {
     id: number | null;
     active: boolean;
@@ -222,16 +222,18 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         log('[Overlay] addImage:', resp);
 
         if (!handleResponse(resp, 'Added image overlay')) {
-          return;
+          return false;
         }
         playSound(newSoundUrl);
 
         await listOverlays();
+        return true;
       } catch (err) {
         setAppLoading(false);
         console.error('Failed to add image overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert('Failed to add image overlay', 'error');
+        return false;
       }
     },
     [listOverlays, handleOpenAlert, setAppLoading]
@@ -258,16 +260,18 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         log('[Overlay] addText:', resp);
 
         if (!handleResponse(resp, 'Added text overlay')) {
-          return;
+          return false;
         }
         playSound(newSoundUrl);
 
         await listOverlays();
+        return true;
       } catch (err) {
         setAppLoading(false);
         console.error('Failed to add text overlay:', err);
         playSound(warningSoundUrl);
         handleOpenAlert('Failed to add text overlay', 'error');
+        return false;
       }
     },
     [listOverlays, handleOpenAlert, setAppLoading]
@@ -413,16 +417,15 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       try {
         /* Image overlay */
         if ('overlayPath' in overlay) {
-          await addImageOverlay({
+          return await addImageOverlay({
             camera: overlay.camera,
             overlayPath: overlay.overlayPath,
             position: overlay.position
           });
-          return;
         }
 
         /* Text overlay */
-        await addTextOverlay({
+        return await addTextOverlay({
           camera: overlay.camera,
           text: overlay.text,
           position: overlay.position,
@@ -432,6 +435,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         });
       } catch (err) {
         console.error('Failed to duplicate overlay:', err);
+        return false;
       }
     },
     [addImageOverlay, addTextOverlay]
