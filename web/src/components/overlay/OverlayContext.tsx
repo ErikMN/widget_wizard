@@ -87,6 +87,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   const [activeOverlayId, setActiveOverlayId] = useState<number | null>(null);
   const overlayListRequestIdRef = useRef(0);
   const overlayUpdateQueueRef = useRef<Map<number, Promise<void>>>(new Map());
+  const removingOverlayIdsRef = useRef<Set<number>>(new Set());
 
   const [activeDraggableOverlay, setActiveDraggableOverlay] = useState<{
     id: number | null;
@@ -301,7 +302,17 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   /* Remove an overlay */
   const removeOverlay = useCallback(
     async (id: number) => {
+      if (removingOverlayIdsRef.current.has(id)) {
+        return false;
+      }
+      removingOverlayIdsRef.current.add(id);
+
       try {
+        const pendingUpdate = overlayUpdateQueueRef.current.get(id);
+        if (pendingUpdate) {
+          await pendingUpdate.catch(() => undefined);
+        }
+
         setAppLoading(true);
         const resp = await apiRemoveOverlay(id);
         setAppLoading(false);
@@ -323,6 +334,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         playSound(warningSoundUrl);
         handleOpenAlert(`Failed to remove overlay #${id}`, 'error');
         return false;
+      } finally {
+        removingOverlayIdsRef.current.delete(id);
       }
     },
     [listOverlays, handleOpenAlert, setAppLoading]
@@ -376,8 +389,12 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
   /* Update an image overlay */
   const updateImageOverlay = useCallback(
-    (overlay: ImageOverlay) =>
-      queueOverlayUpdate(overlay.identity, async () => {
+    (overlay: ImageOverlay) => {
+      if (removingOverlayIdsRef.current.has(overlay.identity)) {
+        return Promise.resolve();
+      }
+
+      return queueOverlayUpdate(overlay.identity, async () => {
         try {
         setAppLoading(true);
         const resp = await apiUpdateImageOverlay(overlay);
@@ -399,14 +416,19 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
           'error'
         );
         }
-      }),
+         });
+    },
     [queueOverlayUpdate, listOverlays, handleOpenAlert, setAppLoading]
   );
 
   /* Update a text overlay */
   const updateTextOverlay = useCallback(
-    (overlay: TextOverlay) =>
-      queueOverlayUpdate(overlay.identity, async () => {
+    (overlay: TextOverlay) => {
+      if (removingOverlayIdsRef.current.has(overlay.identity)) {
+        return Promise.resolve();
+      }
+
+      return queueOverlayUpdate(overlay.identity, async () => {
         try {
         setAppLoading(true);
         const json = await apiUpdateTextOverlay(overlay);
@@ -428,7 +450,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
           'error'
         );
         }
-      }),
+         });
+    },
     [queueOverlayUpdate, listOverlays, handleOpenAlert, setAppLoading]
   );
 
