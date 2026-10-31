@@ -6,6 +6,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useRef,
   ReactNode
 } from 'react';
 import { log } from '../../helpers/logger';
@@ -84,6 +85,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
   >([]);
   const [imageFiles, setImageFiles] = useState<string[]>([]);
   const [activeOverlayId, setActiveOverlayId] = useState<number | null>(null);
+  const overlayListRequestIdRef = useRef(0);
 
   const [activeDraggableOverlay, setActiveDraggableOverlay] = useState<{
     id: number | null;
@@ -156,9 +158,13 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
   /* List overlays */
   const listOverlays = useCallback(async () => {
+    const requestId = ++overlayListRequestIdRef.current;
     try {
       setAppLoading(true);
       const resp = await apiListOverlays();
+      if (requestId !== overlayListRequestIdRef.current) {
+        return;
+      }
       setAppLoading(false);
 
       log('[Overlay] list:', resp);
@@ -180,6 +186,9 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
       const overlays = [...resp.data.imageOverlays, ...resp.data.textOverlays];
       setActiveOverlays(overlays);
     } catch (err) {
+      if (requestId !== overlayListRequestIdRef.current) {
+        return;
+      }
       setAppLoading(false);
       console.error('Failed to list overlays:', err);
       playSound(warningSoundUrl);
