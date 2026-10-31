@@ -167,7 +167,7 @@ test('v3 edits send only changed writable properties', async (t) => {
     ...widget,
     generalParams: { ...widget.generalParams, position: { x: 0.5, y: -0.5 } }
   };
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
+  const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url, '/config/rest/overlaywidget/v3beta/widgets/1');
     assert.equal(options.method, 'PATCH');
     assert.deepEqual(JSON.parse(options.body), {
@@ -177,6 +177,7 @@ test('v3 edits send only changed writable properties', async (t) => {
   });
 
   await api.apiUpdateWidget(changed, 'v3', widget);
+  assert.equal(fetch.mock.callCount(), 1);
 });
 
 test('v3 stacking actions do not patch data source or widget parameters', async (t) => {
@@ -290,6 +291,65 @@ test('v3 drag updates can also bring a widget to the front', async (t) => {
   ]);
 });
 
+test('v3 refreshes dimensions after updating widget content', async (t) => {
+  const widget = await readAnnotation(t);
+  const changed = {
+    ...widget,
+    widgetParams: { ...widget.widgetParams, text: 'A longer annotation' }
+  };
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, method: options.method });
+    if (options.method === 'PATCH') {
+      assert.deepEqual(JSON.parse(options.body), {
+        data: { widgetParams: { text: 'A longer annotation' } }
+      });
+      return Response.json({ status: 'success' });
+    }
+
+    return Response.json({
+      status: 'success',
+      data: [
+        {
+          ...annotation,
+          widgetParams: { text: 'A longer annotation' },
+          dimensions: { width: 280, height: 60 }
+        }
+      ]
+    });
+  });
+
+  const response = await api.apiUpdateWidget(changed, 'v3', widget);
+
+  assert.equal(response.data.width, 280);
+  assert.equal(response.data.height, 60);
+  assert.deepEqual(requests, [
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
+    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+  ]);
+});
+
+test('v3 keeps a successful edit when the dimensions refresh fails', async (t) => {
+  const widget = await readAnnotation(t);
+  const changed = {
+    ...widget,
+    generalParams: { ...widget.generalParams, size: 'large' }
+  };
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    if (options.method === 'PATCH') {
+      return Response.json({ status: 'success' });
+    }
+    return Response.json({
+      status: 'error',
+      error: { code: 1, message: 'Temporarily unavailable' }
+    });
+  });
+
+  const response = await api.apiUpdateWidget(changed, 'v3', widget);
+  assert.equal(response.error, undefined);
+  assert.equal(response.data?.width, undefined);
+});
+
 test('v3 no-op updates send no requests', async (t) => {
   const widget = await readAnnotation(t);
   const fetch = t.mock.method(globalThis, 'fetch', () => {
@@ -301,9 +361,16 @@ test('v3 no-op updates send no requests', async (t) => {
 
 test('v3 source changes are still sent when explicitly requested', async (t) => {
   const widget = await readAnnotation(t);
+  const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
-    assert.deepEqual(JSON.parse(options.body), { data: { datasource: '#D1' } });
-    return Response.json({ status: 'success' });
+    requests.push({ url, method: options.method });
+    if (options.method === 'PATCH') {
+      assert.deepEqual(JSON.parse(options.body), {
+        data: { datasource: '#D1' }
+      });
+      return Response.json({ status: 'success' });
+    }
+    return Response.json({ status: 'success', data: [annotation] });
   });
   await api.apiUpdateWidget(
     {
@@ -313,6 +380,10 @@ test('v3 source changes are still sent when explicitly requested', async (t) => 
     'v3',
     widget
   );
+  assert.deepEqual(requests, [
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
+    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+  ]);
 });
 
 test('validates incomplete v3 source names before sending requests', async (t) => {
@@ -343,12 +414,23 @@ test('validates incomplete v3 source names before sending requests', async (t) =
 
 test('clearing a v3 source sends null', async (t) => {
   const widget = await readAnnotation(t);
+  const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
-    assert.deepEqual(JSON.parse(options.body), { data: { datasource: null } });
-    return Response.json({ status: 'success' });
+    requests.push({ url, method: options.method });
+    if (options.method === 'PATCH') {
+      assert.deepEqual(JSON.parse(options.body), {
+        data: { datasource: null }
+      });
+      return Response.json({ status: 'success' });
+    }
+    return Response.json({ status: 'success', data: [annotation] });
   });
   await api.apiUpdateWidget(widget, 'v3', {
     ...widget,
     generalParams: { ...widget.generalParams, datasource: '#D1' }
   });
+  assert.deepEqual(requests, [
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
+    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+  ]);
 });

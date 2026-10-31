@@ -325,9 +325,41 @@ export async function apiUpdateWidget(
       return {};
     }
 
-    return responseFromRest(
+    const response = responseFromRest(
       await restRequest(`${V3_API_BASE}/widgets/${widgetId}`, 'PATCH', { data })
     );
+    if (response.error) {
+      return response;
+    }
+
+    const dimensionsMayChange = [
+      'size',
+      'widgetParams',
+      'datasource',
+      'channel'
+    ].some((key) => key in data);
+    if (dimensionsMayChange) {
+      try {
+        const widgetList = await apiListWidgets('v3');
+        const refreshedWidget = widgetList?.data?.widgets?.find(
+          (widget) => widget.generalParams.id === widgetId
+        );
+        if (refreshedWidget) {
+          return {
+            ...response,
+            data: {
+              ...response.data,
+              width: refreshedWidget.width,
+              height: refreshedWidget.height
+            }
+          };
+        }
+      } catch (error) {
+        console.error('Failed to refresh widget dimensions:', error);
+      }
+    }
+
+    return response;
   }
 
   const updatedGeneralParams = Object.fromEntries(

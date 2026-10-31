@@ -241,9 +241,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             /* If response contains updated generalParams, update the widget state */
             if (widgetApiMode === 'v3') {
+              const updatedWidget = {
+                ...widgetItem,
+                width: resp.data?.width ?? widgetItem.width,
+                height: resp.data?.height ?? widgetItem.height
+              };
               setActiveWidgets((prevWidgets) =>
                 prevWidgets.map((widget) =>
-                  widget.generalParams.id === widgetId ? widgetItem : widget
+                  widget.generalParams.id === widgetId ? updatedWidget : widget
                 )
               );
             } else if (resp?.data?.generalParams) {
