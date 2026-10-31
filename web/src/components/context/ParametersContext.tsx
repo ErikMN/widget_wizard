@@ -21,7 +21,7 @@ interface ParametersContextType {
   paramsLoading: boolean;
   error: string | null;
   paramsInitialized: boolean;
-  fetchParameters: () => Promise<void>;
+  fetchParameters: () => Promise<boolean>;
   updateParameters: (
     params: { [key: string]: string },
     refetch?: boolean
@@ -70,18 +70,23 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(`Error fetching parameters: ${response.statusText}`);
       }
       const text = await response.text();
+      if (text.trimStart().startsWith('# Error:')) {
+        throw new Error(text.trim());
+      }
       const parsedParameters = parseParameters(text);
       setParameters(parsedParameters);
       setError(null);
       /* The parameters are initialized */
       paramsInitializedRef.current = true;
       setParamsInitialized(true);
+      return true;
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('An unknown error occurred.');
       }
+      return false;
     } finally {
       setParamsLoading(false);
     }
@@ -115,9 +120,15 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!response.ok) {
         throw new Error(`Error updating parameters: ${response.statusText}`);
       }
+      const responseText = (await response.text()).trim();
+      if (responseText !== 'OK') {
+        throw new Error(responseText || 'Failed to update parameters');
+      }
       /* Re-fetch parameters to keep local state in sync */
       if (refetch) {
-        await fetchParameters();
+        if (!(await fetchParameters())) {
+          return;
+        }
       }
       setError(null);
     } catch (err) {
