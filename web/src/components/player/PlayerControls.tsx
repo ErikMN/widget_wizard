@@ -125,7 +125,6 @@ interface PlayerControlsProps {
   readonly src?: string;
   readonly parameters: VapixParameters;
   readonly onPlay: () => void;
-  readonly onStop: () => void;
   readonly onRefresh: () => void;
   readonly onSeek: (offset: number) => void;
   readonly onScreenshot: () => void;
@@ -160,7 +159,6 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   src,
   parameters,
   onPlay,
-  onStop,
   onRefresh,
   onSeek,
   onScreenshot,
