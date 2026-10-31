@@ -74,11 +74,15 @@ export const usePTZControl = () => {
 
   /* Refs */
   const currentChannelRef = useRef(currentChannel);
+  const stopActivePtzRef = useRef<(() => void) | null>(null);
   const messageShownRef = useRef(false);
   const initialPathRef = useRef(location.pathname);
 
-  /* Sync currentChannel ref so handlers always use latest value */
+  /* Stop active movement on the old channel before switching channels */
   useEffect(() => {
+    if (currentChannelRef.current !== currentChannel) {
+      stopActivePtzRef.current?.();
+    }
     currentChannelRef.current = currentChannel;
   }, [currentChannel]);
 
@@ -216,11 +220,13 @@ export const usePTZControl = () => {
       }
     };
 
+    stopActivePtzRef.current = handleBlur;
     window.addEventListener('blur', handleBlur);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
     return () => {
+      stopActivePtzRef.current = null;
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
