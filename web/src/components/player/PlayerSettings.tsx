@@ -76,6 +76,20 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   const fpsTimerRef = React.useRef<number | null>(null);
   const compressionTimerRef = React.useRef<number | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (cameraTimerRef.current !== null) {
+        clearTimeout(cameraTimerRef.current);
+      }
+      if (fpsTimerRef.current !== null) {
+        clearTimeout(fpsTimerRef.current);
+      }
+      if (compressionTimerRef.current !== null) {
+        clearTimeout(compressionTimerRef.current);
+      }
+    };
+  }, []);
+
   /* Global parameter list */
   const { parameters } = useParameters();
 
@@ -134,12 +148,12 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       const raw = e.target.value;
       /* Update local value immediately for realtime typing */
       setCompressionValue(raw);
+      if (compressionTimerRef.current !== null) {
+        clearTimeout(compressionTimerRef.current);
+      }
       /* Allow empty for "default" */
       if (raw === '') {
         setCompressionError('');
-        if (compressionTimerRef.current !== null) {
-          clearTimeout(compressionTimerRef.current);
-        }
         compressionTimerRef.current = window.setTimeout(() => {
           onVapix('compression', '');
         }, 1000);
@@ -157,9 +171,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       }
       setCompressionError('');
       /* Debounce actual apply by 1s */
-      if (compressionTimerRef.current !== null) {
-        clearTimeout(compressionTimerRef.current);
-      }
       compressionTimerRef.current = window.setTimeout(() => {
         onVapix('compression', raw);
       }, 1000);
@@ -174,12 +185,12 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       const raw = e.target.value;
       /* Update local value immediately for realtime typing */
       setCameraValue(raw);
+      if (cameraTimerRef.current !== null) {
+        clearTimeout(cameraTimerRef.current);
+      }
       /* Allow empty for "default" */
       if (raw === '') {
         setCameraError('');
-        if (cameraTimerRef.current !== null) {
-          clearTimeout(cameraTimerRef.current);
-        }
         onVapix('camera', '');
         /* If no camera is selected we default to 1 for currentChannel state */
         setCurrentChannel('1');
@@ -197,9 +208,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       }
       setCameraError('');
       /* Debounce actual apply by 1s */
-      if (cameraTimerRef.current !== null) {
-        clearTimeout(cameraTimerRef.current);
-      }
       cameraTimerRef.current = window.setTimeout(() => {
         onVapix('camera', raw);
         setCurrentChannel(raw);
@@ -214,12 +222,12 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         const raw = e.target.value;
         /* Update local value immediately for realtime typing */
         setFpsValue(raw);
+        if (fpsTimerRef.current !== null) {
+          clearTimeout(fpsTimerRef.current);
+        }
         /* Allow empty for "default" */
         if (raw === '') {
           setFpsError('');
-          if (fpsTimerRef.current !== null) {
-            clearTimeout(fpsTimerRef.current);
-          }
           fpsTimerRef.current = window.setTimeout(() => {
             onVapix('fps', '');
           }, 1000);
@@ -237,9 +245,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         }
         setFpsError('');
         /* Debounce actual apply by 1s */
-        if (fpsTimerRef.current !== null) {
-          clearTimeout(fpsTimerRef.current);
-        }
         fpsTimerRef.current = window.setTimeout(() => {
           onVapix('fps', raw);
         }, 1000);
