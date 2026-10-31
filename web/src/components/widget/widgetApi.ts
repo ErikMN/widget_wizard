@@ -291,6 +291,23 @@ export async function apiUpdateWidget(
       };
     }
 
+    const previousValues = previousWidget
+      ? new Map(Object.entries(toV3WidgetPayload(previousWidget)))
+      : undefined;
+    const data = Object.fromEntries(
+      Object.entries(toV3WidgetPayload(widgetItem)).filter(([key, value]) => {
+        if (key === 'type') {
+          return false;
+        }
+        if (!previousValues) {
+          return true;
+        }
+        return (
+          JSON.stringify(value) !== JSON.stringify(previousValues.get(key))
+        );
+      })
+    );
+
     const widgetId = widgetItem.generalParams.id;
     if (
       previousWidget &&
@@ -317,22 +334,6 @@ export async function apiUpdateWidget(
       }
     }
 
-    const previousValues = previousWidget
-      ? new Map(Object.entries(toV3WidgetPayload(previousWidget)))
-      : undefined;
-    const data = Object.fromEntries(
-      Object.entries(toV3WidgetPayload(widgetItem)).filter(([key, value]) => {
-        if (key === 'type') {
-          return false;
-        }
-        if (!previousValues) {
-          return true;
-        }
-        return (
-          JSON.stringify(value) !== JSON.stringify(previousValues.get(key))
-        );
-      })
-    );
     if (Object.keys(data).length === 0) {
       return {};
     }

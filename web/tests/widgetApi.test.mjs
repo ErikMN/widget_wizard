@@ -200,6 +200,31 @@ test('v3 stacking actions do not patch data source or widget parameters', async 
   assert.equal(fetch.mock.callCount(), 1);
 });
 
+test('v3 validates updates before sending stacking requests', async (t) => {
+  const widget = await readAnnotation(t);
+  const fetch = t.mock.method(globalThis, 'fetch', () => {
+    assert.fail('Invalid updates must not modify stacking order');
+  });
+
+  await assert.rejects(
+    api.apiUpdateWidget(
+      {
+        ...widget,
+        generalParams: {
+          ...widget.generalParams,
+          depth: 'front',
+          datasource: '#'
+        }
+      },
+      'v3',
+      widget,
+      true
+    ),
+    /Invalid v3 datasource/
+  );
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
 test('v3 repeats stacking commands even when the stored depth is unchanged', async (t) => {
   const widget = await readAnnotation(t);
   const requests = [];
