@@ -150,6 +150,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const { currentChannel } = useChannelContext();
 
   const latestWidgetsRef = useRef<Widget[]>([]);
+  const widgetStateRevisionRef = useRef(0);
+  const widgetListRequestIdRef = useRef(0);
 
   const setActiveWidgets = useCallback(
     (update: React.SetStateAction<Widget[]>) => {
@@ -157,6 +159,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       const next = typeof update === 'function' ? update(current) : update;
 
       latestWidgetsRef.current = next;
+      widgetStateRevisionRef.current += 1;
       setActiveWidgetsState(next);
     },
     []
@@ -291,13 +294,22 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    const requestId = ++widgetListRequestIdRef.current;
+    const stateRevision = widgetStateRevisionRef.current;
+
     try {
       setAppLoading(true);
       const resp: ApiResponse | null = await apiListWidgets(widgetApiMode);
-      if (!isActiveWidgetApi(widgetApiMode)) {
+      if (
+        !isActiveWidgetApi(widgetApiMode) ||
+        requestId !== widgetListRequestIdRef.current
+      ) {
         return;
       }
       setAppLoading(false);
+      if (stateRevision !== widgetStateRevisionRef.current) {
+        return;
+      }
 
       /* Backend missing or invalid JSON */
       if (!resp) {
@@ -317,7 +329,14 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveWidgets(resp.data.widgets);
       }
     } catch (error) {
-      if (!isActiveWidgetApi(widgetApiMode)) {
+      if (
+        !isActiveWidgetApi(widgetApiMode) ||
+        requestId !== widgetListRequestIdRef.current
+      ) {
+        return;
+      }
+      if (stateRevision !== widgetStateRevisionRef.current) {
+        setAppLoading(false);
         return;
       }
       /* Failed to contact widget backend: Widgets are not supported */
