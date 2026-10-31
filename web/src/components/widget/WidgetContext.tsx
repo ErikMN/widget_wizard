@@ -133,6 +133,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [openWidgetId, setOpenWidgetId] = useState<number | null>(null);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
   const [widgetApiMode, setWidgetApiMode] = useState<WidgetApiMode>('legacy');
+  const widgetApiModeRef = useRef<WidgetApiMode>('legacy');
   const [widgetApiSwitching, setWidgetApiSwitching] = useState(false);
 
   /* Draggable widget state */
@@ -166,6 +167,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const removingWidgetIdsRef = useRef<Set<number>>(new Set());
   const widgetApiSwitchingRef = useRef(false);
   const pendingWidgetChangesRef = useRef<Set<() => void>>(new Set());
+
+  const isActiveWidgetApi = useCallback(
+    (mode: WidgetApiMode) =>
+      !widgetApiSwitchingRef.current && widgetApiModeRef.current === mode,
+    []
+  );
 
   const registerPendingWidgetChanges = useCallback((flush: () => void) => {
     pendingWidgetChangesRef.current.add(flush);
@@ -280,9 +287,16 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Lists all currently active widgets and their parameter values. */
   const listWidgets = useCallback(async () => {
+    if (!isActiveWidgetApi(widgetApiMode)) {
+      return;
+    }
+
     try {
       setAppLoading(true);
       const resp: ApiResponse | null = await apiListWidgets(widgetApiMode);
+      if (!isActiveWidgetApi(widgetApiMode)) {
+        return;
+      }
       setAppLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -303,6 +317,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         setActiveWidgets(resp.data.widgets);
       }
     } catch (error) {
+      if (!isActiveWidgetApi(widgetApiMode)) {
+        return;
+      }
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
       setAppLoading(false);
@@ -310,17 +327,30 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list active widgets', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]);
+  }, [
+    handleOpenAlert,
+    isActiveWidgetApi,
+    setActiveWidgets,
+    setAppLoading,
+    widgetApiMode
+  ]);
 
   /* List widgets on tab switch */
   useTabVisibility(listWidgets);
 
   /* Lists all available widget types and their parameters */
   const listWidgetCapabilities = useCallback(async () => {
+    if (!isActiveWidgetApi(widgetApiMode)) {
+      return;
+    }
+
     try {
       setAppLoading(true);
       const resp: WidgetCapabilities | null =
         await apiListWidgetCapabilities(widgetApiMode);
+      if (!isActiveWidgetApi(widgetApiMode)) {
+        return;
+      }
       setAppLoading(false);
 
       /* Backend missing or invalid JSON */
@@ -346,6 +376,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     } catch (error) {
+      if (!isActiveWidgetApi(widgetApiMode)) {
+        return;
+      }
       /* Failed to contact widget backend: Widgets are not supported */
       setWidgetSupported(false);
       setAppLoading(false);
@@ -353,7 +386,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert('Failed to list widget capabilities', 'error');
       console.error('Error:', error);
     }
-  }, [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]);
+  }, [
+    handleOpenAlert,
+    isActiveWidgetApi,
+    setActiveWidgets,
+    setAppLoading,
+    widgetApiMode
+  ]);
 
   const switchWidgetApi = useCallback(
     async (mode: WidgetApiMode) => {
@@ -401,6 +440,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           clickBBox: false,
           highlight: false
         });
+        widgetApiModeRef.current = mode;
         setWidgetApiMode(mode);
         setWidgetSupported(true);
         setWidgetCapabilities(capabilities);
