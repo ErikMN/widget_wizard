@@ -42,9 +42,11 @@ export const ParametersProvider: React.FC<{ children: React.ReactNode }> = ({
     const paramMap: { [key: string]: string } = {};
     const lines = text.split('\n');
     for (const line of lines) {
-      const [key, value] = line.split('=');
+      const separatorIndex = line.indexOf('=');
+      const key = separatorIndex === -1 ? line : line.slice(0, separatorIndex);
+      const value = separatorIndex === -1 ? '' : line.slice(separatorIndex + 1);
       if (key) {
-        paramMap[key.trim()] = value?.trim() || '';
+        paramMap[key.trim()] = value.trim() || '';
       }
     }
     return paramMap;
