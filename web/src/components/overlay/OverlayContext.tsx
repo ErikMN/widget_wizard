@@ -97,7 +97,14 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
   /* Response helper */
   const handleResponse = (json: any, successMsg: string | null = null) => {
-    if (json?.error) {
+    if (!json || typeof json !== 'object' || Array.isArray(json)) {
+      playSound(warningSoundUrl);
+      handleOpenAlert('Invalid overlay API response', 'error');
+      console.error('Invalid overlay API response:', json);
+      return false;
+    }
+
+    if (json.error) {
       playSound(warningSoundUrl);
       handleOpenAlert(
         json.error.message || 'Overlay operation failed',
@@ -160,11 +167,17 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
         throw new Error(resp.error.message);
       }
 
-      setImageFiles(resp?.data?.imageFiles ?? []);
-      const overlays = [
-        ...(resp?.data?.imageOverlays ?? []),
-        ...(resp?.data?.textOverlays ?? [])
-      ];
+      if (
+        !resp?.data ||
+        !Array.isArray(resp.data.imageFiles) ||
+        !Array.isArray(resp.data.imageOverlays) ||
+        !Array.isArray(resp.data.textOverlays)
+      ) {
+        throw new Error('Invalid overlay list response');
+      }
+
+      setImageFiles(resp.data.imageFiles);
+      const overlays = [...resp.data.imageOverlays, ...resp.data.textOverlays];
       setActiveOverlays(overlays);
     } catch (err) {
       setAppLoading(false);
@@ -260,9 +273,7 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
 
         log('[Overlay] remove:', resp);
 
-        if (resp?.error) {
-          handleOpenAlert(resp.error.message, 'error');
-          playSound(warningSoundUrl);
+        if (!handleResponse(resp)) {
           return;
         }
 
