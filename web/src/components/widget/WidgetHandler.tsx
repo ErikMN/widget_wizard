@@ -251,7 +251,7 @@ const WidgetHandler: React.FC = () => {
 
       setActiveDraggableWidget((prev) => ({
         ...prev,
-        id: newId ?? -1,
+        id: newId,
         active: false,
         highlight: false,
         clickBBox: false
