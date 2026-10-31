@@ -10,7 +10,7 @@ import React, {
   useImperativeHandle
 } from 'react';
 import { Widget } from './widgetInterfaces';
-import { useWidgetActions } from './WidgetContext';
+import { useWidgetActions, useWidgetData } from './WidgetContext';
 import { capitalizeFirstLetter } from '../../helpers/utils';
 import { CustomButton } from './../CustomComponents';
 import JsonEditor, { safeParseJson } from '../JsonEditor';
@@ -81,6 +81,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
     });
 
     /* Global context */
+    const { widgetApiMode } = useWidgetData();
     const { updateWidget, addCustomWidget } = useWidgetActions();
 
     const { handleOpenAlert } = useAlertActionsContext();
@@ -179,6 +180,13 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
             id: widgetState.widgetId
           }
         };
+        if (
+          widgetApiMode === 'v3' &&
+          parsedWidget.generalParams.type !== widget.generalParams.type
+        ) {
+          setJsonError('Changing widget type is not supported by the v3 API');
+          return;
+        }
         generalParamsRef.current?.cancelPendingChanges();
         specificParamsRef.current?.cancelPendingChanges();
         updateWidget(widgetState.widgetId, () => parsedWidget);

@@ -350,6 +350,49 @@ test('v3 keeps a successful edit when the dimensions refresh fails', async (t) =
   assert.equal(response.data?.width, undefined);
 });
 
+test('v3 rejects unsupported widget type changes without API requests', async (t) => {
+  const widget = await readAnnotation(t);
+  const fetch = t.mock.method(globalThis, 'fetch', () => {
+    assert.fail('Changing a widget type must not contact the device');
+  });
+
+  const changedType = {
+    ...widget,
+    generalParams: { ...widget.generalParams, type: 'meter' }
+  };
+  const changedTypeAndPosition = {
+    ...changedType,
+    generalParams: {
+      ...changedType.generalParams,
+      position: { x: 0.5, y: -0.5 },
+      depth: 'front'
+    }
+  };
+
+  for (const changed of [changedType, changedTypeAndPosition]) {
+    const response = await api.apiUpdateWidget(changed, 'v3', widget);
+    assert.match(response.error?.message ?? '', /type.*not supported/);
+  }
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
+test('legacy widget updates continue to omit the type field', async (t) => {
+  const widget = await readAnnotation(t);
+  const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/axis-cgi/overlaywidget/overlaywidget.cgi');
+    assert.equal(options.method, 'POST');
+    const body = JSON.parse(options.body);
+    assert.equal(body.apiVersion, '2.0');
+    assert.equal(body.method, 'updateWidget');
+    assert.equal('type' in body.params.generalParams, false);
+    assert.deepEqual(body.params.widgetParams, widget.widgetParams);
+    return Response.json({ apiVersion: '2.0', data: {} });
+  });
+
+  await api.apiUpdateWidget(widget, 'legacy');
+  assert.equal(fetch.mock.callCount(), 1);
+});
+
 test('v3 no-op updates send no requests', async (t) => {
   const widget = await readAnnotation(t);
   const fetch = t.mock.method(globalThis, 'fetch', () => {

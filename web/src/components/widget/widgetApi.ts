@@ -279,6 +279,18 @@ export async function apiUpdateWidget(
   forceDepthAction = false
 ): Promise<ApiResponse> {
   if (mode === 'v3') {
+    if (
+      previousWidget &&
+      widgetItem.generalParams.type !== previousWidget.generalParams.type
+    ) {
+      return {
+        error: {
+          code: 0,
+          message: 'Changing widget type is not supported by the v3 API'
+        }
+      };
+    }
+
     const widgetId = widgetItem.generalParams.id;
     if (
       previousWidget &&
