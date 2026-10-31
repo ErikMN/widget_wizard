@@ -455,7 +455,9 @@ const WidgetSpecificParams = forwardRef<
       if (i === keys.length - 1) {
         current[k] = newValue;
       } else {
-        current[k] = { ...current[k] };
+        current[k] = Array.isArray(current[k])
+          ? [...current[k]]
+          : { ...current[k] };
         current = current[k];
       }
     }
