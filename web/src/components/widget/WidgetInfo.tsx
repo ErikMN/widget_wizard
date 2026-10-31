@@ -117,18 +117,10 @@ const WidgetInfo: React.FC = () => {
           <FormControlLabel
             control={
               <CustomSwitch
-                size="small"
                 checked={widgetApiMode === 'v3'}
                 onChange={handleSwitchApi}
                 disabled={switchingApi}
                 slotProps={{ input: { 'aria-label': 'Use v3 widget API' } }}
-                sx={(theme) => ({
-                  ...(theme.palette.mode === 'dark' && {
-                    '& .Mui-checked .MuiSwitch-thumb': {
-                      backgroundColor: theme.palette.grey[500]
-                    }
-                  })
-                })}
               />
             }
             label="v3 API"
