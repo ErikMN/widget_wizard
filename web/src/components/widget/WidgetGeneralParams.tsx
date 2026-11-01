@@ -90,13 +90,27 @@ const WidgetGeneralParams = forwardRef<
       isVisible: newVisibility
     }));
 
-    updateWidget(widget.generalParams.id, (current) => ({
-      ...current,
-      generalParams: {
-        ...current.generalParams,
-        isVisible: newVisibility
+    updateWidget(
+      widget.generalParams.id,
+      (current) => ({
+        ...current,
+        generalParams: {
+          ...current.generalParams,
+          isVisible: newVisibility
+        }
+      }),
+      {
+        onFailure: (current) => {
+          setWidgetState((previous) => ({
+            ...previous,
+            isVisible:
+              previous.isVisible === newVisibility
+                ? current.generalParams.isVisible
+                : previous.isVisible
+          }));
+        }
       }
-    }));
+    );
   }, [widgetState.isVisible, widget, setWidgetState, updateWidget]);
 
   const handleAnchorChange = useCallback(
@@ -144,13 +158,28 @@ const WidgetGeneralParams = forwardRef<
   );
 
   const handleTransparencyChangeCommitted = useCallback(() => {
-    updateWidget(widget.generalParams.id, (current) => ({
-      ...current,
-      generalParams: {
-        ...current.generalParams,
-        transparency: widgetState.sliderValue
+    const transparency = widgetState.sliderValue;
+    updateWidget(
+      widget.generalParams.id,
+      (current) => ({
+        ...current,
+        generalParams: {
+          ...current.generalParams,
+          transparency
+        }
+      }),
+      {
+        onFailure: (current) => {
+          setWidgetState((previous) => ({
+            ...previous,
+            sliderValue:
+              previous.sliderValue === transparency
+                ? current.generalParams.transparency
+                : previous.sliderValue
+          }));
+        }
       }
-    }));
+    );
   }, [widgetState.sliderValue, widget, updateWidget]);
 
   const [updateTimeInput, setUpdateTimeInput] = useState(

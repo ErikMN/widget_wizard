@@ -474,6 +474,8 @@ export const OverlayProvider: React.FC<{ children: ReactNode }> = ({
           text: overlay.text,
           position: overlay.position,
           textColor: overlay.textColor,
+          textBGColor: overlay.textBGColor,
+          textOLColor: overlay.textOLColor,
           fontSize: overlay.fontSize,
           reference: overlay.reference
         });

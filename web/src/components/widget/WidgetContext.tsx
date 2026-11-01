@@ -168,9 +168,21 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /* Run updates for one widget in order. */
   const widgetUpdateQueueRef = useRef<Map<number, Promise<void>>>(new Map());
+  const pendingWidgetMutationsRef = useRef<Set<Promise<ApiResponse>>>(
+    new Set()
+  );
   const removingWidgetIdsRef = useRef<Set<number>>(new Set());
   const widgetApiSwitchingRef = useRef(false);
   const pendingWidgetChangesRef = useRef<Set<() => void>>(new Set());
+
+  const trackWidgetMutation = useCallback((request: Promise<ApiResponse>) => {
+    pendingWidgetMutationsRef.current.add(request);
+    void request.then(
+      () => pendingWidgetMutationsRef.current.delete(request),
+      () => pendingWidgetMutationsRef.current.delete(request)
+    );
+    return request;
+  }, []);
 
   const isActiveWidgetApi = useCallback(
     (mode: WidgetApiMode) =>
@@ -462,7 +474,10 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         widgetApiSwitchingRef.current = true;
         setWidgetApiSwitching(true);
         setAppLoading(true);
-        const pendingUpdates = [...widgetUpdateQueueRef.current.values()];
+        const pendingUpdates = [
+          ...widgetUpdateQueueRef.current.values(),
+          ...pendingWidgetMutationsRef.current.values()
+        ];
         if (pendingUpdates.length > 0) {
           await Promise.all(pendingUpdates);
         }
@@ -542,10 +557,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     async (widgetType: string) => {
       try {
         setAppLoading(true);
-        const resp: ApiResponse = await apiAddWidget(
-          widgetType,
-          currentChannel,
-          widgetApiMode
+        const resp: ApiResponse = await trackWidgetMutation(
+          apiAddWidget(widgetType, currentChannel, widgetApiMode)
         );
         setAppLoading(false);
         log('*** ADD WIDGET', { resp });
@@ -586,6 +599,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       listWidgets,
       setAppLoading,
       setActiveWidgets,
+      trackWidgetMutation,
       widgetApiMode
     ]
   );
@@ -594,9 +608,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     async (params: Widget) => {
       try {
         setAppLoading(true);
-        const resp: ApiResponse = await apiAddCustomWidget(
-          params,
-          widgetApiMode
+        const resp: ApiResponse = await trackWidgetMutation(
+          apiAddCustomWidget(params, widgetApiMode)
         );
         setAppLoading(false);
         log('*** ADD WIDGET', { resp });
@@ -638,6 +651,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert,
       setAppLoading,
       setActiveWidgets,
+      trackWidgetMutation,
       widgetApiMode
     ]
   );
@@ -653,9 +667,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         setAppLoading(true);
-        const resp: ApiResponse = await apiRemoveWidget(
-          widgetID,
-          widgetApiMode
+        const resp: ApiResponse = await trackWidgetMutation(
+          apiRemoveWidget(widgetID, widgetApiMode)
         );
         setAppLoading(false);
         log('*** REMOVE WIDGET', { resp });
@@ -688,7 +701,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         removingWidgetIdsRef.current.delete(widgetID);
       }
     },
-    [handleOpenAlert, setActiveWidgets, setAppLoading, widgetApiMode]
+    [
+      handleOpenAlert,
+      setActiveWidgets,
+      setAppLoading,
+      trackWidgetMutation,
+      widgetApiMode
+    ]
   );
 
   /* Removes all currently active widgets */
@@ -707,7 +726,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setAppLoading(true);
-      const resp: ApiResponse = await apiRemoveAllWidgets(widgetApiMode);
+      const resp: ApiResponse = await trackWidgetMutation(
+        apiRemoveAllWidgets(widgetApiMode)
+      );
       setAppLoading(false);
       log('*** REMOVE ALL WIDGETS', { resp });
       if (resp.error) {
@@ -738,7 +759,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     /* Refresh the active widget list after removing all */
     listWidgets();
-  }, [listWidgets, handleOpenAlert, setAppLoading, widgetApiMode]);
+  }, [
+    listWidgets,
+    handleOpenAlert,
+    setAppLoading,
+    trackWidgetMutation,
+    widgetApiMode
+  ]);
 
   /****************************************************************************/
   /* Provider */
