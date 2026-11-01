@@ -7,8 +7,9 @@ let WidgetSpecificParams;
 
 before(async () => {
   harness = await createWidgetUiHarness();
-  ({ default: WidgetSpecificParams } =
-    await harness.server.ssrLoadModule('/src/components/widget/WidgetSpecificParams.tsx'));
+  ({ default: WidgetSpecificParams } = await harness.server.ssrLoadModule(
+    '/src/components/widget/WidgetSpecificParams.tsx'
+  ));
 });
 
 afterEach(() => {
@@ -21,18 +22,23 @@ after(async () => {
 
 const capabilities = {
   data: {
-    widgets: [{
-      type: 'textannotation',
-      widgetParams: {
-        first: { type: 'string' },
-        second: { type: 'string' },
-        threshold: { type: 'float' }
+    widgets: [
+      {
+        type: 'textannotation',
+        widgetParams: {
+          first: { type: 'string' },
+          second: { type: 'string' },
+          threshold: { type: 'float' }
+        }
       }
-    }]
+    ]
   }
 };
 
-function mount(updateWidget, params = { first: 'one', second: 'two', threshold: 12 }) {
+function mount(
+  updateWidget,
+  params = { first: 'one', second: 'two', threshold: 12 }
+) {
   globalThis.__widgetTest = {
     widgetData: { widgetCapabilities: capabilities },
     widgetActions: { updateWidget },
@@ -60,18 +66,24 @@ test('keeps a newer edit visible while an older update completes', async () => {
   };
   const current = mount(updateWidget);
 
-  harness.fireEvent.change(harness.screen.getByRole('textbox', { name: 'first' }), {
-    target: { value: 'edited' }
-  });
+  harness.fireEvent.change(
+    harness.screen.getByRole('textbox', { name: 'first' }),
+    {
+      target: { value: 'edited' }
+    }
+  );
   await harness.act(async () => {
     current.ref.current.flushPendingChanges();
     await Promise.resolve();
   });
   assert.equal(calls.length, 1);
 
-  harness.fireEvent.change(harness.screen.getByRole('textbox', { name: 'second' }), {
-    target: { value: 'newer' }
-  });
+  harness.fireEvent.change(
+    harness.screen.getByRole('textbox', { name: 'second' }),
+    {
+      target: { value: 'newer' }
+    }
+  );
   await harness.act(async () => {
     current.ref.current.flushPendingChanges();
     await Promise.resolve();
@@ -113,9 +125,12 @@ test('rolls back the latest rejected generated parameter edit', async () => {
     options.onFailure(initial);
   });
 
-  harness.fireEvent.change(harness.screen.getByRole('textbox', { name: 'first' }), {
-    target: { value: 'rejected' }
-  });
+  harness.fireEvent.change(
+    harness.screen.getByRole('textbox', { name: 'first' }),
+    {
+      target: { value: 'rejected' }
+    }
+  );
   await harness.act(async () => {
     current.ref.current.flushPendingChanges();
     await Promise.resolve();
@@ -140,9 +155,12 @@ test('does not send an incomplete float input or block other edits', async () =>
   assert.equal(numeric.value, '12');
   assert.equal(calls.length, 0);
 
-  harness.fireEvent.change(harness.screen.getByRole('textbox', { name: 'first' }), {
-    target: { value: 'valid' }
-  });
+  harness.fireEvent.change(
+    harness.screen.getByRole('textbox', { name: 'first' }),
+    {
+      target: { value: 'valid' }
+    }
+  );
   await harness.act(async () => {
     current.ref.current.flushPendingChanges();
     await Promise.resolve();

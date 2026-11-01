@@ -10,7 +10,9 @@ let useWidgetData;
 before(async () => {
   harness = await createWidgetUiHarness();
   ({ WidgetProvider, useWidgetActions, useWidgetData } =
-    await harness.server.ssrLoadModule('/src/components/widget/WidgetContext.tsx'));
+    await harness.server.ssrLoadModule(
+      '/src/components/widget/WidgetContext.tsx'
+    ));
 });
 
 afterEach(() => {
@@ -47,9 +49,13 @@ function mount(api) {
     return null;
   }
 
-  harness.render(harness.React.createElement(
-    WidgetProvider, null, harness.React.createElement(Probe)
-  ));
+  harness.render(
+    harness.React.createElement(
+      WidgetProvider,
+      null,
+      harness.React.createElement(Probe)
+    )
+  );
   return current;
 }
 
@@ -96,9 +102,7 @@ test('switch waits until a pending widget edit completes', async () => {
     await Promise.all([updating, switching]);
   });
   assert.equal(current.data.widgetApiMode, 'v3');
-  assert.deepEqual(calls, [
-    'update:legacy', 'capabilities:v3', 'list:v3'
-  ]);
+  assert.deepEqual(calls, ['update:legacy', 'capabilities:v3', 'list:v3']);
 });
 
 test('switch waits for removal that is waiting for a pending edit', async () => {
@@ -130,7 +134,8 @@ test('switch waits for removal that is waiting for a pending edit', async () => 
   let updating;
   await harness.act(async () => {
     updating = current.actions.updateWidget(1, (previous) => ({
-      ...previous, widgetParams: { text: 'Edited' }
+      ...previous,
+      widgetParams: { text: 'Edited' }
     }));
     await Promise.resolve();
   });
@@ -162,9 +167,10 @@ test('switch waits for removal that is waiting for a pending edit', async () => 
 test('a late response from the previous API cannot overwrite switched widgets', async () => {
   const oldList = deferred();
   const current = mount({
-    list: (mode) => mode === 'legacy'
-      ? oldList.promise
-      : Promise.resolve({ data: { widgets: [widget(2, 'New API')] } })
+    list: (mode) =>
+      mode === 'legacy'
+        ? oldList.promise
+        : Promise.resolve({ data: { widgets: [widget(2, 'New API')] } })
   });
 
   let listing;

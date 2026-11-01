@@ -7,8 +7,9 @@ let WidgetItem;
 
 before(async () => {
   harness = await createWidgetUiHarness();
-  ({ default: WidgetItem } =
-    await harness.server.ssrLoadModule('/src/components/widget/WidgetItem.tsx'));
+  ({ default: WidgetItem } = await harness.server.ssrLoadModule(
+    '/src/components/widget/WidgetItem.tsx'
+  ));
 });
 
 afterEach(() => {
@@ -36,14 +37,13 @@ function mount(updateWidget) {
     isOpen: true,
     isActive: false
   });
-  const view = harness.render(harness.React.createElement(
-    WidgetItem, props(initial)
-  ));
+  const view = harness.render(
+    harness.React.createElement(WidgetItem, props(initial))
+  );
   return {
     initial,
-    rerender: (value) => view.rerender(harness.React.createElement(
-      WidgetItem, props(value)
-    ))
+    rerender: (value) =>
+      view.rerender(harness.React.createElement(WidgetItem, props(value)))
   };
 }
 
@@ -60,7 +60,10 @@ function jsonText() {
 
 test('keeps an unsaved JSON draft when widget data refreshes', () => {
   const current = mount(() => Promise.resolve());
-  const draft = JSON.stringify({ ...current.initial, widgetParams: { text: 'Draft' } });
+  const draft = JSON.stringify({
+    ...current.initial,
+    widgetParams: { text: 'Draft' }
+  });
   editJson(draft);
 
   current.rerender({
@@ -82,7 +85,9 @@ test('keeps the draft after a rejected JSON save', async () => {
     widgetParams: { text: 'Rejected' }
   });
   editJson(draft);
-  harness.fireEvent.click(harness.screen.getByRole('button', { name: 'Save JSON' }));
+  harness.fireEvent.click(
+    harness.screen.getByRole('button', { name: 'Save JSON' })
+  );
 
   await harness.act(async () => {
     onFailure(current.initial);
@@ -107,7 +112,9 @@ test('refreshes JSON from the backend after a confirmed save', () => {
     widgetParams: { text: 'Saved' }
   });
   editJson(draft);
-  harness.fireEvent.click(harness.screen.getByRole('button', { name: 'Save JSON' }));
+  harness.fireEvent.click(
+    harness.screen.getByRole('button', { name: 'Save JSON' })
+  );
   harness.act(() => onSuccess());
 
   current.rerender({
@@ -123,11 +130,15 @@ test('does not discard newer JSON edits when an older save succeeds', () => {
     onSuccess = options.onSuccess;
     return Promise.resolve();
   });
-  editJson(JSON.stringify({
-    ...current.initial,
-    widgetParams: { text: 'First save' }
-  }));
-  harness.fireEvent.click(harness.screen.getByRole('button', { name: 'Save JSON' }));
+  editJson(
+    JSON.stringify({
+      ...current.initial,
+      widgetParams: { text: 'First save' }
+    })
+  );
+  harness.fireEvent.click(
+    harness.screen.getByRole('button', { name: 'Save JSON' })
+  );
 
   const newerDraft = JSON.stringify({
     ...current.initial,

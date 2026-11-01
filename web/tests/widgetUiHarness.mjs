@@ -116,19 +116,41 @@ function testModules() {
       if (isContext && source.endsWith('.oga')) {
         return '\0widget-ui-test:audio';
       }
-      if (isContext && ['./widgetApi', '../context/AppContext.js',
-        '../../helpers/hooks.jsx', '../../helpers/logger.js',
-        '../../helpers/utils'].includes(source)) {
+      if (
+        isContext &&
+        [
+          './widgetApi',
+          '../context/AppContext.js',
+          '../../helpers/hooks.jsx',
+          '../../helpers/logger.js',
+          '../../helpers/utils'
+        ].includes(source)
+      ) {
         return '\0widget-ui-test:' + sources[source];
       }
-      if (isSpecific && ['./WidgetContext', '../context/AppContext',
-        '../CustomComponents', '../../helpers/utils'].includes(source)) {
+      if (
+        isSpecific &&
+        [
+          './WidgetContext',
+          '../context/AppContext',
+          '../CustomComponents',
+          '../../helpers/utils'
+        ].includes(source)
+      ) {
         return '\0widget-ui-test:' + sources[source];
       }
-      if (isItem && ['./WidgetContext', '../context/AppContext',
-        '../CustomComponents', './WidgetGeneralParams',
-        './WidgetSpecificParams', '../JsonEditor',
-        '../../helpers/utils'].includes(source)) {
+      if (
+        isItem &&
+        [
+          './WidgetContext',
+          '../context/AppContext',
+          '../CustomComponents',
+          './WidgetGeneralParams',
+          './WidgetSpecificParams',
+          '../JsonEditor',
+          '../../helpers/utils'
+        ].includes(source)
+      ) {
         return '\0widget-ui-test:' + sources[source];
       }
       return null;
@@ -175,8 +197,17 @@ export async function createWidgetUiHarness() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
     url: 'http://localhost'
   });
-  for (const key of ['window', 'document', 'HTMLElement', 'Element',
-    'Node', 'MutationObserver', 'Event', 'MouseEvent', 'navigator']) {
+  for (const key of [
+    'window',
+    'document',
+    'HTMLElement',
+    'Element',
+    'Node',
+    'MutationObserver',
+    'Event',
+    'MouseEvent',
+    'navigator'
+  ]) {
     Object.defineProperty(globalThis, key, {
       configurable: true,
       value: key === 'window' ? dom.window : dom.window[key]
@@ -187,10 +218,14 @@ export async function createWidgetUiHarness() {
   const server = await createServer({
     configFile: false,
     resolve: {
-      alias: [{
-        find: /^lodash$/,
-        replacement: fileURLToPath(new URL('./lodashTest.mjs', import.meta.url))
-      }]
+      alias: [
+        {
+          find: /^lodash$/,
+          replacement: fileURLToPath(
+            new URL('./lodashTest.mjs', import.meta.url)
+          )
+        }
+      ]
     },
     plugins: [testModules()],
     server: { middlewareMode: true }
