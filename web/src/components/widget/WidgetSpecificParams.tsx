@@ -103,10 +103,14 @@ const WidgetArrayInput: React.FC<WidgetArrayInputProps> = ({
   /* Collapsed state for better UX when lists are long */
   const [collapsed, setCollapsed] = useState(false);
 
+  const previousValueRef = useRef(value);
+
   useEffect(() => {
-    if (Array.isArray(value)) {
-      setLocalItems(value);
-    }
+    const previousValue = previousValueRef.current;
+    previousValueRef.current = value;
+    setLocalItems((current) =>
+      current === previousValue ? (Array.isArray(value) ? value : []) : current
+    );
   }, [value]);
 
   const handleAdd = () => {
@@ -364,6 +368,7 @@ const WidgetSpecificParams = forwardRef<
   /* Refs */
   const widgetRef = useRef(widget);
   const updateWidgetRef = useRef(updateWidget);
+  const pendingLocalEditRef = useRef(false);
 
   /* Update refs when widget or updateWidget change */
   useEffect(() => {
@@ -376,7 +381,9 @@ const WidgetSpecificParams = forwardRef<
    * we sync them into our local state.
    */
   useEffect(() => {
-    setLocalValues(widget.widgetParams || {});
+    if (!pendingLocalEditRef.current) {
+      setLocalValues(widget.widgetParams || {});
+    }
   }, [widget.widgetParams]);
 
   /**
@@ -385,11 +392,22 @@ const WidgetSpecificParams = forwardRef<
    */
   const debouncedUpdate = useRef(
     debounce((newLocalValues: Record<string, any>) => {
+      pendingLocalEditRef.current = false;
       const currentWidget = widgetRef.current;
-      updateWidgetRef.current(currentWidget.generalParams.id, (current) => ({
-        ...current,
-        widgetParams: newLocalValues /* pass the nested object as-is */
-      }));
+      updateWidgetRef.current(
+        currentWidget.generalParams.id,
+        (current) => ({
+          ...current,
+          widgetParams: newLocalValues /* pass the nested object as-is */
+        }),
+        {
+          onFailure: (current) => {
+            setLocalValues((previous) =>
+              previous === newLocalValues ? current.widgetParams : previous
+            );
+          }
+        }
+      );
     }, 500)
   ).current;
 
@@ -407,6 +425,7 @@ const WidgetSpecificParams = forwardRef<
       },
       cancelPendingChanges: () => {
         debouncedUpdate.cancel();
+        pendingLocalEditRef.current = false;
       }
     }),
     [debouncedUpdate]
@@ -417,6 +436,7 @@ const WidgetSpecificParams = forwardRef<
    * We store it in local state, then fire off the debounced update.
    */
   const handleNestedValueChange = (path: string, newValue: any) => {
+    pendingLocalEditRef.current = true;
     setLocalValues((prev) => {
       const updated = setNestedValue(prev, path, newValue);
       debouncedUpdate(updated);
@@ -651,6 +671,7 @@ const WidgetSpecificParams = forwardRef<
             value={displayVal}
             onChange={(e) => {
               /* Update localValues with raw string, no backend call yet */
+              pendingLocalEditRef.current = true;
               setLocalValues((prev) =>
                 setNestedValue(prev, path, e.target.value)
               );
@@ -687,6 +708,7 @@ const WidgetSpecificParams = forwardRef<
           step={paramConfig.step ?? 0.1}
           onChange={(e, newVal) => {
             /* immediate UI update */
+            pendingLocalEditRef.current = true;
             setLocalValues((prev) =>
               setNestedValue(prev, path, newVal as number)
             );
