@@ -364,6 +364,7 @@ const WidgetSpecificParams = forwardRef<
   const [localValues, setLocalValues] = useState<Record<string, any>>(
     widget.widgetParams || {}
   );
+  const [floatDrafts, setFloatDrafts] = useState<Record<string, string>>({});
 
   /* Refs */
   const widgetRef = useRef(widget);
@@ -435,6 +436,7 @@ const WidgetSpecificParams = forwardRef<
         localEditRevisionRef.current += 1;
         pendingLocalEditRef.current = false;
         setLocalValues(widgetRef.current.widgetParams);
+        setFloatDrafts({});
       }
     }),
     [debouncedUpdate]
@@ -670,7 +672,8 @@ const WidgetSpecificParams = forwardRef<
     if (paramConfig.maximum === undefined) {
       const rawVal = getNestedValue(localValues, path);
       const displayVal =
-        typeof rawVal === 'number' ? String(rawVal) : (rawVal ?? '');
+        floatDrafts[path] ??
+        (typeof rawVal === 'number' ? String(rawVal) : (rawVal ?? ''));
 
       return (
         <Box key={path} sx={{ mt: 2 }}>
@@ -680,22 +683,23 @@ const WidgetSpecificParams = forwardRef<
             label={toNiceName(label)}
             value={displayVal}
             onChange={(e) => {
-              /* Update localValues with raw string, no backend call yet */
-              localEditRevisionRef.current += 1;
-              pendingLocalEditRef.current = true;
-              setLocalValues((prev) =>
-                setNestedValue(prev, path, e.target.value)
-              );
+              setFloatDrafts((previous) => ({
+                ...previous,
+                [path]: e.target.value
+              }));
             }}
             onBlur={(e) => {
+              setFloatDrafts((previous) => {
+                const updated = { ...previous };
+                delete updated[path];
+                return updated;
+              });
               const valStr = e.target.value.trim();
-              /* Do nothing if field is empty or just '-' */
-              if (valStr === '' || valStr === '-') {
+              if (valStr === '') {
                 return;
               }
-              /* Parse and send only when user finishes typing a valid number */
-              const parsed = parseFloat(valStr);
-              if (!isNaN(parsed)) {
+              const parsed = Number(valStr);
+              if (Number.isFinite(parsed)) {
                 handleNestedValueChange(path, parsed);
               }
             }}
