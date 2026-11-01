@@ -1,0 +1,28 @@
+name: Prepare UI test dependencies
+
+on:
+  push:
+    branches:
+      - ui-test-lock-setup
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - run: yarn add --dev @testing-library/react@16.3.0 jsdom@26.1.0
+      - name: Capture generated dependencies
+        run: |
+          echo PACKAGE_START
+          base64 -w 1024 package.json
+          echo PACKAGE_END
+          echo LOCK_START
+          base64 -w 1024 yarn.lock
+          echo LOCK_END
