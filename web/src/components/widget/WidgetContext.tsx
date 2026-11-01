@@ -75,6 +75,7 @@ interface UpdateWidgetOptions {
   optimistic?: boolean;
   forceDepthAction?: boolean;
   onFailure?: (current: Widget) => void;
+  onSuccess?: () => void;
 }
 
 type WidgetUiContextProps = WidgetUiStateContextProps &
@@ -207,7 +208,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         showLoading = true,
         optimistic = false,
         forceDepthAction = false,
-        onFailure
+        onFailure,
+        onSuccess
       }: UpdateWidgetOptions = {}
     ) => {
       if (
@@ -293,6 +295,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
               onFailure?.(current);
               return;
             }
+            onSuccess?.();
             /* If response contains updated generalParams, update the widget state */
             if (widgetApiMode === 'v3') {
               const updatedWidget = {

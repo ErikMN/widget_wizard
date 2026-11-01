@@ -89,6 +89,8 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
     const generalParamsRef = useRef<WidgetGeneralParamsHandle>(null);
     const specificParamsRef = useRef<WidgetSpecificParamsHandle>(null);
     const lastSyncedWidgetRef = useRef<Widget | null>(null);
+    const jsonDraftDirtyRef = useRef(false);
+    const jsonDraftRevisionRef = useRef(0);
     const previousGeneralParamsRef = useRef(widget.generalParams);
     const wasOpenRef = useRef(isOpen);
     const wasWidgetParamsVisibleRef = useRef(widgetParamsVisible);
@@ -157,7 +159,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
       if (!isOpen) {
         return;
       }
-      if (lastSyncedWidgetRef.current === widget) {
+      if (lastSyncedWidgetRef.current === widget || jsonDraftDirtyRef.current) {
         return;
       }
       lastSyncedWidgetRef.current = widget;
@@ -181,6 +183,12 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
       setJsonInput(JSON.stringify(widgetCopy, null, 2));
       setJsonError(null);
     }, [isOpen, widget]);
+
+    const handleJsonInputChange = useCallback((value: string) => {
+      jsonDraftRevisionRef.current += 1;
+      jsonDraftDirtyRef.current = true;
+      setJsonInput(value);
+    }, []);
 
     /****************************************************************************/
 
@@ -219,6 +227,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
         }
         generalParamsRef.current?.cancelPendingChanges();
         specificParamsRef.current?.cancelPendingChanges();
+        const submittedRevision = jsonDraftRevisionRef.current;
         updateWidget(widgetState.widgetId, () => parsedWidget, {
           onFailure: (current) => {
             setWidgetState((previous) => ({
@@ -244,6 +253,11 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
                   ? current.generalParams.updateTime
                   : previous.updateTime
             }));
+          },
+          onSuccess: () => {
+            if (submittedRevision === jsonDraftRevisionRef.current) {
+              jsonDraftDirtyRef.current = false;
+            }
           }
         });
         setJsonError(null);
@@ -372,7 +386,7 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
             {/* JSON editor */}
             <JsonEditor
               jsonInput={jsonInput}
-              setJsonInput={setJsonInput}
+              setJsonInput={handleJsonInputChange}
               jsonError={jsonError}
               setJsonError={setJsonError}
               onUpdate={handleUpdateJSON}
