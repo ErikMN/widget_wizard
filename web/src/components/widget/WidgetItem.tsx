@@ -219,7 +219,33 @@ const WidgetItem = forwardRef<WidgetItemHandle, WidgetItemProps>(
         }
         generalParamsRef.current?.cancelPendingChanges();
         specificParamsRef.current?.cancelPendingChanges();
-        updateWidget(widgetState.widgetId, () => parsedWidget);
+        updateWidget(widgetState.widgetId, () => parsedWidget, {
+          onFailure: (current) => {
+            setWidgetState((previous) => ({
+              ...previous,
+              isVisible:
+                previous.isVisible === parsedWidget.generalParams.isVisible
+                  ? current.generalParams.isVisible
+                  : previous.isVisible,
+              sliderValue:
+                previous.sliderValue === parsedWidget.generalParams.transparency
+                  ? current.generalParams.transparency
+                  : previous.sliderValue,
+              datasource:
+                previous.datasource === parsedWidget.generalParams.datasource
+                  ? current.generalParams.datasource
+                  : previous.datasource,
+              channel:
+                previous.channel === parsedWidget.generalParams.channel
+                  ? current.generalParams.channel
+                  : previous.channel,
+              updateTime:
+                previous.updateTime === parsedWidget.generalParams.updateTime
+                  ? current.generalParams.updateTime
+                  : previous.updateTime
+            }));
+          }
+        });
         setJsonError(null);
         /* NOTE: Update UI controls for manual JSON updates */
         setWidgetState((prevState) => ({
