@@ -132,7 +132,7 @@ function toLegacyWidget(widget: Record<string, unknown>): Widget {
   }
 
   const opacity = Number(widget.opacity);
-  const channel = Number(widget.channel);
+  const channel = widget.channel === null ? -1 : Number(widget.channel);
   const dimensions = asRecord(widget.dimensions);
   const position = asRecord(widget.position);
   const width = Number(dimensions?.width);
@@ -194,7 +194,10 @@ function toV3WidgetPayload(widget: Widget) {
   }
   return {
     type: params.type,
-    channel: params.channel === 0 ? null : String(params.channel),
+    channel:
+      params.channel === -1 || params.channel === 0
+        ? null
+        : String(params.channel),
     datasource: params.datasource === '' ? null : params.datasource,
     position: params.position,
     alignment: alignmentToV3[params.anchor] ?? 'NONE',

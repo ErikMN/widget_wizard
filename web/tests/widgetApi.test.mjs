@@ -144,7 +144,7 @@ test('creates v3 widgets with explicit widgetParams without forcing a data sourc
 test('duplicates an annotation without introducing a data source', async (t) => {
   const widget = await readAnnotation(t);
   assert.equal(widget.generalParams.datasource, '');
-  assert.equal(widget.generalParams.channel, 0);
+  assert.equal(widget.generalParams.channel, -1);
 
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     const { data } = JSON.parse(options.body);
@@ -159,6 +159,42 @@ test('duplicates an annotation without introducing a data source', async (t) => 
   });
 
   await api.apiAddCustomWidget(widget, 'v3');
+});
+
+test('converts a channel-specific v3 widget without changing its channel', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () =>
+    Response.json({
+      status: 'success',
+      data: [{ ...annotation, channel: '2' }]
+    })
+  );
+  const response = await api.apiListWidgets('v3');
+  assert.equal(response.data.widgets[0].generalParams.channel, 2);
+});
+
+test('converts all-channel widget updates back to a null v3 channel', async (t) => {
+  const widget = await readAnnotation(t);
+  const changed = {
+    ...widget,
+    generalParams: { ...widget.generalParams, channel: 2 }
+  };
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, method: options.method });
+    if (options.method === 'GET') {
+      return Response.json({
+        status: 'success',
+        data: [{ ...annotation, channel: '2' }]
+      });
+    }
+    assert.equal(JSON.parse(options.body).data.channel, '2');
+    return Response.json({ status: 'success' });
+  });
+  await api.apiUpdateWidget(changed, 'v3', widget);
+  assert.deepEqual(requests, [
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
+    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+  ]);
 });
 
 test('v3 edits send only changed writable properties', async (t) => {
