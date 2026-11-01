@@ -20,6 +20,6 @@ jobs:
           cache-dependency-path: web/yarn.lock
       - run: corepack enable
       - run: yarn install --frozen-lockfile
-      - run: yarn lint && yarn format && yarn build
+      - run: yarn lint && ./node_modules/.bin/prettier --check . && yarn build
       - run: timeout 120s yarn test
       - run: git diff --exit-code -- src
