@@ -378,6 +378,9 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       /* Check if response contains widgets and set state */
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         setActiveWidgets(resp.data.widgets);
+        if (widgetCapabilities?.data?.widgets) {
+          setWidgetSupported(true);
+        }
       }
     } catch (error) {
       if (
@@ -402,7 +405,8 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
     isActiveWidgetApi,
     setActiveWidgets,
     setAppLoading,
-    widgetApiMode
+    widgetApiMode,
+    widgetCapabilities
   ]);
 
   /* List widgets on tab switch */
@@ -440,6 +444,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
         /* Set the entire listCapabilities response object */
         setWidgetCapabilities(resp);
+        setWidgetSupported(true);
         /* Set the first widget type as selected if available */
         if (resp.data.widgets.length > 0) {
           setSelectedWidget(resp.data.widgets[0].type);
