@@ -360,6 +360,12 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       setAppLoading(false);
+      if (
+        stateRevision !== widgetStateRevisionRef.current &&
+        (!resp || resp.error)
+      ) {
+        return;
+      }
 
       /* Backend missing or invalid JSON */
       if (!resp) {
