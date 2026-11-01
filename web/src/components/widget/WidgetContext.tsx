@@ -22,6 +22,7 @@ import {
   useChannelContext
 } from '../context/AppContext.js';
 import { ApiResponse, Widget, WidgetCapabilities } from './widgetInterfaces.js';
+import { mergeWidgetRefresh } from './widgetRefresh';
 import {
   apiUpdateWidget,
   apiListWidgets,
@@ -347,6 +348,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const requestId = ++widgetListRequestIdRef.current;
     const stateRevision = widgetStateRevisionRef.current;
+    const widgetsAtRequest = latestWidgetsRef.current;
 
     try {
       setAppLoading(true);
@@ -358,9 +360,6 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       setAppLoading(false);
-      if (stateRevision !== widgetStateRevisionRef.current) {
-        return;
-      }
 
       /* Backend missing or invalid JSON */
       if (!resp) {
@@ -376,8 +375,19 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       /* Check if response contains widgets and set state */
-      if (resp?.data?.widgets && Array.isArray(resp.data.widgets)) {
-        setActiveWidgets(resp.data.widgets);
+      const refreshedWidgets = resp?.data?.widgets;
+      if (Array.isArray(refreshedWidgets)) {
+        if (stateRevision === widgetStateRevisionRef.current) {
+          setActiveWidgets(refreshedWidgets);
+        } else {
+          setActiveWidgets((currentWidgets) =>
+            mergeWidgetRefresh(
+              widgetsAtRequest,
+              currentWidgets,
+              refreshedWidgets
+            )
+          );
+        }
         if (widgetCapabilities?.data?.widgets) {
           setWidgetSupported(true);
         }
