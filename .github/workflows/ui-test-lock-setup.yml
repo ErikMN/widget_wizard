@@ -1,4 +1,4 @@
-name: Prepare UI test dependencies
+name: Prepare formatted UI test files
 
 on:
   push:
@@ -6,23 +6,28 @@ on:
       - ui-test-lock-setup
 
 jobs:
-  lockfile:
+  formatting:
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: devbranch
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: yarn
+          cache-dependency-path: web/yarn.lock
       - run: corepack enable
-      - run: yarn add --dev @testing-library/react@16.3.0 @testing-library/dom@10.4.1 jsdom@26.1.0
-      - name: Capture generated dependencies
+      - run: yarn install --frozen-lockfile
+      - run: ./node_modules/.bin/prettier --write tests/widgetContext.test.mjs tests/widgetItem.test.mjs tests/widgetSpecificParams.test.mjs tests/widgetUiHarness.mjs
+      - name: Capture formatted files
         run: |
-          echo PACKAGE_START
-          base64 -w 1024 package.json
-          echo PACKAGE_END
-          echo LOCK_START
-          base64 -w 1024 yarn.lock
-          echo LOCK_END
+          for file in tests/widgetContext.test.mjs tests/widgetItem.test.mjs tests/widgetSpecificParams.test.mjs tests/widgetUiHarness.mjs; do
+            echo "FILE_START:$file"
+            base64 -w 1024 "$file"
+            echo "FILE_END:$file"
+          done
+          git diff --stat
