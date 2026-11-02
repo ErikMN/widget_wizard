@@ -458,6 +458,7 @@ export async function apiAddWidget(
     const payload = {
       type: widgetType,
       channel: currentChannel === '0' ? null : currentChannel,
+      datasource: '#D0',
       widgetParams: {}
     };
 

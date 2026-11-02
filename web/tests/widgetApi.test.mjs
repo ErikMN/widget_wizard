@@ -124,13 +124,13 @@ async function readAnnotation(t) {
   return response.data.widgets[0];
 }
 
-test('creates v3 widgets with explicit widgetParams without forcing a data source or update settings', async (t) => {
+test('creates v3 widgets with the default data source and explicit widgetParams', async (t) => {
   for (const type of ['textannotation', 'plane', 'meter', 'linegraph']) {
     const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
       assert.equal(url, '/config/rest/overlaywidget/v3beta/widgets');
       assert.equal(options.method, 'POST');
       assert.deepEqual(JSON.parse(options.body), {
-        data: { type, channel: '1', widgetParams: {} }
+        data: { type, channel: '1', datasource: '#D0', widgetParams: {} }
       });
       return Response.json({ status: 'success', data: { id: '1' } });
     });
