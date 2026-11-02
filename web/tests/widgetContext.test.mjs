@@ -23,8 +23,9 @@ after(async () => {
   await harness?.close();
 });
 
-function mount(api) {
+function mount(api, storage = new Map()) {
   globalThis.__widgetTest = {
+    storage,
     api: {
       list: async () => ({ data: { widgets: [widget()] } }),
       capabilities: async () => ({
@@ -58,6 +59,21 @@ function mount(api) {
   );
   return current;
 }
+
+test('persists the selected widget API across provider mounts', async () => {
+  const storage = new Map();
+  const first = mount({}, storage);
+
+  await harness.act(async () => {
+    await first.actions.switchWidgetApi('v3');
+  });
+  assert.equal(first.data.widgetApiMode, 'v3');
+  assert.equal(storage.get('widgetApiMode'), '"v3"');
+
+  harness.cleanup();
+  const second = mount({}, storage);
+  assert.equal(second.data.widgetApiMode, 'v3');
+});
 
 test('applies dimensions returned by v3 widget updates', async () => {
   const current = mount({

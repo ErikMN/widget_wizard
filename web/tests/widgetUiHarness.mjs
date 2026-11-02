@@ -78,7 +78,24 @@ const modules = {
   controls: controlsModule,
   childParams: childParamsModule,
   jsonEditor: jsonEditorModule,
-  hooks: 'export const useTabVisibility = () => {};',
+  hooks: `
+import React from 'react';
+export const useTabVisibility = () => {};
+export const useLocalStorage = (key, defaultValue) => {
+  const [value, setValue] = React.useState(() => {
+    const stored = globalThis.__widgetTest.storage.get(key);
+    return stored === undefined ? defaultValue : JSON.parse(stored);
+  });
+  const setStoredValue = React.useCallback((valueOrFn) => {
+    setValue((previous) => {
+      const next = typeof valueOrFn === 'function' ? valueOrFn(previous) : valueOrFn;
+      globalThis.__widgetTest.storage.set(key, JSON.stringify(next));
+      return next;
+    });
+  }, [key]);
+  return [value, setStoredValue];
+};
+`,
   logger: 'export const log = () => {}; export const enableLogging = () => {};',
   utils: `
 export const playSound = () => {};

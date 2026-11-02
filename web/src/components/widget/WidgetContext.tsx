@@ -10,7 +10,7 @@ import React, {
   useMemo,
   useRef
 } from 'react';
-import { useTabVisibility } from '../../helpers/hooks.jsx';
+import { useLocalStorage, useTabVisibility } from '../../helpers/hooks.jsx';
 import { log, enableLogging } from '../../helpers/logger.js';
 import { playSound } from '../../helpers/utils';
 import warningSoundUrl from '../../assets/audio/warning.oga';
@@ -135,8 +135,13 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedWidget, setSelectedWidget] = useState<string>('');
   const [openWidgetId, setOpenWidgetId] = useState<number | null>(null);
   const [widgetSupported, setWidgetSupported] = useState<boolean>(true);
-  const [widgetApiMode, setWidgetApiMode] = useState<WidgetApiMode>('legacy');
-  const widgetApiModeRef = useRef<WidgetApiMode>('legacy');
+  const [storedWidgetApiMode, setStoredWidgetApiMode] = useLocalStorage(
+    'widgetApiMode',
+    'legacy'
+  );
+  const widgetApiMode: WidgetApiMode =
+    storedWidgetApiMode === 'v3' ? 'v3' : 'legacy';
+  const widgetApiModeRef = useRef<WidgetApiMode>(widgetApiMode);
   const [widgetApiSwitching, setWidgetApiSwitching] = useState(false);
 
   /* Draggable widget state */
@@ -535,7 +540,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
           highlight: false
         });
         widgetApiModeRef.current = mode;
-        setWidgetApiMode(mode);
+        setStoredWidgetApiMode(mode);
         setWidgetSupported(true);
         setWidgetCapabilities(capabilities);
         setActiveWidgets(widgets.data.widgets);
@@ -569,6 +574,7 @@ export const WidgetProvider: React.FC<{ children: React.ReactNode }> = ({
       handleOpenAlert,
       selectedWidget,
       setActiveWidgets,
+      setStoredWidgetApiMode,
       setAppLoading,
       widgetApiMode
     ]
