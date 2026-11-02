@@ -99,28 +99,11 @@ const VideoPlayer: React.FC = () => {
     }
   }, []);
 
-  /* Listen for fullscreen changes
-   *
-   * Updates local state (isFullscreen) whenever the document enters or exits
-   * fullscreen. The state is driven by the presence of document.fullscreenElement.
-   * Cleanup removes the event listener on unmount.
-   */
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
   /* Function to log and send video element's dimensions
    * NOTE: This is very important since a lot of other functionalities in the app
    * depends on having the correct dimensions available.
    */
-  const logVideoDimensions = () => {
+  const logVideoDimensions = useCallback(() => {
     if (videoRef.current && playerContainerRef.current) {
       const el = videoRef.current as HTMLElement;
       let videoWidth = 0;
@@ -224,7 +207,27 @@ const VideoPlayer: React.FC = () => {
         return dimensionsEqual(prev, next) ? prev : next;
       });
     }
-  };
+  }, [appSettings.debug]);
+
+  /* Re-measure after fullscreen layout settles so bbox bounds use the new size. */
+  useEffect(() => {
+    const measureAfterLayout = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(logVideoDimensions);
+      });
+    };
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      measureAfterLayout();
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('resize', measureAfterLayout);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('resize', measureAfterLayout);
+    };
+  }, [logVideoDimensions]);
 
   useEffect(() => {
     authorize()
@@ -283,7 +286,7 @@ const VideoPlayer: React.FC = () => {
         }
       };
     }
-  }, [authorized]);
+  }, [authorized, logVideoDimensions]);
 
   /* Not authorized: return */
   if (!authorized) {
