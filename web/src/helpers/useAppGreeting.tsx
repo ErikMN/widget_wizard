@@ -50,7 +50,8 @@ export const useAppGreeting = () => {
           </Typography>
         </Box>
       ),
-      duration: GREETING_DURATION_MS
+      duration: GREETING_DURATION_MS,
+      alwaysShow: true
     });
 
     storage.setItem(FIRST_RUN_KEY, 'true');

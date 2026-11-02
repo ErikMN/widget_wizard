@@ -57,7 +57,10 @@ const MessageOverlay: React.FC = () => {
     };
   }, [message]);
 
-  if (!appSettings.enableOnScreenMessages || !message) {
+  if (
+    !message ||
+    (!appSettings.enableOnScreenMessages && !message.alwaysShow)
+  ) {
     return null;
   }
 

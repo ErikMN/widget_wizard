@@ -31,7 +31,7 @@ export const defaultAppSettings: AppSettings = {
   experimental: false,
   debug: false,
   mute: false,
-  enableOnScreenMessages: true,
+  enableOnScreenMessages: false,
   roundedBboxCorners: false,
   bboxColor: 'yellow',
   bboxThickness: 'medium',

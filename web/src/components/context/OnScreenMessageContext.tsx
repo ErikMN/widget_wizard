@@ -19,6 +19,7 @@ export interface OnScreenMessage {
   content: string | React.ReactNode;
   icon?: React.ReactNode;
   duration?: number;
+  alwaysShow?: boolean;
   timestamp: number;
 }
 
@@ -29,6 +30,7 @@ interface OnScreenMessageContextType {
     content: string | React.ReactNode;
     icon?: React.ReactNode;
     duration?: number;
+    alwaysShow?: boolean;
   }) => void;
   dismissMessage: (id: string) => void;
 }
@@ -69,6 +71,7 @@ export const OnScreenMessageProvider: React.FC<{
       content: string | React.ReactNode;
       icon?: React.ReactNode;
       duration?: number;
+      alwaysShow?: boolean;
     }) => {
       /* Clear any existing timeout since we enforce a single message */
       clearCurrentTimeout();
@@ -82,6 +85,7 @@ export const OnScreenMessageProvider: React.FC<{
         content: options.content,
         icon: options.icon,
         duration: options.duration,
+        alwaysShow: options.alwaysShow,
         timestamp: Date.now()
       };
 
