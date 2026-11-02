@@ -59,6 +59,26 @@ function mount(api) {
   return current;
 }
 
+test('applies dimensions returned by v3 widget updates', async () => {
+  const current = mount({
+    update: async () => ({ data: { width: 280, height: 600 } })
+  });
+
+  await harness.act(async () => {
+    await current.actions.switchWidgetApi('v3');
+  });
+  await harness.act(async () => {
+    await current.actions.updateWidget(1, (previous) => ({
+      ...previous,
+      generalParams: { ...previous.generalParams, size: 'small' }
+    }));
+  });
+
+  const updatedWidget = current.data.activeWidgets[0];
+  assert.equal(updatedWidget.width, 280);
+  assert.equal(updatedWidget.height, 600);
+});
+
 test('switch waits until a pending widget edit completes', async () => {
   const update = deferred();
   const calls = [];

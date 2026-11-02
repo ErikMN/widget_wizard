@@ -181,19 +181,19 @@ test('converts all-channel widget updates back to a null v3 channel', async (t) 
   const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     requests.push({ url, method: options.method });
-    if (options.method === 'GET') {
-      return Response.json({
-        status: 'success',
-        data: [{ ...annotation, channel: '2' }]
-      });
+    if (options.method === 'PATCH') {
+      assert.equal(JSON.parse(options.body).data.channel, '2');
+      return Response.json({ status: 'success' });
     }
-    assert.equal(JSON.parse(options.body).data.channel, '2');
-    return Response.json({ status: 'success' });
+    return Response.json({
+      status: 'success',
+      data: { ...annotation, channel: '2' }
+    });
   });
   await api.apiUpdateWidget(changed, 'v3', widget);
   assert.deepEqual(requests, [
     { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
-    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'GET' }
   ]);
 });
 
@@ -352,53 +352,80 @@ test('v3 drag updates can also bring a widget to the front', async (t) => {
   ]);
 });
 
-test('v3 refreshes dimensions after updating widget content', async (t) => {
+test('v3 size updates use dimensions from the patch response', async (t) => {
   const widget = await readAnnotation(t);
   const changed = {
     ...widget,
-    widgetParams: { ...widget.widgetParams, text: 'A longer annotation' }
+    generalParams: { ...widget.generalParams, size: 'large' }
+  };
+  const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/config/rest/overlaywidget/v3beta/widgets/1');
+    assert.equal(options.method, 'PATCH');
+    assert.deepEqual(JSON.parse(options.body), {
+      data: { size: 'LARGE' }
+    });
+    return Response.json({
+      status: 'success',
+      data: {
+        ...annotation,
+        size: 'LARGE',
+        dimensions: { width: 280, height: 60 }
+      }
+    });
+  });
+
+  const response = await api.apiUpdateWidget(changed, 'v3', widget);
+  assert.equal(response.error, undefined);
+  assert.equal(response.data.width, 280);
+  assert.equal(response.data.height, 60);
+  assert.equal(fetch.mock.callCount(), 1);
+});
+
+test('v3 size updates fetch dimensions when the patch response omits them', async (t) => {
+  const widget = await readAnnotation(t);
+  const changed = {
+    ...widget,
+    generalParams: { ...widget.generalParams, size: 'large' }
   };
   const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     requests.push({ url, method: options.method });
     if (options.method === 'PATCH') {
       assert.deepEqual(JSON.parse(options.body), {
-        data: { widgetParams: { text: 'A longer annotation' } }
+        data: { size: 'LARGE' }
       });
-      return Response.json({ status: 'success' });
+      return Response.json({ status: 'success', data: null });
     }
-
     return Response.json({
       status: 'success',
-      data: [
-        {
-          ...annotation,
-          widgetParams: { text: 'A longer annotation' },
-          dimensions: { width: 280, height: 60 }
-        }
-      ]
+      data: {
+        ...annotation,
+        size: 'LARGE',
+        dimensions: { width: 280, height: 60 }
+      }
     });
   });
 
   const response = await api.apiUpdateWidget(changed, 'v3', widget);
-
   assert.equal(response.data.width, 280);
   assert.equal(response.data.height, 60);
   assert.deepEqual(requests, [
     { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
-    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'GET' }
   ]);
 });
 
-test('v3 keeps a successful edit when the dimensions refresh fails', async (t) => {
+test('v3 keeps a successful size update when the dimensions request fails', async (t) => {
   const widget = await readAnnotation(t);
   const changed = {
     ...widget,
     generalParams: { ...widget.generalParams, size: 'large' }
   };
+  const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, method: options.method });
     if (options.method === 'PATCH') {
-      return Response.json({ status: 'success' });
+      return Response.json({ status: 'success', data: null });
     }
     return Response.json({
       status: 'error',
@@ -408,7 +435,11 @@ test('v3 keeps a successful edit when the dimensions refresh fails', async (t) =
 
   const response = await api.apiUpdateWidget(changed, 'v3', widget);
   assert.equal(response.error, undefined);
-  assert.equal(response.data?.width, undefined);
+  assert.equal(response.data, undefined);
+  assert.deepEqual(requests, [
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'GET' }
+  ]);
 });
 
 test('v3 rejects unsupported widget type changes without API requests', async (t) => {
@@ -416,7 +447,6 @@ test('v3 rejects unsupported widget type changes without API requests', async (t
   const fetch = t.mock.method(globalThis, 'fetch', () => {
     assert.fail('Changing a widget type must not contact the device');
   });
-
   const changedType = {
     ...widget,
     generalParams: { ...widget.generalParams, type: 'meter' }
@@ -495,7 +525,7 @@ test('v3 source changes are still sent when explicitly requested', async (t) => 
       });
       return Response.json({ status: 'success' });
     }
-    return Response.json({ status: 'success', data: [annotation] });
+    return Response.json({ status: 'success', data: annotation });
   });
   await api.apiUpdateWidget(
     {
@@ -507,7 +537,7 @@ test('v3 source changes are still sent when explicitly requested', async (t) => 
   );
   assert.deepEqual(requests, [
     { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
-    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'GET' }
   ]);
 });
 
@@ -548,7 +578,7 @@ test('clearing a v3 source sends null', async (t) => {
       });
       return Response.json({ status: 'success' });
     }
-    return Response.json({ status: 'success', data: [annotation] });
+    return Response.json({ status: 'success', data: annotation });
   });
   await api.apiUpdateWidget(widget, 'v3', {
     ...widget,
@@ -556,6 +586,6 @@ test('clearing a v3 source sends null', async (t) => {
   });
   assert.deepEqual(requests, [
     { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'PATCH' },
-    { url: '/config/rest/overlaywidget/v3beta/widgets', method: 'GET' }
+    { url: '/config/rest/overlaywidget/v3beta/widgets/1', method: 'GET' }
   ]);
 });

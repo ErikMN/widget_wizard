@@ -117,11 +117,21 @@ function responseFromRest(response: RestResponse): ApiResponse {
     return { error };
   }
   const data = asRecord(response.data);
+  const dimensions = asRecord(data?.dimensions);
+  const responseData: NonNullable<ApiResponse['data']> = {};
+  if (data && (typeof data.id === 'string' || typeof data.id === 'number')) {
+    responseData.id = data.id;
+  }
+  const width = data?.width ?? dimensions?.width;
+  const height = data?.height ?? dimensions?.height;
+  if (typeof width === 'number') {
+    responseData.width = width;
+  }
+  if (typeof height === 'number') {
+    responseData.height = height;
+  }
   return {
-    data:
-      data && (typeof data.id === 'string' || typeof data.id === 'number')
-        ? { id: data.id }
-        : undefined
+    data: Object.keys(responseData).length > 0 ? responseData : undefined
   };
 }
 
@@ -348,25 +358,31 @@ export async function apiUpdateWidget(
       return response;
     }
 
+    /* NOTE: v3 PATCH may omit recalculated dimensions, so refresh only this widget when needed. */
     const dimensionsMayChange = [
       'size',
       'widgetParams',
       'datasource',
       'channel'
     ].some((key) => key in data);
-    if (dimensionsMayChange) {
+    const hasUpdatedDimensions =
+      typeof response.data?.width === 'number' &&
+      typeof response.data?.height === 'number';
+    if (dimensionsMayChange && !hasUpdatedDimensions) {
       try {
-        const widgetList = await apiListWidgets('v3');
-        const refreshedWidget = widgetList?.data?.widgets?.find(
-          (widget) => widget.generalParams.id === widgetId
+        const dimensionsResponse = await restRequest(
+          `${V3_API_BASE}/widgets/${widgetId}`,
+          'GET'
         );
-        if (refreshedWidget) {
+        const refreshedWidget = asRecord(dimensionsResponse.data);
+        if (!restError(dimensionsResponse) && refreshedWidget) {
+          const widget = toLegacyWidget(refreshedWidget);
           return {
             ...response,
             data: {
               ...response.data,
-              width: refreshedWidget.width,
-              height: refreshedWidget.height
+              width: widget.width,
+              height: widget.height
             }
           };
         }
