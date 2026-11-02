@@ -30,7 +30,7 @@ export interface AppSettings {
 export const defaultAppSettings: AppSettings = {
   experimental: false,
   debug: false,
-  mute: false,
+  mute: true,
   enableOnScreenMessages: false,
   roundedBboxCorners: false,
   bboxColor: 'yellow',
