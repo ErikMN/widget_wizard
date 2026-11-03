@@ -944,40 +944,38 @@
     flatqueue "^3.1.0"
     internmap "^2.0.3"
 
-"@mui/x-charts@^9.16.0":
-  version "9.16.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.16.0.tgz#15c1dcaabd7001def636eb7d055d4e664451008a"
-  integrity sha512-X0ivReaBWmHRNVK6EYVzaTL3MECt+NsNiTKyanMBKe1Y36ldV91JWI/Z1NrYPP2wk2So295k0UxGKB8wa6ABWA==
+"@mui/x-charts@^9.17.0":
+  version "9.17.0"
+  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.17.0.tgz#388ee82b7e7efcb59d21597a5083fb52d0201fe1"
+  integrity sha512-80SW4GdV3jj2zO5+OSU25fBTkBvzg4bEFfukAA7wA0mMR7uPZHmtQ2ZAC6QpH3yFi/+JluMShcgwOhugcHy26Q==
   dependencies:
     "@babel/runtime" "^7.29.7 || ^8.0.0"
     "@base-ui/utils" "^0.5.0"
     "@mui/utils" "^9.5.0"
     "@mui/x-charts-vendor" "9.15.0"
-    "@mui/x-internal-gestures" "9.16.0"
-    "@mui/x-internals" "9.16.0"
+    "@mui/x-internal-gestures" "9.17.0"
+    "@mui/x-internals" "9.17.0"
     bezier-easing "^3.2.0"
     clsx "^2.1.1"
     prop-types "^15.8.1"
-    reselect "^5.3.0"
     use-sync-external-store "^1.7.0"
 
-"@mui/x-internal-gestures@9.16.0":
-  version "9.16.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-internal-gestures/-/x-internal-gestures-9.16.0.tgz#b51ec855344443c54bc6a251bc15c96b3282b4ca"
-  integrity sha512-4WVMUp500qBdkwtOPTG1qDo/frOC31MihX8skbY189b8LAsNn9rOozkys4aUcs4SzfyMkhIbQd3HgnvB+RQMgQ==
+"@mui/x-internal-gestures@9.17.0":
+  version "9.17.0"
+  resolved "https://registry.yarnpkg.com/@mui/x-internal-gestures/-/x-internal-gestures-9.17.0.tgz#bd48d9320f34a8a54a012bd3e9ac40e5e20c00b6"
+  integrity sha512-P5SOwzeAeQ6RB0Sgfdz0tZoCCEFwnr8z1/G93E//nwDrSz6+z/uhyEAwn7hCUx8fPSZ1nRCyPfJCFQVzip9RoQ==
   dependencies:
     "@babel/runtime" "^7.29.7 || ^8.0.0"
     "@base-ui/utils" "^0.5.0"
 
-"@mui/x-internals@9.16.0":
-  version "9.16.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-internals/-/x-internals-9.16.0.tgz#876036978d10c0b367823f698bac3dd2686bf37e"
-  integrity sha512-ImvD4yi8J/Tip60OnPntw55xG1JlsqxABVlO1XEe1lypg4rUUyR9o7S29FHzOshBPeMVigd9izBtNIdioh1Djw==
+"@mui/x-internals@9.17.0":
+  version "9.17.0"
+  resolved "https://registry.yarnpkg.com/@mui/x-internals/-/x-internals-9.17.0.tgz#6c98a0774659a41a2fdd2b510abe0591e1515a7d"
+  integrity sha512-rk9yNkDR/ty/zpzdObwqLbax3V1lNqz5inat5IVC3KHWj64K9uEBoHLxMBZNtQd8WtPfHR7RS2KjuAI35rcusg==
   dependencies:
     "@babel/runtime" "^7.29.7 || ^8.0.0"
     "@base-ui/utils" "^0.5.0"
     "@mui/utils" "^9.5.0"
-    reselect "^5.3.0"
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
