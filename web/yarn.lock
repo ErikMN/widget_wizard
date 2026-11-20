@@ -943,10 +943,10 @@
     prop-types "^15.8.1"
     react-is "^19.3.0"
 
-"@mui/x-charts-vendor@9.18.0":
-  version "9.18.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-charts-vendor/-/x-charts-vendor-9.18.0.tgz#de56c861276bb8a4af249ed9aa5a525c50706b75"
-  integrity sha512-VOtBQlb1hNiXqNjkZdZQ7T4DGPxQq+pgqXFKJXIL0UTs5WD9h0TL1oE+dJxoavWqFG6Vgr8YJ/uzBcZrJUFPyw==
+"@mui/x-charts-vendor@9.18.1":
+  version "9.18.1"
+  resolved "https://registry.yarnpkg.com/@mui/x-charts-vendor/-/x-charts-vendor-9.18.1.tgz#f38c35d2ae83d0f4d0852b35afba20e3c2f2734e"
+  integrity sha512-R2aTrtGK1gTiJn7IffoB1+u0CQTwJ/ZWVk6PfSrevel/fE7lMUrb8AnqLnkOmioUoiPIdqPhMlUgZ76ctSJ+xw==
   dependencies:
     "@babel/runtime" "^7.29.7 || ^8.0.0"
     "@types/d3-array" "^3.2.2"
@@ -974,15 +974,15 @@
     flatqueue "^3.1.0"
     internmap "^2.0.3"
 
-"@mui/x-charts@^9.18.0":
-  version "9.18.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.18.0.tgz#7cab74be4d781b70bf6290028208392a591ea280"
-  integrity sha512-MxUarZWuu6uTzHLrXF9Ll08+4ya2mVhgozmhz7PLDlEM/JYMuccxq85WZtg+pfikhU2lK3s5uuXxuNlI0M/a2A==
+"@mui/x-charts@^9.18.1":
+  version "9.18.1"
+  resolved "https://registry.yarnpkg.com/@mui/x-charts/-/x-charts-9.18.1.tgz#55b83173e2f1747459ce0631feb544fbeef14ed6"
+  integrity sha512-mu7Gi9ZaWq/0Cv+297EAQWIlLbIeLOGS3CZJk7UIRLeBtdvfN/OP+wBN9dbSmqVq4opawKmKlEivUm6mh7dXrA==
   dependencies:
     "@babel/runtime" "^7.29.7 || ^8.0.0"
     "@base-ui/utils" "^0.5.0"
     "@mui/utils" "^9.5.0"
-    "@mui/x-charts-vendor" "9.18.0"
+    "@mui/x-charts-vendor" "9.18.1"
     "@mui/x-internal-gestures" "9.17.0"
     "@mui/x-internals" "9.18.0"
     bezier-easing "^3.2.0"
