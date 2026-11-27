@@ -69,13 +69,38 @@ const SELECTION_COLORS: Record<string, string> = {
   purple: '#d633ff'
 };
 
-/* Fill used to preview each camera mask color (mosaic uses a pattern) */
+/* Fill used to preview each camera mask color. Mosaic has no preview of its
+ * own (see getFillOpacity), grey is only used for disabled masks.
+ */
 const PREVIEW_FILLS: Record<MaskColor, string> = {
   black: '#000000',
   grey: '#808080',
   white: '#ffffff',
   red: '#e53935',
-  mosaic: 'url(#privacy-mask-mosaic)'
+  mosaic: '#808080'
+};
+
+/* How strongly the app fills a mask on top of the video.
+ *
+ * Enabled masks are semi-transparent so the video stays visible. In mosaic
+ * mode they get no fill at all, so the camera's own mosaic can be judged
+ * without anything drawn over it. Disabled masks are not drawn by the camera,
+ * so they always get a faint fill to remain easy to find.
+ *
+ * A fully transparent fill still reacts to clicks, so masks stay draggable.
+ */
+const getFillOpacity = (
+  color: MaskColor,
+  enabled: boolean,
+  selected: boolean
+): number => {
+  if (!enabled) {
+    return 0.1;
+  }
+  if (color === 'mosaic') {
+    return 0;
+  }
+  return selected ? 0.45 : 0.3;
 };
 
 const HANDLE_RADIUS = 6;
@@ -465,20 +490,6 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
         cursor: drag?.kind === 'move' ? 'grabbing' : 'default'
       }}
     >
-      <defs>
-        {/* Checkered pattern to preview the mosaic mask color */}
-        <pattern
-          id="privacy-mask-mosaic"
-          width="12"
-          height="12"
-          patternUnits="userSpaceOnUse"
-        >
-          <rect width="12" height="12" fill="#777" />
-          <rect width="6" height="6" fill="#444" />
-          <rect x="6" y="6" width="6" height="6" fill="#aaa" />
-        </pattern>
-      </defs>
-
       {screenMasks.map(({ mask, points: savedScreenPoints }) => {
         const isSelected = mask.id === selectedMaskId;
         /* While dragging, show the shape being dragged instead of the saved one */
@@ -501,13 +512,17 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
 
         return (
           <g key={mask.id} data-mask-id={mask.id}>
-            {/* Semi-transparent so the video stays visible. Disabled masks
-             * are faint with a dashed outline.
+            {/* Fill strength is explained at getFillOpacity. Disabled masks
+             * also get a dashed outline.
              */}
             <polygon
               points={pointString}
               fill={PREVIEW_FILLS[appearance.color]}
-              fillOpacity={mask.enabled ? (isSelected ? 0.45 : 0.3) : 0.1}
+              fillOpacity={getFillOpacity(
+                appearance.color,
+                mask.enabled,
+                isSelected
+              )}
               stroke={isSelected ? selectionColor : '#ffffff'}
               strokeOpacity={isSelected ? 1 : 0.8}
               strokeWidth={strokeWidth}
