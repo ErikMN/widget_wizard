@@ -21,7 +21,10 @@ import {
   VideoProperties,
   VapixParameters
 } from 'media-stream-player';
-import { useAppSettingsContext } from '../context/AppContext';
+import {
+  useAlertActionsContext,
+  useAppSettingsContext
+} from '../context/AppContext';
 import { useParameters } from '../context/ParametersContext';
 import { Feedback } from './Feedback';
 import { NoVideoIndicator } from './NoVideoIndicator';
@@ -30,6 +33,14 @@ import { Limiter } from './Limiter';
 import { PlayerControls } from './PlayerControls';
 import { SystemStatsOverlay } from './SystemStatsOverlay';
 import { getImageURL } from './GetImageURL';
+import { HttpMp4CodecVideo } from './HttpMp4CodecVideo';
+import {
+  MP4_AV1,
+  StreamFormat,
+  browserSupportsAv1,
+  deviceSupportsAv1,
+  getPlayableFormat
+} from './streamFormats';
 
 import {
   useSwitch,
@@ -122,6 +133,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
     /* Global app context */
     const { appSettings } = useAppSettingsContext();
+    const { handleOpenAlert } = useAlertActionsContext();
 
     /* Global parameter list */
     const { parameters: globalParameters } = useParameters();
@@ -136,11 +148,18 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       onStreamChangeRef.current = onStreamChange;
     }, [onStreamChange]);
 
-    const [format, setFormat] = useLocalStorage(
+    const [savedFormat, setFormat] = useLocalStorage(
       'streamFormat',
       initialFormat,
       false
-    ) as [Format, (v: Format) => void];
+    ) as [StreamFormat, (v: StreamFormat) => void];
+
+    /* AV1 is only offered when both the camera and the browser support it */
+    const av1Supported = useMemo(
+      () => deviceSupportsAv1(globalParameters) && browserSupportsAv1(),
+      [globalParameters]
+    );
+    const format = getPlayableFormat(savedFormat, av1Supported);
 
     /**
      * VAPIX parameters
@@ -397,6 +416,16 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       }
     }, [autoRetry, onRefresh]);
 
+    const onAv1Error = useCallback(() => {
+      onPlayStop();
+      setVideoProperties(undefined);
+      setVolume(undefined);
+      handleOpenAlert(
+        'AV1 playback failed. Press Play to retry or choose H.264 in player settings.',
+        'error'
+      );
+    }, [handleOpenAlert, onPlayStop]);
+
     /**
      * Toggle expand stats
      */
@@ -429,7 +458,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         {showStatsOverlay && videoProperties && (
           <div style={{ position: 'static', zIndex: 10 }}>
             <Stats
-              format={format}
+              format={format === MP4_AV1 ? Format.MP4_H264 : format}
               videoProperties={videoProperties}
               refresh={refresh}
               volume={volume}
@@ -442,19 +471,35 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
-                <PlaybackArea
-                  forwardedRef={ref}
-                  refresh={refresh}
-                  play={play}
-                  offset={offset}
-                  host={host}
-                  format={format}
-                  parameters={vapixParameters}
-                  onPlaying={onPlaying}
-                  onEnded={onEnded}
-                  secure={secure}
-                  autoRetry={autoRetry}
-                />
+                {/* The library has no AV1 support, so AV1 uses our own player */}
+                {format === MP4_AV1 ? (
+                  <HttpMp4CodecVideo
+                    forwardedRef={ref}
+                    refresh={refresh}
+                    play={play}
+                    host={host}
+                    videocodec="av1"
+                    parameters={vapixParameters}
+                    onPlaying={onPlaying}
+                    onEnded={onEnded}
+                    onError={onAv1Error}
+                    secure={secure}
+                  />
+                ) : (
+                  <PlaybackArea
+                    forwardedRef={ref}
+                    refresh={refresh}
+                    play={play}
+                    offset={offset}
+                    host={host}
+                    format={format}
+                    parameters={vapixParameters}
+                    onPlaying={onPlaying}
+                    onEnded={onEnded}
+                    secure={secure}
+                    autoRetry={autoRetry}
+                  />
+                )}
               </Layer>
               <Layer>
                 {/*
@@ -500,6 +545,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             showSystemStatsOverlay={showSystemStatsOverlay}
             toggleSystemStats={toggleSystemStatsOverlay}
             format={format}
+            av1Supported={av1Supported}
             volume={volume}
             setVolume={setVolume}
             startTime={startTime}

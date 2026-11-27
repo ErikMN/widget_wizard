@@ -10,7 +10,8 @@
  *   - Stats overlay toggle
  */
 import React, { ChangeEventHandler, useCallback, useEffect } from 'react';
-import { VapixParameters, Format } from 'media-stream-player';
+import { VapixParameters } from 'media-stream-player';
+import { MP4_AV1, StreamFormat } from './streamFormats';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../context/ParametersContext';
 import {
@@ -27,8 +28,10 @@ import Typography from '@mui/material/Typography';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
-  readonly format: Format;
-  readonly onFormat: (format: Format) => void;
+  readonly format: StreamFormat;
+  readonly onFormat: (format: StreamFormat) => void;
+  /* Whether the AV1 format can be offered */
+  readonly av1Supported: boolean;
   readonly onVapix: (key: string, value: string) => void;
 
   readonly showStatsOverlay: boolean;
@@ -42,6 +45,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   vapixParameters,
   format,
   onFormat,
+  av1Supported,
   onVapix,
   showStatsOverlay,
   toggleStats,
@@ -131,7 +135,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
 
   const changeFormat: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
-  > = useCallback((e) => onFormat(e.target.value as Format), [onFormat]);
+  > = useCallback((e) => onFormat(e.target.value as StreamFormat), [onFormat]);
 
   const changeResolution: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -363,6 +367,11 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <MenuItem disableRipple value="MP4_H264">
           H.264 (MP4 over HTTP)
         </MenuItem>
+        {av1Supported && (
+          <MenuItem disableRipple value={MP4_AV1}>
+            AV1 (MP4 over HTTP)
+          </MenuItem>
+        )}
         <MenuItem disableRipple value="RTP_JPEG">
           Motion JPEG (MJPEG over WS)
         </MenuItem>

@@ -10,7 +10,8 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
-import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
+import { VapixParameters, VideoProperties } from 'media-stream-player';
+import { MP4_AV1, StreamFormat } from './streamFormats';
 import { PlayerSettings } from './PlayerSettings';
 import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 import { darkTheme } from '../../theme';
@@ -128,7 +129,7 @@ interface PlayerControlsProps {
   readonly onRefresh: () => void;
   readonly onSeek: (offset: number) => void;
   readonly onScreenshot: () => void;
-  readonly onFormat: (format: Format) => void;
+  readonly onFormat: (format: StreamFormat) => void;
   readonly onVapix: (key: string, value: string) => void;
   readonly labels?: {
     readonly play?: string;
@@ -143,7 +144,9 @@ interface PlayerControlsProps {
   readonly toggleStats: () => void;
   readonly showSystemStatsOverlay: boolean;
   readonly toggleSystemStats: () => void;
-  readonly format: Format;
+  readonly format: StreamFormat;
+  /* Whether the AV1 format can be offered */
+  readonly av1Supported: boolean;
   readonly volume?: number;
   readonly setVolume?: (v: number) => void;
   readonly onToggleFullscreen?: () => void;
@@ -163,6 +166,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   onSeek,
   onScreenshot,
   onFormat,
+  av1Supported,
   onVapix,
   labels,
   showStatsOverlay,
@@ -290,7 +294,13 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
       return;
     }
     const { el, pipeline, range } = videoProperties;
-    if (el === null || pipeline === undefined) {
+    if (el === null) {
+      return;
+    }
+    const playback =
+      pipeline ??
+      (format === MP4_AV1 && isHTMLMediaElement(el) ? el : undefined);
+    if (playback === undefined) {
       return;
     }
 
@@ -300,7 +310,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
     setTotalDuration(__duration);
 
     const updateProgress = () => {
-      const played = start + pipeline.currentTime;
+      const played = start + playback.currentTime;
       const buffered =
         isHTMLMediaElement(el) && el.buffered.length > 0
           ? start + el.buffered.end(el.buffered.length - 1)
@@ -333,7 +343,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
     // Use polling when not a media element
     const id = setInterval(updateProgress, 1000);
     return () => clearInterval(id);
-  }, [videoProperties, duration, startTime]);
+  }, [videoProperties, format, duration, startTime]);
 
   const seek = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -552,6 +562,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
           vapixParameters={parameters}
           format={format}
           onFormat={onFormat}
+          av1Supported={av1Supported}
           onVapix={onVapix}
           showStatsOverlay={showStatsOverlay}
           toggleStats={toggleStats}
