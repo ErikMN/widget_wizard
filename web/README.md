@@ -59,6 +59,11 @@ V3 data sources must start with `#` or `%` followed by letters, digits or dots.
 Incomplete values stay in the editor with a validation message; an empty value
 clears the source.
 
+## Video player
+
+See the [video player documentation](src/components/player/native/README.md)
+for the player architecture and regression checks.
+
 ## Deploy web to target
 
 From project root run:
