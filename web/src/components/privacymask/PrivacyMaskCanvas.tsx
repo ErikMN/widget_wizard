@@ -28,6 +28,7 @@ import {
   referenceToStream,
   streamToReference,
   streamToReferenceRaw,
+  getVisibleBounds,
   translatePolygon
 } from './privacyMaskUtils';
 
@@ -184,6 +185,13 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [frame, rotation, videoWidth, videoHeight, pixelWidth, pixelHeight]
   );
 
+  /* Masks are kept inside the part of the image visible in the stream */
+  const visibleBounds = useMemo(
+    () =>
+      frame ? getVisibleBounds(frame, rotation, videoWidth, videoHeight) : null,
+    [frame, rotation, videoWidth, videoHeight]
+  );
+
   const screenMasks = useMemo(
     () =>
       masks.map((mask) => ({
@@ -324,7 +332,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
 
   const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     const current = dragRef.current;
-    if (!frame || !current || current.pointerId !== event.pointerId) {
+    if (!visibleBounds || !current || current.pointerId !== event.pointerId) {
       return;
     }
     const position = getPointerPosition(event);
@@ -344,7 +352,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
       updateDrag({ ...current, moved, points });
       return;
     }
-    /* Move the whole polygon, bounded by the full image (not the crop) */
+    /* Move the whole polygon, bounded by the visible part of the image */
     const from = toReferenceRaw(current.start);
     const to = toReferenceRaw(position);
     updateDrag({
@@ -354,7 +362,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
         current.origin,
         to.x - from.x,
         to.y - from.y,
-        frame
+        visibleBounds
       )
     });
   };

@@ -215,13 +215,13 @@ export const parseMaskList = (json: unknown): PrivacyMask[] | null => {
 };
 
 /* Default new mask: a centered rectangle covering 20% of each dimension */
-export const createDefaultPolygon = (
-  frame: Pick<MaskReferenceFrame, 'width' | 'height'>
-): MaskPoint[] => {
-  const w = Math.round(frame.width * 0.2);
-  const h = Math.round(frame.height * 0.2);
-  const x0 = Math.round((frame.width - w) / 2);
-  const y0 = Math.round((frame.height - h) / 2);
+export const createDefaultPolygon = (bounds: ReferenceBounds): MaskPoint[] => {
+  const width = bounds.maxX - bounds.minX;
+  const height = bounds.maxY - bounds.minY;
+  const w = Math.round(width * 0.2);
+  const h = Math.round(height * 0.2);
+  const x0 = Math.round(bounds.minX + (width - w) / 2);
+  const y0 = Math.round(bounds.minY + (height - h) / 2);
   return [
     { x: x0, y: y0 },
     { x: x0 + w, y: y0 },
@@ -230,12 +230,63 @@ export const createDefaultPolygon = (
   ];
 };
 
-/* Translate a polygon while keeping all points inside the reference frame */
+export interface ReferenceBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export const getFrameBounds = (
+  frame: Pick<MaskReferenceFrame, 'width' | 'height'>
+): ReferenceBounds => ({
+  minX: 0,
+  minY: 0,
+  maxX: frame.width - 1,
+  maxY: frame.height - 1
+});
+
+/* Reference-space bounds of the part of the image visible in the stream */
+export const getVisibleBounds = (
+  frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
+  rotation: StreamRotation,
+  streamWidth: number,
+  streamHeight: number
+): ReferenceBounds => {
+  if (streamWidth <= 0 || streamHeight <= 0) {
+    return getFrameBounds(frame);
+  }
+  /* Stream edges map to pixel edges, so the last visible pixel is edge - 1 */
+  const a = streamToReferenceRaw(
+    { x: 0, y: 0 },
+    frame,
+    rotation,
+    streamWidth,
+    streamHeight
+  );
+  const b = streamToReferenceRaw(
+    { x: streamWidth, y: streamHeight },
+    frame,
+    rotation,
+    streamWidth,
+    streamHeight
+  );
+  return {
+    minX: clamp(Math.ceil(Math.min(a.x, b.x)), 0, frame.width - 1),
+    minY: clamp(Math.ceil(Math.min(a.y, b.y)), 0, frame.height - 1),
+    maxX: clamp(Math.ceil(Math.max(a.x, b.x)) - 1, 0, frame.width - 1),
+    maxY: clamp(Math.ceil(Math.max(a.y, b.y)) - 1, 0, frame.height - 1)
+  };
+};
+
+/* Translate a polygon while keeping it inside the bounds.
+ * A polygon already partly outside may stay there but cannot move further out.
+ */
 export const translatePolygon = (
   points: MaskPoint[],
   dx: number,
   dy: number,
-  frame: Pick<MaskReferenceFrame, 'width' | 'height'>
+  bounds: ReferenceBounds
 ): MaskPoint[] => {
   if (points.length === 0) {
     return points;
@@ -244,13 +295,13 @@ export const translatePolygon = (
   const ys = points.map((p) => p.y);
   const boundedDx = clamp(
     dx,
-    -Math.min(...xs),
-    frame.width - 1 - Math.max(...xs)
+    Math.min(0, bounds.minX - Math.min(...xs)),
+    Math.max(0, bounds.maxX - Math.max(...xs))
   );
   const boundedDy = clamp(
     dy,
-    -Math.min(...ys),
-    frame.height - 1 - Math.max(...ys)
+    Math.min(0, bounds.minY - Math.min(...ys)),
+    Math.max(0, bounds.maxY - Math.max(...ys))
   );
   return points.map((p) => ({
     x: Math.round(p.x + boundedDx),

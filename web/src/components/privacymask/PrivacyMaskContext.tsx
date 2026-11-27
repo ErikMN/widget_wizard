@@ -52,6 +52,8 @@ import {
   getMaxResolution,
   normalizeRotation,
   parseResolution,
+  getFrameBounds,
+  getVisibleBounds,
   translatePolygon
 } from './privacyMaskUtils';
 
@@ -355,9 +357,25 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [masks]
   );
 
+  /* Part of the image visible in the current stream (whole image if unknown) */
+  const visibleBounds = useMemo(
+    () =>
+      frame
+        ? streamSize
+          ? getVisibleBounds(
+              frame,
+              rotation,
+              streamSize.width,
+              streamSize.height
+            )
+          : getFrameBounds(frame)
+        : null,
+    [frame, rotation, streamSize]
+  );
+
   const addMask = useCallback(
     async (points?: MaskPoint[], name?: string) => {
-      if (!frame) {
+      if (!frame || !visibleBounds) {
         return false;
       }
       if (masks.length >= capabilities.maxMasks) {
@@ -368,7 +386,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         return false;
       }
       const maskName = name ?? generateMaskName(masks.map((m) => m.name));
-      const maskPoints = points ?? createDefaultPolygon(frame);
+      const maskPoints = points ?? createDefaultPolygon(visibleBounds);
       const ok = await runMutation(
         () => apiAddPrivacyMask(frame, maskName, maskPoints),
         'Failed to add privacy mask',
@@ -380,12 +398,19 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       }
       return ok;
     },
-    [frame, masks, capabilities.maxMasks, handleOpenAlert, runMutation]
+    [
+      frame,
+      visibleBounds,
+      masks,
+      capabilities.maxMasks,
+      handleOpenAlert,
+      runMutation
+    ]
   );
 
   const duplicateMask = useCallback(
     async (mask: PrivacyMask) => {
-      if (!frame) {
+      if (!frame || !visibleBounds) {
         return false;
       }
       const names = masks.map((m) => m.name);
@@ -395,11 +420,11 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       }
       const offset = Math.round(Math.min(frame.width, frame.height) * 0.03);
       return addMask(
-        translatePolygon(mask.points, offset, offset, frame),
+        translatePolygon(mask.points, offset, offset, visibleBounds),
         name
       );
     },
-    [frame, masks, addMask]
+    [frame, visibleBounds, masks, addMask]
   );
 
   const updateMaskPoints = useCallback(

@@ -89,6 +89,29 @@ test('non-matching aspect ratios are a center crop of the sensor', () => {
   });
 });
 
+test('moving is limited to the visible part of a cropped stream', () => {
+  const big = { source: 0, width: 3840, height: 2160 };
+  const bounds = utils.getVisibleBounds(big, 0, 640, 480);
+  assert.deepEqual(bounds, { minX: 480, minY: 0, maxX: 3359, maxY: 2159 });
+
+  const inside = [
+    { x: 1000, y: 100 },
+    { x: 1200, y: 100 },
+    { x: 1200, y: 300 }
+  ];
+  /* Cannot be dragged past the crop edge */
+  assert.equal(utils.translatePolygon(inside, -900, 0, bounds)[0].x, 480);
+
+  /* Already partly outside: may move inward, but not further out */
+  const outside = [
+    { x: 0, y: 100 },
+    { x: 1280, y: 100 },
+    { x: 1280, y: 300 }
+  ];
+  assert.equal(utils.translatePolygon(outside, -100, 0, bounds)[0].x, 0);
+  assert.equal(utils.translatePolygon(outside, 100, 0, bounds)[0].x, 100);
+});
+
 test('stream to reference clamps points inside the image', () => {
   assert.deepEqual(
     utils.streamToReference({ x: 1920, y: 1080 }, frame, 0, 1920, 1080),
