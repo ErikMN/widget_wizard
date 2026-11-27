@@ -73,7 +73,10 @@ interface PrivacyMaskContextProps {
   listMasks: () => Promise<void>;
   /* Re-read masks and the stream rotation from the device */
   refresh: () => Promise<void>;
-  addMask: (points?: MaskPoint[], name?: string) => Promise<boolean>;
+  addMask: (
+    points?: MaskPoint[],
+    nameFor?: (takenNames: string[]) => string
+  ) => Promise<boolean>;
   duplicateMask: (mask: PrivacyMask) => Promise<boolean>;
   updateMaskPoints: (id: number, points: MaskPoint[]) => Promise<boolean>;
   removeMask: (id: number) => Promise<boolean>;
@@ -123,6 +126,13 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   const updateQueueRef = useRef<Map<number, Promise<unknown>>>(new Map());
   /* Name of a newly added mask to select once it appears in the list */
   const pendingSelectNameRef = useRef<string | null>(null);
+  /* Adds are serialized and pick names from the latest known list plus names
+   * reserved by adds not yet seen in a list, so rapid clicks cannot reuse a
+   * name (the device rejects duplicates).
+   */
+  const masksRef = useRef<PrivacyMask[]>([]);
+  const reservedNamesRef = useRef<Set<string>>(new Set());
+  const addQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   const setStreamSize = useCallback(
     (size: { width: number; height: number } | null) => {
@@ -268,6 +278,8 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
 
   /* Masks belong to the source, so drop stale state when it changes */
   useEffect(() => {
+    masksRef.current = [];
+    reservedNamesRef.current.clear();
     setMasks([]);
     setSelectedMaskId(null);
   }, [source]);
@@ -290,6 +302,8 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
       log('[PrivacyMask] list:', list);
+      masksRef.current = list;
+      list.forEach((mask) => reservedNamesRef.current.delete(mask.name));
       setMasks(list);
       setSelectedMaskId((current) =>
         current !== null && list.some((mask) => mask.id === current)
@@ -374,38 +388,47 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   const addMask = useCallback(
-    async (points?: MaskPoint[], name?: string) => {
-      if (!frame || !visibleBounds) {
-        return false;
-      }
-      if (masks.length >= capabilities.maxMasks) {
-        handleOpenAlert(
-          `Maximum number of privacy masks (${capabilities.maxMasks}) reached`,
-          'warning'
+    (
+      points?: MaskPoint[],
+      nameFor: (takenNames: string[]) => string = generateMaskName
+    ): Promise<boolean> => {
+      const task = async () => {
+        if (!frame || !visibleBounds) {
+          return false;
+        }
+        const reserved = reservedNamesRef.current;
+        const takenNames = [
+          ...masksRef.current.map((mask) => mask.name),
+          ...reserved
+        ];
+        if (takenNames.length >= capabilities.maxMasks) {
+          handleOpenAlert(
+            `Maximum number of privacy masks (${capabilities.maxMasks}) reached`,
+            'warning'
+          );
+          return false;
+        }
+        const maskName = nameFor(takenNames);
+        const maskPoints = points ?? createDefaultPolygon(visibleBounds);
+        reserved.add(maskName);
+        const ok = await runMutation(
+          () => apiAddPrivacyMask(frame, maskName, maskPoints),
+          'Failed to add privacy mask',
+          `Added privacy mask "${maskName}"`
         );
-        return false;
-      }
-      const maskName = name ?? generateMaskName(masks.map((m) => m.name));
-      const maskPoints = points ?? createDefaultPolygon(visibleBounds);
-      const ok = await runMutation(
-        () => apiAddPrivacyMask(frame, maskName, maskPoints),
-        'Failed to add privacy mask',
-        `Added privacy mask "${maskName}"`
-      );
-      if (ok) {
-        playSound(newSoundUrl);
-        pendingSelectNameRef.current = maskName;
-      }
-      return ok;
+        if (ok) {
+          playSound(newSoundUrl);
+          pendingSelectNameRef.current = maskName;
+        } else {
+          reserved.delete(maskName);
+        }
+        return ok;
+      };
+      const next = addQueueRef.current.catch(() => undefined).then(task);
+      addQueueRef.current = next;
+      return next;
     },
-    [
-      frame,
-      visibleBounds,
-      masks,
-      capabilities.maxMasks,
-      handleOpenAlert,
-      runMutation
-    ]
+    [frame, visibleBounds, capabilities.maxMasks, handleOpenAlert, runMutation]
   );
 
   const duplicateMask = useCallback(
@@ -413,18 +436,19 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       if (!frame || !visibleBounds) {
         return false;
       }
-      const names = masks.map((m) => m.name);
-      let name = `${mask.name} copy`.slice(0, MAX_MASK_NAME_LENGTH);
-      for (let i = 2; names.includes(name); i++) {
-        name = `${mask.name} copy ${i}`.slice(0, MAX_MASK_NAME_LENGTH);
-      }
       const offset = Math.round(Math.min(frame.width, frame.height) * 0.03);
       return addMask(
         translatePolygon(mask.points, offset, offset, visibleBounds),
-        name
+        (takenNames) => {
+          let name = `${mask.name} copy`.slice(0, MAX_MASK_NAME_LENGTH);
+          for (let i = 2; takenNames.includes(name); i++) {
+            name = `${mask.name} copy ${i}`.slice(0, MAX_MASK_NAME_LENGTH);
+          }
+          return name;
+        }
       );
     },
-    [frame, visibleBounds, masks, addMask]
+    [frame, visibleBounds, addMask]
   );
 
   const updateMaskPoints = useCallback(
