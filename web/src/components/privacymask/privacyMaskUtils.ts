@@ -2,7 +2,8 @@
  *
  * Coordinate spaces:
  * - Reference space: full unrotated sensor resolution, used for all CGI calls.
- * - Stream space: the decoded (possibly rotated/scaled) video stream.
+ * - Stream space: the decoded video stream, which is the rotated reference
+ *   frame, center-cropped to the stream aspect ratio and scaled.
  * Rotation is in degrees clockwise, matching Axis stream/source rotation.
  */
 import {
@@ -31,6 +32,45 @@ export const getRotatedSize = (
     ? { width: frame.height, height: frame.width }
     : { width: frame.width, height: frame.height };
 
+/* Region of the rotated reference frame that is visible in the stream.
+ *
+ * Streams with a different aspect ratio than the sensor are a center crop of
+ * the sensor image (e.g. a 4:3 stream from a 16:9 sensor drops the sides),
+ * not a stretched version of it.
+ */
+export const getVisibleRegion = (
+  frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
+  rotation: StreamRotation,
+  streamWidth: number,
+  streamHeight: number
+): { x: number; y: number; width: number; height: number } => {
+  const rotated = getRotatedSize(frame, rotation);
+  if (streamWidth <= 0 || streamHeight <= 0) {
+    return { x: 0, y: 0, ...rotated };
+  }
+  const streamAspect = streamWidth / streamHeight;
+  const frameAspect = rotated.width / rotated.height;
+  if (streamAspect < frameAspect) {
+    const width = rotated.height * streamAspect;
+    return {
+      x: (rotated.width - width) / 2,
+      y: 0,
+      width,
+      height: rotated.height
+    };
+  }
+  if (streamAspect > frameAspect) {
+    const height = rotated.width / streamAspect;
+    return {
+      x: 0,
+      y: (rotated.height - height) / 2,
+      width: rotated.width,
+      height
+    };
+  }
+  return { x: 0, y: 0, ...rotated };
+};
+
 /* Map a reference-space point to stream space */
 export const referenceToStream = (
   point: MaskPoint,
@@ -56,11 +96,35 @@ export const referenceToStream = (
       v = W - point.x;
       break;
   }
-  const rotated = getRotatedSize(frame, rotation);
+  const visible = getVisibleRegion(frame, rotation, streamWidth, streamHeight);
   return {
-    x: (u * streamWidth) / rotated.width,
-    y: (v * streamHeight) / rotated.height
+    x: ((u - visible.x) * streamWidth) / visible.width,
+    y: ((v - visible.y) * streamHeight) / visible.height
   };
+};
+
+/* Map a stream-space point to reference space without rounding or clamping */
+export const streamToReferenceRaw = (
+  point: MaskPoint,
+  frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
+  rotation: StreamRotation,
+  streamWidth: number,
+  streamHeight: number
+): MaskPoint => {
+  const { width: W, height: H } = frame;
+  const visible = getVisibleRegion(frame, rotation, streamWidth, streamHeight);
+  const u = visible.x + (point.x * visible.width) / streamWidth;
+  const v = visible.y + (point.y * visible.height) / streamHeight;
+  switch (rotation) {
+    case 90:
+      return { x: v, y: H - u };
+    case 180:
+      return { x: W - u, y: H - v };
+    case 270:
+      return { x: W - v, y: u };
+    default:
+      return { x: u, y: v };
+  }
 };
 
 /* Map a stream-space point to an integer reference-space point inside the image */
@@ -71,29 +135,16 @@ export const streamToReference = (
   streamWidth: number,
   streamHeight: number
 ): MaskPoint => {
-  const { width: W, height: H } = frame;
-  const rotated = getRotatedSize(frame, rotation);
-  const u = (point.x * rotated.width) / streamWidth;
-  const v = (point.y * rotated.height) / streamHeight;
-  let x = u;
-  let y = v;
-  switch (rotation) {
-    case 90:
-      x = v;
-      y = H - u;
-      break;
-    case 180:
-      x = W - u;
-      y = H - v;
-      break;
-    case 270:
-      x = W - v;
-      y = u;
-      break;
-  }
+  const raw = streamToReferenceRaw(
+    point,
+    frame,
+    rotation,
+    streamWidth,
+    streamHeight
+  );
   return {
-    x: clamp(Math.round(x), 0, W - 1),
-    y: clamp(Math.round(y), 0, H - 1)
+    x: clamp(Math.round(raw.x), 0, frame.width - 1),
+    y: clamp(Math.round(raw.y), 0, frame.height - 1)
   };
 };
 

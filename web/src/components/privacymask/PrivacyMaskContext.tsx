@@ -37,6 +37,7 @@ import {
 import {
   apiAddPrivacyMask,
   apiGetMosaicScaleRange,
+  apiGetSourceRotation,
   apiListPrivacyMasks,
   apiRemovePrivacyMask,
   apiRenamePrivacyMask,
@@ -64,10 +65,12 @@ interface PrivacyMaskContextProps {
   masks: PrivacyMask[];
   selectedMaskId: number | null;
   setSelectedMaskId: (id: number | null) => void;
-  /* Stream size reported by the canvas, used for aspect ratio warnings */
+  /* Stream size reported by the canvas */
   streamSize: { width: number; height: number } | null;
   setStreamSize: (size: { width: number; height: number } | null) => void;
   listMasks: () => Promise<void>;
+  /* Re-read masks and the stream rotation from the device */
+  refresh: () => Promise<void>;
   addMask: (points?: MaskPoint[], name?: string) => Promise<boolean>;
   duplicateMask: (mask: PrivacyMask) => Promise<boolean>;
   updateMaskPoints: (id: number, points: MaskPoint[]) => Promise<boolean>;
@@ -101,7 +104,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   /* Local state */
   const [masks, setMasks] = useState<PrivacyMask[]>([]);
   const [selectedMaskId, setSelectedMaskId] = useState<number | null>(null);
-  const [streamSize, setStreamSize] = useState<{
+  const [streamSize, setStreamSizeState] = useState<{
     width: number;
     height: number;
   } | null>(null);
@@ -118,6 +121,17 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   const updateQueueRef = useRef<Map<number, Promise<unknown>>>(new Map());
   /* Name of a newly added mask to select once it appears in the list */
   const pendingSelectNameRef = useRef<string | null>(null);
+
+  const setStreamSize = useCallback(
+    (size: { width: number; height: number } | null) => {
+      setStreamSizeState((current) =>
+        current?.width === size?.width && current?.height === size?.height
+          ? current
+          : size
+      );
+    },
+    []
+  );
 
   /* Image source index for the selected channel (channels are 1-based) */
   const source = Math.max(0, (parseInt(currentChannel, 10) || 1) - 1);
@@ -156,27 +170,49 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   }, [parameters, source]);
 
   /* Rotation of the displayed stream relative to the reference frame.
-   * With source rotation the stream rotation parameter is ignored by the
-   * device and the source rotation applies to every stream.
+   *
+   * Re-read from the device whenever the stream changes: the source rotation
+   * can be changed outside this app and the startup parameters go stale.
+   * With SourceRotation=yes the device ignores the stream rotation parameter.
    */
-  const rotation = useMemo<StreamRotation>(() => {
-    if (parameters?.[`root.ImageSource.I${source}.SourceRotation`] === 'yes') {
-      return normalizeRotation(
-        parameters?.[`root.ImageSource.I${source}.Rotation`]
-      );
+  const [rotation, setRotation] = useState<StreamRotation>(0);
+  const rotationRequestIdRef = useRef(0);
+
+  const refreshRotation = useCallback(async () => {
+    const requestId = ++rotationRequestIdRef.current;
+    const info = (await apiGetSourceRotation(source)) ?? {
+      sourceRotation:
+        parameters?.[`root.ImageSource.I${source}.SourceRotation`] === 'yes',
+      rotation: parameters?.[`root.ImageSource.I${source}.Rotation`] ?? '0'
+    };
+    if (requestId !== rotationRequestIdRef.current) {
+      return;
     }
+    if (info.sourceRotation) {
+      setRotation(normalizeRotation(info.rotation));
+      return;
+    }
+    let streamRotation: unknown =
+      parameters?.[`root.Image.I${source}.Appearance.Rotation`];
     try {
       const vapix = JSON.parse(window.localStorage.getItem('vapix') ?? '{}');
       if (vapix?.rotation !== undefined && vapix.rotation !== '') {
-        return normalizeRotation(vapix.rotation);
+        streamRotation = vapix.rotation;
       }
     } catch {
       /* Ignore invalid stored stream settings */
     }
-    return normalizeRotation(
-      parameters?.[`root.Image.I${source}.Appearance.Rotation`]
-    );
+    setRotation(normalizeRotation(streamRotation));
   }, [parameters, source]);
+
+  const streamWidth = streamSize?.width ?? 0;
+  const streamHeight = streamSize?.height ?? 0;
+
+  useEffect(() => {
+    if (capabilities.supported && streamWidth > 0 && streamHeight > 0) {
+      refreshRotation();
+    }
+  }, [capabilities.supported, refreshRotation, streamWidth, streamHeight]);
 
   /* Sync appearance from parameters */
   useEffect(() => {
@@ -269,6 +305,10 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       );
     }
   }, [frame, capabilities.supported, handleOpenAlert]);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshRotation(), listMasks()]);
+  }, [refreshRotation, listMasks]);
 
   /* Run a write and refresh afterwards. Returns true on success. */
   const runMutation = useCallback(
@@ -515,6 +555,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       streamSize,
       setStreamSize,
       listMasks,
+      refresh,
       addMask,
       duplicateMask,
       updateMaskPoints,
@@ -533,7 +574,9 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       masks,
       selectedMaskId,
       streamSize,
+      setStreamSize,
       listMasks,
+      refresh,
       addMask,
       duplicateMask,
       updateMaskPoints,

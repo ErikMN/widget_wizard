@@ -14,11 +14,11 @@ const PrivacyMaskInfo: React.FC = () => {
   const { isMobile } = useScreenSizes();
 
   /* Privacy mask context */
-  const { masks, capabilities, listMasks } = usePrivacyMaskContext();
+  const { masks, capabilities, refresh } = usePrivacyMaskContext();
 
   const handleRefresh = useCallback(() => {
-    listMasks();
-  }, [listMasks]);
+    refresh();
+  }, [refresh]);
 
   if (!capabilities.supported) {
     return null;

@@ -72,6 +72,23 @@ test('stream to reference round-trips and scales to the stream size', () => {
   }
 });
 
+test('non-matching aspect ratios are a center crop of the sensor', () => {
+  const big = { source: 0, width: 3840, height: 2160 };
+  /* 640x480 from 3840x2160 shows x 480..3360 of the sensor */
+  const corner = utils.referenceToStream({ x: 1280, y: 720 }, big, 0, 640, 480);
+  assert.ok(Math.abs(corner.x - (800 * 640) / 2880) < 1e-9);
+  assert.ok(Math.abs(corner.y - 160) < 1e-9);
+  assert.deepEqual(utils.streamToReference({ x: 0, y: 0 }, big, 0, 640, 480), {
+    x: 480,
+    y: 0
+  });
+  /* Rotated portrait sensor shown in a 4:3 landscape-cropped portrait stream */
+  assert.deepEqual(utils.streamToReference({ x: 0, y: 0 }, big, 90, 480, 640), {
+    x: 480,
+    y: 2159
+  });
+});
+
 test('stream to reference clamps points inside the image', () => {
   assert.deepEqual(
     utils.streamToReference({ x: 1920, y: 1080 }, frame, 0, 1920, 1080),

@@ -34,11 +34,6 @@ import Typography from '@mui/material/Typography';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
-/* PTZ cameras move masks with the view, so keep positions fresh */
-const PTZ_POLL_INTERVAL_MS = 3000;
-/* Allowed relative aspect ratio difference before warning */
-const ASPECT_TOLERANCE = 0.01;
-
 const PrivacyMaskHandler: React.FC = () => {
   /* Global state */
   const {
@@ -51,20 +46,19 @@ const PrivacyMaskHandler: React.FC = () => {
     setSelectedMaskId,
     streamSize,
     listMasks,
+    refresh,
     addMask,
     removeAllMasks,
     setAppearance
   } = usePrivacyMaskContext();
   const { appSettings } = useAppSettingsContext();
   const { showMessage } = useOnScreenMessage();
-  const { parameters, paramsInitialized } = useParameters();
+  const { paramsInitialized } = useParameters();
 
   /* Local state */
   const [openDialog, setOpenDialog] = useState(false);
   const [mosaicScale, setMosaicScale] = useState(appearance.mosaicScale);
   const helpShownRef = useRef(false);
-
-  const isPtz = parameters?.['root.Properties.PTZ.PTZ'] === 'yes';
 
   useEffect(() => {
     setMosaicScale(appearance.mosaicScale);
@@ -75,19 +69,7 @@ const PrivacyMaskHandler: React.FC = () => {
     listMasks();
   }, [listMasks]);
 
-  useTabVisibility(listMasks);
-
-  useEffect(() => {
-    if (!isPtz || !capabilities.supported) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        listMasks();
-      }
-    }, PTZ_POLL_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [isPtz, capabilities.supported, listMasks]);
+  useTabVisibility(refresh);
 
   /* Deselect when leaving the route */
   useEffect(() => () => setSelectedMaskId(null), [setSelectedMaskId]);
@@ -165,14 +147,19 @@ const PrivacyMaskHandler: React.FC = () => {
     return <PrivacyMasksDisabled />;
   }
 
-  /* Warn when the stream aspect ratio differs from the sensor (cropped view) */
-  let aspectMismatch = false;
-  if (streamSize && streamSize.width > 0 && streamSize.height > 0) {
+  /* Streams are a center crop of the rotated sensor, so they must share its
+   * orientation. A mismatch means the rotation could not be determined.
+   */
+  let orientationMismatch = false;
+  if (
+    streamSize &&
+    streamSize.width > 0 &&
+    streamSize.height > 0 &&
+    streamSize.width !== streamSize.height
+  ) {
     const rotated = getRotatedSize(frame, rotation);
-    const frameAspect = rotated.width / rotated.height;
-    const streamAspect = streamSize.width / streamSize.height;
-    aspectMismatch =
-      Math.abs(frameAspect - streamAspect) / frameAspect > ASPECT_TOLERANCE;
+    orientationMismatch =
+      rotated.width > rotated.height !== streamSize.width > streamSize.height;
   }
 
   const maxReached = masks.length >= capabilities.maxMasks;
@@ -283,10 +270,10 @@ const PrivacyMaskHandler: React.FC = () => {
         {capabilities.maxCorners}
       </Typography>
 
-      {aspectMismatch && (
+      {orientationMismatch && (
         <Alert severity="warning" sx={{ mt: 1 }}>
-          The stream aspect ratio differs from the image sensor. Mask positions
-          shown on the video may be inaccurate.
+          The stream orientation does not match the image rotation. Mask
+          positions shown on the video may be inaccurate.
         </Alert>
       )}
 

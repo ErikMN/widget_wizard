@@ -146,6 +146,38 @@ export const apiSetPrivacyMaskAppearance = (
   return apiUpdateMaskParams(update);
 };
 
+/* Read the image source rotation. With SourceRotation=yes the device applies
+ * this rotation to every stream and ignores the stream rotation parameter.
+ */
+export async function apiGetSourceRotation(
+  source: number
+): Promise<{ sourceRotation: boolean; rotation: string } | null> {
+  const params = new URLSearchParams({
+    action: 'list',
+    group: `root.ImageSource.I${source}`
+  });
+  try {
+    const text = await fetchText(`${P_CGI}?${params.toString()}`);
+    const values: Record<string, string> = {};
+    text.split('\n').forEach((line) => {
+      const index = line.indexOf('=');
+      if (index > 0) {
+        values[line.slice(0, index).trim()] = line.slice(index + 1).trim();
+      }
+    });
+    const prefix = `root.ImageSource.I${source}`;
+    if (values[`${prefix}.Rotation`] === undefined) {
+      return null;
+    }
+    return {
+      sourceRotation: values[`${prefix}.SourceRotation`] === 'yes',
+      rotation: values[`${prefix}.Rotation`]
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* Read the allowed MosaicScale range (it differs between devices) */
 export async function apiGetMosaicScaleRange(
   source: number
