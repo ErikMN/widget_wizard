@@ -2,8 +2,10 @@
  * PrivacyMaskItem: Renders an individual privacy mask in the drawer.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { usePrivacyMaskContext } from './PrivacyMaskContext';
-import { MAX_MASK_NAME_LENGTH } from './PrivacyMaskContext';
+import {
+  MAX_MASK_NAME_LENGTH,
+  usePrivacyMaskContext
+} from './PrivacyMaskContext';
 import { PrivacyMask } from './privacyMaskInterfaces';
 import {
   CustomButton,
@@ -41,6 +43,7 @@ const PrivacyMaskItem: React.FC<{
   /* Global state */
   const {
     capabilities,
+    frame,
     selectedMaskId,
     renameMask,
     setMaskEnabled,
@@ -238,23 +241,93 @@ const PrivacyMaskItem: React.FC<{
           />
 
           {/* Corners */}
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Corners: {mask.points.length} / {capabilities.maxCorners}
-          </Typography>
           <Box
-            component="pre"
             sx={{
-              fontFamily: 'monospace',
-              fontSize: '0.75rem',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-              m: 0,
-              mt: 0.5,
-              color: 'text.secondary'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mt: 1,
+              mb: 0.5
             }}
           >
-            {mask.points.map((p) => `(${p.x}, ${p.y})`).join(' ')}
+            <Typography variant="subtitle2">Corners</Typography>
+            <Chip
+              label={`${mask.points.length} / ${capabilities.maxCorners}`}
+              size="small"
+              color={
+                mask.points.length >= capabilities.maxCorners
+                  ? 'warning'
+                  : 'default'
+              }
+              sx={{ fontWeight: 'bold' }}
+            />
           </Box>
+          <Box
+            role="table"
+            aria-label={`Corners of ${mask.name}`}
+            sx={(theme) => ({
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: '4px',
+              overflow: 'hidden',
+              fontSize: '0.8rem',
+              fontVariantNumeric: 'tabular-nums'
+            })}
+          >
+            {[{ key: 'header', cells: ['#', 'X', 'Y'] }]
+              .concat(
+                mask.points.map((p, index) => ({
+                  key: String(index),
+                  cells: [String(index + 1), String(p.x), String(p.y)]
+                }))
+              )
+              .map((row, rowIndex) => (
+                <Box
+                  key={row.key}
+                  role="row"
+                  sx={(theme) => ({
+                    display: 'grid',
+                    gridTemplateColumns: '32px 1fr 1fr',
+                    px: 1,
+                    py: 0.25,
+                    ...(rowIndex === 0
+                      ? {
+                          fontWeight: 'bold',
+                          color: 'text.secondary',
+                          borderBottom: `1px solid ${theme.palette.divider}`,
+                          backgroundColor: theme.palette.action.hover
+                        }
+                      : rowIndex % 2 === 0
+                        ? { backgroundColor: theme.palette.action.hover }
+                        : {})
+                  })}
+                >
+                  {row.cells.map((cell, cellIndex) => (
+                    <Box
+                      key={cellIndex}
+                      role={rowIndex === 0 ? 'columnheader' : 'cell'}
+                      sx={{
+                        textAlign: cellIndex === 0 ? 'left' : 'right',
+                        color:
+                          cellIndex === 0 && rowIndex > 0
+                            ? 'text.secondary'
+                            : undefined
+                      }}
+                    >
+                      {cell}
+                    </Box>
+                  ))}
+                </Box>
+              ))}
+          </Box>
+          {frame && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 0.5 }}
+            >
+              Pixel coordinates in the full {frame.width}×{frame.height} image
+            </Typography>
+          )}
 
           {/* Remove */}
           <CustomButton

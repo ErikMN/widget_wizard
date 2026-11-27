@@ -37,6 +37,7 @@ import {
 import {
   apiAddPrivacyMask,
   apiGetMosaicScaleRange,
+  apiGetPrivacyMaskAppearance,
   apiGetSourceRotation,
   apiListPrivacyMasks,
   apiRemovePrivacyMask,
@@ -47,6 +48,7 @@ import {
 } from './privacyMaskApi';
 import {
   MIN_MASK_CORNERS,
+  clamp,
   createDefaultPolygon,
   generateMaskName,
   getMaxResolution,
@@ -239,19 +241,27 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [parameters, source]);
 
-  useEffect(() => {
+  /* Fetched on demand (not at app start) since the provider wraps the app */
+  const appearanceRequestIdRef = useRef(0);
+  const loadAppearance = useCallback(async () => {
     if (!capabilities.supported) {
       return;
     }
-    let cancelled = false;
-    apiGetMosaicScaleRange(source).then((range) => {
-      if (!cancelled && range) {
-        setMosaicRange(range);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
+    const requestId = ++appearanceRequestIdRef.current;
+    const [current, range] = await Promise.all([
+      apiGetPrivacyMaskAppearance(source),
+      apiGetMosaicScaleRange(source)
+    ]);
+    if (requestId !== appearanceRequestIdRef.current) {
+      return;
+    }
+    if (current && MASK_COLORS.includes(current.color as MaskColor)) {
+      setColor(current.color as MaskColor);
+      setMosaicScale(current.mosaicScale);
+    }
+    if (range) {
+      setMosaicRange(range);
+    }
   }, [capabilities.supported, source]);
 
   const appearance = useMemo<PrivacyMaskAppearance>(
@@ -323,8 +333,8 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   }, [frame, capabilities.supported, handleOpenAlert]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshRotation(), listMasks()]);
-  }, [refreshRotation, listMasks]);
+    await Promise.all([refreshRotation(), listMasks(), loadAppearance()]);
+  }, [refreshRotation, listMasks, loadAppearance]);
 
   /* Run a write and refresh afterwards. Returns true on success. */
   const runMutation = useCallback(
@@ -451,6 +461,30 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [frame, visibleBounds, addMask]
   );
 
+  /* Serialize writes per mask. Name-based CGI calls resolve the name when
+   * they run, since a queued rename may have changed it in the meantime.
+   */
+  const enqueueForMask = useCallback(
+    (id: number, task: () => Promise<boolean>): Promise<boolean> => {
+      const previous = updateQueueRef.current.get(id) ?? Promise.resolve();
+      const next = previous.catch(() => undefined).then(task);
+      updateQueueRef.current.set(id, next);
+      next.finally(() => {
+        if (updateQueueRef.current.get(id) === next) {
+          updateQueueRef.current.delete(id);
+        }
+      });
+      return next;
+    },
+    []
+  );
+
+  const currentMaskName = useCallback(
+    (id: number, fallback: string): string =>
+      masksRef.current.find((m) => m.id === id)?.name ?? fallback,
+    []
+  );
+
   const updateMaskPoints = useCallback(
     async (id: number, points: MaskPoint[]) => {
       const mask = masks.find((m) => m.id === id);
@@ -467,28 +501,36 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         );
         return false;
       }
+      /* The device rejects points outside the image */
+      const bounded = points.map((p) => ({
+        x: clamp(Math.round(p.x), 0, frame.width - 1),
+        y: clamp(Math.round(p.y), 0, frame.height - 1)
+      }));
       /* Optimistic update so the polygon does not jump back while saving */
       setMasks((current) =>
-        current.map((m) => (m.id === id ? { ...m, points } : m))
+        current.map((m) => (m.id === id ? { ...m, points: bounded } : m))
       );
-      /* Serialize writes per mask to keep the last edit authoritative */
-      const previous = updateQueueRef.current.get(id) ?? Promise.resolve();
-      const next = previous
-        .catch(() => undefined)
-        .then(() =>
-          runMutation(
-            () => apiUpdatePrivacyMask(frame, mask.name, points),
-            'Failed to update privacy mask'
-          )
-        );
-      updateQueueRef.current.set(id, next);
-      const ok = await next;
-      if (updateQueueRef.current.get(id) === next) {
-        updateQueueRef.current.delete(id);
-      }
-      return ok;
+      return enqueueForMask(id, () =>
+        runMutation(
+          () =>
+            apiUpdatePrivacyMask(
+              frame,
+              currentMaskName(id, mask.name),
+              bounded
+            ),
+          'Failed to update privacy mask'
+        )
+      );
     },
-    [frame, masks, capabilities.maxCorners, handleOpenAlert, runMutation]
+    [
+      frame,
+      masks,
+      capabilities.maxCorners,
+      handleOpenAlert,
+      runMutation,
+      enqueueForMask,
+      currentMaskName
+    ]
   );
 
   const removeMask = useCallback(
@@ -497,19 +539,21 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       if (!mask) {
         return false;
       }
-      await updateQueueRef.current.get(id)?.catch(() => undefined);
-      const ok = await runMutation(
-        () => apiRemovePrivacyMask(mask.name),
-        'Failed to remove privacy mask',
-        `Removed privacy mask "${mask.name}"`
-      );
+      const ok = await enqueueForMask(id, () => {
+        const name = currentMaskName(id, mask.name);
+        return runMutation(
+          () => apiRemovePrivacyMask(name),
+          'Failed to remove privacy mask',
+          `Removed privacy mask "${name}"`
+        );
+      });
       if (ok) {
         playSound(trashSoundUrl);
         setSelectedMaskId((current) => (current === id ? null : current));
       }
       return ok;
     },
-    [masks, runMutation]
+    [masks, runMutation, enqueueForMask, currentMaskName]
   );
 
   const removeAllMasks = useCallback(async () => {
@@ -544,13 +588,21 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         handleOpenAlert(validationError, 'warning');
         return false;
       }
-      await updateQueueRef.current.get(id)?.catch(() => undefined);
-      return runMutation(
-        () => apiRenamePrivacyMask(source, id, trimmed),
-        'Failed to rename privacy mask'
+      return enqueueForMask(id, () =>
+        runMutation(
+          () => apiRenamePrivacyMask(source, id, trimmed),
+          'Failed to rename privacy mask'
+        )
       );
     },
-    [masks, source, validateMaskName, handleOpenAlert, runMutation]
+    [
+      masks,
+      source,
+      validateMaskName,
+      handleOpenAlert,
+      runMutation,
+      enqueueForMask
+    ]
   );
 
   const setMaskEnabled = useCallback(

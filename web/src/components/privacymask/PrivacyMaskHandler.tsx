@@ -45,7 +45,6 @@ const PrivacyMaskHandler: React.FC = () => {
     selectedMaskId,
     setSelectedMaskId,
     streamSize,
-    listMasks,
     refresh,
     addMask,
     removeAllMasks,
@@ -64,10 +63,10 @@ const PrivacyMaskHandler: React.FC = () => {
     setMosaicScale(appearance.mosaicScale);
   }, [appearance.mosaicScale]);
 
-  /* Fetch masks on mount and whenever the reference frame changes */
+  /* Fetch masks, rotation and appearance on mount and when the source changes */
   useEffect(() => {
-    listMasks();
-  }, [listMasks]);
+    refresh();
+  }, [refresh]);
 
   useTabVisibility(refresh);
 

@@ -37,6 +37,18 @@ const assertCgiSuccess = (text: string): void => {
   }
 };
 
+/* Parse param.cgi "key=value" lines */
+const parseParamList = (text: string): Record<string, string> => {
+  const values: Record<string, string> = {};
+  text.split('\n').forEach((line) => {
+    const index = line.indexOf('=');
+    if (index > 0) {
+      values[line.slice(0, index).trim()] = line.slice(index + 1).trim();
+    }
+  });
+  return values;
+};
+
 const frameParams = (frame: MaskReferenceFrame): URLSearchParams =>
   new URLSearchParams({
     imagesource: String(frame.source),
@@ -158,13 +170,7 @@ export async function apiGetSourceRotation(
   });
   try {
     const text = await fetchText(`${P_CGI}?${params.toString()}`);
-    const values: Record<string, string> = {};
-    text.split('\n').forEach((line) => {
-      const index = line.indexOf('=');
-      if (index > 0) {
-        values[line.slice(0, index).trim()] = line.slice(index + 1).trim();
-      }
-    });
+    const values = parseParamList(text);
     const prefix = `root.ImageSource.I${source}`;
     if (values[`${prefix}.Rotation`] === undefined) {
       return null;
@@ -173,6 +179,26 @@ export async function apiGetSourceRotation(
       sourceRotation: values[`${prefix}.SourceRotation`] === 'yes',
       rotation: values[`${prefix}.Rotation`]
     };
+  } catch {
+    return null;
+  }
+}
+
+/* Read the current mask color and mosaic scale */
+export async function apiGetPrivacyMaskAppearance(
+  source: number
+): Promise<{ color: string; mosaicScale: number } | null> {
+  const group = maskWindowsGroup(source);
+  const params = new URLSearchParams({ action: 'list', group });
+  try {
+    const text = await fetchText(`${P_CGI}?${params.toString()}`);
+    const values = parseParamList(text);
+    const color = values[`${group}.Color`];
+    const mosaicScale = parseInt(values[`${group}.MosaicScale`] ?? '', 10);
+    if (!color || !Number.isFinite(mosaicScale)) {
+      return null;
+    }
+    return { color, mosaicScale };
   } catch {
     return null;
   }
