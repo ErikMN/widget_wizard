@@ -4,7 +4,13 @@
  * Main video player component that handles authorization, fullscreen toggling,
  * and dimension tracking. The actual video playback is handled by the CustomPlayer.
  */
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback
+} from 'react';
 import { useAppSettingsContext, useThemeContext } from './context/AppContext';
 import { Dimensions } from './appInterface';
 import { CustomPlayer } from './player/CustomPlayer';
@@ -138,34 +144,24 @@ const VideoPlayer: React.FC = () => {
 
   /* The library can replace the media element when changing formats or refreshing. */
   const syncVideoDimensions = useCallback(() => {
-    if (!dimensionsObserverRef.current) {
-      dimensionsObserverRef.current =
-        createVideoDimensionObserver(logVideoDimensions);
-    }
-    dimensionsObserverRef.current.observe(
+    dimensionsObserverRef.current?.observe(
       playerContainerRef.current,
       videoRef.current
     );
     logVideoDimensions();
   }, [logVideoDimensions]);
 
-  /* Re-measure after fullscreen layout settles so bbox bounds use the new size. */
+  /* Fullscreen layout changes are measured by CustomPlayer after commit. */
   useEffect(() => {
-    const measureAfterLayout = () => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(syncVideoDimensions);
-      });
-    };
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
-      measureAfterLayout();
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    window.addEventListener('resize', measureAfterLayout);
+    window.addEventListener('resize', syncVideoDimensions);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      window.removeEventListener('resize', measureAfterLayout);
+      window.removeEventListener('resize', syncVideoDimensions);
     };
   }, [syncVideoDimensions]);
 
@@ -192,14 +188,20 @@ const VideoPlayer: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!authorized) {
+      return;
+    }
+
+    const observer = createVideoDimensionObserver(logVideoDimensions);
+    dimensionsObserverRef.current = observer;
     syncVideoDimensions();
 
     return () => {
-      dimensionsObserverRef.current?.disconnect();
+      observer.disconnect();
       dimensionsObserverRef.current = null;
     };
-  }, [authorized, syncVideoDimensions]);
+  }, [authorized, logVideoDimensions, syncVideoDimensions]);
 
   /* Not authorized: return */
   if (!authorized) {

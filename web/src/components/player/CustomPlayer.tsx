@@ -128,14 +128,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const backendAvailable =
       globalParameters?.['root.Widget_wizard.ApplicationRunning'];
 
-    const onStreamChangeRef = useRef(onStreamChange);
-    const skipNextStreamChangeRef = useRef(false);
-
-    /* Keep the latest onStreamChange callback available to delayed callbacks. */
-    useEffect(() => {
-      onStreamChangeRef.current = onStreamChange;
-    }, [onStreamChange]);
-
     const [format, setFormat] = useLocalStorage(
       'streamFormat',
       initialFormat,
@@ -205,29 +197,11 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     /* Screen size */
     const { isMobile } = useScreenSizes();
 
-    const onPlaying = useCallback(
-      (props: VideoProperties) => {
-        setVideoProperties(props);
-        setWaiting(false);
-        setVolume(props.volume);
-        /* Give the browser two frames to finish drawing the video
-         * before running onStreamChange.
-         */
-        skipNextStreamChangeRef.current = true;
-        if (onStreamChangeRef.current) {
-          /* One frame waits for the next paint
-           * the second runs after that paint has happened.
-           */
-          window.requestAnimationFrame(() => {
-            window.requestAnimationFrame(() => {
-              /* Run onStreamChange */
-              onStreamChangeRef.current?.();
-            });
-          });
-        }
-      },
-      [setWaiting]
-    );
+    const onPlaying = useCallback((props: VideoProperties) => {
+      setVideoProperties(props);
+      setWaiting(false);
+      setVolume(props.volume);
+    }, []);
 
     const onPlayStop = useCallback(() => {
       if (host) {
@@ -312,11 +286,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       return () => document.removeEventListener('visibilitychange', cb);
     }, [hostname]);
 
-    /* Update observers after the library has committed the current media element. */
-    useLayoutEffect(() => {
-      onStreamChange?.();
-    }, [format, refresh, host, play, onStreamChange]);
-
     /**
      * Aspect ratio
      *
@@ -354,11 +323,13 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           /* Mobile mode: no width limit */
           element.style.maxWidth = '100%';
         }
+        /* Available player space can move the video without changing its size. */
+        onStreamChange?.();
       });
       observer.observe(limiterRef.current);
 
       return () => observer.disconnect();
-    }, [naturalAspectRatio, isMobile]);
+    }, [naturalAspectRatio, isMobile, onStreamChange]);
 
     /**
      * Volume control on the VideoElement (h264 only)
@@ -371,18 +342,21 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       }
     }, [videoProperties, volume]);
 
-    /* Keep overlay dimensions in sync when stream dimensions change */
-    useEffect(() => {
-      if (!videoProperties) {
-        return;
-      }
-      /* Skip the first size update because onPlaying already scheduled a delayed one. */
-      if (skipNextStreamChangeRef.current) {
-        skipNextStreamChangeRef.current = false;
-        return;
-      }
-      onStreamChangeRef.current?.();
-    }, [videoProperties?.width, videoProperties?.height]);
+    /* Measure after React commits stream and layout changes. */
+    useLayoutEffect(() => {
+      onStreamChange?.();
+    }, [
+      format,
+      refresh,
+      host,
+      play,
+      videoProperties,
+      isMobile,
+      isFullscreen,
+      showStatsOverlay,
+      expanded,
+      onStreamChange
+    ]);
 
     /**
      * Retry an ended stream only while playback is still requested.

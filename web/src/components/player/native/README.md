@@ -38,8 +38,10 @@ and changes to canvas dimensions, also trigger measurements.
 `CustomPlayer` notifies `VideoPlayer` after committing stream changes, rather
 than reading the element before React updates it. The library currently calls
 forwarded callback refs during render, so the existing object ref is retained.
-Delayed measurements after playback starts and fullscreen changes are retained
-until layout timing can be verified separately.
+Playback properties, fullscreen and client statistics layout changes trigger
+measurements after React commits the updated layout. The limiter also triggers
+a measurement after resizing the video area, including when the video moves
+without changing its own dimensions. No fixed animation frame delay is needed.
 
 ## Regression checks
 
@@ -55,7 +57,8 @@ Before replacing a playback implementation, verify it on a supported camera:
 - Check recovery after stream interruption where retry is supported.
 - Check audio controls for streams with audio, screenshots and the client
   stream information in both expanded and collapsed states.
-- Check widget alignment during resolution changes, fullscreen and resizing.
+- Check widget alignment during resolution changes, fullscreen, resizing and
+  when expanding, collapsing or hiding the client stream information.
 - Check saved format and stream settings after reloading the page.
 
 Automated tests cannot establish device compatibility or playback latency.

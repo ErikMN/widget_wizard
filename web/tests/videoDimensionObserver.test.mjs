@@ -143,3 +143,28 @@ test('disconnects when the media is removed and can observe a new element', () =
   assert.equal(changes, 1);
   observer.disconnect();
 });
+
+test('rebinds when the container changes even if the media stays the same', () => {
+  const firstContainer = element('DIV');
+  const secondContainer = element('DIV');
+  const video = element('VIDEO');
+  let changes = 0;
+  const observer = createVideoDimensionObserver(() => changes++);
+
+  observer.observe(firstContainer, video);
+  observer.observe(secondContainer, video);
+
+  assert.equal(resizeObservers[0].disconnected, true);
+  assert.deepEqual(
+    resizeObservers[1].targets.map(({ target }) => target),
+    [secondContainer, video]
+  );
+  resizeObservers[0].callback();
+  video.dispatchEvent(new Event('resize'));
+  assert.equal(changes, 1);
+
+  observer.disconnect();
+  resizeObservers[1].callback();
+  video.dispatchEvent(new Event('resize'));
+  assert.equal(changes, 1);
+});
