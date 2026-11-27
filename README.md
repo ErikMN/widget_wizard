@@ -32,6 +32,7 @@ The backend application needs to be running for this feature to be working.
 * Fine-tune widgets and overlays with the built-in JSON editor
 * Customizable bounding boxes for easy repositioning of widgets and overlays
 * Backup and restore widgets and overlays to browser local storage
+* Draw and edit polygon privacy masks directly on the video
 * Built-in video-player with support for (almost) all resolutions and formats offered by the device
 * Live PTZ controls
 * Optional WebSocket backend for real-time system metrics

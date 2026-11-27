@@ -16,6 +16,7 @@ import Box from '@mui/material/Box';
 import BrushIcon from '@mui/icons-material/Brush';
 import LayersIcon from '@mui/icons-material/Layers';
 import Typography from '@mui/material/Typography';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import WidgetsIcon from '@mui/icons-material/Widgets';
 
 /****************************************************************************/
@@ -77,6 +78,12 @@ const MainMenu: React.FC = () => {
         label="Overlays"
         icon={<LayersIcon color="primary" />}
         to="/overlays"
+      />
+
+      <MainMenuButton
+        label="Privacy masks"
+        icon={<VisibilityOffIcon color="primary" />}
+        to="/privacymasks"
       />
 
       {appSettings.experimental && (

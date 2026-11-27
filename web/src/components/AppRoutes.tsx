@@ -16,6 +16,8 @@ import WidgetCapabilities from './widget/WidgetCapabilities';
 /* Overlays */
 import OverlayHandler from './overlay/OverlayHandler';
 import OverlayCapabilities from './overlay/OverlayCapabilities';
+/* Privacy masks */
+import PrivacyMaskHandler from './privacymask/PrivacyMaskHandler';
 /* Draw mode */
 import Draw from './draw/Draw';
 
@@ -29,6 +31,7 @@ const AppRoutes = () => {
         <Route path="/" element={<LoadingScreen Component={App} />}>
           <Route path="widgets" element={<WidgetHandler />} />
           <Route path="overlays" element={<OverlayHandler />} />
+          <Route path="privacymasks" element={<PrivacyMaskHandler />} />
           {appSettings.experimental && <Route path="draw" element={<Draw />} />}
         </Route>
 

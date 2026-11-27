@@ -3,6 +3,7 @@ export const SR_CGI = '/axis-cgi/systemready.cgi';
 export const W_CGI = '/axis-cgi/overlaywidget/overlaywidget.cgi';
 export const P_CGI = '/axis-cgi/param.cgi';
 export const O_CGI = '/axis-cgi/dynamicoverlay/dynamicoverlay.cgi';
+export const PM_CGI = '/axis-cgi/privacymask.cgi';
 
 /* Drawer width and height */
 export const drawerWidth = 360; // Official web UI uses 360px for widget drawer and 270px for main drawer

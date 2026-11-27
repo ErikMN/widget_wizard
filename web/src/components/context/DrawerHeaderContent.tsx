@@ -13,6 +13,8 @@ import Box from '@mui/material/Box';
 import WidgetInfo from '../widget/WidgetInfo';
 /* Overlays */
 import OverlayInfo from '../overlay/OverlayInfo';
+/* Privacy masks */
+import PrivacyMaskInfo from '../privacymask/PrivacyMaskInfo';
 /* Draw */
 import DrawInfo from '../draw/DrawInfo';
 
@@ -28,6 +30,8 @@ const DrawerHeaderContent: React.FC = () => {
     content = <WidgetInfo />;
   } else if (path.startsWith('/overlays')) {
     content = <OverlayInfo />;
+  } else if (path.startsWith('/privacymasks')) {
+    content = <PrivacyMaskInfo />;
   } else if (path.startsWith('/draw')) {
     content = <DrawInfo />;
   }

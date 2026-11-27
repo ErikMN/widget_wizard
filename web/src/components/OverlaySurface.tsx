@@ -7,6 +7,7 @@
  * - Render widget bounding boxes
  * - Render overlay bounding boxes
  * - Render PTZ crosshair control
+ * - Render privacy mask editor layer
  * - Render draw mode canvas layer
  */
 import React, { useRef, useEffect, useState, useCallback } from 'react';
@@ -22,6 +23,9 @@ import { WidgetBox } from './widget/WidgetBBox';
 /* Overlay bbox */
 import { useOverlayContext } from './overlay/OverlayContext';
 import { OverlayBox } from './overlay/OverlayBBox';
+
+/* Privacy mask editor */
+import PrivacyMaskCanvas from './privacymask/PrivacyMaskCanvas';
 
 /* Draw canvas */
 import DrawCanvas from './draw/DrawCanvas';
@@ -39,6 +43,7 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
   const showOverlays =
     location.pathname.endsWith('/overlays') ||
     location.pathname.endsWith('/settings');
+  const showPrivacyMasks = location.pathname.endsWith('/privacymasks');
   const showDraw = location.pathname.endsWith('/draw');
 
   /* App context */
@@ -217,7 +222,9 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
 
   return (
     <div
-      onPointerDown={showDraw ? undefined : handlePointerDown}
+      onPointerDown={
+        showDraw || showPrivacyMasks ? undefined : handlePointerDown
+      }
       style={{
         position: 'absolute',
         top: `${surfaceDimensions.offsetY}px`,
@@ -275,6 +282,11 @@ const OverlaySurface: React.FC<OverlaySurfaceProps> = ({ dimensions }) => {
               registerRef={registerOverlayRef}
             />
           ))}
+
+      {/* Render privacy mask editor */}
+      {hasStreamDimensions && showPrivacyMasks && (
+        <PrivacyMaskCanvas dimensions={surfaceDimensions} />
+      )}
 
       {/* Render draw canvas */}
       {hasStreamDimensions && showDraw && (
