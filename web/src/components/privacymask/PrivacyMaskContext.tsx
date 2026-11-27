@@ -1,8 +1,11 @@
 /*
- * PrivacyMaskContext: Provides state and API for privacy masks.
+ * PrivacyMaskContext: Shared state and actions for the privacy mask page.
  *
- * Masks are kept in the reference frame (full unrotated sensor resolution).
- * Consumers map to the displayed stream with the exposed frame and rotation.
+ * Mask points are kept in sensor coordinates (see privacyMaskUtils.ts). The
+ * canvas converts them to the video being played using `frame` and `rotation`.
+ *
+ * After every change the mask list is read back from the camera, so the page
+ * always shows what the camera actually stored.
  */
 import React, {
   createContext,
@@ -62,19 +65,23 @@ import {
 export const MAX_MASK_NAME_LENGTH = 64;
 
 interface PrivacyMaskContextProps {
+  /* What the camera supports (max masks, max corners) */
   capabilities: PrivacyMaskCapabilities;
+  /* The camera's full image size, used for all mask coordinates */
   frame: MaskReferenceFrame | null;
+  /* Rotation of the video being played */
   rotation: StreamRotation;
   appearance: PrivacyMaskAppearance;
   masks: PrivacyMask[];
   selectedMaskId: number | null;
   setSelectedMaskId: (id: number | null) => void;
-  /* Stream size reported by the canvas */
+  /* Size of the video being played, reported by the canvas */
   streamSize: { width: number; height: number } | null;
   setStreamSize: (size: { width: number; height: number } | null) => void;
   listMasks: () => Promise<void>;
-  /* Re-read masks and the stream rotation from the device */
+  /* Re-read masks, rotation and mask color from the camera */
   refresh: () => Promise<void>;
+  /* nameFor picks a free name, by default "Mask N" */
   addMask: (
     points?: MaskPoint[],
     nameFor?: (takenNames: string[]) => string
@@ -119,23 +126,32 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   const [mosaicScale, setMosaicScale] = useState<number>(5);
   const [mosaicRange, setMosaicRange] = useState({ min: 5, max: 8 });
 
-  /* Refs
-   * mutationCounterRef: bumped on every write so that list responses started
-   * before a write cannot overwrite the optimistic state.
+  /* Refs that keep camera requests in order
+   *
+   * mutationCounterRef: increased whenever a change is sent. A mask list that
+   *   was requested before the change finished is outdated and gets ignored,
+   *   so it cannot undo what the user just did on screen.
+   * listRequestIdRef: only the newest mask list request may update the page.
+   * updateQueueRef: the change currently being sent for each mask. Changes to
+   *   the same mask wait for each other so they reach the camera in order.
    */
   const mutationCounterRef = useRef(0);
   const listRequestIdRef = useRef(0);
   const updateQueueRef = useRef<Map<number, Promise<unknown>>>(new Map());
   /* Name of a newly added mask to select once it appears in the list */
   const pendingSelectNameRef = useRef<string | null>(null);
-  /* Adds are serialized and pick names from the latest known list plus names
-   * reserved by adds not yet seen in a list, so rapid clicks cannot reuse a
-   * name (the device rejects duplicates).
+  /* Adding masks
+   *
+   * The camera rejects duplicate names. To keep fast repeated clicks working,
+   * adds wait for each other and pick a name that is neither in masksRef (the
+   * latest list from the camera) nor in reservedNamesRef (masks just added
+   * that have not shown up in a list yet).
    */
   const masksRef = useRef<PrivacyMask[]>([]);
   const reservedNamesRef = useRef<Set<string>>(new Set());
   const addQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
+  /* Only store a new size when it actually changed, to avoid re-renders */
   const setStreamSize = useCallback(
     (size: { width: number; height: number } | null) => {
       setStreamSizeState((current) =>
@@ -147,9 +163,10 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     []
   );
 
-  /* Image source index for the selected channel (channels are 1-based) */
+  /* The camera counts image sources from 0, the app counts channels from 1 */
   const source = Math.max(0, (parseInt(currentChannel, 10) || 1) - 1);
 
+  /* The fallback limits are only used if the camera does not report them */
   const capabilities = useMemo<PrivacyMaskCapabilities>(
     () => ({
       supported:
@@ -170,7 +187,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [parameters]
   );
 
-  /* Reference frame: largest resolution of the source (unrotated sensor) */
+  /* The camera's full image size: its largest supported resolution */
   const frame = useMemo<MaskReferenceFrame | null>(() => {
     const resolution =
       getMaxResolution(
@@ -183,17 +200,21 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     return resolution ? { source, ...resolution } : null;
   }, [parameters, source]);
 
-  /* Rotation of the displayed stream relative to the reference frame.
+  /* Rotation of the video being played
    *
-   * Re-read from the device whenever the stream changes: the source rotation
-   * can be changed outside this app and the startup parameters go stale.
-   * With SourceRotation=yes the device ignores the stream rotation parameter.
+   * Most cameras rotate the image for all streams with one camera setting, and
+   * then ignore the rotation chosen in the player settings. Older cameras use
+   * the player setting instead.
+   *
+   * The camera setting can be changed outside this app, so it is read again
+   * whenever the video size changes (a new stream started).
    */
   const [rotation, setRotation] = useState<StreamRotation>(0);
   const rotationRequestIdRef = useRef(0);
 
   const refreshRotation = useCallback(async () => {
     const requestId = ++rotationRequestIdRef.current;
+    /* Fall back to the parameters read at app start if the request fails */
     const info = (await apiGetSourceRotation(source)) ?? {
       sourceRotation:
         parameters?.[`root.ImageSource.I${source}.SourceRotation`] === 'yes',
@@ -202,10 +223,12 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     if (requestId !== rotationRequestIdRef.current) {
       return;
     }
+    /* Camera-wide rotation applies to every stream */
     if (info.sourceRotation) {
       setRotation(normalizeRotation(info.rotation));
       return;
     }
+    /* Otherwise use the player setting, or the camera's default stream rotation */
     let streamRotation: unknown =
       parameters?.[`root.Image.I${source}.Appearance.Rotation`];
     try {
@@ -228,7 +251,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [capabilities.supported, refreshRotation, streamWidth, streamHeight]);
 
-  /* Sync appearance from parameters */
+  /* Start with the mask color read at app start, until loadAppearance runs */
   useEffect(() => {
     const group = `root.Image.I${source}.Overlay.MaskWindows`;
     const paramColor = parameters?.[`${group}.Color`] as MaskColor | undefined;
@@ -241,7 +264,10 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [parameters, source]);
 
-  /* Fetched on demand (not at app start) since the provider wraps the app */
+  /* Read the current mask color and mosaic sizes from the camera.
+   * Called when the page opens rather than at app start, since this provider
+   * wraps the whole app and should not cost anything on other pages.
+   */
   const appearanceRequestIdRef = useRef(0);
   const loadAppearance = useCallback(async () => {
     if (!capabilities.supported) {
@@ -274,6 +300,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [color, mosaicScale, mosaicRange]
   );
 
+  /* Select a newly added mask once it appears in the list */
   useEffect(() => {
     const pendingName = pendingSelectNameRef.current;
     if (!pendingName) {
@@ -286,7 +313,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [masks]);
 
-  /* Masks belong to the source, so drop stale state when it changes */
+  /* Each channel has its own masks, so start over when the channel changes */
   useEffect(() => {
     masksRef.current = [];
     reservedNamesRef.current.clear();
@@ -295,8 +322,9 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
   }, [source]);
 
   /****************************************************************************/
-  /* API methods */
+  /* Actions */
 
+  /* Read the mask list from the camera */
   const listMasks = useCallback(async () => {
     if (!frame || !capabilities.supported) {
       return;
@@ -305,6 +333,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     const mutationAtStart = mutationCounterRef.current;
     try {
       const list = await apiListPrivacyMasks(frame);
+      /* Ignore the answer if a newer list request or a change was started */
       if (
         requestId !== listRequestIdRef.current ||
         mutationAtStart !== mutationCounterRef.current
@@ -313,6 +342,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
       }
       log('[PrivacyMask] list:', list);
       masksRef.current = list;
+      /* Names now in the list no longer need to be reserved */
       list.forEach((mask) => reservedNamesRef.current.delete(mask.name));
       setMasks(list);
       setSelectedMaskId((current) =>
@@ -336,7 +366,9 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     await Promise.all([refreshRotation(), listMasks(), loadAppearance()]);
   }, [refreshRotation, listMasks, loadAppearance]);
 
-  /* Run a write and refresh afterwards. Returns true on success. */
+  /* Send a change to the camera, show the result to the user and read the
+   * mask list again. Returns true if the change succeeded.
+   */
   const runMutation = useCallback(
     async (
       action: () => Promise<void>,
@@ -364,6 +396,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [handleOpenAlert, listMasks, setAppLoading]
   );
 
+  /* Returns an error message, or null if the name can be used */
   const validateMaskName = useCallback(
     (name: string, id?: number): string | null => {
       const trimmed = name.trim();
@@ -381,7 +414,9 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [masks]
   );
 
-  /* Part of the image visible in the current stream (whole image if unknown) */
+  /* The part of the image visible in the video being played (the whole image
+   * until the video size is known). New and moved masks are kept inside it.
+   */
   const visibleBounds = useMemo(
     () =>
       frame
@@ -397,6 +432,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [frame, rotation, streamSize]
   );
 
+  /* Add a mask. Adds wait for each other (see "Adding masks" above). */
   const addMask = useCallback(
     (
       points?: MaskPoint[],
@@ -406,6 +442,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         if (!frame || !visibleBounds) {
           return false;
         }
+        /* Decide the name only now, when earlier adds have finished */
         const reserved = reservedNamesRef.current;
         const takenNames = [
           ...masksRef.current.map((mask) => mask.name),
@@ -434,6 +471,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         }
         return ok;
       };
+      /* Run after the previous add, even if that one failed */
       const next = addQueueRef.current.catch(() => undefined).then(task);
       addQueueRef.current = next;
       return next;
@@ -441,6 +479,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [frame, visibleBounds, capabilities.maxMasks, handleOpenAlert, runMutation]
   );
 
+  /* Add a copy of a mask, slightly moved so both are visible */
   const duplicateMask = useCallback(
     async (mask: PrivacyMask) => {
       if (!frame || !visibleBounds) {
@@ -461,8 +500,8 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [frame, visibleBounds, addMask]
   );
 
-  /* Serialize writes per mask. Name-based CGI calls resolve the name when
-   * they run, since a queued rename may have changed it in the meantime.
+  /* Run changes to the same mask one after another, in the order they were
+   * made, even if an earlier one failed.
    */
   const enqueueForMask = useCallback(
     (id: number, task: () => Promise<boolean>): Promise<boolean> => {
@@ -479,12 +518,16 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     []
   );
 
+  /* The camera identifies masks by name, and a rename may have finished
+   * while a change was waiting its turn. Look the name up when it is needed.
+   */
   const currentMaskName = useCallback(
     (id: number, fallback: string): string =>
       masksRef.current.find((m) => m.id === id)?.name ?? fallback,
     []
   );
 
+  /* Change the shape or position of a mask */
   const updateMaskPoints = useCallback(
     async (id: number, points: MaskPoint[]) => {
       const mask = masks.find((m) => m.id === id);
@@ -501,12 +544,15 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
         );
         return false;
       }
-      /* The device rejects points outside the image */
+      /* The camera rejects points outside the image */
       const bounded = points.map((p) => ({
         x: clamp(Math.round(p.x), 0, frame.width - 1),
         y: clamp(Math.round(p.y), 0, frame.height - 1)
       }));
-      /* Optimistic update so the polygon does not jump back while saving */
+      /* Show the new shape right away instead of waiting for the camera, so
+       * the mask does not jump back while saving. If saving fails, the list
+       * read afterwards restores the camera's version.
+       */
       setMasks((current) =>
         current.map((m) => (m.id === id ? { ...m, points: bounded } : m))
       );
@@ -533,6 +579,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     ]
   );
 
+  /* Remove one mask, after any changes to it still waiting to be sent */
   const removeMask = useCallback(
     async (id: number) => {
       const mask = masks.find((m) => m.id === id);
@@ -556,6 +603,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [masks, runMutation, enqueueForMask, currentMaskName]
   );
 
+  /* Remove all masks one by one (the camera has no "remove all" request) */
   const removeAllMasks = useCallback(async () => {
     const names = masks.map((mask) => mask.name);
     if (names.length === 0) {
@@ -576,6 +624,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [masks, runMutation]);
 
+  /* Rename a mask. Waits for earlier changes to the same mask. */
   const renameMask = useCallback(
     async (id: number, name: string) => {
       const mask = masks.find((m) => m.id === id);
@@ -605,8 +654,10 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     ]
   );
 
+  /* Turn a mask on or off without removing it */
   const setMaskEnabled = useCallback(
     async (id: number, enabled: boolean) => {
+      /* Update the switch right away; the list read afterwards confirms it */
       setMasks((current) =>
         current.map((m) => (m.id === id ? { ...m, enabled } : m))
       );
@@ -618,6 +669,7 @@ export const PrivacyMaskProvider: React.FC<{ children: ReactNode }> = ({
     [source, runMutation]
   );
 
+  /* Change the color or mosaic size, which applies to all masks */
   const setAppearance = useCallback(
     async (values: { color?: MaskColor; mosaicScale?: number }) => {
       try {

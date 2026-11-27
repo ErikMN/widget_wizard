@@ -1,10 +1,16 @@
-/* Privacy mask helpers: coordinate mapping, parsing and naming.
+/* Privacy mask helpers: coordinate conversion, parsing and naming.
  *
- * Coordinate spaces:
- * - Reference space: full unrotated sensor resolution, used for all CGI calls.
- * - Stream space: the decoded video stream, which is the rotated reference
- *   frame, center-cropped to the stream aspect ratio and scaled.
- * Rotation is in degrees clockwise, matching Axis stream/source rotation.
+ * Two coordinate systems are used:
+ *
+ * - Sensor coordinates ("reference" in the code): pixels in the camera's full,
+ *   unrotated image, e.g. 3840x2160. All camera requests use these, so stored
+ *   mask points never depend on the current stream settings.
+ *
+ * - Stream coordinates: pixels in the video being played. The stream is the
+ *   sensor image rotated, then cropped around the center if its aspect ratio
+ *   differs (e.g. a 4:3 stream from a 16:9 sensor loses the sides), then scaled.
+ *
+ * Rotation is in degrees clockwise, the same convention the camera uses.
  */
 import {
   MaskPoint,
@@ -18,12 +24,13 @@ export const MIN_MASK_CORNERS = 3;
 export const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
 
+/* Turn any rotation value (e.g. "270", -90) into 0, 90, 180 or 270 */
 export const normalizeRotation = (value: unknown): StreamRotation => {
   const parsed = ((parseInt(String(value), 10) % 360) + 360) % 360;
   return parsed === 90 || parsed === 180 || parsed === 270 ? parsed : 0;
 };
 
-/* Reference frame dimensions after applying the stream rotation */
+/* Size of the sensor image after rotation (90 and 270 swap width and height) */
 export const getRotatedSize = (
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
   rotation: StreamRotation
@@ -32,11 +39,10 @@ export const getRotatedSize = (
     ? { width: frame.height, height: frame.width }
     : { width: frame.width, height: frame.height };
 
-/* Region of the rotated reference frame that is visible in the stream.
+/* The part of the rotated sensor image that is shown in the stream.
  *
- * Streams with a different aspect ratio than the sensor are a center crop of
- * the sensor image (e.g. a 4:3 stream from a 16:9 sensor drops the sides),
- * not a stretched version of it.
+ * If the stream is narrower than the sensor image, the left and right sides
+ * are cut off equally. If it is wider, the top and bottom are cut off.
  */
 export const getVisibleRegion = (
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
@@ -49,8 +55,9 @@ export const getVisibleRegion = (
     return { x: 0, y: 0, ...rotated };
   }
   const streamAspect = streamWidth / streamHeight;
-  const frameAspect = rotated.width / rotated.height;
-  if (streamAspect < frameAspect) {
+  const sensorAspect = rotated.width / rotated.height;
+  if (streamAspect < sensorAspect) {
+    /* Stream is narrower: keep full height, cut the sides */
     const width = rotated.height * streamAspect;
     return {
       x: (rotated.width - width) / 2,
@@ -59,7 +66,8 @@ export const getVisibleRegion = (
       height: rotated.height
     };
   }
-  if (streamAspect > frameAspect) {
+  if (streamAspect > sensorAspect) {
+    /* Stream is wider: keep full width, cut top and bottom */
     const height = rotated.width / streamAspect;
     return {
       x: 0,
@@ -71,7 +79,7 @@ export const getVisibleRegion = (
   return { x: 0, y: 0, ...rotated };
 };
 
-/* Map a reference-space point to stream space */
+/* Convert a point from sensor coordinates to stream coordinates */
 export const referenceToStream = (
   point: MaskPoint,
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
@@ -79,31 +87,38 @@ export const referenceToStream = (
   streamWidth: number,
   streamHeight: number
 ): MaskPoint => {
-  const { width: W, height: H } = frame;
-  let u = point.x;
-  let v = point.y;
+  const { width: sensorWidth, height: sensorHeight } = frame;
+
+  /* Step 1: rotate the point clockwise together with the image */
+  let rotatedX = point.x;
+  let rotatedY = point.y;
   switch (rotation) {
     case 90:
-      u = H - point.y;
-      v = point.x;
+      rotatedX = sensorHeight - point.y;
+      rotatedY = point.x;
       break;
     case 180:
-      u = W - point.x;
-      v = H - point.y;
+      rotatedX = sensorWidth - point.x;
+      rotatedY = sensorHeight - point.y;
       break;
     case 270:
-      u = point.y;
-      v = W - point.x;
+      rotatedX = point.y;
+      rotatedY = sensorWidth - point.x;
       break;
   }
+
+  /* Step 2: remove the cropped margin and scale to the stream size */
   const visible = getVisibleRegion(frame, rotation, streamWidth, streamHeight);
   return {
-    x: ((u - visible.x) * streamWidth) / visible.width,
-    y: ((v - visible.y) * streamHeight) / visible.height
+    x: ((rotatedX - visible.x) * streamWidth) / visible.width,
+    y: ((rotatedY - visible.y) * streamHeight) / visible.height
   };
 };
 
-/* Map a stream-space point to reference space without rounding or clamping */
+/* Convert a point from stream coordinates to sensor coordinates.
+ * The result is not rounded and may lie outside the image, which is what
+ * drag calculations need. Use streamToReference for points to save.
+ */
 export const streamToReferenceRaw = (
   point: MaskPoint,
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
@@ -111,23 +126,29 @@ export const streamToReferenceRaw = (
   streamWidth: number,
   streamHeight: number
 ): MaskPoint => {
-  const { width: W, height: H } = frame;
+  const { width: sensorWidth, height: sensorHeight } = frame;
+
+  /* Step 1: undo the scaling and add back the cropped margin */
   const visible = getVisibleRegion(frame, rotation, streamWidth, streamHeight);
-  const u = visible.x + (point.x * visible.width) / streamWidth;
-  const v = visible.y + (point.y * visible.height) / streamHeight;
+  const rotatedX = visible.x + (point.x * visible.width) / streamWidth;
+  const rotatedY = visible.y + (point.y * visible.height) / streamHeight;
+
+  /* Step 2: undo the rotation (the reverse of referenceToStream) */
   switch (rotation) {
     case 90:
-      return { x: v, y: H - u };
+      return { x: rotatedY, y: sensorHeight - rotatedX };
     case 180:
-      return { x: W - u, y: H - v };
+      return { x: sensorWidth - rotatedX, y: sensorHeight - rotatedY };
     case 270:
-      return { x: W - v, y: u };
+      return { x: sensorWidth - rotatedY, y: rotatedX };
     default:
-      return { x: u, y: v };
+      return { x: rotatedX, y: rotatedY };
   }
 };
 
-/* Map a stream-space point to an integer reference-space point inside the image */
+/* Convert a point from stream coordinates to whole sensor pixels that are
+ * inside the image, as required by the camera.
+ */
 export const streamToReference = (
   point: MaskPoint,
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
@@ -148,10 +169,11 @@ export const streamToReference = (
   };
 };
 
-/* Serialize points to the CGI pxpolygon format: "x1,y1:x2,y2:..." */
+/* Format points the way the camera expects them: "x1,y1:x2,y2:..." */
 export const toPxPolygon = (points: MaskPoint[]): string =>
   points.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).join(':');
 
+/* Parse a resolution string such as "1920x1080" */
 export const parseResolution = (
   value: string | undefined | null
 ): { width: number; height: number } | null => {
@@ -164,7 +186,7 @@ export const parseResolution = (
   return width > 0 && height > 0 ? { width, height } : null;
 };
 
-/* Largest resolution (by area) from a comma separated resolution list */
+/* Pick the largest resolution from a list such as "1920x1080,3840x2160" */
 export const getMaxResolution = (
   list: string | undefined | null
 ): { width: number; height: number } | null =>
@@ -181,7 +203,7 @@ export const getMaxResolution = (
       return best;
     }, null);
 
-/* Parse the privacymask.cgi listpxjson response into masks */
+/* Convert the camera's mask list response into masks, skipping invalid entries */
 export const parseMaskList = (json: unknown): PrivacyMask[] | null => {
   const list = (json as { listpx?: unknown })?.listpx;
   if (!Array.isArray(list)) {
@@ -196,7 +218,9 @@ export const parseMaskList = (json: unknown): PrivacyMask[] | null => {
         Array.isArray(item.position)
     )
     .map((item) => {
-      /* Prefer the complete polygon when the device also reports a clipped one */
+      /* PTZ cameras report both the full outline (all_position) and the part
+       * currently in view (position). Use the full outline when available.
+       */
       const raw = Array.isArray(item.all_position)
         ? item.all_position
         : item.position;
@@ -214,7 +238,17 @@ export const parseMaskList = (json: unknown): PrivacyMask[] | null => {
     });
 };
 
-/* Default new mask: a centered rectangle covering 20% of each dimension */
+/* A rectangular area in sensor coordinates. Min and max are both inclusive. */
+export interface ReferenceBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+/* Default shape for a new mask: a rectangle in the middle of the given area,
+ * 20% of its width and height.
+ */
 export const createDefaultPolygon = (bounds: ReferenceBounds): MaskPoint[] => {
   const width = bounds.maxX - bounds.minX;
   const height = bounds.maxY - bounds.minY;
@@ -230,13 +264,7 @@ export const createDefaultPolygon = (bounds: ReferenceBounds): MaskPoint[] => {
   ];
 };
 
-export interface ReferenceBounds {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
-
+/* The whole sensor image as bounds */
 export const getFrameBounds = (
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>
 ): ReferenceBounds => ({
@@ -246,7 +274,7 @@ export const getFrameBounds = (
   maxY: frame.height - 1
 });
 
-/* Reference-space bounds of the part of the image visible in the stream */
+/* The part of the sensor image that is visible in the stream, as bounds */
 export const getVisibleBounds = (
   frame: Pick<MaskReferenceFrame, 'width' | 'height'>,
   rotation: StreamRotation,
@@ -256,7 +284,9 @@ export const getVisibleBounds = (
   if (streamWidth <= 0 || streamHeight <= 0) {
     return getFrameBounds(frame);
   }
-  /* Stream edges map to pixel edges, so the last visible pixel is edge - 1 */
+  /* Convert the stream's top-left and bottom-right corners. The bottom-right
+   * corner lies just past the last visible pixel, hence the - 1 below.
+   */
   const a = streamToReferenceRaw(
     { x: 0, y: 0 },
     frame,
@@ -279,8 +309,9 @@ export const getVisibleBounds = (
   };
 };
 
-/* Translate a polygon while keeping it inside the bounds.
- * A polygon already partly outside may stay there but cannot move further out.
+/* Move a polygon by dx/dy, stopping at the edges of the bounds.
+ * A polygon that is already partly outside (e.g. after switching to a cropped
+ * stream) is not pulled inside, but it cannot be moved further out either.
  */
 export const translatePolygon = (
   points: MaskPoint[],

@@ -146,8 +146,10 @@ const PrivacyMaskHandler: React.FC = () => {
     return <PrivacyMasksDisabled />;
   }
 
-  /* Streams are a center crop of the rotated sensor, so they must share its
-   * orientation. A mismatch means the rotation could not be determined.
+  /* The video is always cut from the rotated camera image, so both should be
+   * portrait or both landscape. If not, the rotation is out of date (e.g. it
+   * was just changed on the camera) and the masks may be drawn in the wrong
+   * place until the video restarts.
    */
   let orientationMismatch = false;
   if (

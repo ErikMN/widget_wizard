@@ -1,8 +1,10 @@
-/* Privacy mask endpoint communication functions (backend API layer)
+/* Camera requests for privacy masks.
  *
- * privacymask.cgi answers with an empty body on success and a plain text
- * "Error: ..." body on failure. Mask enable state, renaming and appearance are
- * only available through param.cgi (Image.I<source>.Overlay.MaskWindows).
+ * Two camera endpoints are used:
+ * - privacymask.cgi adds, moves, removes and lists masks. It answers with an
+ *   empty response on success and a text starting with "Error" on failure.
+ * - param.cgi is needed to enable/disable, rename and change the look of
+ *   masks, because privacymask.cgi does not support those changes.
  */
 import { P_CGI, PM_CGI } from '../constants';
 import {
@@ -25,7 +27,7 @@ const fetchText = async (url: string): Promise<string> => {
   return text;
 };
 
-/* Throw with the device message if a privacymask.cgi action failed */
+/* Throw an error with the camera's message if a request failed */
 const assertCgiSuccess = (text: string): void => {
   const trimmed = text.trim();
   if (trimmed.startsWith('Error')) {
@@ -37,7 +39,7 @@ const assertCgiSuccess = (text: string): void => {
   }
 };
 
-/* Parse param.cgi "key=value" lines */
+/* Turn param.cgi output (one "name=value" per line) into an object */
 const parseParamList = (text: string): Record<string, string> => {
   const values: Record<string, string> = {};
   text.split('\n').forEach((line) => {
@@ -49,6 +51,7 @@ const parseParamList = (text: string): Record<string, string> => {
   return values;
 };
 
+/* Request parameters that make the camera use sensor coordinates */
 const frameParams = (frame: MaskReferenceFrame): URLSearchParams =>
   new URLSearchParams({
     imagesource: String(frame.source),
@@ -56,7 +59,7 @@ const frameParams = (frame: MaskReferenceFrame): URLSearchParams =>
     imageresolution: `${frame.width}x${frame.height}`
   });
 
-/* List privacy masks in the reference frame */
+/* List all masks, with points in sensor coordinates */
 export async function apiListPrivacyMasks(
   frame: MaskReferenceFrame
 ): Promise<PrivacyMask[]> {
@@ -90,7 +93,7 @@ export async function apiAddPrivacyMask(
   assertCgiSuccess(await fetchText(`${PM_CGI}?${params.toString()}`));
 }
 
-/* Update the polygon of a privacy mask (identified by name) */
+/* Change the shape of a mask. Masks are identified by name. */
 export async function apiUpdatePrivacyMask(
   frame: MaskReferenceFrame,
   name: string,
@@ -103,13 +106,13 @@ export async function apiUpdatePrivacyMask(
   assertCgiSuccess(await fetchText(`${PM_CGI}?${params.toString()}`));
 }
 
-/* Remove a privacy mask (identified by name) */
+/* Remove a mask. Masks are identified by name. */
 export async function apiRemovePrivacyMask(name: string): Promise<void> {
   const params = new URLSearchParams({ action: 'remove', name });
   assertCgiSuccess(await fetchText(`${PM_CGI}?${params.toString()}`));
 }
 
-/* Update param.cgi values, throws unless the device answers OK */
+/* Change camera parameters. Throws unless the camera answers "OK". */
 export async function apiUpdateMaskParams(
   values: Record<string, string>
 ): Promise<void> {
@@ -121,10 +124,11 @@ export async function apiUpdateMaskParams(
   }
 }
 
+/* Parameter group holding the mask settings for a channel */
 const maskWindowsGroup = (source: number) =>
   `root.Image.I${source}.Overlay.MaskWindows`;
 
-/* Enable or disable a mask. The listpxjson id maps to MaskWindows.M<id>. */
+/* Enable or disable a mask. A mask with id 3 is stored in parameter group M3. */
 export const apiSetPrivacyMaskEnabled = (
   source: number,
   id: number,
@@ -134,14 +138,14 @@ export const apiSetPrivacyMaskEnabled = (
     [`${maskWindowsGroup(source)}.M${id}.Enabled`]: enabled ? 'yes' : 'no'
   });
 
-/* Rename a mask (privacymask.cgi ignores newname, so use param.cgi) */
+/* Rename a mask (privacymask.cgi silently ignores rename requests) */
 export const apiRenamePrivacyMask = (
   source: number,
   id: number,
   name: string
 ) => apiUpdateMaskParams({ [`${maskWindowsGroup(source)}.M${id}.Name`]: name });
 
-/* Mask color/mosaic is shared by all masks on the source */
+/* Change the color or mosaic size used by all masks on the channel */
 export const apiSetPrivacyMaskAppearance = (
   source: number,
   values: { color?: MaskColor; mosaicScale?: number }
@@ -158,8 +162,9 @@ export const apiSetPrivacyMaskAppearance = (
   return apiUpdateMaskParams(update);
 };
 
-/* Read the image source rotation. With SourceRotation=yes the device applies
- * this rotation to every stream and ignores the stream rotation parameter.
+/* Read the camera's image rotation setting.
+ * When sourceRotation is true, this rotation applies to every video stream and
+ * the rotation chosen in the player settings is ignored by the camera.
  */
 export async function apiGetSourceRotation(
   source: number
@@ -204,7 +209,7 @@ export async function apiGetPrivacyMaskAppearance(
   }
 }
 
-/* Read the allowed MosaicScale range (it differs between devices) */
+/* Read the allowed mosaic sizes, which differ between cameras */
 export async function apiGetMosaicScaleRange(
   source: number
 ): Promise<{ min: number; max: number } | null> {

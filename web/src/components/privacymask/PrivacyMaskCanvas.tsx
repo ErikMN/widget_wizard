@@ -1,15 +1,16 @@
 /* PrivacyMaskCanvas
  *
- * Interactive polygon editor rendered over the visible video area.
+ * Mask editor drawn on top of the video.
  *
  * - Click a mask to select it, drag it to move it.
  * - Drag a corner handle to move a corner.
- * - Drag an edge midpoint handle to insert a new corner.
+ * - Drag the small handle in the middle of an edge to add a corner.
  * - Double-click (or right-click) a corner to remove it.
  * - Click outside any mask to deselect.
  *
- * Masks are stored in the reference frame and mapped to screen space here.
- * Edits are only sent to the device when the pointer is released.
+ * Masks are stored in sensor coordinates (see privacyMaskUtils.ts) and are
+ * converted to screen pixels here. Changes are sent to the camera when the
+ * mouse button is released, not while dragging.
  */
 import React, {
   useCallback,
@@ -36,21 +37,30 @@ interface PrivacyMaskCanvasProps {
   dimensions: Dimensions;
 }
 
-/* Active pointer interaction.
- * start is in screen space (CSS px), origin/points in the reference frame so
- * that masks partly outside a cropped stream are bounded by the real image.
- */
+/* The drag in progress */
 interface DragState {
+  /* Moving the whole mask, or a single corner */
   kind: 'move' | 'vertex';
+  /* The mask being dragged */
   id: number;
+  /* Which mouse/finger is dragging */
   pointerId: number;
+  /* The corner being dragged (only for 'vertex') */
   index: number;
+  /* Where the drag started, in screen pixels */
   start: MaskPoint;
+  /* Whether the pointer has moved enough to count as a drag (not a click) */
   moved: boolean;
+  /* The mask's corners before the drag, in sensor coordinates */
   origin: MaskPoint[];
+  /* The mask's corners during the drag, in sensor coordinates */
   points: MaskPoint[];
 }
 
+/* The fields a drag starts with; the pointer and start position are added */
+type DragStart = Omit<DragState, 'pointerId' | 'start'>;
+
+/* Outline color of the selected mask, from the app's bounding box setting */
 const SELECTION_COLORS: Record<string, string> = {
   yellow: '#ffcc33',
   blue: '#00aaff',
@@ -59,6 +69,7 @@ const SELECTION_COLORS: Record<string, string> = {
   purple: '#d633ff'
 };
 
+/* Fill used to preview each camera mask color (mosaic uses a pattern) */
 const PREVIEW_FILLS: Record<MaskColor, string> = {
   black: '#000000',
   grey: '#808080',
@@ -69,10 +80,11 @@ const PREVIEW_FILLS: Record<MaskColor, string> = {
 
 const HANDLE_RADIUS = 6;
 const MIDPOINT_RADIUS = 4;
-/* Pointer movement (px) before a click on a mask is treated as a drag */
+/* How far (px) the pointer must move before a click becomes a drag */
 const DRAG_THRESHOLD = 2;
 /* Max time (ms) between two presses on a corner to count as a double-click.
- * Detected manually since pointer capture retargets native dblclick events.
+ * The browser's own double-click event does not reach the corner while a drag
+ * is active, so double-clicks are detected by hand.
  */
 const DOUBLE_PRESS_MS = 400;
 
@@ -112,19 +124,24 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
   const selectionColor =
     SELECTION_COLORS[appSettings.bboxColor] ?? SELECTION_COLORS.yellow;
 
-  /* Report the stream size so the stream rotation can be re-read on change */
+  /* Tell the context the video size. A new size means a new stream, and the
+   * context then reads the camera's rotation again.
+   */
   useEffect(() => {
     setStreamSize({ width: videoWidth, height: videoHeight });
   }, [videoWidth, videoHeight, setStreamSize]);
 
   useEffect(() => () => setStreamSize(null), [setStreamSize]);
 
+  /* Keep the drag in a ref as well, so pointer handlers always see the latest
+   * value without waiting for a re-render.
+   */
   const updateDrag = useCallback((next: DragState | null) => {
     dragRef.current = next;
     setDrag(next);
   }, []);
 
-  /* Reference frame -> screen space */
+  /* Sensor coordinates -> screen pixels */
   const toScreen = useCallback(
     (point: MaskPoint): MaskPoint => {
       if (!frame) {
@@ -145,7 +162,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [frame, rotation, videoWidth, videoHeight, pixelWidth, pixelHeight]
   );
 
-  /* Screen space -> reference frame */
+  /* Screen pixels -> sensor coordinates (whole pixels inside the image) */
   const toReference = useCallback(
     (point: MaskPoint): MaskPoint => {
       if (!frame) {
@@ -165,7 +182,9 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [frame, rotation, videoWidth, videoHeight, pixelWidth, pixelHeight]
   );
 
-  /* Screen space -> unclamped reference frame, used for drag deltas */
+  /* Screen pixels -> sensor coordinates without rounding or limits, used to
+   * measure how far a mask was dragged
+   */
   const toReferenceRaw = useCallback(
     (point: MaskPoint): MaskPoint => {
       if (!frame) {
@@ -185,7 +204,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [frame, rotation, videoWidth, videoHeight, pixelWidth, pixelHeight]
   );
 
-  /* Masks are kept inside the part of the image visible in the stream */
+  /* Masks can only be dragged within the part of the image that is visible */
   const visibleBounds = useMemo(
     () =>
       frame ? getVisibleBounds(frame, rotation, videoWidth, videoHeight) : null,
@@ -201,6 +220,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [masks, toScreen]
   );
 
+  /* Pointer position in screen pixels, relative to the video's top-left corner */
   const getPointerPosition = useCallback(
     (event: React.PointerEvent | PointerEvent): MaskPoint | null => {
       const svg = svgRef.current;
@@ -216,7 +236,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     []
   );
 
-  /* Send the edit to the device if the polygon changed */
+  /* Send the new shape to the camera if it changed */
   const commitPoints = useCallback(
     (id: number, referencePoints: MaskPoint[]) => {
       const mask = masks.find((m) => m.id === id);
@@ -227,32 +247,22 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     [masks, updateMaskPoints]
   );
 
+  /* Start a drag. Pointer capture keeps the drag going even if the pointer
+   * leaves the mask or the video.
+   */
   const beginDrag = (
     event: React.PointerEvent<SVGElement>,
-    kind: DragState['kind'],
-    id: number,
-    origin: MaskPoint[],
-    points: MaskPoint[],
-    index: number,
-    moved: boolean
+    dragStart: DragStart
   ) => {
     const position = getPointerPosition(event);
     if (!position) {
       return;
     }
     svgRef.current?.setPointerCapture(event.pointerId);
-    updateDrag({
-      kind,
-      id,
-      pointerId: event.pointerId,
-      index,
-      start: position,
-      moved,
-      origin,
-      points
-    });
+    updateDrag({ ...dragStart, pointerId: event.pointerId, start: position });
   };
 
+  /* Left mouse button on a mask: select it and start moving it */
   const startMove = (
     event: React.PointerEvent<SVGElement>,
     id: number,
@@ -263,9 +273,17 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     }
     event.stopPropagation();
     setSelectedMaskId(id);
-    beginDrag(event, 'move', id, points, points, -1, false);
+    beginDrag(event, {
+      kind: 'move',
+      id,
+      index: -1,
+      moved: false,
+      origin: points,
+      points
+    });
   };
 
+  /* Remove a corner. A mask always keeps at least three corners. */
   const removeVertex = (
     event: React.SyntheticEvent,
     id: number,
@@ -283,6 +301,9 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     );
   };
 
+  /* Left mouse button on a corner: start moving it, or remove it if this is
+   * the second press of a double-click
+   */
   const startVertexDrag = (
     event: React.PointerEvent<SVGElement>,
     id: number,
@@ -306,10 +327,17 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
       return;
     }
     lastVertexPressRef.current = { id, index, time: now };
-    beginDrag(event, 'vertex', id, points, points, index, false);
+    beginDrag(event, {
+      kind: 'vertex',
+      id,
+      index,
+      moved: false,
+      origin: points,
+      points
+    });
   };
 
-  /* Insert a corner at an edge midpoint and start dragging it */
+  /* Add a corner in the middle of an edge and start dragging it */
   const startInsertVertex = (
     event: React.PointerEvent<SVGElement>,
     id: number,
@@ -327,9 +355,20 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
       { x: Math.round((a.x + b.x) / 2), y: Math.round((a.y + b.y) / 2) },
       ...points.slice(afterIndex + 1)
     ];
-    beginDrag(event, 'vertex', id, points, inserted, afterIndex + 1, true);
+    /* Counts as moved right away, so the new corner is saved even without
+     * dragging it further
+     */
+    beginDrag(event, {
+      kind: 'vertex',
+      id,
+      index: afterIndex + 1,
+      moved: true,
+      origin: points,
+      points: inserted
+    });
   };
 
+  /* Update the mask shape while dragging (only on screen, nothing is sent) */
   const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     const current = dragRef.current;
     if (!visibleBounds || !current || current.pointerId !== event.pointerId) {
@@ -339,6 +378,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     if (!position) {
       return;
     }
+    /* Ignore tiny movements so a plain click does not change the mask */
     const moved =
       current.moved ||
       Math.abs(position.x - current.start.x) > DRAG_THRESHOLD ||
@@ -352,7 +392,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
       updateDrag({ ...current, moved, points });
       return;
     }
-    /* Move the whole polygon, bounded by the visible part of the image */
+    /* Move the whole mask by the distance dragged, within the visible image */
     const from = toReferenceRaw(current.start);
     const to = toReferenceRaw(position);
     updateDrag({
@@ -367,6 +407,9 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     });
   };
 
+  /* Mouse button released: end the drag and save the new shape.
+   * A cancelled pointer (e.g. the browser took over a touch) saves nothing.
+   */
   const finishDrag = (event: React.PointerEvent<SVGSVGElement>) => {
     const current = dragRef.current;
     if (!current || current.pointerId !== event.pointerId) {
@@ -381,7 +424,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     }
   };
 
-  /* Click on empty video area deselects */
+  /* Clicking on the video outside any mask deselects */
   const handleBackgroundPointerDown = (
     event: React.PointerEvent<SVGSVGElement>
   ) => {
@@ -394,6 +437,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
     return null;
   }
 
+  /* Outline thickness follows the app's bounding box setting */
   const strokeWidth =
     appSettings.bboxThickness === 'small'
       ? 1
@@ -422,6 +466,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
       }}
     >
       <defs>
+        {/* Checkered pattern to preview the mosaic mask color */}
         <pattern
           id="privacy-mask-mosaic"
           width="12"
@@ -434,15 +479,19 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
         </pattern>
       </defs>
 
-      {screenMasks.map(({ mask, points: maskPoints }) => {
+      {screenMasks.map(({ mask, points: savedScreenPoints }) => {
         const isSelected = mask.id === selectedMaskId;
+        /* While dragging, show the shape being dragged instead of the saved one */
         const isDragged = drag?.id === mask.id;
-        const refPoints = isDragged ? drag.points : mask.points;
-        const points = isDragged ? refPoints.map(toScreen) : maskPoints;
+        const sensorPoints = isDragged ? drag.points : mask.points;
+        const points = isDragged
+          ? sensorPoints.map(toScreen)
+          : savedScreenPoints;
         if (points.length === 0) {
           return null;
         }
         const pointString = points.map((p) => `${p.x},${p.y}`).join(' ');
+        /* The name label is placed above the top-most corner */
         const labelPoint = points.reduce(
           (top, p) => (p.y < top.y || (p.y === top.y && p.x < top.x) ? p : top),
           points[0]
@@ -452,6 +501,9 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
 
         return (
           <g key={mask.id} data-mask-id={mask.id}>
+            {/* Semi-transparent so the video stays visible. Disabled masks
+             * are faint with a dashed outline.
+             */}
             <polygon
               points={pointString}
               fill={PREVIEW_FILLS[appearance.color]}
@@ -462,7 +514,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
               strokeDasharray={mask.enabled ? undefined : '6 4'}
               strokeLinejoin="round"
               style={{ cursor: isSelected ? 'move' : 'pointer' }}
-              onPointerDown={(event) => startMove(event, mask.id, refPoints)}
+              onPointerDown={(event) => startMove(event, mask.id, sensorPoints)}
             >
               <title>
                 {mask.name}
@@ -470,6 +522,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
               </title>
             </polygon>
 
+            {/* Kept inside the video even if the corner is cropped out */}
             {appSettings.bboxLabel && (
               <text
                 x={clamp(labelPoint.x, 2, Math.max(2, pixelWidth - 40))}
@@ -504,7 +557,7 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
                     strokeOpacity={0.6}
                     style={{ cursor: 'copy' }}
                     onPointerDown={(event) =>
-                      startInsertVertex(event, mask.id, refPoints, index)
+                      startInsertVertex(event, mask.id, sensorPoints, index)
                     }
                   >
                     <title>Drag to add a corner</title>
@@ -525,10 +578,10 @@ const PrivacyMaskCanvas: React.FC<PrivacyMaskCanvasProps> = ({
                   strokeWidth={2}
                   style={{ cursor: 'crosshair' }}
                   onPointerDown={(event) =>
-                    startVertexDrag(event, mask.id, refPoints, index)
+                    startVertexDrag(event, mask.id, sensorPoints, index)
                   }
                   onContextMenu={(event) =>
-                    removeVertex(event, mask.id, refPoints, index)
+                    removeVertex(event, mask.id, sensorPoints, index)
                   }
                 >
                   <title>

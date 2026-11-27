@@ -1,12 +1,12 @@
-/* Privacy mask interface definitions */
+/* Privacy mask types */
 
 export interface MaskPoint {
   x: number;
   y: number;
 }
 
-/* A privacy mask as reported by privacymask.cgi (query=listpxjson).
- * Points are stored in the reference frame (see MaskReferenceFrame).
+/* A privacy mask as reported by the camera.
+ * Points are in sensor coordinates (see MaskReferenceFrame).
  */
 export interface PrivacyMask {
   id: number;
@@ -26,14 +26,14 @@ export const MASK_COLORS: MaskColor[] = [
   'mosaic'
 ];
 
-/* Device limits read from root.Properties.PrivacyMask.* */
+/* What the camera supports, read from its Properties.PrivacyMask parameters */
 export interface PrivacyMaskCapabilities {
   supported: boolean;
   maxMasks: number;
   maxCorners: number;
 }
 
-/* Mask appearance shared by all masks on an image source */
+/* How masks look. The camera uses one setting for all masks on a channel. */
 export interface PrivacyMaskAppearance {
   color: MaskColor;
   mosaicScale: number;
@@ -41,12 +41,12 @@ export interface PrivacyMaskAppearance {
   mosaicScaleMax: number;
 }
 
-/* Canonical coordinate frame used when talking to privacymask.cgi.
+/* The camera's full, unrotated image ("sensor coordinates").
  *
- * Firmware differs in how it treats imageresolution/imagerotation: some
- * versions convert coordinates, others ignore both and always use the full
- * unrotated sensor resolution. Always requesting the full unrotated sensor
- * resolution works on both, and the client maps to the displayed stream.
+ * All mask requests use this size and no rotation. Some firmware versions
+ * ignore the resolution and rotation we ask for and always use the full
+ * unrotated image, so this is the only choice that works on every camera.
+ * The app converts to the video being played itself.
  */
 export interface MaskReferenceFrame {
   source: number;
@@ -54,5 +54,5 @@ export interface MaskReferenceFrame {
   height: number;
 }
 
-/* Rotation (degrees clockwise) applied to the displayed stream */
+/* How much the played video is rotated, in degrees clockwise */
 export type StreamRotation = 0 | 90 | 180 | 270;
