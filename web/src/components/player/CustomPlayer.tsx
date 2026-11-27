@@ -240,8 +240,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         setWaiting(true);
         setHost(hostname);
         setPlay(true);
-        /* Reload dimensions */
-        onStreamChange?.();
       }
     }, [host, hostname]);
 
@@ -250,8 +248,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       setPlay(true);
       setRefresh((value) => value + 1);
       setWaiting(true);
-      /* Reload dimensions */
-      onStreamChange?.();
     }, []);
 
     const onScreenshot = useCallback(() => {
@@ -283,9 +279,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           setVideoProperties(undefined);
         }
         setRefresh((refreshCount) => refreshCount + 1);
-        onStreamChange?.();
       },
-      [onStreamChange]
+      []
     );
 
     /**
@@ -316,6 +311,11 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
       return () => document.removeEventListener('visibilitychange', cb);
     }, [hostname]);
+
+    /* Update observers after the library has committed the current media element. */
+    useLayoutEffect(() => {
+      onStreamChange?.();
+    }, [format, refresh, host, play, onStreamChange]);
 
     /**
      * Aspect ratio
@@ -480,10 +480,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             onPlay={onPlayStop}
             onRefresh={onRefresh}
             onScreenshot={onScreenshot}
-            onFormat={(fmt) => {
-              setFormat(fmt);
-              onStreamChange?.();
-            }}
+            onFormat={setFormat}
             onVapix={onVapix}
             onSeek={setOffset}
             labels={{

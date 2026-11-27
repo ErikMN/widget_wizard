@@ -12,6 +12,7 @@ import {
   calculateVideoDimensions,
   dimensionsEqual
 } from './player/native/videoDimensions';
+import { createVideoDimensionObserver } from './player/native/videoDimensionObserver';
 import type { PlayerNativeElement } from 'media-stream-player';
 import OverlaySurface from './OverlaySurface';
 import MessageOverlay from './MessageOverlay';
@@ -57,7 +58,9 @@ const VideoPlayer: React.FC = () => {
   /* Refs */
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<PlayerNativeElement | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const dimensionsObserverRef = useRef<ReturnType<
+    typeof createVideoDimensionObserver
+  > | null>(null);
 
   let vapixParams: Partial<VapixConfig> = {};
   const vapixData = window.localStorage.getItem('vapix');
@@ -133,11 +136,24 @@ const VideoPlayer: React.FC = () => {
     }
   }, [appSettings.debug]);
 
+  /* The library can replace the media element when changing formats or refreshing. */
+  const syncVideoDimensions = useCallback(() => {
+    if (!dimensionsObserverRef.current) {
+      dimensionsObserverRef.current =
+        createVideoDimensionObserver(logVideoDimensions);
+    }
+    dimensionsObserverRef.current.observe(
+      playerContainerRef.current,
+      videoRef.current
+    );
+    logVideoDimensions();
+  }, [logVideoDimensions]);
+
   /* Re-measure after fullscreen layout settles so bbox bounds use the new size. */
   useEffect(() => {
     const measureAfterLayout = () => {
       window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(logVideoDimensions);
+        window.requestAnimationFrame(syncVideoDimensions);
       });
     };
     const handleFullscreenChange = () => {
@@ -151,7 +167,7 @@ const VideoPlayer: React.FC = () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       window.removeEventListener('resize', measureAfterLayout);
     };
-  }, [logVideoDimensions]);
+  }, [syncVideoDimensions]);
 
   useEffect(() => {
     authorize()
@@ -177,40 +193,13 @@ const VideoPlayer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (authorized && playerContainerRef.current && videoRef.current) {
-      logVideoDimensions();
+    syncVideoDimensions();
 
-      /* React to size changes of video */
-      resizeObserverRef.current = new ResizeObserver(() => {
-        logVideoDimensions();
-      });
-
-      /* Watch container box and video */
-      if (playerContainerRef.current) {
-        resizeObserverRef.current.observe(playerContainerRef.current);
-      }
-      if (videoRef.current) {
-        resizeObserverRef.current.observe(videoRef.current);
-      }
-
-      if (videoRef.current instanceof HTMLVideoElement) {
-        videoRef.current.addEventListener('loadedmetadata', logVideoDimensions);
-      }
-
-      return () => {
-        /* Cleanup ResizeObserver and event listeners */
-        if (resizeObserverRef.current) {
-          resizeObserverRef.current.disconnect();
-        }
-        if (videoRef.current instanceof HTMLVideoElement) {
-          videoRef.current.removeEventListener(
-            'loadedmetadata',
-            logVideoDimensions
-          );
-        }
-      };
-    }
-  }, [authorized, logVideoDimensions]);
+    return () => {
+      dimensionsObserverRef.current?.disconnect();
+      dimensionsObserverRef.current = null;
+    };
+  }, [authorized, syncVideoDimensions]);
 
   /* Not authorized: return */
   if (!authorized) {
@@ -238,7 +227,7 @@ const VideoPlayer: React.FC = () => {
         vapixParams={vapixParams}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
-        onStreamChange={logVideoDimensions}
+        onStreamChange={syncVideoDimensions}
       />
       {/* Web-drawn overlays */}
       <OverlaySurface dimensions={dimensions} />

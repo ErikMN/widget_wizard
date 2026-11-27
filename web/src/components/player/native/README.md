@@ -30,14 +30,23 @@ the outer player container. Widget overlays use the latter rectangle, excluding
 black bars around centered video.
 
 `videoDimensions.ts` calculates this rectangle without reading the DOM.
-`VideoPlayer` still owns the element reference and resize observers. The
-existing delayed measurements and observer lifecycle are not changed yet.
+`VideoPlayer` owns the media element reference. `videoDimensionObserver.ts`
+observes the current element and container, replacing observers and listeners
+when the library changes the element. Video resize and image load events,
+and changes to canvas dimensions, also trigger measurements.
+
+`CustomPlayer` notifies `VideoPlayer` after committing stream changes, rather
+than reading the element before React updates it. The library currently calls
+forwarded callback refs during render, so the existing object ref is retained.
+Delayed measurements after playback starts and fullscreen changes are retained
+until layout timing can be verified separately.
 
 ## Regression checks
 
 Run `yarn test`, `yarn lint` and `yarn build` from the `web` directory.
 The geometry tests cover aspect ratios, container offsets, zero dimensions
-and the existing subpixel tolerance.
+and the existing subpixel tolerance. Observer tests cover element replacement,
+intrinsic dimension events and cleanup.
 
 Before replacing a playback implementation, verify it on a supported camera:
 
