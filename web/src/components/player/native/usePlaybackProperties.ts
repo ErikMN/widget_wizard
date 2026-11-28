@@ -10,7 +10,8 @@ interface PlaybackProperties {
  * The last known aspect ratio remains available while a new stream starts.
  */
 export const usePlaybackProperties = <T extends PlaybackProperties>(
-  request: object | undefined
+  request: object | undefined,
+  onStreamEnded?: () => void
 ) => {
   const activeRequest = useRef<object | undefined>(undefined);
   const [report, setReport] = useState<{ request: object; properties: T }>();
@@ -44,6 +45,14 @@ export const usePlaybackProperties = <T extends PlaybackProperties>(
     [request]
   );
 
+  const onEnded = useCallback(() => {
+    if (!request || activeRequest.current !== request) {
+      return;
+    }
+
+    onStreamEnded?.();
+  }, [request, onStreamEnded]);
+
   const videoProperties =
     report?.request === request ? report?.properties : undefined;
 
@@ -52,6 +61,7 @@ export const usePlaybackProperties = <T extends PlaybackProperties>(
     naturalAspectRatio,
     volume: videoProperties?.volume === undefined ? undefined : volume,
     setVolume,
-    onPlaying
+    onPlaying,
+    onEnded
   };
 };

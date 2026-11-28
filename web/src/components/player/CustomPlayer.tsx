@@ -1,8 +1,7 @@
 /**
  * CustomPlayer
  *
- * A custom video player built using the media-stream-player library.
- * https://github.com/AxisCommunications/media-stream-player-js
+ * Manages playback settings, controls and the player layout.
  */
 import React, {
   forwardRef,
@@ -13,9 +12,10 @@ import React, {
   useRef,
   useState
 } from 'react';
-import { PlaybackArea, Format, VideoProperties } from 'media-stream-player';
+import type { VideoProperties } from 'media-stream-player';
 import {
   getStreamFormat,
+  type PlaybackRequest,
   type PlayerNativeElement,
   type StreamFormat,
   type VapixParameters
@@ -29,8 +29,7 @@ import { Limiter } from './Limiter';
 import { PlayerControls } from './PlayerControls';
 import { SystemStatsOverlay } from './SystemStatsOverlay';
 import { getImageURL } from './GetImageURL';
-import { HttpImage } from './native/HttpImage';
-import { getStreamUrls } from './native/streamUrls';
+import { PlaybackArea } from './native/PlaybackArea';
 import { usePlaybackProperties } from './native/usePlaybackProperties';
 import { StreamStats } from './native/StreamStats';
 import { readLegacyStreamMetrics } from './native/legacyStreamStats';
@@ -137,25 +136,10 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     ) as [unknown, (v: StreamFormat) => void];
     const format = getStreamFormat(savedFormat, initialFormat);
 
-    /* Convert to the library enum only for the remaining upstream components. */
-    const legacyFormat = Format[format];
-
     /**
      * VAPIX parameters
      */
     const [vapixParameters, setVapixParameters] = useState(vapixParams);
-
-    const isImageFormat = format === 'JPEG' || format === 'MJPEG';
-    const imageUrl =
-      isImageFormat && play
-        ? getStreamUrls(
-            host,
-            secure ?? (window.location.protocol === 'https:'),
-            format,
-            vapixParameters,
-            refresh
-          )?.url
-        : undefined;
 
     useEffect(() => {
       /**
@@ -210,21 +194,48 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     /**
      * Controls
      */
+    const onRefresh = useCallback(() => {
+      playbackRequestedRef.current = true;
+      setPlay(true);
+      setRefresh((value) => value + 1);
+    }, []);
+
+    /**
+     * Retry an ended stream only while playback is still requested.
+     */
+    const retryEndedStream = useCallback(() => {
+      if (
+        autoRetry &&
+        playbackRequestedRef.current &&
+        document.visibilityState === 'visible'
+      ) {
+        onRefresh();
+      }
+    }, [autoRetry, onRefresh]);
+
     /* A new request invalidates properties even if the resolution is unchanged. */
-    const playbackRequest = useMemo(
-      () =>
-        play && host
-          ? { format, refresh, host, secure, parameters: vapixParameters }
-          : undefined,
-      [format, refresh, host, play, secure, vapixParameters]
+    const playbackRequest = useMemo<PlaybackRequest>(
+      () => ({
+        play,
+        format,
+        refresh,
+        host,
+        secure,
+        parameters: vapixParameters
+      }),
+      [play, format, refresh, host, secure, vapixParameters]
     );
     const {
       videoProperties,
       naturalAspectRatio,
       volume,
       setVolume,
-      onPlaying
-    } = usePlaybackProperties<VideoProperties>(playbackRequest);
+      onPlaying,
+      onEnded
+    } = usePlaybackProperties<VideoProperties>(
+      play && host ? playbackRequest : undefined,
+      retryEndedStream
+    );
     const waiting = !!host && play && videoProperties === undefined;
     const readMetrics = useCallback(
       () => (videoProperties ? readLegacyStreamMetrics(videoProperties) : {}),
@@ -245,12 +256,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         setPlay(true);
       }
     }, [host, hostname]);
-
-    const onRefresh = useCallback(() => {
-      playbackRequestedRef.current = true;
-      setPlay(true);
-      setRefresh((value) => value + 1);
-    }, []);
 
     const onScreenshot = useCallback(() => {
       if (videoProperties === undefined) {
@@ -366,19 +371,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     ]);
 
     /**
-     * Retry an ended stream only while playback is still requested.
-     */
-    const onEnded = useCallback(() => {
-      if (
-        autoRetry &&
-        playbackRequestedRef.current &&
-        document.visibilityState === 'visible'
-      ) {
-        onRefresh();
-      }
-    }, [autoRetry, onRefresh]);
-
-    /**
      * Toggle expand stats
      */
     const handleExpandStats = useCallback((_value: boolean) => {
@@ -425,29 +417,14 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
-                {isImageFormat ? (
-                  <HttpImage
-                    key={imageUrl ?? format}
-                    ref={ref as React.Ref<HTMLImageElement>}
-                    src={imageUrl}
-                    onPlaying={onPlaying}
-                  />
-                ) : (
-                  <PlaybackArea
-                    key={JSON.stringify(playbackRequest)}
-                    forwardedRef={ref}
-                    refresh={refresh}
-                    play={play}
-                    offset={offset}
-                    host={host}
-                    format={legacyFormat}
-                    parameters={vapixParameters}
-                    onPlaying={onPlaying}
-                    onEnded={onEnded}
-                    secure={secure}
-                    autoRetry={autoRetry}
-                  />
-                )}
+                <PlaybackArea
+                  ref={ref}
+                  request={playbackRequest}
+                  offset={offset}
+                  onPlaying={onPlaying}
+                  onEnded={onEnded}
+                  autoRetry={autoRetry}
+                />
               </Layer>
               <Layer>
                 {/*

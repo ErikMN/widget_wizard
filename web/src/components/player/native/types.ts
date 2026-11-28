@@ -18,6 +18,15 @@ export interface VapixParameters {
   readonly [key: string]: string;
 }
 
+export interface PlaybackRequest {
+  readonly play: boolean;
+  readonly host: string;
+  readonly format: StreamFormat;
+  readonly parameters: VapixParameters;
+  readonly refresh: number;
+  readonly secure?: boolean;
+}
+
 export const isStreamFormat = (value: unknown): value is StreamFormat =>
   STREAM_FORMATS.some((format) => format === value);
 

@@ -8,18 +8,21 @@ so that the application can own playback, stream information and geometry.
 
 `VideoPlayer` handles camera authorization, fullscreen and the overlay surface.
 `CustomPlayer` manages playback settings, playback requests and the player
-controls. Native HTTP image playback is used for JPEG and MJPEG. The Axis
-library still supplies MP4 and RTSP playback.
-The migration must preserve the existing UI.
+controls. `PlaybackArea.tsx` selects the playback component from the
+request and forwards the media element reference. Native HTTP image playback
+is used for JPEG and MJPEG. The Axis library still supplies MP4 and RTSP
+playback. The migration must preserve the existing UI.
 
 The player owns the format identifiers, native media element type and VAPIX
 parameters in `types.ts`. The identifiers stored in local storage are unchanged.
 An invalid or unsupported saved identifier falls back to the initial format
 without overwriting the saved value.
 
-`CustomPlayer` converts the selected format to the library enum for playback
-only. The controls still use the library's `VideoProperties` for progress
-information until the playback interfaces are replaced.
+`CustomPlayer` passes a `PlaybackRequest` to the playback area and uses
+the same request to identify current playback properties. The playback area
+converts the format to the library enum only for the remaining upstream
+components. The controls still use the library's `VideoProperties` for
+progress information until the playback interfaces are replaced.
 
 | Format     | Transport and codec        | Media element |
 | ---------- | -------------------------- | ------------- |
@@ -62,6 +65,8 @@ the current request. The last known aspect ratio remains available while
 waiting for the next stream, so the video area retains its previous layout.
 The remaining upstream playback area is also keyed by the request settings
 so callbacks from replaced components retain their original request identity.
+Termination callbacks from inactive requests are ignored by the same request
+check used for playback reports.
 
 HTTP image errors do not use the RTSP retry path. The browser remains
 responsible for decoding multipart MJPEG; per-frame statistics are not
@@ -98,7 +103,7 @@ black bars around centered video.
 `videoDimensions.ts` calculates this rectangle without reading the DOM.
 `VideoPlayer` owns the media element reference. `videoDimensionObserver.ts`
 observes the current element and container, replacing observers and listeners
-when the library changes the element. Video resize and image load events,
+when the playback area changes the element. Video resize and image load events,
 and changes to canvas dimensions, also trigger measurements.
 
 `CustomPlayer` notifies `VideoPlayer` after committing stream changes, rather
@@ -118,9 +123,10 @@ intrinsic dimension events and cleanup. Format tests cover the saved identifiers
 and fallback for invalid values. URL tests cover all existing formats, encoding,
 secure connections, custom ports and missing hosts. Image request tests cover
 load events, dimension changes, cleanup and restarting the same URL.
-Playback property tests cover replacement, late reports and retaining the
-aspect ratio during reconnection. Statistics tests cover format labels,
-units, missing measurements and video track selection.
+Playback property tests cover replacement, late playback and termination
+callbacks, and retaining the aspect ratio during reconnection. Statistics tests cover format labels,
+units, missing measurements and video track selection. Playback area tests
+cover format selection, ref forwarding, request replacement and cleanup.
 
 Before replacing a playback implementation, verify it on a supported camera:
 

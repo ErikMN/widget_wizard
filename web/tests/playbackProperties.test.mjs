@@ -123,3 +123,40 @@ test('stop invalidates properties and a restart reports the new geometry', () =>
   assert.equal(result.current.volume, 0.75);
   assert.equal(result.current.naturalAspectRatio, 1080 / 1920);
 });
+
+test('only forwards termination callbacks from the active request', () => {
+  let ended = 0;
+  const onStreamEnded = () => {
+    ended++;
+  };
+  const { result, rerender, unmount } = testing.renderHook(
+    (request) => usePlaybackProperties(request, onStreamEnded),
+    { initialProps: {} }
+  );
+
+  const firstEnded = result.current.onEnded;
+  testing.act(() => firstEnded());
+  assert.equal(ended, 1);
+
+  rerender({});
+  const secondEnded = result.current.onEnded;
+  testing.act(() => firstEnded());
+  assert.equal(ended, 1);
+  testing.act(() => secondEnded());
+  assert.equal(ended, 2);
+
+  rerender(undefined);
+  testing.act(() => secondEnded());
+  testing.act(() => result.current.onEnded());
+  assert.equal(ended, 2);
+
+  rerender({});
+  const restartedEnded = result.current.onEnded;
+  testing.act(() => secondEnded());
+  testing.act(() => restartedEnded());
+  assert.equal(ended, 3);
+
+  unmount();
+  testing.act(() => restartedEnded());
+  assert.equal(ended, 3);
+});
