@@ -115,6 +115,26 @@ and additional stream measurements are not yet implemented.
 See [VAPIX media streaming over HTTP](https://developer.axis.com/vapix/network-video/media-stream-over-http/)
 and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
 
+## RTSP protocol
+
+`rtsp/rtspMessage.ts` serializes RTSP 1.0 requests and separates incoming
+RTSP messages from interleaved binary packets. Each connection owns a
+parser. Input chunks may contain partial or multiple messages.
+RTSP bodies are read using Content-Length in bytes, except that 1xx, 204
+and 304 responses end at the header delimiter regardless of that value.
+Interleaved packets use the channel and length in their four-byte header.
+The session must identify RTP and RTCP using the negotiated channels.
+
+The parser retains only an incomplete header and payload. It limits RTSP
+headers to 32 KiB and bodies to 1 MiB; malformed input requires closing
+the connection and discarding the parser. Outgoing headers use CRLF;
+incoming CR or LF delimiters are also accepted for compatibility.
+
+See [RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html), sections 4.4
+and 10.12, and the [Axis parser](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/rtsp-parser/parser.ts).
+The parser is not yet connected to the player. RTSP playback still uses
+the Axis implementation.
+
 ## Client stream information
 
 `StreamStats.tsx` owns the panel and samples metrics once per second while
