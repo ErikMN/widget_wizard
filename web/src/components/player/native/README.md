@@ -245,9 +245,27 @@ update cannot be detected from slice headers alone (RFC 6184 section 8.4).
 Picture storage remains bounded across batches. Data partitioning,
 redundant slices and extended AVC NAL types are not supported by assembly.
 
-VUI, optional PPS extensions, level-dependent SPS limits and the remaining
-slice header and slice data are not yet interpreted or validated.
-MP4 generation and browser decoder integration remain separate tasks.
+The SPS parser reads the timing fields in H.264 Annex E through
+`h264Vui.ts`: the VUI clock, HRD delay lengths and buffer counts, low-delay
+flag and picture reordering limits. Only explicitly signalled values are
+retained; profile and level dependent defaults and limits are not derived.
+
+`h264Timing.ts` extends the 32-bit RTP presentation timestamps in their
+original decoding order, using the 90 kHz clock required by RFC 6184.
+It preserves non-monotonic timestamps and wraparound without inventing
+frame durations. The clock starts at zero for each RTP source and survives
+picture loss or configuration changes within that source. Create a new
+clock for a new session or seek. The result is a signed integer in RTP
+clock ticks relative to the first received picture. It may be negative.
+Adjacent timestamps must differ by less than half the clock range
+(about 6 hours and 38 minutes); longer gaps are ambiguous.
+
+RTP timestamps specify presentation time, not decode time. The Axis
+[MP4 box builder](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/mp4muxer/helpers/boxbuilder.ts)
+derives durations from adjacent RTP timestamps, which is insufficient for
+reordered pictures. Decode timing, sample durations and picture timing SEI
+are not yet implemented. MP4 generation and browser integration will follow.
+Optional PPS extensions and the remaining slice syntax are not interpreted.
 
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP

@@ -388,3 +388,134 @@ test('rejects invalid SDP parameters, unsupported modes and ambiguous parameter 
     assert.throws(() => parseH264Format(value));
   }
 });
+
+/* All fields preceding timing_info_present_flag are absent. */
+const vuiClock = (units, scale, fixed = true) =>
+  '100001' + bits(units, 32) + bits(scale, 32) + bits(Number(fixed), 1);
+const restriction = (reorder, buffering) =>
+  '11' + ue(2) + ue(1) + ue(16) + ue(16) + ue(reorder) + ue(buffering);
+const hrd = (
+  count = 1,
+  lengths = [23, 15, 7, 0],
+  schedules = Array.from({ length: count }, (_, i) => [i, count - i - 1])
+) => ue(count - 1) + '00000000' +
+  schedules.map(([rate, size]) => ue(rate) + ue(size) + '1').join('') +
+  lengths.map((length) => bits(length, 5)).join('');
+
+test('reads VUI clock and explicitly signalled picture reordering bounds', () => {
+  const info = parseH264Sps(sps({ vui: vuiClock(1001, 60000) + '000' + restriction(2, 4) }));
+  assert.deepEqual(info.vui.timing, {
+    numUnitsInTick: 1001, timeScale: 60000, fixedFrameRate: true
+  });
+  assert.equal(info.vui.maxNumReorderFrames, 2);
+  assert.equal(info.vui.maxDecFrameBuffering, 4);
+  assert.equal(info.vui.picStructPresent, false);
+  assert.equal(parseH264Sps(sps()).vui, undefined);
+  const variable = parseH264Sps(sps({ vui: vuiClock(1, 50, false) + '0000' })).vui;
+  assert.equal(variable.timing.fixedFrameRate, false);
+  assert.equal(variable.maxNumReorderFrames, undefined);
+  assert.equal(variable.maxDecFrameBuffering, undefined);
+  assert.equal(variable.lowDelayHrd, undefined);
+  const noReorder = parseH264Sps(sps({ vui: '100000000' + restriction(0, 1) })).vui;
+  assert.equal(noReorder.timing, undefined);
+  assert.equal(noReorder.maxNumReorderFrames, 0);
+});
+
+test('reads VUI timing after aspect ratio, colour and chroma location fields', () => {
+  const preceding = '1' + '1' + bits(255, 8) + bits(4, 16) + bits(3, 16) +
+    '11' + '1' + bits(5, 3) + '11' + bits(1, 8).repeat(3) + '1' + ue(2) + ue(3);
+  const info = parseH264Sps(sps({
+    vui: preceding + '1' + bits(1, 32) + bits(50, 32) + '1' + '0000'
+  }));
+  assert.deepEqual(info.vui.timing, { numUnitsInTick: 1, timeScale: 50, fixedFrameRate: true });
+});
+
+test('reads NAL and VCL HRD delay lengths and picture structure flag', () => {
+  const prefix = vuiClock(1, 50);
+  for (const [nalPresent, vclPresent] of [[true, false], [false, true], [true, true]]) {
+    const data = prefix + (nalPresent ? '1' + hrd(32) : '0') +
+      (vclPresent ? '1' + hrd() : '0') + '01' + restriction(0, 1);
+    const info = parseH264Sps(sps({ vui: data })).vui;
+    const expected = {
+      initialCpbRemovalDelayLength: 24,
+      cpbRemovalDelayLength: 16,
+      dpbOutputDelayLength: 8,
+      timeOffsetLength: 0
+    };
+    assert.deepEqual(info.nalHrd, nalPresent ? { cpbCount: 32, ...expected } : undefined);
+    assert.deepEqual(info.vclHrd, vclPresent ? { cpbCount: 1, ...expected } : undefined);
+    assert.equal(info.lowDelayHrd, false);
+    assert.equal(info.picStructPresent, true);
+    assert.equal(info.maxNumReorderFrames, 0);
+  }
+});
+
+test('rejects truncated VUI syntax, zero clocks and invalid buffer bounds', () => {
+  const valid = vuiClock(1, 50) + '1' + hrd() + '001' + restriction(0, 1);
+  for (let i = 1; i < valid.length; i++) {
+    assert.throws(() => parseH264Sps(sps({ vui: valid.slice(0, i) })));
+  }
+  for (const data of [
+    vuiClock(0, 50) + '0000',
+    vuiClock(1, 0) + '0000',
+    vuiClock(1, 50) + '000' + restriction(3, 2),
+    vuiClock(1, 50) + '000' + restriction(0, 0),
+    vuiClock(1, 50) + '000' + restriction(0, 17),
+    vuiClock(1, 50) + '1' + ue(32),
+    valid + '0'
+  ]) {
+    assert.throws(() => parseH264Sps(sps({ vui: data })));
+  }
+});
+
+test('retains timing and reordering metadata from real SPS fixtures', () => {
+  for (const [index, reorder, buffering, picStruct] of [
+    [0, 0, 3, false], [2, 2, 4, false], [6, 2, 4, true]
+  ]) {
+    const info = parseH264Sps(decode(fixtures[index][0])).vui;
+    assert.deepEqual(info.timing, { numUnitsInTick: 1, timeScale: 50, fixedFrameRate: false });
+    assert.equal(info.maxNumReorderFrames, reorder);
+    assert.equal(info.maxDecFrameBuffering, buffering);
+    assert.equal(info.picStructPresent, picStruct);
+  }
+});
+
+test('rejects inconsistent delay lengths in NAL and VCL HRD parameters', () => {
+  const lengths = [23, 15, 7, 0];
+  for (let index = 0; index < lengths.length; index++) {
+    const other = lengths.slice();
+    other[index]++;
+    const vui = vuiClock(1, 50) + '1' + hrd() + '1' + hrd(1, other) + '000';
+    assert.throws(() => parseH264Sps(sps({ vui })), /Conflicting H.264 HRD delay lengths/);
+  }
+});
+
+test('validates HRD schedules and low-delay constraints', () => {
+  for (const schedules of [[[1, 1], [1, 0]], [[1, 1], [0, 0]], [[0, 0], [1, 1]]]) {
+    const vui = vuiClock(1, 50) + '1' + hrd(2, [23, 15, 7, 0], schedules) + '0000';
+    assert.throws(() => parseH264Sps(sps({ vui })), /HRD buffer schedule/);
+  }
+  const variable = vuiClock(1, 50, false);
+  const lowDelay = parseH264Sps(sps({ vui: variable + '1' + hrd() + '0100' })).vui;
+  assert.equal(lowDelay.lowDelayHrd, true);
+  for (const vui of [
+    vuiClock(1, 50) + '1' + hrd() + '0100',
+    variable + '1' + hrd(2) + '0100',
+    variable + '0' + '1' + hrd(2) + '100'
+  ]) {
+    assert.throws(() => parseH264Sps(sps({ vui })), /low-delay HRD/);
+  }
+});
+
+test('preserves unsigned clock values and maximum HRD field lengths', () => {
+  const vui = vuiClock(0xffffffff, 0xfffffffe, false) +
+    '1' + hrd(1, [31, 31, 31, 31], [[0xfffffffe, 0xfffffffe]]) + '0000';
+  const info = parseH264Sps(sps({ vui })).vui;
+  assert.deepEqual(info.timing, {
+    numUnitsInTick: 0xffffffff, timeScale: 0xfffffffe, fixedFrameRate: false
+  });
+  assert.deepEqual(info.nalHrd, {
+    cpbCount: 1, initialCpbRemovalDelayLength: 32, cpbRemovalDelayLength: 32,
+    dpbOutputDelayLength: 32, timeOffsetLength: 31
+  });
+});

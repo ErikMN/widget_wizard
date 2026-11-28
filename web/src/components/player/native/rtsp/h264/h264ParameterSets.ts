@@ -3,7 +3,7 @@
  * Read the SPS fields needed for AVC decoder configuration, cropped picture
  * dimensions and subsequent slice header parsing. Read the mandatory PPS
  * syntax and retain fields needed by slice headers. This is not a full
- * bitstream validator; VUI, optional PPS extensions, constraints that depend
+ * bitstream validator; optional PPS extensions, constraints that depend
  * on the referenced SPS and slice data are not interpreted here.
  *
  * See H.264 sections 7.3.2.1.1, 7.3.2.2 and 7.4.2.1.1. The Axis
@@ -11,6 +11,7 @@
  * references for the decoder configuration fields.
  */
 import { readParameterSet, type H264BitReader } from './h264Bits';
+import { readH264Vui, type H264Vui } from './h264Vui';
 
 const EXTENDED_PROFILES = [44, 83, 86, 100, 110, 118, 122, 128, 134, 135, 138, 139, 244];
 
@@ -35,6 +36,7 @@ export interface H264Sps {
   readonly codedHeight: number;
   readonly width: number;
   readonly height: number;
+  readonly vui?: H264Vui;
 }
 
 export interface H264Pps {
@@ -152,8 +154,8 @@ export const parseH264Sps = (nal: Uint8Array): H264Sps => {
   if (width < 1 || height < 1 || width > 65535 || height > 65535) {
     throw new Error('Invalid H.264 picture dimensions');
   }
-  const vuiPresent = reader.readFlag();
-  if ((!vuiPresent && reader.remaining !== 0) || (vuiPresent && reader.remaining === 0)) {
+  const vui = reader.readFlag() ? readH264Vui(reader, maxNumRefFrames) : undefined;
+  if (reader.remaining !== 0) {
     throw new Error('Invalid H.264 SPS ending');
   }
   const profileLevelId = [profileIdc, profileCompatibility, levelIdc]
@@ -179,7 +181,8 @@ export const parseH264Sps = (nal: Uint8Array): H264Sps => {
     codedWidth,
     codedHeight,
     width,
-    height
+    height,
+    vui
   };
 };
 
