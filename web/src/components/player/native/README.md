@@ -149,6 +149,32 @@ bound the browser's WebSocket buffering.
 See [RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html), sections 4.4
 and 10.12, and the Axis
 [WebSocket authentication flow](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts).
+
+### Media description
+
+`rtsp/sdp.ts` reads the SDP returned by DESCRIBE. It resolves session
+and track control URLs against Content-Base, Content-Location or the
+request URI, in that order. The optional `aggregateControlUri` is present
+only when session-wide control is advertised. A single-stream description
+may omit its media control attribute and use the aggregate URL or base.
+In multi-stream descriptions, supported RTP tracks must have distinct
+control URLs. Media ports must be in the range 0 to 65535; zero is valid
+for RTSP transport negotiation.
+
+For each RTP track, the description retains its payload types, encoding
+names, clock rates, audio channel counts and codec parameters.
+Optional frame dimensions support Axis JPEG descriptions when the RTP
+header cannot represent the image size.
+Static JPEG and G.711 payload assignments are recognized without an
+rtpmap attribute. Unknown encodings remain unspecified.
+Only the unencrypted RTP profiles used for interleaved streaming are
+parsed; codec selection and decoding are separate responsibilities.
+
+See [VAPIX RTSP DESCRIBE](https://developer.axis.com/vapix/network-video/video-streaming/#rtsp-describe),
+[RFC 2326 Appendix C](https://www.rfc-editor.org/rfc/rfc2326.html#appendix-C),
+[RFC 3551](https://www.rfc-editor.org/rfc/rfc3551.html) and
+[RFC 8866](https://www.rfc-editor.org/rfc/rfc8866.html).
+
 These helpers are not yet connected to the player. RTSP playback uses
 the Axis implementation.
 
