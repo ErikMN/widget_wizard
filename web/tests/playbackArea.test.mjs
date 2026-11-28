@@ -288,3 +288,25 @@ test('reports a native image failure without requesting a retry', () => {
   assert.equal(image.hasAttribute('src'), false);
   assert.deepEqual(reports, [false]);
 });
+
+test('switches between H.264 and AV1 using the native HTTP MP4 component', () => {
+  const current = mount('MP4_H264');
+  const first = globalThis.__mp4Playback;
+  current.rerender({
+    request: { ...current.props.request, format: 'MP4_AV1' }
+  });
+
+  const av1 = globalThis.__mp4Playback;
+  assert.equal(first.stopped, true);
+  assert.equal(current.ref.current, av1.video);
+  assert.equal(new URL(av1.src).searchParams.get('videocodec'), 'av1');
+  assert.equal(new URL(av1.src).searchParams.get('container'), 'mp4');
+  assert.equal(globalThis.__legacyPlaybackProps, undefined);
+
+  current.rerender({ request: current.props.request });
+  assert.equal(av1.stopped, true);
+  assert.equal(
+    new URL(globalThis.__mp4Playback.src).searchParams.get('videocodec'),
+    'h264'
+  );
+});

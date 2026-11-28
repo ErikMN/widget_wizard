@@ -43,7 +43,7 @@ export const PlaybackArea = forwardRef<PlayerNativeElement, PlaybackAreaProps>(
       );
     }
 
-    if (format === 'MP4_H264') {
+    if (format === 'MP4_H264' || format === 'MP4_AV1') {
       const src = play
         ? getStreamUrls(
             host,

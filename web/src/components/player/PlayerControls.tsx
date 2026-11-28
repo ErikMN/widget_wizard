@@ -124,6 +124,7 @@ interface PlayerControlsProps {
   readonly duration?: number;
   readonly src?: string;
   readonly parameters: VapixParameters;
+  readonly supportedResolutions?: readonly string[];
   readonly onPlay: () => void;
   readonly onRefresh: () => void;
   readonly onSeek: (offset: number) => void;
@@ -144,6 +145,7 @@ interface PlayerControlsProps {
   readonly showSystemStatsOverlay: boolean;
   readonly toggleSystemStats: () => void;
   readonly format: StreamFormat;
+  readonly availableFormats: readonly StreamFormat[];
   readonly volume?: number;
   readonly setVolume?: (v: number) => void;
   readonly onToggleFullscreen?: () => void;
@@ -157,6 +159,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   startTime,
   src,
   parameters,
+  supportedResolutions,
   onPlay,
   onRefresh,
   onSeek,
@@ -169,6 +172,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   showSystemStatsOverlay,
   toggleSystemStats,
   format,
+  availableFormats,
   volume,
   setVolume,
   onToggleFullscreen,
@@ -553,7 +557,9 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
       {settings && (
         <PlayerSettings
           vapixParameters={parameters}
+          supportedResolutions={supportedResolutions}
           format={format}
+          availableFormats={availableFormats}
           onFormat={onFormat}
           onVapix={onVapix}
           showStatsOverlay={showStatsOverlay}

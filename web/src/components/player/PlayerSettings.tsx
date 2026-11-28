@@ -31,7 +31,9 @@ import Typography from '@mui/material/Typography';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
+  readonly supportedResolutions?: readonly string[];
   readonly format: StreamFormat;
+  readonly availableFormats: readonly StreamFormat[];
   readonly onFormat: (format: StreamFormat) => void;
   readonly onVapix: (key: string, value: string) => void;
 
@@ -44,7 +46,9 @@ interface PlayerSettingsProps {
 
 const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   vapixParameters,
+  supportedResolutions,
   format,
+  availableFormats,
   onFormat,
   onVapix,
   showStatsOverlay,
@@ -100,8 +104,6 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
   /* Backend availability */
   const backendAvailable =
     parameters?.['root.Widget_wizard.ApplicationRunning'];
-  /* Resolutions list */
-  const Resolution = parameters?.['root.Properties.Image.Resolution'];
   /* Number of camera sources */
   const NbrOfSourcesStr = parameters?.['root.ImageSource.NbrOfSources'] ?? '1';
   const NbrOfSources = parseInt(NbrOfSourcesStr, 10);
@@ -137,11 +139,14 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
     HTMLTextAreaElement | HTMLInputElement
   > = useCallback(
     (e) => {
-      if (isStreamFormat(e.target.value)) {
+      if (
+        isStreamFormat(e.target.value) &&
+        availableFormats.includes(e.target.value)
+      ) {
         onFormat(e.target.value);
       }
     },
-    [onFormat]
+    [availableFormats, onFormat]
   );
 
   const changeResolution: ChangeEventHandler<
@@ -263,17 +268,10 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
       [onVapix]
     );
 
-  /* Parse supported resolutions */
-  const supportedResolutions = React.useMemo(() => {
-    if (typeof Resolution !== 'string') return [];
-    const list = Resolution.includes('=')
-      ? Resolution.split('=', 2)[1]
-      : Resolution;
-    return list
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }, [Resolution]);
+  /* Keep the requested resolution selectable when capabilities are unavailable. */
+  const resolutionOptions =
+    supportedResolutions ??
+    (vapixParameters['resolution'] ? [vapixParameters['resolution']] : []);
 
   /* Aspect ratio helper */
   const gcd = (a: number, b: number): number => {
@@ -374,6 +372,11 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <MenuItem disableRipple value="MP4_H264">
           H.264 (MP4 over HTTP)
         </MenuItem>
+        {availableFormats.includes('MP4_AV1') && (
+          <MenuItem disableRipple value="MP4_AV1">
+            AV1 (MP4 over HTTP)
+          </MenuItem>
+        )}
         <MenuItem disableRipple value="RTP_JPEG">
           Motion JPEG (MJPEG over WS)
         </MenuItem>
@@ -400,7 +403,7 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
         <MenuItem disableRipple value="">
           Default resolution
         </MenuItem>
-        {supportedResolutions.map((res) => (
+        {resolutionOptions.map((res) => (
           <MenuItem disableRipple key={res} value={res}>
             {res.replace(/x/i, ' x ')} ({aspectOf(res)})
           </MenuItem>

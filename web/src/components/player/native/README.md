@@ -14,6 +14,7 @@ Each playback component owns its connection and cleanup.
 | Format | Transport | Element | Implementation |
 | --- | --- | --- | --- |
 | `MP4_H264` | HTTP MP4 | Video | Native |
+| `MP4_AV1` | HTTP MP4 | Video | Native |
 | `RTP_H264` | RTSP over WebSocket | Video | Axis |
 | `RTP_JPEG` | RTSP over WebSocket | Canvas | Axis |
 | `MJPEG` | HTTP MJPEG | Image | Native |
@@ -21,11 +22,37 @@ Each playback component owns its connection and cleanup.
 
 The format identifiers, media element types and request settings are defined
 in `types.ts`. The five original format identifiers remain compatible with
-saved settings.
+saved settings; `MP4_AV1` is new.
 
 The RTSP components still use the Axis playback area. The library's
 `VideoProperties` type and pipeline metrics remain in use until the
 playback and statistics interfaces are replaced.
+
+## Format and resolution availability
+
+AV1 is offered only when `root.Properties.Image.Format` lists `av1` and
+MediaSource accepts the AV1 Main profile probe (`av01.0.08M.08`).
+The probe is not a guarantee that every AV1 stream will decode.
+The MP4 helper checks the actual response MIME type before playback.
+
+An unavailable saved format falls back to the initial format, normally
+H.264 MP4, without overwriting the preference.
+A saved AV1 choice is restored when the device capabilities become available.
+
+`streamResolutions.ts` reads the codec-specific resolution list for the
+selected video channel, then the channel-wide and device-wide lists if
+more specific information is missing. VAPIX camera numbers start at one;
+parameter group indices start at zero. Special camera values use the
+device-wide list.
+
+The settings menu and playback request use the same effective resolution.
+A saved resolution excluded by the reported list is omitted from the
+request, allowing the device to select its default. The requested value
+is retained and restored if it becomes supported again. When no list is
+available, the requested resolution is kept.
+
+See [VAPIX image parameters](https://developer.axis.com/vapix/network-video/parameter-management/image-api/)
+and the [AV1 integration guide](https://developer.axis.com/video-streaming-and-recording/av1/how-to-guides/integration-guide-av1/).
 
 ## Playback lifecycle
 
@@ -57,7 +84,7 @@ Errors invalidate playback without automatically retrying.
 ## HTTP MP4
 
 `HttpMp4Video.tsx` owns the video element and reports its dimensions on
-playback and resize. `httpMp4Stream.ts` owns the
+playback and resize. H.264 and AV1 share `httpMp4Stream.ts`, which owns the
 HTTP request and MediaSource. The browser parses and decodes the
 fragmented MP4 data using the response MIME type.
 
@@ -86,7 +113,7 @@ and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer
 expanded. `streamStats.ts` formats the available measurements.
 `legacyStreamStats.ts` reads video track metrics from the Axis pipelines.
 HTTP formats show basic stream information; missing measurements are not
-estimated.
+estimated. AV1 has its own stream type label.
 
 The panel styling and icon are adapted from
 [media-stream-player v13.3.3](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/player/src/Stats.tsx).
@@ -114,7 +141,7 @@ On physical cameras, check:
 
 - Play, Stop, Refresh, all formats, camera, resolution and FPS changes.
 - Visibility changes, stream interruption and manual recovery after errors.
-- Saved settings on reload.
+- AV1 availability, codec-specific resolutions and saved settings on reload.
 - Audio, snapshots, statistics and widget alignment during resize and fullscreen.
 - Long-running playback, memory use and latency on supported browsers.
 

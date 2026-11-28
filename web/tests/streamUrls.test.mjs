@@ -51,6 +51,26 @@ test('selects H.264 in an MP4 container and preserves other parameters', () => {
   });
 });
 
+test('selects AV1 in the same MP4 endpoint and overrides codec parameters', () => {
+  const stream = getStreamUrls(
+    'camera',
+    true,
+    'MP4_AV1',
+    { videocodec: 'h264', container: 'matroska', camera: '2', fps: '15' },
+    4
+  );
+  assert.equal(stream.transport, 'http');
+  const url = new URL(stream.url);
+  assert.equal(url.pathname, '/axis-cgi/media.cgi');
+  assert.deepEqual(Object.fromEntries(url.searchParams), {
+    videocodec: 'av1',
+    container: 'mp4',
+    camera: '2',
+    fps: '15',
+    timestamp: '4'
+  });
+});
+
 test('builds secure RTSP, WebSocket and session token URLs', () => {
   assert.deepEqual(getStreamUrls('camera:8443', true, 'RTP_H264', {}, 0), {
     transport: 'rtsp',
@@ -84,7 +104,14 @@ test('encodes names and values without dropping unfamiliar parameters', () => {
 });
 
 test('returns no stream URL when playback has no host', () => {
-  for (const format of ['JPEG', 'MJPEG', 'MP4_H264', 'RTP_H264', 'RTP_JPEG']) {
+  for (const format of [
+    'JPEG',
+    'MJPEG',
+    'MP4_H264',
+    'MP4_AV1',
+    'RTP_H264',
+    'RTP_JPEG'
+  ]) {
     assert.equal(getStreamUrls('', true, format, {}, 0), undefined);
   }
 });

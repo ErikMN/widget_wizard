@@ -38,8 +38,10 @@ export const getStreamUrls = (
         transport: 'http',
         url: `${origin}/mjpg/video.mjpg?${query(params)}`
       };
-    case 'MP4_H264': {
-      const search = query({ ...params, videocodec: 'h264', container: 'mp4' });
+    case 'MP4_H264':
+    case 'MP4_AV1': {
+      const videocodec = format === 'MP4_AV1' ? 'av1' : 'h264';
+      const search = query({ ...params, videocodec, container: 'mp4' });
       return {
         transport: 'http',
         url: `${origin}/axis-cgi/media.cgi?${search}`

@@ -23,13 +23,14 @@ after(async () => {
   await server?.close();
 });
 
-test('preserves the existing labels for all five formats', () => {
+test('reports the AV1 format and preserves the five existing labels', () => {
   for (const [format, label] of [
     ['JPEG', 'Still image'],
     ['MJPEG', 'MJPEG'],
     ['RTP_JPEG', 'MJPEG'],
     ['RTP_H264', 'RTSP (WebSocket)'],
-    ['MP4_H264', 'MP4 (HTTP)']
+    ['MP4_H264', 'MP4 (HTTP)'],
+    ['MP4_AV1', 'MP4 (HTTP, AV1)']
   ]) {
     assert.deepEqual(getStreamStats(format, 1920, 1080, 0, undefined), [
       { name: 'Stream type', value: label },

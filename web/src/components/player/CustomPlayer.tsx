@@ -14,6 +14,7 @@ import React, {
 } from 'react';
 import type { VideoProperties } from 'media-stream-player';
 import {
+  getAvailableStreamFormats,
   getStreamFormat,
   type PlaybackRequest,
   type PlayerNativeElement,
@@ -30,6 +31,10 @@ import { PlayerControls } from './PlayerControls';
 import { SystemStatsOverlay } from './SystemStatsOverlay';
 import { getImageURL } from './GetImageURL';
 import { PlaybackArea } from './native/PlaybackArea';
+import {
+  getPlayableResolution,
+  getSupportedResolutions
+} from './native/streamResolutions';
 import { usePlaybackProperties } from './native/usePlaybackProperties';
 import { StreamStats } from './native/StreamStats';
 import { readLegacyStreamMetrics } from './native/legacyStreamStats';
@@ -134,12 +139,35 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       initialFormat,
       false
     ) as [unknown, (v: StreamFormat) => void];
-    const format = getStreamFormat(savedFormat, initialFormat);
+    const deviceFormats = globalParameters?.['root.Properties.Image.Format'];
+    const availableFormats = useMemo(
+      () => getAvailableStreamFormats(deviceFormats),
+      [deviceFormats]
+    );
+    const format = getStreamFormat(savedFormat, initialFormat, availableFormats);
 
     /**
      * VAPIX parameters
      */
     const [vapixParameters, setVapixParameters] = useState(vapixParams);
+    const camera = vapixParameters['camera'];
+    const supportedResolutions = useMemo(
+      () => getSupportedResolutions(globalParameters, format, camera),
+      [globalParameters, format, camera]
+    );
+    const resolution = getPlayableResolution(
+      vapixParameters['resolution'],
+      supportedResolutions
+    );
+    const playbackParameters = useMemo(() => {
+      if (resolution === vapixParameters['resolution']) {
+        return vapixParameters;
+      }
+
+      const parameters = { ...vapixParameters };
+      delete parameters.resolution;
+      return parameters;
+    }, [resolution, vapixParameters]);
 
     useEffect(() => {
       /**
@@ -222,9 +250,9 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         offset,
         host,
         secure,
-        parameters: vapixParameters
+        parameters: playbackParameters
       }),
-      [play, format, refresh, offset, host, secure, vapixParameters]
+      [play, format, refresh, offset, host, secure, playbackParameters]
     );
     const {
       videoProperties,
@@ -446,7 +474,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           <PlayerControls
             videoProperties={videoProperties}
             src={host}
-            parameters={vapixParameters}
+            parameters={playbackParameters}
+            supportedResolutions={supportedResolutions}
             onPlay={onPlayStop}
             onRefresh={onRefresh}
             onScreenshot={onScreenshot}
@@ -467,6 +496,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
             showSystemStatsOverlay={showSystemStatsOverlay}
             toggleSystemStats={toggleSystemStatsOverlay}
             format={format}
+            availableFormats={availableFormats}
             volume={volume}
             setVolume={setVolume}
             startTime={startTime}

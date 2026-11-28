@@ -20,6 +20,7 @@ after(async () => {
 });
 
 const mime = 'video/mp4; codecs="avc1.640029"';
+const av1Mime = 'video/mp4; codecs="av01.0.08M.08"';
 const originals = {
   fetch: globalThis.fetch,
   MediaSource: globalThis.MediaSource,
@@ -75,11 +76,12 @@ class TestMediaSource extends EventTarget {
   ended = false;
 
   static isTypeSupported(type) {
-    return type === mime;
+    return type === mime || type === av1Mime;
   }
 
   addSourceBuffer(type) {
-    assert.equal(type, mime);
+    assert.ok(TestMediaSource.isTypeSupported(type));
+    this.mime = type;
     return this.buffer;
   }
 
@@ -328,4 +330,15 @@ test('reports a decoding error once without retrying', async () => {
   await until(() => stream.ended === 1 && !stream.body.locked);
   assert.deepEqual(stream.endReports, [false]);
   assert.equal(stream.video.src, undefined);
+});
+
+test('uses the AV1 response MIME type with the same MP4 stream helper', async () => {
+  const stream = setup({ contentType: av1Mime });
+  stream.push(1, 2);
+  stream.finish();
+  await until(() => stream.ended === 1);
+  assert.equal(stream.source.mime, av1Mime);
+  assert.deepEqual(stream.source.buffer.operations, [['append', 1, 2]]);
+  assert.deepEqual(stream.endReports, [true]);
+  stream.stop();
 });

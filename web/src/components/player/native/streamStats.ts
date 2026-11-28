@@ -17,7 +17,8 @@ const streamTypes: Record<StreamFormat, string> = {
   MJPEG: 'MJPEG',
   RTP_JPEG: 'MJPEG',
   RTP_H264: 'RTSP (WebSocket)',
-  MP4_H264: 'MP4 (HTTP)'
+  MP4_H264: 'MP4 (HTTP)',
+  MP4_AV1: 'MP4 (HTTP, AV1)'
 };
 
 /* Bitrate is supplied in bits per second and frame rate in frames per second. */
