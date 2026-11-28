@@ -1,11 +1,11 @@
-type MediaElement = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement;
+import type { PlayerNativeElement } from './types';
 
 /* Keep observers and event listeners attached to the current media element. */
 export const createVideoDimensionObserver = (onChange: () => void) => {
   let current:
     | {
         container: HTMLElement;
-        media: MediaElement;
+        media: PlayerNativeElement;
         disconnect: () => void;
       }
     | undefined;
@@ -17,7 +17,7 @@ export const createVideoDimensionObserver = (onChange: () => void) => {
 
   const observe = (
     container: HTMLElement | null,
-    media: MediaElement | null
+    media: PlayerNativeElement | null
   ) => {
     if (current && current.container === container && current.media === media) {
       return;

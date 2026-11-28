@@ -16,11 +16,15 @@ import React, {
 import {
   Stats,
   PlaybackArea,
-  PlayerNativeElement,
   Format,
-  VideoProperties,
-  VapixParameters
+  VideoProperties
 } from 'media-stream-player';
+import {
+  getStreamFormat,
+  type PlayerNativeElement,
+  type StreamFormat,
+  type VapixParameters
+} from './native/types';
 import { useAppSettingsContext } from '../context/AppContext';
 import { useParameters } from '../context/ParametersContext';
 import { Feedback } from './Feedback';
@@ -37,7 +41,7 @@ import {
   useLocalStorage
 } from '../../helpers/hooks';
 
-const DEFAULT_FORMAT = Format.MP4_H264;
+const DEFAULT_FORMAT: StreamFormat = 'MP4_H264';
 
 interface CustomPlayerProps {
   /**
@@ -58,7 +62,7 @@ interface CustomPlayerProps {
 
   readonly hostname: string;
   readonly vapixParams?: VapixParameters;
-  readonly initialFormat?: Format;
+  readonly initialFormat?: StreamFormat;
   readonly autoPlay?: boolean;
   /**
    * Set to true if the camera requires a secure
@@ -128,11 +132,15 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const backendAvailable =
       globalParameters?.['root.Widget_wizard.ApplicationRunning'];
 
-    const [format, setFormat] = useLocalStorage(
+    const [savedFormat, setFormat] = useLocalStorage(
       'streamFormat',
       initialFormat,
       false
-    ) as [Format, (v: Format) => void];
+    ) as [unknown, (v: StreamFormat) => void];
+    const format = getStreamFormat(savedFormat, initialFormat);
+
+    /* Convert to the library enum only for the remaining upstream components. */
+    const legacyFormat = Format[format];
 
     /**
      * VAPIX parameters
@@ -403,7 +411,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         {showStatsOverlay && videoProperties && (
           <div style={{ position: 'static', zIndex: 10 }}>
             <Stats
-              format={format}
+              format={legacyFormat}
               videoProperties={videoProperties}
               refresh={refresh}
               volume={volume}
@@ -422,7 +430,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                   play={play}
                   offset={offset}
                   host={host}
-                  format={format}
+                  format={legacyFormat}
                   parameters={vapixParameters}
                   onPlaying={onPlaying}
                   onEnded={onEnded}

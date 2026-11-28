@@ -10,7 +10,11 @@
  *   - Stats overlay toggle
  */
 import React, { ChangeEventHandler, useCallback, useEffect } from 'react';
-import { VapixParameters, Format } from 'media-stream-player';
+import {
+  isStreamFormat,
+  type VapixParameters,
+  type StreamFormat
+} from './native/types';
 import { CustomSwitch } from '../CustomComponents';
 import { useParameters } from '../context/ParametersContext';
 import {
@@ -27,8 +31,8 @@ import Typography from '@mui/material/Typography';
 
 interface PlayerSettingsProps {
   readonly vapixParameters: VapixParameters;
-  readonly format: Format;
-  readonly onFormat: (format: Format) => void;
+  readonly format: StreamFormat;
+  readonly onFormat: (format: StreamFormat) => void;
   readonly onVapix: (key: string, value: string) => void;
 
   readonly showStatsOverlay: boolean;
@@ -131,7 +135,14 @@ const PlayerSettingsContent: React.FC<PlayerSettingsProps> = ({
 
   const changeFormat: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
-  > = useCallback((e) => onFormat(e.target.value as Format), [onFormat]);
+  > = useCallback(
+    (e) => {
+      if (isStreamFormat(e.target.value)) {
+        onFormat(e.target.value);
+      }
+    },
+    [onFormat]
+  );
 
   const changeResolution: ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement

@@ -10,7 +10,8 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
-import { VapixParameters, VideoProperties, Format } from 'media-stream-player';
+import type { VideoProperties } from 'media-stream-player';
+import type { VapixParameters, StreamFormat } from './native/types';
 import { PlayerSettings } from './PlayerSettings';
 import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 import { darkTheme } from '../../theme';
@@ -128,7 +129,7 @@ interface PlayerControlsProps {
   readonly onRefresh: () => void;
   readonly onSeek: (offset: number) => void;
   readonly onScreenshot: () => void;
-  readonly onFormat: (format: Format) => void;
+  readonly onFormat: (format: StreamFormat) => void;
   readonly onVapix: (key: string, value: string) => void;
   readonly labels?: {
     readonly play?: string;
@@ -143,7 +144,7 @@ interface PlayerControlsProps {
   readonly toggleStats: () => void;
   readonly showSystemStatsOverlay: boolean;
   readonly toggleSystemStats: () => void;
-  readonly format: Format;
+  readonly format: StreamFormat;
   readonly volume?: number;
   readonly setVolume?: (v: number) => void;
   readonly onToggleFullscreen?: () => void;

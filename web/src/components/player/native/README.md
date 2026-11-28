@@ -11,8 +11,15 @@ so that the application can own playback, stream information and geometry.
 controls. The Axis library still supplies the playback components and client
 stream information. The migration must preserve the existing UI.
 
-The existing format identifiers are saved in local storage and must remain
-compatible with previous installations.
+The player owns the format identifiers, native media element type and VAPIX
+parameters in `types.ts`. The identifiers stored in local storage are unchanged.
+An invalid or unsupported saved identifier falls back to the initial format
+without overwriting the saved value.
+
+`CustomPlayer` converts the selected format to the library enum for playback
+and client statistics. The controls still use the library's `VideoProperties`
+for progress information until the playback and statistics interfaces are
+replaced.
 
 | Format     | Transport and codec        | Media element |
 | ---------- | -------------------------- | ------------- |
@@ -48,7 +55,8 @@ without changing its own dimensions. No fixed animation frame delay is needed.
 Run `yarn test`, `yarn lint` and `yarn build` from the `web` directory.
 The geometry tests cover aspect ratios, container offsets, zero dimensions
 and the existing subpixel tolerance. Observer tests cover element replacement,
-intrinsic dimension events and cleanup.
+intrinsic dimension events and cleanup. Format tests cover the saved identifiers
+and fallback for invalid values.
 
 Before replacing a playback implementation, verify it on a supported camera:
 

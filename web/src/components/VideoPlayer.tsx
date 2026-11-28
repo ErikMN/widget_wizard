@@ -19,7 +19,7 @@ import {
   dimensionsEqual
 } from './player/native/videoDimensions';
 import { createVideoDimensionObserver } from './player/native/videoDimensionObserver';
-import type { PlayerNativeElement } from 'media-stream-player';
+import type { PlayerNativeElement } from './player/native/types';
 import OverlaySurface from './OverlaySurface';
 import MessageOverlay from './MessageOverlay';
 import { usePTZControl } from '../helpers/usePTZControl';
