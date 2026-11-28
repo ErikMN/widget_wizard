@@ -32,6 +32,14 @@ export const startHttpMp4Stream = (video, src, onEnded) => {
 };
 `;
 
+const jpegModule = `
+export const startJpegStream = (canvas, urls, offset, onPlaying, onEnded) => {
+  const stream = { canvas, urls, offset, onPlaying, onEnded, stopped: false };
+  globalThis.__jpegPlayback = stream;
+  return () => { stream.stopped = true; };
+};
+`;
+
 before(async () => {
   dom = new JSDOM('<!doctype html><html><body></body></html>', {
     url: 'https://camera'
@@ -71,6 +79,9 @@ before(async () => {
           if (id === './httpMp4Stream') {
             return '\0playback-area-test:mp4';
           }
+          if (id === './rtsp/jpeg/jpegStream') {
+            return '\0playback-area-test:jpeg';
+          }
         },
         load(id) {
           if (id === '\0playback-area-test:legacy') {
@@ -78,6 +89,9 @@ before(async () => {
           }
           if (id === '\0playback-area-test:mp4') {
             return mp4Module;
+          }
+          if (id === '\0playback-area-test:jpeg') {
+            return jpegModule;
           }
         }
       }
@@ -94,6 +108,7 @@ afterEach(() => {
   testing?.cleanup();
   delete globalThis.__legacyPlaybackProps;
   delete globalThis.__mp4Playback;
+  delete globalThis.__jpegPlayback;
 });
 
 after(async () => {
@@ -192,36 +207,70 @@ test('replaces refreshed images and releases the source when stopped', () => {
   assert.equal(current.ref.current, null);
 });
 
-test('forwards the remaining formats and playback options to the legacy area', () => {
+test('forwards RTSP H.264 playback options to the legacy area', () => {
   const current = mount('RTP_H264');
+  const request = { ...current.props.request, secure: true };
+  current.rerender({ request });
 
-  for (const [format, tag] of [
-    ['RTP_H264', 'VIDEO'],
-    ['RTP_JPEG', 'CANVAS']
-  ]) {
-    const request = { ...current.props.request, format, secure: true };
-    current.rerender({ request });
-
-    const legacy = globalThis.__legacyPlaybackProps;
-    assert.equal(current.ref.current.tagName, tag);
-    assert.equal(legacy.forwardedRef, current.ref);
-    assert.equal(legacy.format, format);
-    assert.equal(legacy.host, request.host);
-    assert.equal(legacy.parameters, request.parameters);
-    assert.equal(legacy.refresh, request.refresh);
-    assert.equal(legacy.secure, true);
-    assert.equal(legacy.play, true);
-    assert.equal(legacy.offset, 5);
-    assert.equal(legacy.autoRetry, true);
-    assert.equal(typeof legacy.onPlaying, 'function');
-    assert.equal(legacy.onEnded, current.props.onEnded);
-  }
+  const legacy = globalThis.__legacyPlaybackProps;
+  assert.equal(current.ref.current.tagName, 'VIDEO');
+  assert.equal(legacy.forwardedRef, current.ref);
+  assert.equal(legacy.format, 'RTP_H264');
+  assert.equal(legacy.host, request.host);
+  assert.equal(legacy.parameters, request.parameters);
+  assert.equal(legacy.refresh, request.refresh);
+  assert.equal(legacy.secure, true);
+  assert.equal(legacy.play, true);
+  assert.equal(legacy.offset, 5);
+  assert.equal(legacy.autoRetry, true);
+  assert.equal(typeof legacy.onPlaying, 'function');
+  assert.equal(legacy.onEnded, current.props.onEnded);
 
   const previous = current.ref.current;
-  current.rerender({
-    request: { ...current.props.request, format: 'RTP_JPEG', refresh: 1 }
-  });
+  current.rerender({ request: { ...request, refresh: 1 } });
   assert.notEqual(current.ref.current, previous);
+});
+
+test('selects native RTP JPEG and owns one session per playback request', () => {
+  const current = mount('RTP_JPEG');
+  const first = globalThis.__jpegPlayback;
+  assert.equal(first.canvas, current.ref.current);
+  assert.equal(first.canvas.tagName, 'CANVAS');
+  assert.equal(first.offset, 5);
+  assert.equal(first.urls.websocketUrl, 'wss://camera/rtsp-over-websocket');
+  assert.equal(first.urls.tokenUrl, 'https://camera/axis-cgi/rtspwssession.cgi');
+  const url = new URL(first.urls.url);
+  assert.equal(url.pathname, '/axis-media/media.amp');
+  assert.equal(url.searchParams.get('videocodec'), 'jpeg');
+  assert.equal(url.searchParams.get('camera'), '2');
+  assert.equal(globalThis.__legacyPlaybackProps, undefined);
+
+  current.rerender({ request: { ...current.props.request } });
+  assert.equal(globalThis.__jpegPlayback, first);
+  assert.equal(first.stopped, false);
+  first.onPlaying({ el: first.canvas, width: 640, height: 480 });
+  assert.deepEqual(current.reports, [{ el: first.canvas, width: 640, height: 480 }]);
+
+  const request = { ...current.props.request, refresh: 1, offset: 10, secure: false };
+  current.rerender({ request });
+  const next = globalThis.__jpegPlayback;
+  assert.equal(first.stopped, true);
+  assert.notEqual(next.canvas, first.canvas);
+  assert.equal(next.canvas, current.ref.current);
+  assert.equal(next.offset, 10);
+  assert.equal(next.urls.websocketUrl, 'ws://camera/rtsp-over-websocket');
+  assert.equal(new URL(next.urls.url).searchParams.get('timestamp'), '1');
+
+  current.rerender({ request: { ...request, play: false } });
+  assert.equal(next.stopped, true);
+  assert.equal(globalThis.__jpegPlayback, next);
+
+  current.rerender({ request });
+  const restarted = globalThis.__jpegPlayback;
+  assert.notEqual(restarted, next);
+  current.view.unmount();
+  assert.equal(restarted.stopped, true);
+  assert.equal(current.ref.current, null);
 });
 
 test('keeps the media reference current when switching between implementations', () => {
@@ -239,6 +288,13 @@ test('keeps the media reference current when switching between implementations',
   });
   assert.equal(image.hasAttribute('src'), false);
   assert.equal(current.ref.current.tagName, 'CANVAS');
+  const jpeg = globalThis.__jpegPlayback;
+  assert.equal(jpeg.canvas, current.ref.current);
+
+  current.rerender({ request: current.props.request });
+  assert.equal(jpeg.stopped, true);
+  assert.equal(current.ref.current.tagName, 'VIDEO');
+  assert.equal(globalThis.__legacyPlaybackProps.format, 'RTP_H264');
 });
 
 test('selects native HTTP MP4 playback and cleans up replaced requests', () => {

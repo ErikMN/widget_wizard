@@ -6,6 +6,7 @@ import {
 } from 'media-stream-player';
 import { HttpImage } from './HttpImage';
 import { HttpMp4Video } from './HttpMp4Video';
+import { RtpJpegCanvas } from './RtpJpegCanvas';
 import { getStreamUrls } from './streamUrls';
 import { adaptLegacyPlaybackProperties } from './legacyPlaybackProperties';
 import type {
@@ -75,7 +76,30 @@ export const PlaybackArea = forwardRef<PlayerNativeElement, PlaybackAreaProps>(
       );
     }
 
-    /* The remaining formats still use the upstream playback implementation. */
+    if (format === 'RTP_JPEG') {
+      const urls = play
+        ? getStreamUrls(
+            host,
+            secure ?? (window.location.protocol === 'https:'),
+            format,
+            parameters,
+            refresh
+          )
+        : undefined;
+
+      return (
+        <RtpJpegCanvas
+          key={urls ? JSON.stringify(request) : format}
+          ref={ref as React.Ref<HTMLCanvasElement>}
+          urls={urls?.transport === 'rtsp' ? urls : undefined}
+          offset={offset}
+          onPlaying={onPlaying}
+          onEnded={onEnded}
+        />
+      );
+    }
+
+    /* H.264 over RTSP still uses the upstream playback implementation. */
     return (
       <LegacyPlaybackArea
         key={play && host ? JSON.stringify(request) : undefined}

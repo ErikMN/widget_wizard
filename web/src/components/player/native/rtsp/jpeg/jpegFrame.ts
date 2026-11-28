@@ -29,7 +29,7 @@ export interface JpegFrame {
   readonly ssrc: number;
   /* Identifies progressive images and interlaced fields (RFC 2435, section 4.1). */
   readonly typeSpecific: number;
-  readonly data: Uint8Array;
+  readonly data: Uint8Array<ArrayBuffer>;
 }
 
 interface Fragment {

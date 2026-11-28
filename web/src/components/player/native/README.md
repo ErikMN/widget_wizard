@@ -16,7 +16,7 @@ Each playback component owns its connection and cleanup.
 | `MP4_H264` | HTTP MP4 | Video | Native |
 | `MP4_AV1` | HTTP MP4 | Video | Native |
 | `RTP_H264` | RTSP over WebSocket | Video | Axis |
-| `RTP_JPEG` | RTSP over WebSocket | Canvas | Axis |
+| `RTP_JPEG` | RTSP over WebSocket | Canvas | Native |
 | `MJPEG` | HTTP MJPEG | Image | Native |
 | `JPEG` | HTTP still image | Image | Native |
 
@@ -24,8 +24,8 @@ The format identifiers, media element types and request settings are defined
 in `types.ts`. The five original format identifiers remain compatible with
 saved settings; `MP4_AV1` is new.
 
-The RTSP components still use the Axis playback area.
-`legacyPlaybackProperties.ts` adapts their reports to the player's own
+RTSP H.264 still uses the Axis playback area.
+`legacyPlaybackProperties.ts` adapts its reports to the player's own
 `PlaybackProperties` type. The rest of the player does not access the
 Axis pipelines.
 
@@ -116,8 +116,8 @@ and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer
 
 ## RTSP playback
 
-The RTSP modules handle the connection and streaming protocol independently
-of the player interface. They do not decode video or audio.
+The RTSP protocol modules handle the connection and streaming protocol
+independently of the player interface. Media handlers use them for playback.
 
 `rtspWebSocket.ts` opens a binary WebSocket to the device. If the handshake
 fails, it requests a fresh session token from `rtspwssession.cgi` and
@@ -167,12 +167,35 @@ The JPEG tables are adapted from the Axis
 [JPEG decoder](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/jpegdepay)
 and follow [RFC 2435](https://www.rfc-editor.org/rfc/rfc2435.html).
 The Axis MIT notice is retained as described below.
-Browser rendering and interlaced field presentation are separate tasks.
+
+`jpegStream.ts` selects the JPEG video track and owns its session and
+renderer. `jpegCanvas.ts` uses the browser's image decoder and presents
+images according to their RTP timestamps. Only one decode runs at a time.
+Older images that are already due are skipped when drawing falls behind.
+Waiting images are limited to 120 frames or 32 MiB; exceeding either
+limit ends playback. The renderer uses the approach of the Axis
+[canvas sink](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/canvas/index.ts)
+but releases image resources and cancels scheduled drawing on stop.
+`RtpJpegCanvas.tsx` reports actual dimensions after the first successful
+draw and whenever they change. A goodbye from the active source closes
+the session and lets the renderer finish queued images before notifying
+the existing retry policy. Other session errors require manual refresh.
+
+The renderer resets its clock and discards obsolete queued images when
+timestamps move backwards or live images would be scheduled more than
+two seconds ahead. Live playback ends if no image is drawn within
+30 seconds of PLAY or the last successful draw, even if RTSP keepalive
+requests still succeed. Requests with a `recordingid` retain forward
+timing gaps and have no live inactivity deadline; each recording decode
+has a 30-second deadline instead. These are player recovery policies,
+not RTSP protocol limits.
+
+Interlaced fields are not combined into full frames.
 
 Multiple selected tracks require session-wide control. RTSP command
-authentication and separate sessions for individual tracks are not
-implemented. The existing Axis playback implementation is still used
-until the native media handlers are ready.
+authentication, separate sessions for individual tracks and general RTSP
+retry handling remain to be implemented. RTSP H.264 still uses the Axis
+playback implementation.
 
 See the [VAPIX streaming documentation](https://developer.axis.com/vapix/network-video/video-streaming/),
 the [Axis WebSocket implementation](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts),
