@@ -78,8 +78,7 @@ no-video indicator. Stop and Refresh remain available.
 
 `streamUrls.ts` constructs native VAPIX URLs and preserves supplied device
 parameters, overriding the codec and container where required.
-It also defines the RTSP and session token URLs, although the upstream
-RTSP implementation still constructs its own URLs.
+For RTSP, it supplies the media, WebSocket and session token URLs.
 
 ## HTTP images
 
@@ -117,6 +116,22 @@ and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer
 
 ## RTSP protocol
 
+`rtsp/rtspWebSocket.ts` opens the WebSocket with the binary subprotocol.
+If the handshake fails, it requests a token from
+`/axis-cgi/rtspwssession.cgi` using the browser's credentials and retries
+once with the `rtspwssession` query parameter.
+The token request and socket must target the same host and security scheme.
+The token is not cached, and HTTPS with WSS protects it during transmission.
+
+A single 20-second deadline covers connection setup, including the token
+request and retry. Startup failures reject the connection promise.
+Once connected, messages are delivered synchronously in wire order.
+Unexpected closure, socket errors and malformed messages end the
+connection and notify the caller. Explicit close or cancellation does
+not call the end handler. Closing removes listeners and releases the
+parser; the caller controls whether to reconnect.
+RTSP command authentication and session negotiation belong to the session layer.
+
 `rtsp/rtspMessage.ts` serializes RTSP 1.0 requests and separates incoming
 RTSP messages from interleaved binary packets. Each connection owns a
 parser. Input chunks may contain partial or multiple messages.
@@ -126,13 +141,15 @@ Interleaved packets use the channel and length in their four-byte header.
 The session must identify RTP and RTCP using the negotiated channels.
 
 The parser retains only an incomplete header and payload. It limits RTSP
-headers to 32 KiB and bodies to 1 MiB; malformed input requires closing
-the connection and discarding the parser. Outgoing headers use CRLF;
+headers to 32 KiB and bodies to 1 MiB. Outgoing headers use CRLF;
 incoming CR or LF delimiters are also accepted for compatibility.
+The transport does not add an incoming queue, but these limits do not
+bound the browser's WebSocket buffering.
 
 See [RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html), sections 4.4
-and 10.12, and the [Axis parser](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/rtsp-parser/parser.ts).
-The parser is not yet connected to the player. RTSP playback still uses
+and 10.12, and the Axis
+[WebSocket authentication flow](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts).
+These helpers are not yet connected to the player. RTSP playback uses
 the Axis implementation.
 
 ## Client stream information
