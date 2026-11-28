@@ -217,11 +217,24 @@ The SDP format parser retains multiple parameter sets by identifier and
 permits streams that supply them in-band.
 See [H.264](https://www.itu.int/rec/T-REC-H.264/en) and the
 [Axis SPS and decoder configuration helpers](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/mp4muxer/helpers).
-The parsers do not yet interpret VUI, optional PPS extensions or slice
-data. Level-dependent SPS limits and PPS constraints that depend on the
-referenced SPS require further validation when selecting a configuration.
-Decoder configuration selection, picture boundary detection and MP4
-generation remain separate tasks.
+The parameter set store in `h264Configuration.ts` selects the SPS and
+PPS referenced by a slice. It owns their bytes, preserves unchanged entries
+and validates quantization and slice group bounds against the selected SPS.
+Either set may arrive first; a missing set prevents configuration selection.
+The caller must create a new store when the RTP source changes.
+
+`h264SliceHeader.ts` reads picture identification fields from at most 36
+RBSP bytes of a slice. It supports ordinary AVC slice headers and data
+partition A, including picture order counts, field coding and colour planes.
+The primary picture comparison follows H.264 section 7.4.1.2.4 rather
+than using the first macroblock address as a picture boundary.
+The caller must handle parameter set changes and redundant slices.
+Picture identification alone does not prove that a complete picture arrived.
+
+VUI, optional PPS extensions, level-dependent SPS limits and the remaining
+slice header and slice data are not yet interpreted or validated.
+Using the new helpers for access unit boundaries and decoder recovery,
+then generating MP4 data, remain separate tasks.
 
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP

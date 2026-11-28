@@ -240,6 +240,7 @@ test('reads mandatory PPS fields and retains slice parsing information', () => {
   assert.deepEqual(parseH264Pps(decode('aOvjyyLA')), {
     id: 0, spsId: 0, entropyCodingMode: true, bottomFieldPicOrderInFramePresent: false,
     numSliceGroups: 1, sliceGroupMapType: undefined, sliceGroupChangeRate: undefined,
+    sliceGroupRunLengths: undefined, sliceGroupRectangles: undefined, sliceGroupMapUnits: undefined,
     numRefIdxL0DefaultActive: 3, numRefIdxL1DefaultActive: 1,
     weightedPred: true, weightedBipredIdc: 2,
     picInitQpMinus26: -3, picInitQsMinus26: 0, chromaQpIndexOffset: -2,
@@ -252,6 +253,7 @@ test('reads mandatory PPS fields and retains slice parsing information', () => {
   })), {
     id: 255, spsId: 31, entropyCodingMode: true, bottomFieldPicOrderInFramePresent: true,
     numSliceGroups: 1, sliceGroupMapType: undefined, sliceGroupChangeRate: undefined,
+    sliceGroupRunLengths: undefined, sliceGroupRectangles: undefined, sliceGroupMapUnits: undefined,
     numRefIdxL0DefaultActive: 32, numRefIdxL1DefaultActive: 32,
     weightedPred: true, weightedBipredIdc: 1,
     picInitQpMinus26: -62, picInitQsMinus26: 25, chromaQpIndexOffset: 12,

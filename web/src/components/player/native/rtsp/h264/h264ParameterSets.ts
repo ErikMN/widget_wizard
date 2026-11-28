@@ -30,6 +30,7 @@ export interface H264Sps {
   readonly deltaPicOrderAlwaysZero?: boolean;
   readonly maxNumRefFrames: number;
   readonly frameMbsOnly: boolean;
+  readonly mbAdaptiveFrameField: boolean;
   readonly codedWidth: number;
   readonly codedHeight: number;
   readonly width: number;
@@ -44,6 +45,9 @@ export interface H264Pps {
   readonly numSliceGroups: number;
   readonly sliceGroupMapType?: number;
   readonly sliceGroupChangeRate?: number;
+  readonly sliceGroupRunLengths?: readonly number[];
+  readonly sliceGroupRectangles?: readonly { topLeft: number; bottomRight: number }[];
+  readonly sliceGroupMapUnits?: number;
   readonly numRefIdxL0DefaultActive: number;
   readonly numRefIdxL1DefaultActive: number;
   readonly weightedPred: boolean;
@@ -127,9 +131,7 @@ export const parseH264Sps = (nal: Uint8Array): H264Sps => {
   const codedWidth = (reader.readUnsigned(4095) + 1) * 16;
   const heightInMapUnits = reader.readUnsigned(4095) + 1;
   const frameMbsOnly = reader.readFlag();
-  if (!frameMbsOnly) {
-    reader.readFlag(); /* mb_adaptive_frame_field_flag */
-  }
+  const mbAdaptiveFrameField = !frameMbsOnly && reader.readFlag();
   reader.readFlag(); /* direct_8x8_inference_flag */
   const frameFactor = frameMbsOnly ? 1 : 2;
   const codedHeight = heightInMapUnits * 16 * frameFactor;
@@ -173,6 +175,7 @@ export const parseH264Sps = (nal: Uint8Array): H264Sps => {
     deltaPicOrderAlwaysZero,
     maxNumRefFrames,
     frameMbsOnly,
+    mbAdaptiveFrameField,
     codedWidth,
     codedHeight,
     width,
@@ -189,19 +192,25 @@ export const parseH264Pps = (nal: Uint8Array): H264Pps => {
   const numSliceGroups = reader.readUnsigned(7) + 1;
   let sliceGroupMapType: number | undefined;
   let sliceGroupChangeRate: number | undefined;
+  let sliceGroupRunLengths: number[] | undefined;
+  let sliceGroupRectangles: { topLeft: number; bottomRight: number }[] | undefined;
+  let sliceGroupMapUnits: number | undefined;
   if (numSliceGroups > 1) {
     sliceGroupMapType = reader.readUnsigned(6);
     if (sliceGroupMapType === 0) {
+      sliceGroupRunLengths = [];
       for (let i = 0; i < numSliceGroups; i++) {
-        reader.readUnsigned(); /* run_length_minus1 */
+        sliceGroupRunLengths.push(reader.readUnsigned() + 1);
       }
     } else if (sliceGroupMapType === 2) {
+      sliceGroupRectangles = [];
       for (let i = 0; i < numSliceGroups - 1; i++) {
         const topLeft = reader.readUnsigned();
         const bottomRight = reader.readUnsigned();
         if (topLeft > bottomRight) {
           throw new Error('Invalid H.264 slice group rectangle');
         }
+        sliceGroupRectangles.push({ topLeft, bottomRight });
       }
     } else if (sliceGroupMapType >= 3 && sliceGroupMapType <= 5) {
       if (numSliceGroups !== 2) {
@@ -211,6 +220,7 @@ export const parseH264Pps = (nal: Uint8Array): H264Pps => {
       sliceGroupChangeRate = reader.readUnsigned() + 1;
     } else if (sliceGroupMapType === 6) {
       const mapUnits = reader.readUnsigned() + 1;
+      sliceGroupMapUnits = mapUnits;
       const bitsPerId = Math.ceil(Math.log2(numSliceGroups));
       if (mapUnits > Math.floor(reader.remaining / bitsPerId)) {
         throw new Error('Truncated H.264 slice group map');
@@ -251,6 +261,9 @@ export const parseH264Pps = (nal: Uint8Array): H264Pps => {
     numSliceGroups,
     sliceGroupMapType,
     sliceGroupChangeRate,
+    sliceGroupRunLengths,
+    sliceGroupRectangles,
+    sliceGroupMapUnits,
     numRefIdxL0DefaultActive,
     numRefIdxL1DefaultActive,
     weightedPred,
