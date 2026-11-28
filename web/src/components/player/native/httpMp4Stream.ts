@@ -1,3 +1,12 @@
+/* HTTP MP4 playback
+ *
+ * Read fragmented MP4 from the device and append it to a MediaSource for
+ * browser decoding. Keep the buffer small by removing played media and
+ * slowing reads when enough video is available ahead of the playhead.
+ *
+ * Each stream owns its request, media source and cancellation. The caller
+ * is notified when playback ends or fails and decides whether to reconnect.
+ */
 /* Keep ten seconds of played media and limit how far reading can run ahead. */
 const BUFFER_BEHIND = 10;
 const BUFFER_AHEAD = 10;

@@ -1,3 +1,10 @@
+/* Video overlay geometry
+ *
+ * Calculate the visible image rectangle from the decoded video dimensions
+ * and the element's position and size. Widgets use this rectangle instead
+ * of the entire element so they stay aligned with the image when black bars
+ * appear. The calculations are independent of the DOM and React.
+ */
 import type { Dimensions } from '../../appInterface';
 
 const DIMENSIONS_EPSILON = 0.5;

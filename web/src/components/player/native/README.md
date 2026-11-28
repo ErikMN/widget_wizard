@@ -114,69 +114,52 @@ and additional stream measurements are not yet implemented.
 See [VAPIX media streaming over HTTP](https://developer.axis.com/vapix/network-video/media-stream-over-http/)
 and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
 
-## RTSP protocol
+## RTSP playback
 
-`rtsp/rtspWebSocket.ts` opens the WebSocket with the binary subprotocol.
-If the handshake fails, it requests a token from
-`/axis-cgi/rtspwssession.cgi` using the browser's credentials and retries
-once with the `rtspwssession` query parameter.
-The token request and socket must target the same host and security scheme.
-The token is not cached, and HTTPS with WSS protects it during transmission.
+The RTSP modules handle the connection and streaming protocol independently
+of the player interface. They do not decode video or audio.
 
-A single 20-second deadline covers connection setup, including the token
-request and retry. Startup failures reject the connection promise.
-Once connected, messages are delivered synchronously in wire order.
-Unexpected closure, socket errors and malformed messages end the
-connection and notify the caller. Explicit close or cancellation does
-not call the end handler. Closing removes listeners and releases the
-parser; the caller controls whether to reconnect.
-RTSP command authentication and session negotiation belong to the session layer.
+`rtspWebSocket.ts` opens a binary WebSocket to the device. If the handshake
+fails, it requests a fresh session token from `rtspwssession.cgi` and
+tries once more. Both attempts and the token request share a 20-second
+deadline. Closing cancels pending work and releases the connection.
 
-`rtsp/rtspMessage.ts` serializes RTSP 1.0 requests and separates incoming
-RTSP messages from interleaved binary packets. Each connection owns a
-parser. Input chunks may contain partial or multiple messages.
-RTSP bodies are read using Content-Length in bytes, except that 1xx, 204
-and 304 responses end at the header delimiter regardless of that value.
-Interleaved packets use the channel and length in their four-byte header.
-The session must identify RTP and RTCP using the negotiated channels.
+`rtspMessage.ts` separates RTSP commands and replies from media packets,
+even when a message arrives in several pieces. It limits incomplete
+headers to 32 KiB and RTSP bodies to 1 MiB. These limits do not restrict
+the browser's own WebSocket buffers.
 
-The parser retains only an incomplete header and payload. It limits RTSP
-headers to 32 KiB and bodies to 1 MiB. Outgoing headers use CRLF;
-incoming CR or LF delimiters are also accepted for compatibility.
-The transport does not add an incoming queue, but these limits do not
-bound the browser's WebSocket buffering.
+`sdp.ts` reads the media description returned by the camera, including
+track control URLs, codecs, clock rates and audio channel counts.
+Optional frame dimensions preserve compatibility with Axis JPEG
+descriptions. A single track may use the description URL if its own
+control URL is missing; multiple tracks must have distinct URLs.
+The parser preserves whether the camera advertises session-wide control.
 
-See [RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html), sections 4.4
-and 10.12, and the Axis
-[WebSocket authentication flow](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts).
+`rtspSession.ts` requests the description, sets up the selected tracks
+and starts playback. Media handlers receive the negotiated tracks and
+playback timing before receiving packets. The session routes packets
+using the channel numbers returned by the camera and discards packets
+received before PLAY succeeds.
 
-### Media description
+The session waits at most ten seconds for a command reply, or less when
+the advertised session timeout is shorter. Keepalive requests use half
+the timeout, capped at 30 seconds, measured from the previous command's
+send time. If no positive timeout is advertised, use 60 seconds as the
+session timeout. Stop and failure cancel timers, attempt TEARDOWN and
+close the connection. RTSP response errors retain the numeric status so
+the caller can decide whether to retry.
 
-`rtsp/sdp.ts` reads the SDP returned by DESCRIBE. It resolves session
-and track control URLs against Content-Base, Content-Location or the
-request URI, in that order. The optional `aggregateControlUri` is present
-only when session-wide control is advertised. A single-stream description
-may omit its media control attribute and use the aggregate URL or base.
-In multi-stream descriptions, supported RTP tracks must have distinct
-control URLs. Media ports must be in the range 0 to 65535; zero is valid
-for RTSP transport negotiation.
+Multiple selected tracks require session-wide control. RTSP command
+authentication and separate sessions for individual tracks are not
+implemented. The existing Axis playback implementation is still used
+until the native media handlers are ready.
 
-For each RTP track, the description retains its payload types, encoding
-names, clock rates, audio channel counts and codec parameters.
-Optional frame dimensions support Axis JPEG descriptions when the RTP
-header cannot represent the image size.
-Static JPEG and G.711 payload assignments are recognized without an
-rtpmap attribute. Unknown encodings remain unspecified.
-Only the unencrypted RTP profiles used for interleaved streaming are
-parsed; codec selection and decoding are separate responsibilities.
-
-See [VAPIX RTSP DESCRIBE](https://developer.axis.com/vapix/network-video/video-streaming/#rtsp-describe),
-[RFC 2326 Appendix C](https://www.rfc-editor.org/rfc/rfc2326.html#appendix-C),
+See the [VAPIX streaming documentation](https://developer.axis.com/vapix/network-video/video-streaming/),
+the [Axis WebSocket implementation](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts),
+[RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html),
 [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551.html) and
 [RFC 8866](https://www.rfc-editor.org/rfc/rfc8866.html).
-
-These helpers are not yet connected to the player. RTSP playback uses
-the Axis implementation.
 
 ## Client stream information
 
