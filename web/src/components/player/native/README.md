@@ -263,9 +263,32 @@ Adjacent timestamps must differ by less than half the clock range
 RTP timestamps specify presentation time, not decode time. The Axis
 [MP4 box builder](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/mp4muxer/helpers/boxbuilder.ts)
 derives durations from adjacent RTP timestamps, which is insufficient for
-reordered pictures. Decode timing, sample durations and picture timing SEI
-are not yet implemented. MP4 generation and browser integration will follow.
-Optional PPS extensions and the remaining slice syntax are not interpreted.
+reordered pictures.
+
+`h264SampleTiming.ts` constructs a decode schedule for progressive video
+with an explicit reordering bound and no signalled picture structures.
+For non-reordered pictures, decode and presentation times are equal.
+The next picture determines the preceding sample's duration. At a clean
+end, the caller must supply the final duration or omit the untimed sample.
+For reordered pictures, an explicitly declared fixed frame cadence is
+required. Decode times are spaced at this cadence with a lead equal to
+the declared reordering bound. Fractional frame intervals are rounded
+at each boundary to avoid cumulative drift. Presentation times remain
+the original RTP times. Each timestamp is checked against the declared
+cadence within one RTP tick, and the number of reordered pictures is bounded.
+
+These are playback decode times, not recovered sender DTS. All times
+are in 90 kHz ticks; initial decode times may be negative. The future
+muxer must choose a common non-negative media timeline without losing
+presentation offsets. Durations and composition offsets must fit MP4
+unsigned 32-bit fields, and sample end times must remain exact integers.
+A rejected sample closes the timeline and discards pending data. Create
+a new timeline at each discontinuity rather than timing samples across
+the loss. Fields, multiple display events, variable-rate reordered video
+and streams with no explicit reordering bound are not supported here.
+Picture timing SEI and inferred profile defaults remain to be implemented,
+followed by MP4 generation and browser integration. Optional PPS extensions
+and the remaining slice syntax are not interpreted.
 
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP
