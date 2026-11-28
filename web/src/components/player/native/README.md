@@ -150,6 +150,12 @@ session timeout. Stop and failure cancel timers, attempt TEARDOWN and
 close the connection. RTSP response errors retain the numeric status so
 the caller can decide whether to retry.
 
+`rtp.ts` extracts media data, sequence numbers and timestamps from RTP
+packets without copying the payload. `rtcp.ts` reads sender reports for
+later audio and video synchronization, and goodbye messages that identify
+ended sources. Both validate packet boundaries; decoding, timing and
+handling missing packets belong to the media handlers.
+
 Multiple selected tracks require session-wide control. RTSP command
 authentication and separate sessions for individual tracks are not
 implemented. The existing Axis playback implementation is still used
@@ -158,6 +164,7 @@ until the native media handlers are ready.
 See the [VAPIX streaming documentation](https://developer.axis.com/vapix/network-video/video-streaming/),
 the [Axis WebSocket implementation](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/streams/src/components/ws-source/openwebsocket.ts),
 [RFC 2326](https://www.rfc-editor.org/rfc/rfc2326.html),
+[RFC 3550](https://www.rfc-editor.org/rfc/rfc3550.html),
 [RFC 3551](https://www.rfc-editor.org/rfc/rfc3551.html) and
 [RFC 8866](https://www.rfc-editor.org/rfc/rfc8866.html).
 
