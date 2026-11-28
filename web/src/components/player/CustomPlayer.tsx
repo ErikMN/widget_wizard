@@ -34,6 +34,9 @@ import { Limiter } from './Limiter';
 import { PlayerControls } from './PlayerControls';
 import { SystemStatsOverlay } from './SystemStatsOverlay';
 import { getImageURL } from './GetImageURL';
+import { HttpImage } from './native/HttpImage';
+import { getStreamUrls } from './native/streamUrls';
+import { usePlaybackProperties } from './native/usePlaybackProperties';
 
 import {
   useSwitch,
@@ -112,8 +115,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     const [offset, setOffset] = useState(0);
     const [refresh, setRefresh] = useState(0);
     const [host, setHost] = useState(hostname);
-    const [waiting, setWaiting] = useState(autoPlay);
-    const [volume, setVolume] = useState<number>();
     const [expanded, setExpanded] = useState(true);
 
     /**
@@ -146,6 +147,18 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
      * VAPIX parameters
      */
     const [vapixParameters, setVapixParameters] = useState(vapixParams);
+
+    const isImageFormat = format === 'JPEG' || format === 'MJPEG';
+    const imageUrl =
+      isImageFormat && play
+        ? getStreamUrls(
+            host,
+            secure ?? (window.location.protocol === 'https:'),
+            format,
+            vapixParameters,
+            refresh
+          )?.url
+        : undefined;
 
     useEffect(() => {
       /**
@@ -200,26 +213,33 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
     /**
      * Controls
      */
-    const [videoProperties, setVideoProperties] = useState<VideoProperties>();
+    /* A new request invalidates properties even if the resolution is unchanged. */
+    const playbackRequest = useMemo(
+      () =>
+        play && host
+          ? { format, refresh, host, secure, parameters: vapixParameters }
+          : undefined,
+      [format, refresh, host, play, secure, vapixParameters]
+    );
+    const {
+      videoProperties,
+      naturalAspectRatio,
+      volume,
+      setVolume,
+      onPlaying
+    } = usePlaybackProperties<VideoProperties>(playbackRequest);
+    const waiting = !!host && play && videoProperties === undefined;
 
     /* Screen size */
     const { isMobile } = useScreenSizes();
-
-    const onPlaying = useCallback((props: VideoProperties) => {
-      setVideoProperties(props);
-      setWaiting(false);
-      setVolume(props.volume);
-    }, []);
 
     const onPlayStop = useCallback(() => {
       if (host) {
         playbackRequestedRef.current = false;
         setPlay(false);
         setHost('');
-        setWaiting(false);
       } else {
         playbackRequestedRef.current = true;
-        setWaiting(true);
         setHost(hostname);
         setPlay(true);
       }
@@ -229,7 +249,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       playbackRequestedRef.current = true;
       setPlay(true);
       setRefresh((value) => value + 1);
-      setWaiting(true);
     }, []);
 
     const onScreenshot = useCallback(() => {
@@ -256,10 +275,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           }
           return newParams;
         });
-        /* NOTE: Clear video properties if setting default resolution */
-        if (key === 'resolution' && value === '') {
-          setVideoProperties(undefined);
-        }
         setRefresh((refreshCount) => refreshCount + 1);
       },
       []
@@ -281,10 +296,8 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           setPlay(true);
           setHost(hostname);
           setRefresh((value) => value + 1);
-          setWaiting(true);
         } else if (document.visibilityState === 'hidden') {
           setPlay(false);
-          setWaiting(false);
           setHost('');
         }
       };
@@ -293,22 +306,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
 
       return () => document.removeEventListener('visibilitychange', cb);
     }, [hostname]);
-
-    /**
-     * Aspect ratio
-     *
-     * This needs to be set so make the Container (and Layers) match the size of
-     * the visible image of the video or still image.
-     */
-    const naturalAspectRatio = useMemo(() => {
-      if (videoProperties === undefined) {
-        return undefined;
-      }
-
-      const { width, height } = videoProperties;
-
-      return width / height;
-    }, [videoProperties]);
 
     /**
      * Limit video size.
@@ -359,6 +356,7 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       host,
       play,
       videoProperties,
+      naturalAspectRatio,
       isMobile,
       isFullscreen,
       showStatsOverlay,
@@ -424,26 +422,36 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
           <Limiter ref={limiterRef}>
             <Container aspectRatio={naturalAspectRatio}>
               <Layer>
-                <PlaybackArea
-                  forwardedRef={ref}
-                  refresh={refresh}
-                  play={play}
-                  offset={offset}
-                  host={host}
-                  format={legacyFormat}
-                  parameters={vapixParameters}
-                  onPlaying={onPlaying}
-                  onEnded={onEnded}
-                  secure={secure}
-                  autoRetry={autoRetry}
-                />
+                {isImageFormat ? (
+                  <HttpImage
+                    key={imageUrl ?? format}
+                    ref={ref as React.Ref<HTMLImageElement>}
+                    src={imageUrl}
+                    onPlaying={onPlaying}
+                  />
+                ) : (
+                  <PlaybackArea
+                    key={JSON.stringify(playbackRequest)}
+                    forwardedRef={ref}
+                    refresh={refresh}
+                    play={play}
+                    offset={offset}
+                    host={host}
+                    format={legacyFormat}
+                    parameters={vapixParameters}
+                    onPlaying={onPlaying}
+                    onEnded={onEnded}
+                    secure={secure}
+                    autoRetry={autoRetry}
+                  />
+                )}
               </Layer>
               <Layer>
                 {/*
                   Show Feedback only while the stream is starting:
                   - host: a real backend endpoint is set
                   - play: the user has requested playback
-                  - waiting: PlaybackArea has not yet emitted onPlaying
+                  - waiting: the playback component has not yet emitted onPlaying
                   This prevents the spinner from appearing after Stop or during teardown.
                 */}
                 <Feedback waiting={!!host && play && waiting} />
