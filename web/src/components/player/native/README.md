@@ -156,6 +156,19 @@ later audio and video synchronization, and goodbye messages that identify
 ended sources. Both validate packet boundaries; decoding, timing and
 handling missing packets belong to the media handlers.
 
+The helpers in `rtsp/jpeg` rebuild complete JPEG images from RTP fragments.
+They retain the Axis dimension fallback, support generated and transmitted
+quantization tables, and discard incomplete frames instead of passing them
+to the browser. Fragments are retained only for the current frame, with
+limits on scan size, packet storage and fragment count. The assembler
+expects packets in order, as provided by the WebSocket connection.
+
+The JPEG tables are adapted from the Axis
+[JPEG decoder](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/jpegdepay)
+and follow [RFC 2435](https://www.rfc-editor.org/rfc/rfc2435.html).
+The Axis MIT notice is retained as described below.
+Browser rendering and interlaced field presentation are separate tasks.
+
 Multiple selected tracks require session-wide control. RTSP command
 authentication and separate sessions for individual tracks are not
 implemented. The existing Axis playback implementation is still used
