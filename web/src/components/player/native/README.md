@@ -29,6 +29,20 @@ replaced.
 | `MJPEG`    | HTTP MJPEG                 | Image         |
 | `JPEG`     | HTTP still image           | Image         |
 
+## Stream URLs
+
+`streamUrls.ts` builds the VAPIX request URLs for each existing format.
+It preserves supplied device parameters and selects the codec and container
+required by the format. For RTSP it also returns the WebSocket transport
+and session token URLs. An empty host returns no stream URL.
+
+The native playback components will use this helper as they replace the
+library's components. The existing library still builds its own URLs.
+
+See [VAPIX media streaming over HTTP](https://developer.axis.com/vapix/network-video/media-stream-over-http/)
+and the [upstream playback component](https://github.com/AxisCommunications/media-stream-library-js/blob/main/src/player/PlaybackArea.tsx)
+for the existing endpoints and parameter behavior.
+
 ## Dimensions
 
 The `Dimensions` interface describes two coordinate spaces: the intrinsic
@@ -56,7 +70,8 @@ Run `yarn test`, `yarn lint` and `yarn build` from the `web` directory.
 The geometry tests cover aspect ratios, container offsets, zero dimensions
 and the existing subpixel tolerance. Observer tests cover element replacement,
 intrinsic dimension events and cleanup. Format tests cover the saved identifiers
-and fallback for invalid values.
+and fallback for invalid values. URL tests cover all existing formats, encoding,
+secure connections, custom ports and missing hosts.
 
 Before replacing a playback implementation, verify it on a supported camera:
 
