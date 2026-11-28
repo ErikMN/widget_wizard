@@ -192,6 +192,25 @@ not RTSP protocol limits.
 
 Interlaced fields are not combined into full frames.
 
+The H.264 assembler in `rtsp/h264/h264AccessUnit.ts` collects NAL units
+from single, aggregated and fragmented RTP packets in transmission order.
+It supports packetization modes zero and one, using the marker bit to
+complete an access unit. Missing packets or malformed fragments discard
+the affected unit and flag a discontinuity on the next output. Parameter
+sets and other non-picture NAL units are preserved for decoder setup.
+Incomplete units have byte, packet and NAL count limits.
+The implementation follows [RFC 6184](https://www.rfc-editor.org/rfc/rfc6184.html)
+and references the [Axis H.264 depayloader](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/h264depay).
+Empty fragments are allowed, but complete NAL units need payload data
+except for the end of sequence and end of stream markers defined in
+[H.264](https://www.itu.int/rec/T-REC-H.264/en).
+The assembler currently requires a marker to emit a picture; a timestamp
+change without a marker discards the previous unit. An IDR flag only
+indicates that an IDR slice was received, not that the picture is complete.
+Before enabling native H.264 playback, bitstream parsing must handle missing
+markers and decoder recovery must account for starting within a picture.
+Decoder configuration and MP4 generation are separate tasks.
+
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP
 retry handling remain to be implemented. RTSP H.264 still uses the Axis
