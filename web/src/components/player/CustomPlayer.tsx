@@ -13,12 +13,7 @@ import React, {
   useRef,
   useState
 } from 'react';
-import {
-  Stats,
-  PlaybackArea,
-  Format,
-  VideoProperties
-} from 'media-stream-player';
+import { PlaybackArea, Format, VideoProperties } from 'media-stream-player';
 import {
   getStreamFormat,
   type PlayerNativeElement,
@@ -37,6 +32,8 @@ import { getImageURL } from './GetImageURL';
 import { HttpImage } from './native/HttpImage';
 import { getStreamUrls } from './native/streamUrls';
 import { usePlaybackProperties } from './native/usePlaybackProperties';
+import { StreamStats } from './native/StreamStats';
+import { readLegacyStreamMetrics } from './native/legacyStreamStats';
 
 import {
   useSwitch,
@@ -229,6 +226,10 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       onPlaying
     } = usePlaybackProperties<VideoProperties>(playbackRequest);
     const waiting = !!host && play && videoProperties === undefined;
+    const readMetrics = useCallback(
+      () => (videoProperties ? readLegacyStreamMetrics(videoProperties) : {}),
+      [videoProperties]
+    );
 
     /* Screen size */
     const { isMobile } = useScreenSizes();
@@ -408,9 +409,11 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         {/* Client stream data */}
         {showStatsOverlay && videoProperties && (
           <div style={{ position: 'static', zIndex: 10 }}>
-            <Stats
-              format={legacyFormat}
-              videoProperties={videoProperties}
+            <StreamStats
+              format={format}
+              width={videoProperties.width}
+              height={videoProperties.height}
+              readMetrics={readMetrics}
               refresh={refresh}
               volume={volume}
               expanded={expanded}

@@ -9,7 +9,7 @@ so that the application can own playback, stream information and geometry.
 `VideoPlayer` handles camera authorization, fullscreen and the overlay surface.
 `CustomPlayer` manages playback settings, playback requests and the player
 controls. Native HTTP image playback is used for JPEG and MJPEG. The Axis
-library still supplies MP4 and RTSP playback and client stream information.
+library still supplies MP4 and RTSP playback.
 The migration must preserve the existing UI.
 
 The player owns the format identifiers, native media element type and VAPIX
@@ -18,9 +18,8 @@ An invalid or unsupported saved identifier falls back to the initial format
 without overwriting the saved value.
 
 `CustomPlayer` converts the selected format to the library enum for playback
-and client statistics. The controls still use the library's `VideoProperties`
-for progress information until the playback and statistics interfaces are
-replaced.
+only. The controls still use the library's `VideoProperties` for progress
+information until the playback interfaces are replaced.
 
 | Format     | Transport and codec        | Media element |
 | ---------- | -------------------------- | ------------- |
@@ -68,6 +67,27 @@ HTTP image errors do not use the RTSP retry path. The browser remains
 responsible for decoding multipart MJPEG; per-frame statistics are not
 introduced in this step.
 
+## Client stream data
+
+`StreamStats.tsx` owns the statistics panel and preserves the layout of
+the installed Axis player release. `streamStats.ts` formats the current
+resolution, refresh count, volume and available stream metrics. The
+panel samples metrics once per second while expanded and stops sampling
+when hidden or unmounted.
+
+`legacyStreamStats.ts` is the temporary adapter for the remaining Axis
+pipeline metrics. It reports the video track encoding, frame rate and
+bitrate when available. JPEG, MJPEG and the existing HTTP MP4 playback
+continue to display the basic stream information when no metrics are
+provided. Native transports can provide their own metrics without
+changing the panel. Missing measurements are not replaced with estimates.
+
+Panel styling and icon are adapted from
+[media-stream-player v13.3.3](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/player/src/Stats.tsx).
+The original MIT notice is included in the root `LICENSE` and in
+`web/public/LICENSE.axis.txt`. Vite copies the public notice into the web
+build so it also accompanies web-only deployments.
+
 ## Dimensions
 
 The `Dimensions` interface describes two coordinate spaces: the intrinsic
@@ -99,7 +119,8 @@ and fallback for invalid values. URL tests cover all existing formats, encoding,
 secure connections, custom ports and missing hosts. Image request tests cover
 load events, dimension changes, cleanup and restarting the same URL.
 Playback property tests cover replacement, late reports and retaining the
-aspect ratio during reconnection.
+aspect ratio during reconnection. Statistics tests cover format labels,
+units, missing measurements and video track selection.
 
 Before replacing a playback implementation, verify it on a supported camera:
 
