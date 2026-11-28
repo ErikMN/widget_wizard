@@ -209,7 +209,19 @@ change without a marker discards the previous unit. An IDR flag only
 indicates that an IDR slice was received, not that the picture is complete.
 Before enabling native H.264 playback, bitstream parsing must handle missing
 markers and decoder recovery must account for starting within a picture.
-Decoder configuration and MP4 generation are separate tasks.
+The H.264 parameter set helpers read the SPS fields for codec identification,
+cropped picture dimensions and slice header parsing. The SPS reference
+frame count is bounded to 16. The PPS parser reads mandatory syntax,
+including slice group maps, reference indices and quantization fields.
+The SDP format parser retains multiple parameter sets by identifier and
+permits streams that supply them in-band.
+See [H.264](https://www.itu.int/rec/T-REC-H.264/en) and the
+[Axis SPS and decoder configuration helpers](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/mp4muxer/helpers).
+The parsers do not yet interpret VUI, optional PPS extensions or slice
+data. Level-dependent SPS limits and PPS constraints that depend on the
+referenced SPS require further validation when selecting a configuration.
+Decoder configuration selection, picture boundary detection and MP4
+generation remain separate tasks.
 
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP
