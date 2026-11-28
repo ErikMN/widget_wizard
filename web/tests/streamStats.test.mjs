@@ -4,7 +4,6 @@ import { createServer } from 'vite';
 
 let server;
 let getStreamStats;
-let readLegacyStreamMetrics;
 
 before(async () => {
   server = await createServer({
@@ -13,9 +12,6 @@ before(async () => {
   });
   ({ getStreamStats } = await server.ssrLoadModule(
     '/src/components/player/native/streamStats.ts'
-  ));
-  ({ readLegacyStreamMetrics } = await server.ssrLoadModule(
-    '/src/components/player/native/legacyStreamStats.ts'
   ));
 });
 
@@ -68,32 +64,4 @@ test('omits unavailable metrics but retains a measured zero', () => {
     { name: 'Bitrate', value: 0, unit: 'kbit/s' },
     { name: 'Volume', value: 0, unit: '%' }
   ]);
-});
-
-test('selects the video track rather than the first track', () => {
-  assert.deepEqual(
-    readLegacyStreamMetrics({
-      pipeline: {
-        tracks: [
-          { type: 'audio' },
-          {
-            type: 'video',
-            codec: { coding: 'H.264', profile: 'Main', level: '4.1' }
-          }
-        ],
-        framerate: [50, 30],
-        bitrate: [64000, 2000000]
-      }
-    }),
-    { encoding: 'H.264 Main (4.1)', frameRate: 30, bitrate: 2000000 }
-  );
-});
-
-test('returns no metrics without a reported video track', () => {
-  assert.deepEqual(readLegacyStreamMetrics({}), {});
-  assert.deepEqual(readLegacyStreamMetrics({ pipeline: {} }), {});
-  assert.deepEqual(
-    readLegacyStreamMetrics({ pipeline: { tracks: [{ type: 'audio' }] } }),
-    {}
-  );
 });

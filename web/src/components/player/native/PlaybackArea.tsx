@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useCallback } from 'react';
 import {
   PlaybackArea as LegacyPlaybackArea,
   Format,
@@ -7,11 +7,16 @@ import {
 import { HttpImage } from './HttpImage';
 import { HttpMp4Video } from './HttpMp4Video';
 import { getStreamUrls } from './streamUrls';
-import type { PlaybackRequest, PlayerNativeElement } from './types';
+import { adaptLegacyPlaybackProperties } from './legacyPlaybackProperties';
+import type {
+  PlaybackProperties,
+  PlaybackRequest,
+  PlayerNativeElement
+} from './types';
 
 interface PlaybackAreaProps {
   readonly request: PlaybackRequest;
-  readonly onPlaying: (properties: VideoProperties) => void;
+  readonly onPlaying: (properties: PlaybackProperties) => void;
   readonly onEnded: (retry?: boolean) => void;
   readonly autoRetry: boolean;
 }
@@ -20,6 +25,11 @@ interface PlaybackAreaProps {
 export const PlaybackArea = forwardRef<PlayerNativeElement, PlaybackAreaProps>(
   ({ request, onPlaying, onEnded, autoRetry }, ref) => {
     const { play, host, format, parameters, refresh, offset, secure } = request;
+    const onLegacyPlaying = useCallback(
+      (properties: VideoProperties) =>
+        onPlaying(adaptLegacyPlaybackProperties(properties)),
+      [onPlaying]
+    );
 
     if (format === 'JPEG' || format === 'MJPEG') {
       const src = play
@@ -76,7 +86,7 @@ export const PlaybackArea = forwardRef<PlayerNativeElement, PlaybackAreaProps>(
         host={host}
         format={Format[format]}
         parameters={parameters}
-        onPlaying={onPlaying}
+        onPlaying={onLegacyPlaying}
         onEnded={onEnded}
         secure={secure}
         autoRetry={autoRetry}

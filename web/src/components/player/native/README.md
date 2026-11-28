@@ -24,9 +24,10 @@ The format identifiers, media element types and request settings are defined
 in `types.ts`. The five original format identifiers remain compatible with
 saved settings; `MP4_AV1` is new.
 
-The RTSP components still use the Axis playback area. The library's
-`VideoProperties` type and pipeline metrics remain in use until the
-playback and statistics interfaces are replaced.
+The RTSP components still use the Axis playback area.
+`legacyPlaybackProperties.ts` adapts their reports to the player's own
+`PlaybackProperties` type. The rest of the player does not access the
+Axis pipelines.
 
 ## Format and resolution availability
 
@@ -61,6 +62,13 @@ count, playback state and RTSP seek offset. Changing the request
 invalidates previous playback properties.
 `usePlaybackProperties.ts` ignores reports from inactive or terminated
 requests and retains the last known aspect ratio while a stream starts.
+
+Playback reports contain the media element and its intrinsic dimensions.
+An optional initial volume enables the audio controls. The optional
+timeline supplies recording range bounds and a reader for current time,
+in seconds relative to the range start. Optional metrics are read from
+the active stream when the statistics panel samples them. HTTP playback
+reports dimensions only; no placeholder volume or timeline is supplied.
 
 Stopping or hiding the page closes the connection. Returning to the
 page restarts playback only if the user has not pressed Stop.
@@ -111,7 +119,7 @@ and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer
 
 `StreamStats.tsx` owns the panel and samples metrics once per second while
 expanded. `streamStats.ts` formats the available measurements.
-`legacyStreamStats.ts` reads video track metrics from the Axis pipelines.
+The legacy playback adapter reads video track metrics on demand.
 HTTP formats show basic stream information; missing measurements are not
 estimated. AV1 has its own stream type label.
 

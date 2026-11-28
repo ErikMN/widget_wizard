@@ -1,10 +1,4 @@
-import type { StreamFormat } from './types';
-
-export interface StreamMetrics {
-  readonly encoding?: string;
-  readonly frameRate?: number;
-  readonly bitrate?: number;
-}
+import type { StreamFormat, StreamMetrics } from './types';
 
 interface StreamStat {
   readonly name: string;

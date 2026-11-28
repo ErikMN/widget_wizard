@@ -15,6 +15,30 @@ export type PlayerNativeElement =
   | HTMLImageElement
   | HTMLCanvasElement;
 
+/* Frame rate is measured in frames per second and bitrate in bits per second. */
+export interface StreamMetrics {
+  readonly encoding?: string;
+  readonly frameRate?: number;
+  readonly bitrate?: number;
+}
+
+/* Times are in seconds. The current time is relative to the range start. */
+export interface PlaybackTimeline {
+  readonly start?: number;
+  readonly end?: number;
+  readonly readCurrentTime: () => number;
+}
+
+export interface PlaybackProperties {
+  readonly el: PlayerNativeElement;
+  readonly width: number;
+  readonly height: number;
+  /* Initial volume from zero to one, when audio controls are available. */
+  readonly volume?: number;
+  readonly timeline?: PlaybackTimeline;
+  readonly readMetrics?: () => StreamMetrics;
+}
+
 export interface VapixParameters {
   readonly [key: string]: string;
 }

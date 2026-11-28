@@ -52,7 +52,7 @@ test('reports actual image dimensions without audio support', () => {
   assert.equal(reports.length, 0);
   image.load(1920, 1080);
   assert.deepEqual(reports, [
-    { el: image, width: 1920, height: 1080, formatSupportsAudio: false }
+    { el: image, width: 1920, height: 1080 }
   ]);
   stop();
 });

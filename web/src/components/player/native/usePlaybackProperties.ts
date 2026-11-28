@@ -1,20 +1,19 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
-interface PlaybackProperties {
-  readonly width: number;
-  readonly height: number;
-  readonly volume?: number;
-}
+import type { PlaybackProperties, PlaybackRequest } from './types';
 
 /* Keep playback properties associated with the request that produced them.
  * The last known aspect ratio remains available while a new stream starts.
  */
-export const usePlaybackProperties = <T extends PlaybackProperties>(
-  request: object | undefined,
+export const usePlaybackProperties = (
+  request: PlaybackRequest | undefined,
   onStreamEnded?: () => void
 ) => {
-  const activeRequest = useRef<object | undefined>(undefined);
-  const [report, setReport] = useState<{ request: object; properties?: T }>();
+  const activeRequest = useRef<PlaybackRequest | undefined>(undefined);
+  const [report, setReport] = useState<{
+    request: PlaybackRequest;
+    properties?: PlaybackProperties;
+  }>();
   const [naturalAspectRatio, setNaturalAspectRatio] = useState<number>();
   const [volume, setVolume] = useState<number>();
 
@@ -31,7 +30,7 @@ export const usePlaybackProperties = <T extends PlaybackProperties>(
   }, [request]);
 
   const onPlaying = useCallback(
-    (properties: T) => {
+    (properties: PlaybackProperties) => {
       if (!request || activeRequest.current !== request) {
         return;
       }

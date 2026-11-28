@@ -10,8 +10,11 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DateTime, Duration } from 'luxon';
-import type { VideoProperties } from 'media-stream-player';
-import type { VapixParameters, StreamFormat } from './native/types';
+import type {
+  PlaybackProperties,
+  VapixParameters,
+  StreamFormat
+} from './native/types';
 import { PlayerSettings } from './PlayerSettings';
 import { CustomStyledIconButton, CustomSlider } from '../CustomComponents';
 import { darkTheme } from '../../theme';
@@ -119,7 +122,7 @@ const progressIndicatorStyle = {
 } as const;
 
 interface PlayerControlsProps {
-  readonly videoProperties?: VideoProperties;
+  readonly videoProperties?: PlaybackProperties;
   readonly startTime?: string; // 2021-02-03T12:21:57.465715Z
   readonly duration?: number;
   readonly src?: string;
@@ -251,36 +254,10 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   });
 
   /**
-   * Progress
-   *
-   * Compute progress of played and buffered amounts of media. This includes any
-   * media before the actual start of the video.
-   *
-   * The range on videoProperties specifies where we started to play (meaning,
-   * the time corresponding to currentTime = 0), and where the playback stops.
-   * To avoid having to collect extra data about the actual media length, we
-   * treat the end of the range as the end of the actual media (i.e. a simple
-   * way to establish the duration).
-   *
-   * Example:
-   *  - range = [0, undefined] => start from the beginning, unknown end
-   *  - range = [8, 19] => start from 8s into the media, stop at 19s in which
-   *    case currentTime = 0 is actually 8s. In this case the media is actually
-   *    25s long, but we cannot display that in our progress. So this system
-   *    only works correctly when playing back from any starting point till the
-   *    end of the media (i.e. no "chunks" within).
-   *
-   *    media        0 ------------------------------------------------- 25s
-   *    range                     8s ----------------------------- 19s
-   *    currentTime               0s ----------------------------- 11s
-   *    progress     0 ------------------------------------------- 19s
-   *
-   *  So we treat the start of the range as offset for total progress, and the
-   *  end of the range as total duration. That means we do not handle situations
-   *  where the duration is longer than the end of the range.
-   *
-   * When computing progress, if the duration is Infinity (live playback), we
-   * use the total buffered time as a (temporary) duration.
+   * Progress includes the part of the recording before the playback range.
+   * The timeline starts at the range start and reports elapsed seconds.
+   * If the caller does not supply a duration, the range end is treated as
+   * the end of the recording. For live video, use the buffered end instead.
    */
   const [progress, setProgress] = useState({
     playedFraction: 0,
@@ -292,18 +269,17 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
     if (videoProperties === undefined) {
       return;
     }
-    const { el, pipeline, range } = videoProperties;
-    if (el === null || pipeline === undefined) {
+    const { el, timeline } = videoProperties;
+    if (el === null || timeline === undefined) {
       return;
     }
 
-    // Extract range and update duration accordingly.
-    const [start = 0, end = duration] = range ?? [0, duration];
-    const __duration = duration ?? end ?? Infinity;
+    const start = timeline.start ?? 0;
+    const __duration = duration ?? timeline.end ?? Infinity;
     setTotalDuration(__duration);
 
     const updateProgress = () => {
-      const played = start + pipeline.currentTime;
+      const played = start + timeline.readCurrentTime();
       const buffered =
         isHTMLMediaElement(el) && el.buffered.length > 0
           ? start + el.buffered.end(el.buffered.length - 1)

@@ -5,11 +5,11 @@ import React, {
   useRef
 } from 'react';
 import { startHttpMp4Stream } from './httpMp4Stream';
-import type { VideoProperties } from 'media-stream-player';
+import type { PlaybackProperties } from './types';
 
 interface HttpMp4VideoProps {
   readonly src?: string;
-  readonly onPlaying: (properties: VideoProperties) => void;
+  readonly onPlaying: (properties: PlaybackProperties) => void;
   readonly onEnded: (retry: boolean) => void;
 }
 
@@ -41,8 +41,7 @@ export const HttpMp4Video = forwardRef<HTMLVideoElement, HttpMp4VideoProps>(
         onPlaying({
           el: video,
           width,
-          height,
-          formatSupportsAudio: true
+          height
         });
       };
 

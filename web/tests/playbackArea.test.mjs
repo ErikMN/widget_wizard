@@ -117,7 +117,8 @@ after(async () => {
 
 function mount(format) {
   const ref = React.createRef();
-  const onPlaying = () => {};
+  const reports = [];
+  const onPlaying = (properties) => reports.push(properties);
   const onEnded = () => {};
   const props = {
     ref,
@@ -139,6 +140,7 @@ function mount(format) {
     ref,
     props,
     view,
+    reports,
     rerender(changes) {
       view.rerender(React.createElement(PlaybackArea, { ...props, ...changes }));
     }
@@ -211,7 +213,7 @@ test('forwards the remaining formats and playback options to the legacy area', (
     assert.equal(legacy.play, true);
     assert.equal(legacy.offset, 5);
     assert.equal(legacy.autoRetry, true);
-    assert.equal(legacy.onPlaying, current.props.onPlaying);
+    assert.equal(typeof legacy.onPlaying, 'function');
     assert.equal(legacy.onEnded, current.props.onEnded);
   }
 
@@ -309,4 +311,53 @@ test('switches between H.264 and AV1 using the native HTTP MP4 component', () =>
     new URL(globalThis.__mp4Playback.src).searchParams.get('videocodec'),
     'h264'
   );
+});
+
+test('adapts legacy playback reports before forwarding them', () => {
+  const current = mount('RTP_H264');
+  const video = current.ref.current;
+  const pipeline = { currentTime: 2 };
+  const legacy = globalThis.__legacyPlaybackProps;
+  legacy.onPlaying({
+    el: video,
+    width: 1920,
+    height: 1080,
+    volume: 0,
+    pipeline,
+    range: [8, 19],
+    formatSupportsAudio: true
+  });
+
+  const [report] = current.reports;
+  assert.equal(report.el, video);
+  assert.equal(report.width, 1920);
+  assert.equal(report.height, 1080);
+  assert.equal(report.volume, 0);
+  assert.equal(report.timeline.start, 8);
+  assert.equal(report.timeline.end, 19);
+  assert.equal(report.timeline.readCurrentTime(), 2);
+  assert.equal('pipeline' in report, false);
+  assert.equal('formatSupportsAudio' in report, false);
+});
+
+test('native image and MP4 components report the same basic properties', () => {
+  for (const [format, width, height, event] of [
+    ['JPEG', 'naturalWidth', 'naturalHeight', 'load'],
+    ['MJPEG', 'naturalWidth', 'naturalHeight', 'load'],
+    ['MP4_H264', 'videoWidth', 'videoHeight', 'playing'],
+    ['MP4_AV1', 'videoWidth', 'videoHeight', 'playing']
+  ]) {
+    const current = mount(format);
+    const media = current.ref.current;
+    Object.defineProperties(media, {
+      [width]: { value: 1280 },
+      [height]: { value: 720 }
+    });
+
+    testing.act(() => media.dispatchEvent(new window.Event(event)));
+    assert.deepEqual(current.reports, [
+      { el: media, width: 1280, height: 720 }
+    ]);
+    current.view.unmount();
+  }
 });

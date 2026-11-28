@@ -1,9 +1,4 @@
-export interface ImageStreamProperties {
-  readonly el: HTMLImageElement;
-  readonly width: number;
-  readonly height: number;
-  readonly formatSupportsAudio: false;
-}
+import type { PlaybackProperties } from './types';
 
 /* Each start needs a fresh request, even when the stream URL is unchanged. */
 let requestId = Date.now();
@@ -11,7 +6,7 @@ let requestId = Date.now();
 export const startImageStream = (
   image: HTMLImageElement,
   src: string,
-  onPlaying: (properties: ImageStreamProperties) => void,
+  onPlaying: (properties: PlaybackProperties) => void,
   onError: () => void
 ): (() => void) => {
   let width = 0;
@@ -29,7 +24,7 @@ export const startImageStream = (
 
     width = nextWidth;
     height = nextHeight;
-    onPlaying({ el: image, width, height, formatSupportsAudio: false });
+    onPlaying({ el: image, width, height });
   };
 
   const stop = () => {

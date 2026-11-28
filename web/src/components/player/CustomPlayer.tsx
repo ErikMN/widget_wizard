@@ -12,7 +12,6 @@ import React, {
   useRef,
   useState
 } from 'react';
-import type { VideoProperties } from 'media-stream-player';
 import {
   getAvailableStreamFormats,
   getStreamFormat,
@@ -37,7 +36,6 @@ import {
 } from './native/streamResolutions';
 import { usePlaybackProperties } from './native/usePlaybackProperties';
 import { StreamStats } from './native/StreamStats';
-import { readLegacyStreamMetrics } from './native/legacyStreamStats';
 
 import {
   useSwitch,
@@ -263,12 +261,12 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       setVolume,
       onPlaying,
       onEnded
-    } = usePlaybackProperties<VideoProperties>(
+    } = usePlaybackProperties(
       play && host ? playbackRequest : undefined,
       retryEndedStream
     );
     const readMetrics = useCallback(
-      () => (videoProperties ? readLegacyStreamMetrics(videoProperties) : {}),
+      () => videoProperties?.readMetrics?.() ?? {},
       [videoProperties]
     );
 

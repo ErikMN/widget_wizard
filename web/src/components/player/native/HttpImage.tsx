@@ -4,11 +4,12 @@ import React, {
   useLayoutEffect,
   useRef
 } from 'react';
-import { startImageStream, type ImageStreamProperties } from './imageStream';
+import { startImageStream } from './imageStream';
+import type { PlaybackProperties } from './types';
 
 interface HttpImageProps {
   readonly src?: string;
-  readonly onPlaying: (properties: ImageStreamProperties) => void;
+  readonly onPlaying: (properties: PlaybackProperties) => void;
   readonly onEnded: (retry: boolean) => void;
 }
 

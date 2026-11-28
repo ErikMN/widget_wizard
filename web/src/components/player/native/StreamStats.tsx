@@ -4,8 +4,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { getStreamStats, type StreamMetrics } from './streamStats';
-import type { StreamFormat } from './types';
+import { getStreamStats } from './streamStats';
+import type { StreamFormat, StreamMetrics } from './types';
 
 const StatsWrapper = styled.div`
   position: absolute;
