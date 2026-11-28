@@ -1,151 +1,124 @@
 # Video player
 
-Widget Wizard uses the player to display live video and position widgets on the
-visible image. The streaming implementation is being moved into this directory
-so that the application can own playback, stream information and geometry.
+Widget Wizard displays live video and draws widgets over the visible image.
+The native player is replacing the archived Axis streaming libraries while
+preserving the existing player controls and overlay behavior.
 
-## Current design
+## Responsibilities
 
-`VideoPlayer` handles camera authorization, fullscreen and the overlay surface.
-`CustomPlayer` manages playback settings, playback requests and the player
-controls. `PlaybackArea.tsx` selects the playback component from the
-request and forwards the media element reference. Native HTTP image playback
-is used for JPEG and MJPEG. The Axis library still supplies MP4 and RTSP
-playback. The migration must preserve the existing UI.
+`VideoPlayer` handles authorization, fullscreen and overlay geometry.
+`CustomPlayer` owns settings, playback intent and controls.
+`PlaybackArea.tsx` selects the playback component and forwards its media ref.
+Each playback component owns its connection and cleanup.
 
-The player owns the format identifiers, native media element type and VAPIX
-parameters in `types.ts`. The identifiers stored in local storage are unchanged.
-An invalid or unsupported saved identifier falls back to the initial format
-without overwriting the saved value.
+| Format | Transport | Element | Implementation |
+| --- | --- | --- | --- |
+| `MP4_H264` | HTTP MP4 | Video | Native |
+| `RTP_H264` | RTSP over WebSocket | Video | Axis |
+| `RTP_JPEG` | RTSP over WebSocket | Canvas | Axis |
+| `MJPEG` | HTTP MJPEG | Image | Native |
+| `JPEG` | HTTP still image | Image | Native |
 
-`CustomPlayer` passes a `PlaybackRequest` to the playback area and uses
-the same request to identify current playback properties. The playback area
-converts the format to the library enum only for the remaining upstream
-components. The controls still use the library's `VideoProperties` for
-progress information until the playback interfaces are replaced.
+The format identifiers, media element types and request settings are defined
+in `types.ts`. The five original format identifiers remain compatible with
+saved settings.
 
-| Format     | Transport and codec        | Media element |
-| ---------- | -------------------------- | ------------- |
-| `MP4_H264` | HTTP MP4, H.264            | Video         |
-| `RTP_H264` | RTSP over WebSocket, H.264 | Video         |
-| `RTP_JPEG` | RTSP over WebSocket, JPEG  | Canvas        |
-| `MJPEG`    | HTTP MJPEG                 | Image         |
-| `JPEG`     | HTTP still image           | Image         |
+The RTSP components still use the Axis playback area. The library's
+`VideoProperties` type and pipeline metrics remain in use until the
+playback and statistics interfaces are replaced.
 
-## Stream URLs
+## Playback lifecycle
 
-`streamUrls.ts` builds the VAPIX request URLs for each existing format.
-It preserves supplied device parameters and selects the codec and container
-required by the format. For RTSP it also returns the WebSocket transport
-and session token URLs. An empty host returns no stream URL.
+A `PlaybackRequest` identifies the format, host, parameters, refresh
+count, playback state and RTSP seek offset. Changing the request
+invalidates previous playback properties.
+`usePlaybackProperties.ts` ignores reports from inactive or terminated
+requests and retains the last known aspect ratio while a stream starts.
 
-HTTP image playback uses this helper. MP4 and RTSP playback still use
-the library's URL construction.
+Stopping or hiding the page closes the connection. Returning to the
+page restarts playback only if the user has not pressed Stop.
+The controls distinguish a requested stream from one that has reported
+playback. Termination clears snapshots and statistics and shows the
+no-video indicator. Stop and Refresh remain available.
+
+`streamUrls.ts` constructs native VAPIX URLs and preserves supplied device
+parameters, overriding the codec and container where required.
+It also defines the RTSP and session token URLs, although the upstream
+RTSP implementation still constructs its own URLs.
+
+## HTTP images
+
+`HttpImage.tsx` and `imageStream.ts` use the browser's JPEG decoder.
+Each start uses a fresh cache-busting value.
+Load events report intrinsic dimensions only when they change.
+Stopping or an image error removes the source and listeners.
+Errors invalidate playback without automatically retrying.
+
+## HTTP MP4
+
+`HttpMp4Video.tsx` owns the video element and reports its dimensions on
+playback and resize. `httpMp4Stream.ts` owns the
+HTTP request and MediaSource. The browser parses and decodes the
+fragmented MP4 data using the response MIME type.
+
+Each buffer append or removal completes before another begins.
+The helper retains about ten seconds of played media and pauses reading
+when more than ten seconds are buffered ahead of the playhead.
+Old data is removed in intervals of at least one second.
+If an append exceeds the buffer quota, older played media is reclaimed
+while retaining five seconds behind the playhead, and the append is
+retried once. These limits are not a guarantee of fixed memory use.
+
+Stopping aborts the request and pending operations, detaches the source
+and revokes the object URL. Stream completion and read failures notify
+the existing retry policy. Invalid responses, unsupported media types,
+decoding errors and unrecoverable buffer errors require manual refresh.
+
+MP4 playback remains muted as in the original player. MP4 volume controls
+and additional stream measurements are not yet implemented.
 
 See [VAPIX media streaming over HTTP](https://developer.axis.com/vapix/network-video/media-stream-over-http/)
-and the [upstream playback component](https://github.com/AxisCommunications/media-stream-library-js/blob/main/src/player/PlaybackArea.tsx)
-for the existing endpoints and parameter behavior.
+and [SourceBuffer](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
 
-## HTTP image playback
+## Client stream information
 
-`HttpImage.tsx` uses an image element for both JPEG and MJPEG. It passes
-the actual element to the parent through a React ref and uses
-`imageStream.ts` to manage each request.
+`StreamStats.tsx` owns the panel and samples metrics once per second while
+expanded. `streamStats.ts` formats the available measurements.
+`legacyStreamStats.ts` reads video track metrics from the Axis pipelines.
+HTTP formats show basic stream information; missing measurements are not
+estimated.
 
-Each request has a fresh cache-busting value, even when restarting an
-unchanged URL. A load event reports the intrinsic dimensions once they are
-available, and subsequent load events report only changes in dimensions.
-Stopping playback or replacing the image removes its source and listener.
-A new URL uses a new element, so events from the previous request cannot
-report dimensions for the new stream.
-
-`usePlaybackProperties.ts` associates stream properties with the active
-request. Screenshots, statistics and volume controls only use reports from
-the current request. The last known aspect ratio remains available while
-waiting for the next stream, so the video area retains its previous layout.
-The remaining upstream playback area is also keyed by the request settings
-so callbacks from replaced components retain their original request identity.
-Termination callbacks from inactive requests are ignored by the same request
-check used for playback reports.
-
-HTTP image errors do not use the RTSP retry path. The browser remains
-responsible for decoding multipart MJPEG; per-frame statistics are not
-introduced in this step.
-
-## Client stream data
-
-`StreamStats.tsx` owns the statistics panel and preserves the layout of
-the installed Axis player release. `streamStats.ts` formats the current
-resolution, refresh count, volume and available stream metrics. The
-panel samples metrics once per second while expanded and stops sampling
-when hidden or unmounted.
-
-`legacyStreamStats.ts` is the temporary adapter for the remaining Axis
-pipeline metrics. It reports the video track encoding, frame rate and
-bitrate when available. JPEG, MJPEG and the existing HTTP MP4 playback
-continue to display the basic stream information when no metrics are
-provided. Native transports can provide their own metrics without
-changing the panel. Missing measurements are not replaced with estimates.
-
-Panel styling and icon are adapted from
+The panel styling and icon are adapted from
 [media-stream-player v13.3.3](https://github.com/AxisCommunications/media-stream-library-js/blob/v13.3.3/player/src/Stats.tsx).
-The original MIT notice is included in the root `LICENSE` and in
-`web/public/LICENSE.axis.txt`. Vite copies the public notice into the web
-build so it also accompanies web-only deployments.
+The upstream MIT notice is retained in the root `LICENSE` and
+`web/public/LICENSE.axis.txt`, which Vite copies into web builds.
 
-## Dimensions
+## Overlay geometry
 
-The `Dimensions` interface describes two coordinate spaces: the intrinsic
-stream resolution and the visible image rectangle in CSS pixels relative to
-the outer player container. Widget overlays use the latter rectangle, excluding
-black bars around centered video.
+`Dimensions` describes the intrinsic stream resolution and the visible
+image rectangle in CSS pixels relative to the outer player container.
+Overlays use the visible rectangle, excluding any black bars.
 
-`videoDimensions.ts` calculates this rectangle without reading the DOM.
-`VideoPlayer` owns the media element reference. `videoDimensionObserver.ts`
-observes the current element and container, replacing observers and listeners
-when the playback area changes the element. Video resize and image load events,
-and changes to canvas dimensions, also trigger measurements.
+`videoDimensions.ts` calculates the rectangle without reading the DOM.
+`videoDimensionObserver.ts` observes the current media element and container,
+including intrinsic size changes, and disconnects when either is replaced.
+`CustomPlayer` notifies the parent after layout changes, including when the
+limiter changes the image position without changing its size.
+The media ref remains an object ref because the upstream player invokes
+callback refs during render.
 
-`CustomPlayer` notifies `VideoPlayer` after committing stream changes, rather
-than reading the element before React updates it. The library currently calls
-forwarded callback refs during render, so the existing object ref is retained.
-Playback properties, fullscreen and client statistics layout changes trigger
-measurements after React commits the updated layout. The limiter also triggers
-a measurement after resizing the video area, including when the video moves
-without changing its own dimensions. No fixed animation frame delay is needed.
+## Verification
 
-## Regression checks
+Run `yarn test`, `yarn lint` and `yarn build` in the `web` directory.
+On physical cameras, check:
 
-Run `yarn test`, `yarn lint` and `yarn build` from the `web` directory.
-The geometry tests cover aspect ratios, container offsets, zero dimensions
-and the existing subpixel tolerance. Observer tests cover element replacement,
-intrinsic dimension events and cleanup. Format tests cover the saved identifiers
-and fallback for invalid values. URL tests cover all existing formats, encoding,
-secure connections, custom ports and missing hosts. Image request tests cover
-load events, dimension changes, cleanup and restarting the same URL.
-Playback property tests cover replacement, late playback and termination
-callbacks, and retaining the aspect ratio during reconnection. Statistics tests cover format labels,
-units, missing measurements and video track selection. Playback area tests
-cover format selection, ref forwarding, request replacement and cleanup.
+- Play, Stop, Refresh, all formats, camera, resolution and FPS changes.
+- Visibility changes, stream interruption and manual recovery after errors.
+- Saved settings on reload.
+- Audio, snapshots, statistics and widget alignment during resize and fullscreen.
+- Long-running playback, memory use and latency on supported browsers.
 
-Before replacing a playback implementation, verify it on a supported camera:
-
-- Play, stop, refresh, switch formats and change camera, resolution and FPS.
-- Hide and restore the browser tab during playback and after pressing Stop.
-- Check recovery after stream interruption where retry is supported.
-- Check audio controls for streams with audio, screenshots and the client
-  stream information in both expanded and collapsed states.
-- Check widget alignment during resolution changes, fullscreen, resizing and
-  when expanding, collapsing or hiding the client stream information.
-- Check saved format and stream settings after reloading the page.
-
-Automated tests cannot establish device compatibility or playback latency.
-Those require real camera and browser testing.
-
-## Upstream reference
-
-The archived [Axis media stream library](https://github.com/AxisCommunications/media-stream-library-js)
-is the reference for the existing transport and playback behavior.
-Any upstream code brought into this directory must retain its MIT license and
-copyright notice. Replace the existing dependencies only after all current
-formats are supported and tested.
+The archived [Axis v13.3.3 source](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3)
+is the reference for remaining RTSP behavior. Retain upstream copyright
+and MIT notices when adapting code. Remove the two streaming dependencies
+only after all original formats have been replaced and tested.

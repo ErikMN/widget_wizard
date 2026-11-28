@@ -160,3 +160,53 @@ test('only forwards termination callbacks from the active request', () => {
   testing.act(() => restartedEnded());
   assert.equal(ended, 3);
 });
+
+test('clears playback properties on termination without retrying fatal errors', () => {
+  let retries = 0;
+  const { result, rerender } = testing.renderHook(
+    (request) => usePlaybackProperties(request, () => retries++),
+    { initialProps: {} }
+  );
+  const properties = { width: 1920, height: 1080, volume: 0.5 };
+
+  assert.equal(result.current.waiting, true);
+  assert.equal(result.current.ended, false);
+  testing.act(() => result.current.onPlaying(properties));
+  assert.equal(result.current.waiting, false);
+  assert.equal(result.current.ended, false);
+
+  const reportPlaying = result.current.onPlaying;
+  const reportEnded = result.current.onEnded;
+  testing.act(() => reportEnded(false));
+  assert.equal(result.current.videoProperties, undefined);
+  assert.equal(result.current.volume, undefined);
+  assert.equal(result.current.waiting, false);
+  assert.equal(result.current.ended, true);
+  assert.equal(result.current.naturalAspectRatio, 1920 / 1080);
+  assert.equal(retries, 0);
+
+  testing.act(() => {
+    reportPlaying(properties);
+    reportEnded();
+  });
+  assert.equal(result.current.videoProperties, undefined);
+  assert.equal(retries, 0);
+
+  rerender({});
+  assert.equal(result.current.waiting, true);
+  assert.equal(result.current.ended, false);
+  testing.act(() => result.current.onPlaying(properties));
+  const endCurrent = result.current.onEnded;
+  testing.act(() => {
+    endCurrent(true);
+    endCurrent(true);
+  });
+  assert.equal(result.current.videoProperties, undefined);
+  assert.equal(result.current.waiting, false);
+  assert.equal(result.current.ended, true);
+  assert.equal(retries, 1);
+
+  rerender(undefined);
+  assert.equal(result.current.waiting, false);
+  assert.equal(result.current.ended, false);
+});

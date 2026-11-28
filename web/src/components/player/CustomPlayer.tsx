@@ -219,14 +219,17 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
         play,
         format,
         refresh,
+        offset,
         host,
         secure,
         parameters: vapixParameters
       }),
-      [play, format, refresh, host, secure, vapixParameters]
+      [play, format, refresh, offset, host, secure, vapixParameters]
     );
     const {
       videoProperties,
+      waiting,
+      ended,
       naturalAspectRatio,
       volume,
       setVolume,
@@ -236,7 +239,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
       play && host ? playbackRequest : undefined,
       retryEndedStream
     );
-    const waiting = !!host && play && videoProperties === undefined;
     const readMetrics = useCallback(
       () => (videoProperties ? readLegacyStreamMetrics(videoProperties) : {}),
       [videoProperties]
@@ -420,7 +422,6 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                 <PlaybackArea
                   ref={ref}
                   request={playbackRequest}
-                  offset={offset}
                   onPlaying={onPlaying}
                   onEnded={onEnded}
                   autoRetry={autoRetry}
@@ -437,13 +438,12 @@ export const CustomPlayer = forwardRef<PlayerNativeElement, CustomPlayerProps>(
                 <Feedback waiting={!!host && play && waiting} />
               </Layer>
               {/* No video indicator */}
-              <Layer>{!host && <NoVideoIndicator />}</Layer>
+              <Layer>{(!host || ended) && <NoVideoIndicator />}</Layer>
             </Container>
           </Limiter>
         </SystemStatsOverlay>
         <div style={{ position: 'relative', zIndex: 10 }}>
           <PlayerControls
-            play={play}
             videoProperties={videoProperties}
             src={host}
             parameters={vapixParameters}

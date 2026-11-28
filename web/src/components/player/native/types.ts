@@ -24,6 +24,7 @@ export interface PlaybackRequest {
   readonly format: StreamFormat;
   readonly parameters: VapixParameters;
   readonly refresh: number;
+  readonly offset: number;
   readonly secure?: boolean;
 }
 

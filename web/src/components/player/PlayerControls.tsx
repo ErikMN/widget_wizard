@@ -119,7 +119,6 @@ const progressIndicatorStyle = {
 } as const;
 
 interface PlayerControlsProps {
-  readonly play?: boolean;
   readonly videoProperties?: VideoProperties;
   readonly startTime?: string; // 2021-02-03T12:21:57.465715Z
   readonly duration?: number;
@@ -153,7 +152,6 @@ interface PlayerControlsProps {
 }
 
 export const PlayerControls: React.FC<PlayerControlsProps> = ({
-  play,
   videoProperties,
   duration,
   startTime,
@@ -388,12 +386,13 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
     };
   }, [startTime, totalDuration]);
 
-  const isPlaying = !!src;
+  const hasRequest = !!src;
+  const isPlaying = videoProperties !== undefined;
 
   return (
     <div style={{ ...controlAreaStyle, ...hiddenStyle }} ref={controlArea}>
       <div style={controlBarStyle}>
-        {isPlaying ? (
+        {hasRequest ? (
           <Tooltip title={labels?.stop} arrow placement="top">
             <CustomStyledIconButton
               color="inherit"
@@ -433,15 +432,18 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         )}
         {src && (
           <Tooltip title={labels?.screenshot} arrow placement="top">
-            <CustomStyledIconButton
-              color="inherit"
-              aria-label={labels?.screenshot}
-              onClick={onScreenshot}
-              edge="end"
-              sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
-            >
-              <CameraAltOutlinedIcon sx={controlIconStyle} />
-            </CustomStyledIconButton>
+            <span style={{ display: 'inline-flex' }}>
+              <CustomStyledIconButton
+                color="inherit"
+                aria-label={labels?.screenshot}
+                onClick={onScreenshot}
+                disabled={!isPlaying}
+                edge="end"
+                sx={{ marginRight: '0px', color: darkTheme.palette.text.primary }}
+              >
+                <CameraAltOutlinedIcon sx={controlIconStyle} />
+              </CustomStyledIconButton>
+            </span>
           </Tooltip>
         )}
         {volume !== undefined && (
@@ -494,16 +496,16 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
                 <FiberManualRecordIcon
                   fontSize="small"
                   style={{
-                    color: isPlaying ? 'red' : 'gray',
+                    color: isPlaying || waiting ? 'red' : 'gray',
                     verticalAlign: 'middle',
                     marginRight: 4,
                     animation:
-                      isPlaying && waiting ? 'blink 0.8s infinite' : 'none'
+                      waiting ? 'blink 0.8s infinite' : 'none'
                   }}
                 />
                 <span
                   style={{
-                    color: play ? 'rgb(240, 180, 0)' : 'gray',
+                    color: isPlaying ? 'rgb(240, 180, 0)' : 'gray',
                     position: 'relative',
                     top: '2px'
                   }}
@@ -513,7 +515,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
               </>
             ) : (
               /* Show time counter only for non-live, non-JPEG streams */
-              progress.counter
+              isPlaying ? progress.counter : ''
             )}
           </div>
         </div>

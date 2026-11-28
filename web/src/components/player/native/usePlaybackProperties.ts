@@ -14,7 +14,7 @@ export const usePlaybackProperties = <T extends PlaybackProperties>(
   onStreamEnded?: () => void
 ) => {
   const activeRequest = useRef<object | undefined>(undefined);
-  const [report, setReport] = useState<{ request: object; properties: T }>();
+  const [report, setReport] = useState<{ request: object; properties?: T }>();
   const [naturalAspectRatio, setNaturalAspectRatio] = useState<number>();
   const [volume, setVolume] = useState<number>();
 
@@ -45,19 +45,30 @@ export const usePlaybackProperties = <T extends PlaybackProperties>(
     [request]
   );
 
-  const onEnded = useCallback(() => {
-    if (!request || activeRequest.current !== request) {
-      return;
-    }
+  const onEnded = useCallback(
+    (retry = true) => {
+      if (!request || activeRequest.current !== request) {
+        return;
+      }
 
-    onStreamEnded?.();
-  }, [request, onStreamEnded]);
+      activeRequest.current = undefined;
+      setReport({ request });
+      setVolume(undefined);
+      if (retry) {
+        onStreamEnded?.();
+      }
+    },
+    [request, onStreamEnded]
+  );
 
   const videoProperties =
     report?.request === request ? report?.properties : undefined;
 
   return {
     videoProperties,
+    waiting: request !== undefined && report?.request !== request,
+    ended:
+      request !== undefined && report?.request === request && !videoProperties,
     naturalAspectRatio,
     volume: videoProperties?.volume === undefined ? undefined : volume,
     setVolume,

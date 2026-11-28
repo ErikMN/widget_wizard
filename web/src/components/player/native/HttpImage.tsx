@@ -9,11 +9,12 @@ import { startImageStream, type ImageStreamProperties } from './imageStream';
 interface HttpImageProps {
   readonly src?: string;
   readonly onPlaying: (properties: ImageStreamProperties) => void;
+  readonly onEnded: (retry: boolean) => void;
 }
 
 /* Both still JPEG and motion JPEG use the browser's image decoder. */
 export const HttpImage = forwardRef<HTMLImageElement, HttpImageProps>(
-  ({ src, onPlaying }, ref) => {
+  ({ src, onPlaying, onEnded }, ref) => {
     const imageRef = useRef<HTMLImageElement>(null);
     useImperativeHandle(ref, () => imageRef.current!, []);
 
@@ -23,8 +24,8 @@ export const HttpImage = forwardRef<HTMLImageElement, HttpImageProps>(
         return;
       }
 
-      return startImageStream(image, src, onPlaying);
-    }, [src, onPlaying]);
+      return startImageStream(image, src, onPlaying, () => onEnded(false));
+    }, [src, onPlaying, onEnded]);
 
     return (
       <img

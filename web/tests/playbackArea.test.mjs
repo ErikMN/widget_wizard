@@ -13,7 +13,6 @@ const legacyModule = `
 import React from 'react';
 
 export const Format = {
-  MP4_H264: 'MP4_H264',
   RTP_H264: 'RTP_H264',
   RTP_JPEG: 'RTP_JPEG'
 };
@@ -22,6 +21,14 @@ export const PlaybackArea = (props) => {
   globalThis.__legacyPlaybackProps = props;
   const tag = props.format === Format.RTP_JPEG ? 'canvas' : 'video';
   return React.createElement(tag, { ref: props.forwardedRef });
+};
+`;
+
+const mp4Module = `
+export const startHttpMp4Stream = (video, src, onEnded) => {
+  const stream = { video, src, onEnded, stopped: false };
+  globalThis.__mp4Playback = stream;
+  return () => { stream.stopped = true; };
 };
 `;
 
@@ -61,10 +68,16 @@ before(async () => {
           if (id === 'media-stream-player') {
             return '\0playback-area-test:legacy';
           }
+          if (id === './httpMp4Stream') {
+            return '\0playback-area-test:mp4';
+          }
         },
         load(id) {
           if (id === '\0playback-area-test:legacy') {
             return legacyModule;
+          }
+          if (id === '\0playback-area-test:mp4') {
+            return mp4Module;
           }
         }
       }
@@ -80,6 +93,7 @@ before(async () => {
 afterEach(() => {
   testing?.cleanup();
   delete globalThis.__legacyPlaybackProps;
+  delete globalThis.__mp4Playback;
 });
 
 after(async () => {
@@ -112,9 +126,9 @@ function mount(format) {
       host: 'camera',
       format,
       parameters: { camera: '2' },
-      refresh: 0
+      refresh: 0,
+      offset: 5
     },
-    offset: 5,
     autoRetry: true,
     onPlaying,
     onEnded
@@ -177,10 +191,9 @@ test('replaces refreshed images and releases the source when stopped', () => {
 });
 
 test('forwards the remaining formats and playback options to the legacy area', () => {
-  const current = mount('MP4_H264');
+  const current = mount('RTP_H264');
 
   for (const [format, tag] of [
-    ['MP4_H264', 'VIDEO'],
     ['RTP_H264', 'VIDEO'],
     ['RTP_JPEG', 'CANVAS']
   ]) {
@@ -224,4 +237,54 @@ test('keeps the media reference current when switching between implementations',
   });
   assert.equal(image.hasAttribute('src'), false);
   assert.equal(current.ref.current.tagName, 'CANVAS');
+});
+
+test('selects native HTTP MP4 playback and cleans up replaced requests', () => {
+  const current = mount('MP4_H264');
+  const first = globalThis.__mp4Playback;
+  assert.equal(current.ref.current, first.video);
+  assert.equal(first.video.tagName, 'VIDEO');
+  assert.equal(first.onEnded, current.props.onEnded);
+  const url = new URL(first.src);
+  assert.equal(url.pathname, '/axis-cgi/media.cgi');
+  assert.equal(url.searchParams.get('videocodec'), 'h264');
+  assert.equal(url.searchParams.get('container'), 'mp4');
+  assert.equal(globalThis.__legacyPlaybackProps, undefined);
+
+  current.rerender({
+    request: { ...current.props.request, refresh: 1 }
+  });
+  const next = globalThis.__mp4Playback;
+  assert.equal(first.stopped, true);
+  assert.notEqual(first.video, next.video);
+  assert.equal(current.ref.current, next.video);
+
+  current.rerender({
+    request: { ...current.props.request, format: 'RTP_H264' }
+  });
+  assert.equal(next.stopped, true);
+  assert.equal(current.ref.current.tagName, 'VIDEO');
+  assert.equal(globalThis.__legacyPlaybackProps.format, 'RTP_H264');
+});
+
+test('replaces the legacy RTSP component when seeking', () => {
+  const current = mount('RTP_H264');
+  const previous = current.ref.current;
+  current.rerender({
+    request: { ...current.props.request, offset: 10 }
+  });
+  assert.notEqual(current.ref.current, previous);
+  assert.equal(globalThis.__legacyPlaybackProps.offset, 10);
+});
+
+test('reports a native image failure without requesting a retry', () => {
+  const current = mount('MJPEG');
+  const reports = [];
+  current.rerender({ onEnded: (retry) => reports.push(retry) });
+  const image = current.ref.current;
+
+  testing.act(() => image.dispatchEvent(new window.Event('error')));
+  testing.act(() => image.dispatchEvent(new window.Event('error')));
+  assert.equal(image.hasAttribute('src'), false);
+  assert.deepEqual(reports, [false]);
 });
