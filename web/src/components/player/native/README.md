@@ -192,23 +192,19 @@ not RTSP protocol limits.
 
 Interlaced fields are not combined into full frames.
 
-The H.264 assembler in `rtsp/h264/h264AccessUnit.ts` collects NAL units
-from single, aggregated and fragmented RTP packets in transmission order.
-It supports packetization modes zero and one, using the marker bit to
-complete an access unit. Missing packets or malformed fragments discard
-the affected unit and flag a discontinuity on the next output. Parameter
-sets and other non-picture NAL units are preserved for decoder setup.
-Incomplete units have byte, packet and NAL count limits.
+The H.264 depacketizer in `rtsp/h264/h264Depacketizer.ts` collects NAL
+units from single, aggregated and fragmented RTP packets in transmission
+order. It supports packetization modes zero and one. A marker, timestamp
+change or end of sequence or stream releases a batch of NAL units, not
+necessarily a complete picture.
+Missing packets or malformed fragments discard the affected batch and flag
+a discontinuity on the next output. Retained batches have byte, packet
+and NAL count limits.
 The implementation follows [RFC 6184](https://www.rfc-editor.org/rfc/rfc6184.html)
 and references the [Axis H.264 depayloader](https://github.com/AxisCommunications/media-stream-library-js/tree/v13.3.3/streams/src/components/h264depay).
 Empty fragments are allowed, but complete NAL units need payload data
 except for the end of sequence and end of stream markers defined in
 [H.264](https://www.itu.int/rec/T-REC-H.264/en).
-The assembler currently requires a marker to emit a picture; a timestamp
-change without a marker discards the previous unit. An IDR flag only
-indicates that an IDR slice was received, not that the picture is complete.
-Before enabling native H.264 playback, bitstream parsing must handle missing
-markers and decoder recovery must account for starting within a picture.
 The H.264 parameter set helpers read the SPS fields for codec identification,
 cropped picture dimensions and slice header parsing. The SPS reference
 frame count is bounded to 16. The PPS parser reads mandatory syntax,
@@ -228,13 +224,30 @@ RBSP bytes of a slice. It supports ordinary AVC slice headers and data
 partition A, including picture order counts, field coding and colour planes.
 The primary picture comparison follows H.264 section 7.4.1.2.4 rather
 than using the first macroblock address as a picture boundary.
-The caller must handle parameter set changes and redundant slices.
-Picture identification alone does not prove that a complete picture arrived.
+`h264AccessUnit.ts` uses these headers and the NAL ordering rules in
+H.264 sections 7.4.1.2.3 and 7.4.1.2.4 to assemble pictures in decoding
+order. A following picture or non-picture boundary completes the pending
+picture, independent of RTP markers. With missing markers the depacketizer
+may delay delivery by another timestamp. End of sequence and end of stream
+NAL units with the picture timestamp release the final picture without a
+marker. A clean transport completion without such a boundary still needs
+explicit handling during playback integration.
+
+After startup, loss or configuration change, the assembler waits for an
+IDR with an observed start boundary and macroblock zero. This rejects
+pictures that start before reception without claiming to validate coded
+macroblocks. It retains the last successfully parsed parameter sets for
+the same source after ordinary packet loss and resets them to SDP on source
+change. If parsing an SPS or PPS update fails, it invalidates all sets of
+that type because the identifier may be unreliable. Recovery then requires
+a valid replacement of the referenced set. An entirely lost in-band
+update cannot be detected from slice headers alone (RFC 6184 section 8.4).
+Picture storage remains bounded across batches. Data partitioning,
+redundant slices and extended AVC NAL types are not supported by assembly.
 
 VUI, optional PPS extensions, level-dependent SPS limits and the remaining
 slice header and slice data are not yet interpreted or validated.
-Using the new helpers for access unit boundaries and decoder recovery,
-then generating MP4 data, remain separate tasks.
+MP4 generation and browser decoder integration remain separate tasks.
 
 Multiple selected tracks require session-wide control. RTSP command
 authentication, separate sessions for individual tracks and general RTSP

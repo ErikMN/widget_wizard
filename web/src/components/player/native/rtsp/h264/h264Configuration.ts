@@ -96,5 +96,16 @@ export const createH264ParameterSetStore = (format: H264Format) => {
     return { sps, pps };
   };
 
-  return { update, resolve };
+  /* A rejected update may have replaced any identifier of this type.
+   * Keep the other type, but require fresh bytes for the affected sets.
+   */
+  const invalidate = (type: 7 | 8) => {
+    if (type === 7) {
+      sequenceSets.clear();
+    } else {
+      pictureSets.clear();
+    }
+  };
+
+  return { update, resolve, invalidate };
 };
